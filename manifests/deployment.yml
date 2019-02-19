@@ -40,3 +40,14 @@ spec:
           name: http
         - containerPort: 5672
           name: amqp
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/rabbitmq/enabled_plugins
+          subPath: enabled_plugins
+      volumes:
+      - name: config-volume
+        configMap:
+          name: rabbitmq
+          items:
+          - key: enabled_plugins
+            path: enabled_plugins

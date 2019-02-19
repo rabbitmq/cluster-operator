@@ -1,0 +1,12 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq
+  namespace: rabbitmq
+  labels:
+    app: rabbitmq
+data:
+  # If you edit the list of enabled plugins, you need to delete the pod for this change to take effect
+  enabled_plugins: |-
+    [rabbitmq_management, rabbitmq_shovel, rabbitmq_shovel_management].
