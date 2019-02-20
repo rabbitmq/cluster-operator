@@ -22,7 +22,7 @@ spec:
         # https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes
         livenessProbe:
           initialDelaySeconds: 10
-          periodSeconds: 30
+          periodSeconds: 10
           exec:
             command:
               - "rabbitmq-diagnostics"
@@ -30,7 +30,7 @@ spec:
         # https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#when-should-you-use-liveness-or-readiness-probes
         readinessProbe:
           initialDelaySeconds: 10
-          periodSeconds: 30
+          periodSeconds: 10
           exec:
             command:
               - "rabbitmq-diagnostics"
