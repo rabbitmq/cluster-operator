@@ -1,0 +1,91 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  namespace: rabbitmq
+  name: rabbitmq
+  labels:
+    app: rabbitmq
+spec:
+  serviceName: rabbitmq-headless
+  selector:
+    matchLabels:
+      app: rabbitmq
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      serviceAccountName: rabbitmq
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.8-rc-management
+          imagePullPolicy: Always
+          # https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes
+          livenessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            exec:
+              command:
+                - "rabbitmq-diagnostics"
+                - "ping"
+          # https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#when-should-you-use-liveness-or-readiness-probes
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            exec:
+              command:
+                - "rabbitmq-diagnostics"
+                - "check_running"
+          ports:
+            - name: epmd
+              containerPort: 4369
+            - name: amqp
+              containerPort: 5672
+            - name: dist
+              containerPort: 25672
+            - name: http
+              containerPort: 15672
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/rabbitmq/rabbitmq.conf
+              subPath: rabbitmq.conf
+              readOnly: true
+            - name: config-volume
+              mountPath: /etc/rabbitmq/enabled_plugins
+              subPath: enabled_plugins
+              readOnly: true
+          env:
+            - name: RABBITMQ_ERLANG_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: erlang-cookie
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_SERVICE_NAME
+              value: "rabbitmq-headless"
+            - name: K8S_ADDRESS_TYPE
+              value: "hostname"
+            - name: RABBITMQ_NODENAME
+              value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local"
+            - name: K8S_HOSTNAME_SUFFIX
+              value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local"
+            - name: RABBITMQ_USE_LONGNAME
+              value: "true"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: rabbitmq
+            items:
+              - key: enabled_plugins
+                path: enabled_plugins
+              - key: rabbitmq.conf
+                path: rabbitmq.conf
+  volumeClaimTemplates: []
