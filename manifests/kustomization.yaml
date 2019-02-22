@@ -1,0 +1,30 @@
+namePrefix: instance0-
+namespace: rabbitmq
+commonLabels:
+  instance: instance0
+resources:
+  - statefulset.yml
+  - service.yml
+  - service-headless.yml
+  - configmap.yml
+  - rbac.yml
+
+secretGenerator:
+  - name: rabbitmq
+    literals:
+      # Generate using `printf "%s" "$(pwgen 20 1)" | base64`
+      # format is:
+      # - erlang-cookie=base64cookie
+      - erlang-cookie=
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+vars:
+  - name: SERVICE_HEADLESS
+    objref:
+      kind: Service
+      name: rabbitmq-headless
+      apiVersion: v1
+    fieldref:
+      fieldpath: metadata.name

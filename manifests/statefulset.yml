@@ -70,7 +70,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: K8S_SERVICE_NAME
-              value: "rabbitmq-headless"
+              value: $(SERVICE_HEADLESS)
             - name: K8S_ADDRESS_TYPE
               value: "hostname"
             - name: RABBITMQ_NODENAME
