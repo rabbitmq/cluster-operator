@@ -16,8 +16,14 @@ spec:
         app: perf-test
     spec:
       containers:
-      - image: pivotalrabbitmq/perf-test
-        imagePullPolicy: Always
-        name: perf-test
-        # The URL structure is described here: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#a-records
-        args: ["--uri", "amqp://rabbitmq.rabbitmq.svc.cluster.local", "--rate", "1"]
+        - image: pivotalrabbitmq/perf-test
+          imagePullPolicy: Always
+          name: perf-test
+          # The URL structure is described here: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#a-records
+          args:
+            [
+              "--uri",
+              "amqp://username:password@rabbitmq.rabbitmq.svc.cluster.local",
+              "--rate",
+              "1",
+            ]
