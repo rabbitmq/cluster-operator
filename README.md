@@ -30,7 +30,8 @@ export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
 ## How to deploy
 1. Edit `manifests/kustomization.yaml` - set `namePrefix` and `commonLabels` and/or `namespace` `erlang-cookie`
 2. Generate and set the `erlang-cookie`
-3. Run `kustomize build` to generate the manifest. You can send it directly to `kubectl` like this:
+3. Go to the `manifests` folder
+4. Run `kustomize build` to generate the manifest. You can send it directly to `kubectl` like this:
 ```
 $ kustomize build | kubectl apply -f -`
 ```
