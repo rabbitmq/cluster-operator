@@ -29,9 +29,13 @@ export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
 
 ## How to deploy
 1. Go to the `manifests` folder
-2. Edit `kustomization.yaml` - set `namePrefix` and `commonLabels` and/or `namespace` `erlang-cookie`
-3. Generate and set the `erlang-cookie`
-4. Run `kustomize build` to generate the manifest. You can send it directly to `kubectl` like this:
+2. Set the current namespace to the namespace you are deploying to, for example:
+```
+kubectl config set-context $(kubectl config current-context) --namespace=rabbitmq
+```
+3. Edit `kustomization.yaml` - set `namePrefix` and `commonLabels` and/or `namespace` `erlang-cookie`
+4. Generate and set the `erlang-cookie`
+5. Run `kustomize build` to generate the manifest. You can send it directly to `kubectl` like this:
 ```
 kustomize build | kubectl apply -f -
 ```
