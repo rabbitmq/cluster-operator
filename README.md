@@ -45,3 +45,12 @@ If this fails with a `forbidden: attempt to grant extra privileges` error, you n
 kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user USERNAME@pivotal.io
 ```
 More information about [Role Based Access](https://cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control).
+
+## How to push the docker image
+
+1. `export IMG=eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-controller`
+2. `gcloud auth configure-docker`
+3. `make docker-build`
+4. `make docker-push`
+5. To deploy, run `make deploy`
+
