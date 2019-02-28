@@ -18,7 +18,6 @@ package rabbitmqcluster
 
 import (
 	"context"
-	"reflect"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -155,13 +154,13 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 
 	// TODO(user): Change this for the object type created by your controller
 	// Update the found object and write the result back if there are any changes
-	if !reflect.DeepEqual(deploy.Spec, found.Spec) {
-		found.Spec = deploy.Spec
-		log.Info("Updating Deployment", "namespace", deploy.Namespace, "name", deploy.Name)
-		err = r.Update(context.TODO(), found)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	}
+	// if !reflect.DeepEqual(deploy.Spec, found.Spec) {
+	// 	found.Spec = deploy.Spec
+	// 	log.Info("Updating Deployment", "namespace", deploy.Namespace, "name", deploy.Name)
+	// 	err = r.Update(context.TODO(), found)
+	// 	if err != nil {
+	// 		return reconcile.Result{}, err
+	// 	}
+	// }
 	return reconcile.Result{}, nil
 }
