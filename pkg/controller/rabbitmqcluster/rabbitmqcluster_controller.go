@@ -20,10 +20,10 @@ import (
 	"context"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/helpers"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -114,42 +114,60 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 
 	// TODO(user): Change this to be the object type created by your controller
 	// Define the desired Deployment object
-	deploy := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + "-deployment",
-			Namespace: instance.Namespace,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"deployment": instance.Name + "-deployment"},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"deployment": instance.Name + "-deployment"}},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "nginx",
-							Image: "nginx",
-						},
-					},
-				},
-			},
-		},
-	}
-	if err := controllerutil.SetControllerReference(instance, deploy, r.scheme); err != nil {
+	// deploy := &appsv1.Deployment{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name:      instance.Name + "-deployment",
+	// 		Namespace: instance.Namespace,
+	// 	},
+	// 	Spec: appsv1.DeploymentSpec{
+	// 		Selector: &metav1.LabelSelector{
+	// 			MatchLabels: map[string]string{"deployment": instance.Name + "-deployment"},
+	// 		},
+	// 		Template: corev1.PodTemplateSpec{
+	// 			ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"deployment": instance.Name + "-deployment"}},
+	// 			Spec: corev1.PodSpec{
+	// 				Containers: []corev1.Container{
+	// 					{
+	// 						Name:  "nginx",
+	// 						Image: "nginx",
+	// 					},
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+	// }
+	// fmt.Println("CHECKING WORKING DIRECTORY")
+	// dir, err := os.Getwd()
+	// if err != nil {
+	// 	return reconcile.Result{}, err
+	// }
+	// fmt.Println(dir)
+	resourcesYml, err := helpers.Build("./templates", instance.Name, instance.Namespace)
+	if err != nil {
 		return reconcile.Result{}, err
 	}
+	resources, decodeError := helpers.Decode(resourcesYml)
+	if decodeError != nil {
+		return reconcile.Result{}, decodeError
+	}
+	for _, resource := range resources {
+		if err := controllerutil.SetControllerReference(instance, resource[0].(v1.Object), r.scheme); err != nil {
+			return reconcile.Result{}, err
+		}
 
-	// TODO(user): Change this for the object type created by your controller
-	// Check if the Deployment already exists
-	found := &appsv1.Deployment{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: deploy.Name, Namespace: deploy.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating Deployment", "namespace", deploy.Namespace, "name", deploy.Name)
-		err = r.Create(context.TODO(), deploy)
-		return reconcile.Result{}, err
-	} else if err != nil {
-		return reconcile.Result{}, err
+		// TODO(user): Change this for the object type created by your controller
+		// Check if the Deployment already exists
+		found := resource[1]
+		err = r.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, found)
+		if err != nil && errors.IsNotFound(err) {
+			log.Info("Creating Deployment", "namespace", instance.Namespace, "name", instance.Name)
+			err = r.Create(context.TODO(), resource[0])
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+		} else if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// TODO(user): Change this for the object type created by your controller
