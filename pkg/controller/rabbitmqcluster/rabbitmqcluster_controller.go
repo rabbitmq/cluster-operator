@@ -21,7 +21,8 @@ import (
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/helpers"
-	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/api/apps/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,11 +38,6 @@ import (
 )
 
 var log = logf.Log.WithName("controller")
-
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
 
 // Add creates a new RabbitmqCluster Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -68,15 +64,28 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create
-	// Uncomment watch a Deployment created by RabbitmqCluster - change this for objects you create
-	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &rabbitmqv1beta1.RabbitmqCluster{},
 	})
 	if err != nil {
 		return err
 	}
+
+	err = c.Watch(&source.Kind{Type: &v1beta1.StatefulSet{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &rabbitmqv1beta1.RabbitmqCluster{},
+	})
+	if err != nil {
+		return err
+	}
+
+	// TODO: Do we also need to watch other resources? such as:
+	// Roles?
+	// RoleBindings?
+	// Service Accounts?
+	// Config Maps?
+	//
 
 	return nil
 }
@@ -91,8 +100,7 @@ type ReconcileRabbitmqCluster struct {
 
 // Reconcile reads that state of the cluster for a RabbitmqCluster object and makes changes based on the state read
 // and what is in the RabbitmqCluster.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  The scaffolding writes
-// a Deployment as an example
+// Note: Endpoints permissions are set to be able to grant them when creating the endpoint reader role
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=endpoints,verbs=get;list;watch;create;update;patch;delete
@@ -104,7 +112,6 @@ type ReconcileRabbitmqCluster struct {
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
 func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -121,36 +128,6 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// TODO(user): Change this to be the object type created by your controller
-	// Define the desired Deployment object
-	// deploy := &appsv1.Deployment{
-	// 	ObjectMeta: metav1.ObjectMeta{
-	// 		Name:      instance.Name + "-deployment",
-	// 		Namespace: instance.Namespace,
-	// 	},
-	// 	Spec: appsv1.DeploymentSpec{
-	// 		Selector: &metav1.LabelSelector{
-	// 			MatchLabels: map[string]string{"deployment": instance.Name + "-deployment"},
-	// 		},
-	// 		Template: corev1.PodTemplateSpec{
-	// 			ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"deployment": instance.Name + "-deployment"}},
-	// 			Spec: corev1.PodSpec{
-	// 				Containers: []corev1.Container{
-	// 					{
-	// 						Name:  "nginx",
-	// 						Image: "nginx",
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// }
-	// fmt.Println("CHECKING WORKING DIRECTORY")
-	// dir, err := os.Getwd()
-	// if err != nil {
-	// 	return reconcile.Result{}, err
-	// }
-	// fmt.Println(dir)
 	resourcesYml, err := helpers.Build("./templates", instance.Name, instance.Namespace)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -164,8 +141,6 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 			return reconcile.Result{}, err
 		}
 
-		// TODO(user): Change this for the object type created by your controller
-		// Check if the Deployment already exists
 		found := resource.EmptyResource
 		err = r.Get(context.TODO(), types.NamespacedName{Name: resource.Name, Namespace: resource.Namespace}, found)
 		if err != nil && errors.IsNotFound(err) {
