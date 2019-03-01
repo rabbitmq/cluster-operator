@@ -83,9 +83,16 @@ func RandStringRunes(n int) string {
 	return string(b)
 }
 
-func Decode(yaml string) ([][]runtime.Object, error) {
+type TargetResource struct {
+	ResourceObject runtime.Object
+	EmptyResource  runtime.Object
+	Name           string
+	Namespace      string
+}
+
+func Decode(yaml string) ([]TargetResource, error) {
 	resources := strings.Split(yaml, "---")
-	resourceArray := make([][]runtime.Object, 0, 9)
+	resourceArray := make([]TargetResource, 0, 9)
 	for _, resource := range resources {
 
 		decode := scheme.Codecs.UniversalDeserializer().Decode
@@ -94,25 +101,25 @@ func Decode(yaml string) ([][]runtime.Object, error) {
 		if err != nil {
 			fmt.Printf("%#v", err)
 		}
-		switch obj.(type) {
+		switch o := obj.(type) {
 		case *v1.Secret:
-			resourceArray = append(resourceArray, []runtime.Object{obj, &v1.Secret{}})
+			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &v1.Secret{}, Name: o.Name, Namespace: o.Namespace})
 		case *v1.Service:
-			resourceArray = append(resourceArray, []runtime.Object{obj, &v1.Service{}})
+			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &v1.Service{}, Name: o.Name, Namespace: o.Namespace})
 		case *v1.ConfigMap:
-			resourceArray = append(resourceArray, []runtime.Object{obj, &v1.ConfigMap{}})
+			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &v1.ConfigMap{}, Name: o.Name, Namespace: o.Namespace})
 		case *v1beta1.StatefulSet:
-			resourceArray = append(resourceArray, []runtime.Object{obj, &v1beta1.StatefulSet{}})
+			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &v1beta1.StatefulSet{}, Name: o.Name, Namespace: o.Namespace})
 		case *rbacv1beta1.Role:
-			resourceArray = append(resourceArray, []runtime.Object{obj, &rbacv1beta1.Role{}})
+			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &rbacv1beta1.Role{}, Name: o.Name, Namespace: o.Namespace})
 		case *rbacv1beta1.RoleBinding:
-			resourceArray = append(resourceArray, []runtime.Object{obj, &rbacv1beta1.RoleBinding{}})
+			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &rbacv1beta1.RoleBinding{}, Name: o.Name, Namespace: o.Namespace})
 		case *rbacv1.ClusterRole:
-			resourceArray = append(resourceArray, []runtime.Object{obj, &rbacv1.ClusterRole{}})
+			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &rbacv1.ClusterRole{}, Name: o.Name, Namespace: o.Namespace})
 		case *rbacv1.ClusterRoleBinding:
-			resourceArray = append(resourceArray, []runtime.Object{obj, &rbacv1.ClusterRoleBinding{}})
+			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &rbacv1.ClusterRoleBinding{}, Name: o.Name, Namespace: o.Namespace})
 		case *v1.ServiceAccount:
-			resourceArray = append(resourceArray, []runtime.Object{obj, &v1.ServiceAccount{}})
+			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &v1.ServiceAccount{}, Name: o.Name, Namespace: o.Namespace})
 
 		default:
 			return resourceArray, errors.New(fmt.Sprintf("Object unkown type: %s\n", reflect.TypeOf(obj)))

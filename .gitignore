@@ -1,1 +1,4 @@
 vendor/
+cover.out
+**/*.yaml-e
+bin/

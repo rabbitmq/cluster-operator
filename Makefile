@@ -28,6 +28,8 @@ deploy: manifests
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	mv -f config/rbac/* config/default/rbac/
+	rm -rf config/rbac
 
 # Run go fmt against code
 fmt:
