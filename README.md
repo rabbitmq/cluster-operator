@@ -6,6 +6,7 @@ You should have the following tools installed:
 * kubectl
 * [kustomize](https://github.com/kubernetes-sigs/kustomize/) (in the future it should become a part of `kubectl`)
 * gcloud
+* [kubebuilder](https://book.kubebuilder.io/quick_start.html)
 
 ## How to get started
 ### GKE
@@ -27,8 +28,8 @@ kind create cluster
 export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
 ```
 
-## How to deploy
-1. Go to the `manifests` folder
+## How to deploy with kustomize
+1. Go to the `templates` folder
 2. Set the current namespace to the namespace you are deploying to, for example:
 ```
 kubectl config set-context $(kubectl config current-context) --namespace=rabbitmq
@@ -45,3 +46,18 @@ If this fails with a `forbidden: attempt to grant extra privileges` error, you n
 kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user USERNAME@pivotal.io
 ```
 More information about [Role Based Access](https://cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control).
+
+# RabbitMQ Kubernetes Manager
+
+## How to set up the Manager for development
+
+We are gitignoring the vendor directory because it is huge. When getting started, run `dep ensure` to pull dependencies. Add the `-v` flag to see progress or be patient and trust that the process isn't hanging.
+
+## How to push the Manager docker image
+
+1. `export IMG=eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-manager`
+2. `gcloud auth configure-docker`
+3. `make docker-build`
+4. `make docker-push`
+5. To deploy, run `make deploy`
+
