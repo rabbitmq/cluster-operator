@@ -1,0 +1,11 @@
+
+namePrefix: foo-
+namespace: default
+commonLabels:
+  instance: foo
+resources:
+  - service.yml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
