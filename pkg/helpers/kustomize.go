@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/kustomize/pkg/fs"
 )
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+const stringLen = 24
 
 func Build(filepath string, instanceName string, namespace string) (string, error) {
 	f := k8sdeps.NewFactory()
@@ -42,8 +42,10 @@ func Build(filepath string, instanceName string, namespace string) (string, erro
 		if file.Name() == "kustomization.yaml" {
 			// TODO: This needs to be more secure
 			rand.Seed(time.Now().UnixNano())
-			randomString := RandStringRunes(20)
-			erlangCookie := base64.StdEncoding.EncodeToString([]byte(randomString))
+			erlangCookie, err := generateCookie()
+			if err != nil {
+				return "", err
+			}
 			var replaces = []struct {
 				regexp string
 				value  string
@@ -75,12 +77,15 @@ func Build(filepath string, instanceName string, namespace string) (string, erro
 	return output, nil
 }
 
-func RandStringRunes(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+func generateCookie() (string, error) {
+	encoding := base64.RawURLEncoding
+
+	randomBytes := make([]byte, encoding.DecodedLen(stringLen))
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", fmt.Errorf("reading random bytes failed:. %s", err)
 	}
-	return string(b)
+
+	return strings.TrimPrefix(encoding.EncodeToString(randomBytes), "-"), nil
 }
 
 type TargetResource struct {
