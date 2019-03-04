@@ -43,7 +43,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			client = mgr.GetClient()
 
 			recFn, requests = SetupTestReconcile(NewReconciler(mgr))
-			Expect(AddManager(mgr, recFn)).NotTo(HaveOccurred())
+			Expect(AddController(mgr, recFn)).NotTo(HaveOccurred())
 
 			stopMgr = make(chan struct{})
 			mgrStopped = &sync.WaitGroup{}
