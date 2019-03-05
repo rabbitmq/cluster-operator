@@ -1,9 +1,9 @@
-package helpers_test
+package generator_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/helpers"
+	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 )
 
 var _ = Describe("Kustomize", func() {

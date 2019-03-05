@@ -1,4 +1,4 @@
-package helpers_test
+package generator_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestHelpers(t *testing.T) {
+func TestGenerator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Helpers Suite")
+	RunSpecs(t, "Generator Suite")
 }

@@ -1,0 +1,42 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  namespace: rabbitmq
+  name: rabbitmq
+  labels:
+    app: rabbitmq
+spec:
+  serviceName: rabbitmq
+  selector:
+    matchLabels:
+      app: rabbitmq
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      serviceAccountName: rabbitmq
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.8-rc-management
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/rabbitmq/rabbitmq.conf
+              subPath: rabbitmq.conf
+              readOnly: true
+            - name: config-volume
+              mountPath: /etc/rabbitmq/enabled_plugins
+              subPath: enabled_plugins
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: rabbitmq
+            items:
+              - key: enabled_plugins
+                path: enabled_plugins
+              - key: rabbitmq.conf
+                path: rabbitmq.conf
+  volumeClaimTemplates: []

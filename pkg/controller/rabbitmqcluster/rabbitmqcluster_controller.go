@@ -20,7 +20,7 @@ import (
 	"context"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/helpers"
+	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 	"k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -115,6 +115,7 @@ type ReconcileRabbitmqCluster struct {
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
 func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+
 	// Fetch the RabbitmqCluster instance
 	instance := &rabbitmqv1beta1.RabbitmqCluster{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
@@ -128,7 +129,7 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	resourceGenerator := helpers.NewKustomizeResourceGenerator("templates/")
+	resourceGenerator := generator.NewKustomizeResourceGenerator("templates/")
 
 	resources, err := resourceGenerator.Build(instance.Name, instance.Namespace)
 	if err != nil {
