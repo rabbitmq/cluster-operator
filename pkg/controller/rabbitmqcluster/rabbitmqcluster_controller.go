@@ -17,16 +17,13 @@ limitations under the License.
 package rabbitmqcluster
 
 import (
-	"context"
-
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
+	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers"
 	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 	"k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -116,53 +113,18 @@ type ReconcileRabbitmqCluster struct {
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
 func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 
-	// Fetch the RabbitmqCluster instance
-	instance := &rabbitmqv1beta1.RabbitmqCluster{}
-	err := r.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			// Object not found, return.  Created objects are automatically garbage collected.
-			// For additional cleanup logic use finalizers.
-			return reconcile.Result{}, nil
-		}
-		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
-	}
-
 	resourceGenerator := generator.NewKustomizeResourceGenerator("templates/")
+	repository := &DefaultRepository{Client: r.Client, scheme: r.scheme}
+	reconciler := NewRabbitReconciler(repository, resourceGenerator)
+	return reconciler.Reconcile(request)
 
-	resources, err := resourceGenerator.Build(instance.Name, instance.Namespace)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+}
 
-	for _, resource := range resources {
-		if err := controllerutil.SetControllerReference(instance, resource.ResourceObject.(v1.Object), r.scheme); err != nil {
-			return reconcile.Result{}, err
-		}
+type DefaultRepository struct {
+	client.Client
+	scheme *runtime.Scheme
+}
 
-		found := resource.EmptyResource
-		err = r.Get(context.TODO(), types.NamespacedName{Name: resource.Name, Namespace: resource.Namespace}, found)
-		if err != nil && errors.IsNotFound(err) {
-			log.Info("Creating "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
-			err = r.Create(context.TODO(), resource.ResourceObject)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-		} else if err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	// TODO(user): Change this for the object type created by your controller
-	// Update the found object and write the result back if there are any changes
-	// if !reflect.DeepEqual(deploy.Spec, found.Spec) {
-	// 	found.Spec = deploy.Spec
-	// 	log.Info("Updating Deployment", "namespace", deploy.Namespace, "name", deploy.Name)
-	// 	err = r.Update(context.TODO(), found)
-	// 	if err != nil {
-	// 		return reconcile.Result{}, err
-	// 	}
-	// }
-	return reconcile.Result{}, nil
+func (d *DefaultRepository) SetControllerReference(owner, object v1.Object) error {
+	return controllerutil.SetControllerReference(owner, object, d.scheme)
 }

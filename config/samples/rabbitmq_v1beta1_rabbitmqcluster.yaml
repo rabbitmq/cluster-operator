@@ -5,5 +5,3 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: two
 spec:
-  # Add fields here
-  foo: bar
