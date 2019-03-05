@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -56,32 +57,10 @@ func (k *KustomizeResourceGenerator) parseYaml(instanceName string, namespace st
 	}
 
 	for _, file := range files {
-		bytes, err := ioutil.ReadFile(k.Filepath + "/" + file.Name())
+		bytes, err := parseBytes(k.Filepath, file, instanceName, namespace)
 		if err != nil {
 			return "", err
 		}
-
-		if file.Name() == "kustomization.yaml" {
-			erlangCookie, err := generateCookie()
-			if err != nil {
-				return "", err
-			}
-			var replaces = []struct {
-				regexp string
-				value  string
-			}{
-				{"namePrefix: .*", "namePrefix: " + instanceName + "-"},
-				{"namespace: .*", "namespace: " + namespace},
-				{"instance: .*", "instance: " + instanceName},
-				{"erlang-cookie=", "erlang-cookie=" + erlangCookie},
-			}
-			for _, replace := range replaces {
-				re := regexp.MustCompile(replace.regexp)
-				value := replace.value
-				bytes = re.ReplaceAll(bytes, []byte(value))
-			}
-		}
-
 		filesystem.WriteFile("/"+file.Name(), bytes)
 	}
 
@@ -95,6 +74,35 @@ func (k *KustomizeResourceGenerator) parseYaml(instanceName string, namespace st
 	output := out.String()
 
 	return output, nil
+}
+
+func parseBytes(filepath string, file os.FileInfo, instanceName, namespace string) ([]byte, error) {
+	bytes, err := ioutil.ReadFile(filepath + "/" + file.Name())
+	if err != nil {
+		return bytes, err
+	}
+
+	if file.Name() == "kustomization.yaml" {
+		erlangCookie, err := generateCookie()
+		if err != nil {
+			return bytes, err
+		}
+		var replaces = []struct {
+			regexp string
+			value  string
+		}{
+			{"namePrefix: .*", "namePrefix: " + instanceName + "-"},
+			{"namespace: .*", "namespace: " + namespace},
+			{"instance: .*", "instance: " + instanceName},
+			{"erlang-cookie=", "erlang-cookie=" + erlangCookie},
+		}
+		for _, replace := range replaces {
+			re := regexp.MustCompile(replace.regexp)
+			value := replace.value
+			bytes = re.ReplaceAll(bytes, []byte(value))
+		}
+	}
+	return bytes, nil
 }
 
 func generateCookie() (string, error) {
