@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"time"
 
 	"k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
@@ -40,8 +39,6 @@ func Build(filepath string, instanceName string, namespace string) (string, erro
 		}
 
 		if file.Name() == "kustomization.yaml" {
-			// TODO: This needs to be more secure
-			rand.Seed(time.Now().UnixNano())
 			erlangCookie, err := generateCookie()
 			if err != nil {
 				return "", err
