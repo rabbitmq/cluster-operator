@@ -19,6 +19,18 @@ required = [
 [prune]
   go-tests = true
 
+# These overrides are necessary for our project to work
+[[override]]
+  name="k8s.io/client-go"
+  version="kubernetes-1.13.1"
+
+[[override]]
+  name="k8s.io/api"
+  version="kubernetes-1.13.1"
+
+[[override]]
+  name="k8s.io/apimachinery"
+  version="kubernetes-1.13.1"
 
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 

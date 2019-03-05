@@ -182,12 +182,12 @@
   revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
 
 [[projects]]
-  digest = "1:236d7e1bdb50d8f68559af37dbcf9d142d56b431c9b2176d41e2a009b664cda8"
+  digest = "1:582b704bebaa06b48c29b0cec224a6058a09c86883aaddabde889cd1a5f73e1b"
   name = "github.com/google/uuid"
   packages = ["."]
   pruneopts = "T"
-  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
-  version = "v1.1.0"
+  revision = "0cd6bf5da1e1c83f8b45653022c74f71af0538a4"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:35735e2255fa34521c2a1355fb2a3a2300bc9949f487be1c1ce8ee8efcfa2d04"
@@ -213,15 +213,15 @@
   revision = "3befbb6ad0cc97d4c25d851e9528915809e1a22f"
 
 [[projects]]
-  digest = "1:8ec8d88c248041a6df5f6574b87bc00e7e0b493881dad2e7ef47b11dc69093b5"
+  digest = "1:d15ee511aa0f56baacc1eb4c6b922fa1c03b38413b6be18166b996d82a0156ea"
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
     "simplelru",
   ]
   pruneopts = "T"
-  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
-  version = "v0.5.0"
+  revision = "7087cb70de9f7a8bc0a10c375cb0d2280a8edf9c"
+  version = "v0.5.1"
 
 [[projects]]
   digest = "1:8f20c8dd713564fa97299fbcb77d729c6de9c33f3222812a76e6ecfaef80fd61"
@@ -429,7 +429,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6f9eb705b96519a2952a13b39d8a62ab71ce8232c451b1e0b0c58819e60dc1ca"
+  digest = "1:981e9129a01481f72caa489f7393823d5335c8e4410de31f44d79b426172b6eb"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
@@ -439,7 +439,7 @@
     "xfs",
   ]
   pruneopts = "T"
-  revision = "6ed1f7e1041181781dd2826d3001075d011a80cc"
+  revision = "bbced9601137e764853b2fad7ec3e2dc4c504e02"
 
 [[projects]]
   digest = "1:03f9ad9d20d5d7ba2aa68c63f90138f1ab8872ad41a67d77abf6cf329dc644e3"
@@ -513,15 +513,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:214dc62bc053a6f4f7e4cb6c6393920fcc213c80994a7725fcb35974992d7ccd"
+  digest = "1:c362ce2b0991d51f0d7ffab42a9c21f26318baf9391c33935e1c8ddba05bf3d3"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "T"
-  revision = "7f87c0fbb88b590338857bcb720678c2583d4dea"
+  revision = "8dd112bcdc25174059e45e07517d9fc663123347"
 
 [[projects]]
   branch = "master"
-  digest = "1:ac22320ec228ca0d9e7712b58fd31b0afe9a223ba0bcc5fee44136a41f5c9d53"
+  digest = "1:f2c7b980d5181c063276826818ce15de69182405ebbdca0a0780eb413761dc31"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -535,7 +535,7 @@
     "idna",
   ]
   pruneopts = "T"
-  revision = "312bce6e941fc7e152b630a8643ea239afc12ddd"
+  revision = "16b79f2e4e95ea23b2bf9903c9809ff7b013ce85"
 
 [[projects]]
   branch = "master"
@@ -553,14 +553,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:26b5c8fd437de4fe67fd67cdb26367632ba3c176506523de4a097ba77b5d5b2c"
+  digest = "1:da194505b309fd951f5ac37262583638ff088146243c2786aee7ffdb163e9ee0"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "T"
-  revision = "775f8194d0f9e65c46913c7be783d3d95a29333c"
+  revision = "30e92a19ae4a77dde818b8c3d41d51e4850cba12"
 
 [[projects]]
   digest = "1:6164911cb5e94e8d8d5131d646613ff82c14f5a8ce869de2f6d80d9889df8c5a"
@@ -608,7 +608,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:21bd4ac9e863327cd33a7eeb17416ff90a27404b5024fad999d3e2944139bab8"
+  digest = "1:35d257b11c00f1559196a59c5876ed26a1b4e6a568c33b942e628d51091c421d"
   name = "golang.org/x/tools"
   packages = [
     "go/ast/astutil",
@@ -625,7 +625,7 @@
     "internal/semver",
   ]
   pruneopts = "T"
-  revision = "f727befe758c04ce68d52abc6e69ad111e2c6797"
+  revision = "fd53dfa0871c2be5ba8b68bc32406580684743f2"
 
 [[projects]]
   digest = "1:1469235a5a8e192cfe6a99c4804b883a02f0ff96a693cd1660515a3a3b94d5ac"
@@ -739,12 +739,15 @@
   digest = "1:6326c0acd4934569b53d305d4a79a30f7074b3d4fdb3537af06203b68297a22b"
   name = "k8s.io/apimachinery"
   packages = [
+    "pkg/api/equality",
     "pkg/api/errors",
     "pkg/api/meta",
     "pkg/api/resource",
+    "pkg/api/validation",
     "pkg/apis/meta/internalversion",
     "pkg/apis/meta/v1",
     "pkg/apis/meta/v1/unstructured",
+    "pkg/apis/meta/v1/validation",
     "pkg/apis/meta/v1beta1",
     "pkg/conversion",
     "pkg/conversion/queryparams",
@@ -883,7 +886,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "2f261a4f6da6236bbaf3b1c557853b72254d2e49"
+  revision = "277ef541eba73ba1630e889f21159040fcea9760"
 
 [[projects]]
   branch = "master"
@@ -911,14 +914,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:227629f87d6778081f7cb6983d178f80f1acac612705937e20aab38b7a90845a"
+  digest = "1:0b4ee27ec0ec68643d50642913165892c29254754ed7e4ecf3ce963f82a6c98b"
   name = "k8s.io/kube-openapi"
   packages = [
     "pkg/common",
     "pkg/util/proto",
   ]
   pruneopts = "T"
-  revision = "d50a959ae76a85c7c262a9767ef29f37093c2b8a"
+  revision = "b3a7cee44a305be0a69e1b9ac03018307287e1b0"
 
 [[projects]]
   digest = "1:5aa50779f75cc439edd3455a6dee7cf179b52f8dde764a47cc929693485d1afb"
@@ -988,13 +991,26 @@
   digest = "1:b6f781f692f2a14135ec9b859c1aa2372bc51aed90b2165cbb0800892678719a"
   name = "sigs.k8s.io/kustomize"
   packages = [
+    "k8sdeps",
+    "k8sdeps/configmapandsecret",
+    "k8sdeps/kunstruct",
+    "k8sdeps/kv",
+    "k8sdeps/transformer",
+    "k8sdeps/transformer/hash",
+    "k8sdeps/transformer/patch",
+    "k8sdeps/validator",
+    "pkg/commands/build",
     "pkg/constants",
     "pkg/expansion",
+    "pkg/factory",
+    "pkg/fs",
+    "pkg/git",
     "pkg/gvk",
     "pkg/ifc",
     "pkg/ifc/transformer",
     "pkg/image",
     "pkg/internal/error",
+    "pkg/loader",
     "pkg/patch",
     "pkg/patch/transformer",
     "pkg/resid",
@@ -1038,8 +1054,10 @@
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "golang.org/x/net/context",
-    "k8s.io/api/apps/v1",
+    "k8s.io/api/apps/v1beta1",
     "k8s.io/api/core/v1",
+    "k8s.io/api/rbac/v1",
+    "k8s.io/api/rbac/v1beta1",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
@@ -1064,7 +1082,9 @@
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/controller-tools/cmd/controller-gen",
-    "sigs.k8s.io/kustomize/pkg/target",
+    "sigs.k8s.io/kustomize/k8sdeps",
+    "sigs.k8s.io/kustomize/pkg/commands/build",
+    "sigs.k8s.io/kustomize/pkg/fs",
     "sigs.k8s.io/testing_frameworks/integration",
   ]
   solver-name = "gps-cdcl"
