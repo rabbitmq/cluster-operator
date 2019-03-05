@@ -61,3 +61,8 @@ We are gitignoring the vendor directory because it is huge. When getting started
 4. `make docker-push`
 5. To deploy, run `make deploy`
 
+# Tear down
+
+1. To delete the cluster run `kubectl delete -f {path to yaml used to deploy e.g. '/config/default/samples/rabbitmq_v1beta1_rabbitmqcluster.yaml}`
+1. To delete the manager run (from the  '/config/default') `kustomize build | kubectl delete -f -`
+1. If you've deployed a cluster directly using kustomize from the templates folder, delete the cluster by running (from 'templates') `kustomize build | kubectl delete -f -`
