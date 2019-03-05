@@ -13,7 +13,6 @@ import (
 
 	"k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -24,16 +23,40 @@ import (
 
 const stringLen = 24
 
-func Build(filepath string, instanceName string, namespace string) (string, error) {
+//go:generate counterfeiter . ResourceGenerator
+
+type ResourceGenerator interface {
+	Build(string, string) ([]TargetResource, error)
+}
+
+type KustomizeResourceGenerator struct {
+	Filepath string
+}
+
+func NewKustomizeResourceGenerator(filepath string) *KustomizeResourceGenerator {
+	return &KustomizeResourceGenerator{
+		Filepath: filepath,
+	}
+}
+
+func (k *KustomizeResourceGenerator) Build(instanceName string, namespace string) ([]TargetResource, error) {
+	yamlString, err := k.parseYaml(instanceName, namespace)
+	if err != nil {
+		return nil, err
+	}
+	return decode(yamlString)
+}
+
+func (k *KustomizeResourceGenerator) parseYaml(instanceName string, namespace string) (string, error) {
 	f := k8sdeps.NewFactory()
 	filesystem := fs.MakeFakeFS()
-	files, err := ioutil.ReadDir(filepath)
+	files, err := ioutil.ReadDir(k.Filepath)
 	if err != nil {
 		return "", err
 	}
 
 	for _, file := range files {
-		bytes, err := ioutil.ReadFile(filepath + "/" + file.Name())
+		bytes, err := ioutil.ReadFile(k.Filepath + "/" + file.Name())
 		if err != nil {
 			return "", err
 		}
@@ -92,7 +115,7 @@ type TargetResource struct {
 	Namespace      string
 }
 
-func Decode(yaml string) ([]TargetResource, error) {
+func decode(yaml string) ([]TargetResource, error) {
 	resources := strings.Split(yaml, "---")
 	resourceArray := make([]TargetResource, 0, 9)
 	for _, resource := range resources {
@@ -116,10 +139,6 @@ func Decode(yaml string) ([]TargetResource, error) {
 			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &rbacv1beta1.Role{}, Name: o.Name, Namespace: o.Namespace})
 		case *rbacv1beta1.RoleBinding:
 			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &rbacv1beta1.RoleBinding{}, Name: o.Name, Namespace: o.Namespace})
-		case *rbacv1.ClusterRole:
-			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &rbacv1.ClusterRole{}, Name: o.Name, Namespace: o.Namespace})
-		case *rbacv1.ClusterRoleBinding:
-			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &rbacv1.ClusterRoleBinding{}, Name: o.Name, Namespace: o.Namespace})
 		case *v1.ServiceAccount:
 			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &v1.ServiceAccount{}, Name: o.Name, Namespace: o.Namespace})
 

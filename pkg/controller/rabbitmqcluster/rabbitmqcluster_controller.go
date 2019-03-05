@@ -128,14 +128,13 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	resourcesYml, err := helpers.Build("./templates", instance.Name, instance.Namespace)
+	resourceGenerator := helpers.NewKustomizeResourceGenerator("templates/")
+
+	resources, err := resourceGenerator.Build(instance.Name, instance.Namespace)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	resources, decodeError := helpers.Decode(resourcesYml)
-	if decodeError != nil {
-		return reconcile.Result{}, decodeError
-	}
+
 	for _, resource := range resources {
 		if err := controllerutil.SetControllerReference(instance, resource.ResourceObject.(v1.Object), r.scheme); err != nil {
 			return reconcile.Result{}, err

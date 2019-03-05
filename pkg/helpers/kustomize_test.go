@@ -7,20 +7,17 @@ import (
 )
 
 var _ = Describe("Kustomize", func() {
-	Context("Build function", func() {
-		It("parses the target yaml", func() {
-			_, err := Build("../../templates", "anything", "anyNamespace")
-			Expect(err).To(BeNil())
-		})
+	var generator ResourceGenerator
+
+	BeforeEach(func() {
+		generator = NewKustomizeResourceGenerator("./fixtures")
 	})
 
-	Context("Decode", func() {
-		It("parses yaml into K8s resources", func() {
-			resources, err := Build("../../templates", "anything", "anyNamespace")
-			objects, err := Decode(resources)
-
+	Context("Build function", func() {
+		It("parses the target yaml into k8s resource", func() {
+			objects, err := generator.Build("anything", "anyNamespace")
 			Expect(err).To(BeNil())
-			Expect(len(objects)).To(Equal(8))
+			Expect(len(objects)).To(Equal(7))
 		})
 	})
 })
