@@ -2,16 +2,15 @@ package generator
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"reflect"
 	"regexp"
 	"strings"
 
+	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/cookiegenerator"
 	"k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
@@ -83,7 +82,7 @@ func parseBytes(filepath string, file os.FileInfo, instanceName, namespace strin
 	}
 
 	if file.Name() == "kustomization.yaml" {
-		erlangCookie, err := generateCookie()
+		erlangCookie, err := cookiegenerator.Generate()
 		if err != nil {
 			return bytes, err
 		}
@@ -103,17 +102,6 @@ func parseBytes(filepath string, file os.FileInfo, instanceName, namespace strin
 		}
 	}
 	return bytes, nil
-}
-
-func generateCookie() (string, error) {
-	encoding := base64.RawURLEncoding
-
-	randomBytes := make([]byte, encoding.DecodedLen(stringLen))
-	if _, err := rand.Read(randomBytes); err != nil {
-		return "", fmt.Errorf("reading random bytes failed:. %s", err)
-	}
-
-	return strings.TrimPrefix(encoding.EncodeToString(randomBytes), "-"), nil
 }
 
 type TargetResource struct {
