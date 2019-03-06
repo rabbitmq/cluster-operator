@@ -7,6 +7,7 @@ You should have the following tools installed:
 * [kustomize](https://github.com/kubernetes-sigs/kustomize/) (in the future it should become a part of `kubectl`)
 * gcloud
 * [kubebuilder](https://book.kubebuilder.io/quick_start.html)
+* [counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) (run `go get -u github.com/maxbrunsfeld/counterfeiter`)
 
 ## How to get started
 ### GKE
