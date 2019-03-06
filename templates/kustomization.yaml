@@ -1,4 +1,3 @@
-namePrefix: instance0-
 namespace: rabbitmq
 commonLabels:
   instance: instance0

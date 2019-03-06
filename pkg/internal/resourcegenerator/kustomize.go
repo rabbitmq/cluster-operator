@@ -60,12 +60,25 @@ func (k *KustomizeResourceGenerator) parseYaml(instanceName string, namespace st
 		if err != nil {
 			return "", err
 		}
-		filesystem.WriteFile("/"+file.Name(), bytes)
+		filesystem.Mkdir("/base/")
+		filesystem.WriteFile("/base/"+file.Name(), bytes)
+	}
+	var kustomization bytes.Buffer
+	fmt.Fprintf(&kustomization, "namePrefix: %s-\n", instanceName)
+	fmt.Fprintf(&kustomization, "namespace: %s\n", namespace)
+	kustomization.WriteString("commonLabels:\n")
+	fmt.Fprintf(&kustomization, "  instance: %s\n", instanceName)
+	kustomization.WriteString("bases:\n")
+	kustomization.WriteString("- ../base\n")
+
+	filesystem.Mkdir("/overlay/")
+	if err := filesystem.WriteFile("/overlay/kustomization.yaml", kustomization.Bytes()); err != nil {
+		return "", err
 	}
 
 	var out bytes.Buffer
 	cmd := build.NewCmdBuild(&out, filesystem, f.ResmapF, f.TransformerF)
-	cmd.SetArgs([]string{"/"})
+	cmd.SetArgs([]string{"/overlay"})
 	cmd.SetOutput(ioutil.Discard)
 	if _, err := cmd.ExecuteC(); err != nil {
 		return "", err
@@ -80,27 +93,15 @@ func parseBytes(filepath string, file os.FileInfo, instanceName, namespace strin
 	if err != nil {
 		return bytes, err
 	}
-
 	if file.Name() == "kustomization.yaml" {
 		erlangCookie, err := cookiegenerator.Generate()
 		if err != nil {
 			return bytes, err
 		}
-		var replaces = []struct {
-			regexp string
-			value  string
-		}{
-			{"namePrefix: .*", "namePrefix: " + instanceName + "-"},
-			{"namespace: .*", "namespace: " + namespace},
-			{"instance: .*", "instance: " + instanceName},
-			{"erlang-cookie=", "erlang-cookie=" + erlangCookie},
-		}
-		for _, replace := range replaces {
-			re := regexp.MustCompile(replace.regexp)
-			value := replace.value
-			bytes = re.ReplaceAll(bytes, []byte(value))
-		}
+		re := regexp.MustCompile("erlang-cookie=")
+		bytes = re.ReplaceAll(bytes, []byte("erlang-cookie="+erlangCookie))
 	}
+
 	return bytes, nil
 }
 

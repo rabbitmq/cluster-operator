@@ -1,5 +1,3 @@
-
-namePrefix: foo-
 namespace: default
 commonLabels:
   instance: foo
