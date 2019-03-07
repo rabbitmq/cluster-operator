@@ -2,6 +2,7 @@ package generator
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -26,7 +27,7 @@ const stringLen = 24
 //go:generate counterfeiter . ResourceGenerator
 
 type ResourceGenerator interface {
-	Build(string, string) ([]TargetResource, error)
+	Build(GenerationContext) ([]TargetResource, error)
 }
 
 type KustomizeResourceGenerator struct {
@@ -39,15 +40,30 @@ func NewKustomizeResourceGenerator(filepath string) *KustomizeResourceGenerator 
 	}
 }
 
-func (k *KustomizeResourceGenerator) Build(instanceName string, namespace string) ([]TargetResource, error) {
-	yamlString, err := k.parseYaml(instanceName, namespace)
+func (k *KustomizeResourceGenerator) Build(generationContext GenerationContext) ([]TargetResource, error) {
+	yamlString, err := k.parseYaml(generationContext)
 	if err != nil {
 		return nil, err
 	}
 	return decode(yamlString)
 }
 
-func (k *KustomizeResourceGenerator) parseYaml(instanceName string, namespace string) (string, error) {
+type GenerationContext struct {
+	InstanceName string
+	Namespace    string
+	Nodes        int
+}
+
+type PatchJSON6902 struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value"`
+}
+
+func (k *KustomizeResourceGenerator) parseYaml(generationContext GenerationContext) (string, error) {
+	instanceName := generationContext.InstanceName
+	namespace := generationContext.Namespace
+
 	f := k8sdeps.NewFactory()
 	filesystem := fs.MakeFakeFS()
 	files, err := ioutil.ReadDir(k.Filepath)
@@ -63,18 +79,8 @@ func (k *KustomizeResourceGenerator) parseYaml(instanceName string, namespace st
 		filesystem.Mkdir("/base/")
 		filesystem.WriteFile("/base/"+file.Name(), bytes)
 	}
-	var kustomization bytes.Buffer
-	fmt.Fprintf(&kustomization, "namePrefix: %s-\n", instanceName)
-	fmt.Fprintf(&kustomization, "namespace: %s\n", namespace)
-	kustomization.WriteString("commonLabels:\n")
-	fmt.Fprintf(&kustomization, "  instance: %s\n", instanceName)
-	kustomization.WriteString("bases:\n")
-	kustomization.WriteString("- ../base\n")
 
-	filesystem.Mkdir("/overlay/")
-	if err := filesystem.WriteFile("/overlay/kustomization.yaml", kustomization.Bytes()); err != nil {
-		return "", err
-	}
+	populateOverlayDirectory(filesystem, generationContext)
 
 	var out bytes.Buffer
 	cmd := build.NewCmdBuild(&out, filesystem, f.ResmapF, f.TransformerF)
@@ -86,6 +92,45 @@ func (k *KustomizeResourceGenerator) parseYaml(instanceName string, namespace st
 	output := out.String()
 
 	return output, nil
+}
+func populateOverlayDirectory(filesystem fs.FileSystem, generationContext GenerationContext) error {
+
+	filesystem.Mkdir("/overlay/")
+	var kustomization bytes.Buffer
+	fmt.Fprintf(&kustomization, "namePrefix: %s-\n", generationContext.InstanceName)
+	fmt.Fprintf(&kustomization, "namespace: %s\n", generationContext.Namespace)
+	kustomization.WriteString("commonLabels:\n")
+	fmt.Fprintf(&kustomization, "  instance: %s\n", generationContext.InstanceName)
+	kustomization.WriteString("bases:\n")
+	kustomization.WriteString("- ../base\n")
+	kustomization.WriteString("patchesJSON6902:\n")
+	kustomization.WriteString("- target:\n")
+	kustomization.WriteString("    group: apps\n")
+	kustomization.WriteString("    version: v1beta1\n")
+	kustomization.WriteString("    kind: StatefulSet\n")
+	kustomization.WriteString("    name: rabbitmq\n")
+	statefulSetPatch := []PatchJSON6902{
+		{
+			Op:    "replace",
+			Path:  "/spec/replicas",
+			Value: generationContext.Nodes,
+		},
+	}
+	statefulSetPatchJson, parseErr := json.Marshal(statefulSetPatch)
+	if parseErr != nil {
+		return parseErr
+	}
+
+	statefulSetPatchName := "statefulset.json"
+	if err := filesystem.WriteFile("/overlay/"+statefulSetPatchName, statefulSetPatchJson); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(&kustomization, "  path: %s\n", statefulSetPatchName)
+	if err := filesystem.WriteFile("/overlay/kustomization.yaml", kustomization.Bytes()); err != nil {
+		return err
+	}
+	return nil
 }
 
 func parseBytes(filepath string, file os.FileInfo, instanceName, namespace string) ([]byte, error) {

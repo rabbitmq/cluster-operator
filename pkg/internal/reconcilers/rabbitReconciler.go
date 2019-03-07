@@ -2,9 +2,11 @@ package reconcilers
 
 import (
 	"context"
+	"reflect"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
+	"k8s.io/api/apps/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,6 +23,7 @@ var log = logf.Log.WithName("controller")
 type Repository interface {
 	Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error
 	Create(ctx context.Context, obj runtime.Object) error
+	Update(ctx context.Context, obj runtime.Object) error
 	SetControllerReference(owner, object v1.Object) error
 }
 
@@ -49,7 +52,12 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	resources, err := r.Generator.Build(instance.Name, instance.Namespace)
+	generationContext := generator.GenerationContext{
+		InstanceName: instance.Name,
+		Namespace:    instance.Namespace,
+		Nodes:        instance.Spec.Nodes,
+	}
+	resources, err := r.Generator.Build(generationContext)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -69,18 +77,20 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 			}
 		} else if err != nil {
 			return reconcile.Result{}, err
+		} else {
+			switch o := resource.ResourceObject.(type) {
+			case *v1beta1.StatefulSet:
+				foundStatefulSet := resource.EmptyResource.(*v1beta1.StatefulSet)
+				if !reflect.DeepEqual(o.Spec, foundStatefulSet.Spec) {
+					foundStatefulSet.Spec = o.Spec
+					log.Info("Updating "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
+					if err := r.Update(context.TODO(), foundStatefulSet); err != nil {
+						return reconcile.Result{}, err
+					}
+				}
+			}
 		}
 	}
 
-	// TODO(user): Change this for the object type created by your controller
-	// Update the found object and write the result back if there are any changes
-	// if !reflect.DeepEqual(deploy.Spec, found.Spec) {
-	// 	found.Spec = deploy.Spec
-	// 	log.Info("Updating Deployment", "namespace", deploy.Namespace, "name", deploy.Name)
-	// 	err = r.Update(context.TODO(), found)
-	// 	if err != nil {
-	// 		return reconcile.Result{}, err
-	// 	}
-	// }
 	return reconcile.Result{}, nil
 }

@@ -15,7 +15,13 @@ var _ = Describe("Kustomize", func() {
 
 	Context("Build function", func() {
 		It("parses the target yaml into k8s resource", func() {
-			objects, err := generator.Build("anything", "anyNamespace")
+			generationContext := GenerationContext{
+				InstanceName: "anything",
+				Namespace:    "anyNamespace",
+				Nodes:        2,
+			}
+			objects, err := generator.Build(generationContext)
+
 			Expect(err).To(BeNil())
 			Expect(len(objects)).To(Equal(7))
 		})

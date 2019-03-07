@@ -155,5 +155,94 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(result).To(Equal(reconcile.Result{}))
 			Expect(resultErr).To(Equal(badRequestError))
 		})
+		It("checks for changes to existing stateful set and updates the cluster", func() {
+			repository.GetReturnsOnCall(0, nil)
+			three := int32(3)
+			statefulSet := &v1beta1.StatefulSet{
+				Spec: v1beta1.StatefulSetSpec{
+					Replicas: &three,
+				},
+			}
+			two := int32(2)
+			foundStatefulSet := &v1beta1.StatefulSet{
+				Spec: v1beta1.StatefulSetSpec{
+					Replicas: &two,
+				},
+			}
+			resource := TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
+			resources := []TargetResource{resource}
+			generator.BuildReturns(resources, nil)
+			repository.SetControllerReferenceReturns(nil)
+			repository.GetReturnsOnCall(1, nil)
+			repository.UpdateReturns(nil)
+
+			result, resultErr := reconciler.Reconcile(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
+			})
+
+			Expect(repository.UpdateCallCount()).To(Equal(1))
+			ctx, object := repository.UpdateArgsForCall(0)
+
+			Expect(ctx).To(Equal(context.TODO()))
+			Expect(object).To(Equal(statefulSet))
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(resultErr).To(BeNil())
+		})
+		It("does not update if the resource has been created", func() {
+			repository.GetReturnsOnCall(0, nil)
+			three := int32(3)
+			statefulSet := &v1beta1.StatefulSet{
+				Spec: v1beta1.StatefulSetSpec{
+					Replicas: &three,
+				},
+			}
+			two := int32(2)
+			foundStatefulSet := &v1beta1.StatefulSet{
+				Spec: v1beta1.StatefulSetSpec{
+					Replicas: &two,
+				},
+			}
+			resource := TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
+			resources := []TargetResource{resource}
+			generator.BuildReturns(resources, nil)
+			repository.SetControllerReferenceReturns(nil)
+			repository.GetReturnsOnCall(1, notFoundError)
+
+			result, resultErr := reconciler.Reconcile(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
+			})
+
+			Expect(repository.UpdateCallCount()).To(Equal(0))
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(resultErr).To(BeNil())
+		})
+		It("checks for changes to existing stateful set and does not update the cluster if there are no changes", func() {
+			repository.GetReturnsOnCall(0, nil)
+			three := int32(3)
+			statefulSet := &v1beta1.StatefulSet{
+				Spec: v1beta1.StatefulSetSpec{
+					Replicas: &three,
+				},
+			}
+			foundStatefulSet := &v1beta1.StatefulSet{
+				Spec: v1beta1.StatefulSetSpec{
+					Replicas: &three,
+				},
+			}
+			resource := TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
+			resources := []TargetResource{resource}
+			generator.BuildReturns(resources, nil)
+			repository.SetControllerReferenceReturns(nil)
+			repository.GetReturnsOnCall(1, nil)
+			repository.UpdateReturns(nil)
+
+			result, resultErr := reconciler.Reconcile(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
+			})
+
+			Expect(repository.UpdateCallCount()).To(Equal(0))
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(resultErr).To(BeNil())
+		})
 	})
 })

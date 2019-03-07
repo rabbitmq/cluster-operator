@@ -3,6 +3,7 @@ commonLabels:
   instance: foo
 resources:
   - service.yml
+  - statefulset.yml
 
 generatorOptions:
   disableNameSuffixHash: true

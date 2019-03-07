@@ -8,11 +8,10 @@ import (
 )
 
 type FakeResourceGenerator struct {
-	BuildStub        func(string, string) ([]generator.TargetResource, error)
+	BuildStub        func(generator.GenerationContext) ([]generator.TargetResource, error)
 	buildMutex       sync.RWMutex
 	buildArgsForCall []struct {
-		arg1 string
-		arg2 string
+		arg1 generator.GenerationContext
 	}
 	buildReturns struct {
 		result1 []generator.TargetResource
@@ -26,17 +25,16 @@ type FakeResourceGenerator struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceGenerator) Build(arg1 string, arg2 string) ([]generator.TargetResource, error) {
+func (fake *FakeResourceGenerator) Build(arg1 generator.GenerationContext) ([]generator.TargetResource, error) {
 	fake.buildMutex.Lock()
 	ret, specificReturn := fake.buildReturnsOnCall[len(fake.buildArgsForCall)]
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
-		arg1 string
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("Build", []interface{}{arg1, arg2})
+		arg1 generator.GenerationContext
+	}{arg1})
+	fake.recordInvocation("Build", []interface{}{arg1})
 	fake.buildMutex.Unlock()
 	if fake.BuildStub != nil {
-		return fake.BuildStub(arg1, arg2)
+		return fake.BuildStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -51,17 +49,17 @@ func (fake *FakeResourceGenerator) BuildCallCount() int {
 	return len(fake.buildArgsForCall)
 }
 
-func (fake *FakeResourceGenerator) BuildCalls(stub func(string, string) ([]generator.TargetResource, error)) {
+func (fake *FakeResourceGenerator) BuildCalls(stub func(generator.GenerationContext) ([]generator.TargetResource, error)) {
 	fake.buildMutex.Lock()
 	defer fake.buildMutex.Unlock()
 	fake.BuildStub = stub
 }
 
-func (fake *FakeResourceGenerator) BuildArgsForCall(i int) (string, string) {
+func (fake *FakeResourceGenerator) BuildArgsForCall(i int) generator.GenerationContext {
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
 	argsForCall := fake.buildArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeResourceGenerator) BuildReturns(result1 []generator.TargetResource, result2 error) {
