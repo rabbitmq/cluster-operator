@@ -3,5 +3,6 @@ kind: RabbitmqCluster
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: two
+  name: zonnor
 spec:
+  nodes: 3

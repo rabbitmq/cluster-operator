@@ -34,7 +34,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 			expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
 			depKey = types.NamespacedName{Name: "foo-rabbitmq", Namespace: "default"}
 
-			instance = &rabbitmqv1beta1.RabbitmqCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+			nodes := int32(3)
+			instance = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "default",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Nodes: nodes,
+				},
+			}
 
 			// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 			// channel when it is finished.

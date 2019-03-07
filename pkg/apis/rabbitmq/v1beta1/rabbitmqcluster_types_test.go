@@ -30,11 +30,16 @@ func TestStorageRabbitmqCluster(t *testing.T) {
 		Name:      "foo",
 		Namespace: "default",
 	}
+
 	created := &RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
-		}}
+		},
+		Spec: RabbitmqClusterSpec{
+			Nodes: int32(1),
+		},
+	}
 	g := gomega.NewGomegaWithT(t)
 
 	// Test Create

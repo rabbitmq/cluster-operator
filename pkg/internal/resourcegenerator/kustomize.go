@@ -51,7 +51,7 @@ func (k *KustomizeResourceGenerator) Build(generationContext GenerationContext) 
 type GenerationContext struct {
 	InstanceName string
 	Namespace    string
-	Nodes        int
+	Nodes        int32
 }
 
 type PatchJSON6902 struct {

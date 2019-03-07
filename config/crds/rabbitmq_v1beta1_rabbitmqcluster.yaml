@@ -29,9 +29,9 @@ spec:
         spec:
           properties:
             nodes:
-              description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                Important: Run "make" to regenerate code after modifying this file'
-              format: int64
+              description: Number of nodes in the RabbitMQ cluster
+              format: int32
+              minimum: 1
               type: integer
           required:
           - nodes

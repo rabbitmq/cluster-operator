@@ -2,7 +2,6 @@ package reconcilers
 
 import (
 	"context"
-	"reflect"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
@@ -81,8 +80,8 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 			switch o := resource.ResourceObject.(type) {
 			case *v1beta1.StatefulSet:
 				foundStatefulSet := resource.EmptyResource.(*v1beta1.StatefulSet)
-				if !reflect.DeepEqual(o.Spec, foundStatefulSet.Spec) {
-					foundStatefulSet.Spec = o.Spec
+				if *o.Spec.Replicas != *foundStatefulSet.Spec.Replicas {
+					*foundStatefulSet.Spec.Replicas = *o.Spec.Replicas
 					log.Info("Updating "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
 					if err := r.Update(context.TODO(), foundStatefulSet); err != nil {
 						return reconcile.Result{}, err

@@ -25,9 +25,9 @@ import (
 
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
 type RabbitmqClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	Nodes int `json:"nodes"`
+	// Number of nodes in the RabbitMQ cluster
+	// +kubebuilder:validation:Minimum=1
+	Nodes int32 `json:"nodes"`
 }
 
 // RabbitmqClusterStatus defines the observed state of RabbitmqCluster
