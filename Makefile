@@ -2,10 +2,38 @@
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 
-all: test manager
+ifndef GOPATH
+	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
+endif
+
+DEP := $(GOPATH)/bin/dep
+$(DEP):
+	go get -u github.com/golang/dep/cmd/dep
+
+KUBEBUILDER_VERSION := 1.0.8
+PLATFORM := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+KUBEBUILDER := $(CURDIR)/bin/kubebuilder_$(KUBEBUILDER_VERSION)
+PATH := $(KUBEBUILDER)/bin:$(PATH)
+export PATH
+
+TEST_ASSET_KUBECTL := $(KUBEBUILDER)/bin/kubectl
+export TEST_ASSET_KUBECTL
+
+TEST_ASSET_KUBE_APISERVER := $(KUBEBUILDER)/bin/kube-apiserver
+export TEST_ASSET_KUBE_APISERVER
+
+TEST_ASSET_ETCD := $(KUBEBUILDER)/bin/etcd
+export TEST_ASSET_ETCD
+
+$(KUBEBUILDER):
+	mkdir -p $(KUBEBUILDER) && \
+	curl --silent --fail --location "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KUBEBUILDER_VERSION)/kubebuilder_$(KUBEBUILDER_VERSION)_$(PLATFORM)_amd64.tar.gz" | \
+		tar -zxv --directory=$(KUBEBUILDER) --strip-components=1
+
+all: fmt vet manifests test manager
 
 # Run tests
-test: generate fmt vet manifests
+test: generate
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 # Build manager binary
@@ -39,11 +67,11 @@ fmt:
 vet:
 	go vet ./pkg/... ./cmd/...
 
+deps: $(DEP) $(KUBEBUILDER)
+	dep ensure
+
 # Generate code
-generate:
-ifndef GOPATH
-	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
-endif
+generate: deps
 	go generate ./pkg/... ./cmd/...
 
 # Build the docker image
