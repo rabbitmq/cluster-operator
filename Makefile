@@ -10,6 +10,10 @@ DEP := $(GOPATH)/bin/dep
 $(DEP):
 	go get -u github.com/golang/dep/cmd/dep
 
+COUNTERFEITER := $(GOPATH)/bin/counterfeiter
+$(COUNTERFEITER):
+	go get -u "github.com/maxbrunsfeld/counterfeiter"
+
 KUBEBUILDER_VERSION := 1.0.8
 PLATFORM := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 KUBEBUILDER := $(CURDIR)/bin/kubebuilder_$(KUBEBUILDER_VERSION)
@@ -30,7 +34,7 @@ $(KUBEBUILDER):
 	curl --silent --fail --location "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KUBEBUILDER_VERSION)/kubebuilder_$(KUBEBUILDER_VERSION)_$(PLATFORM)_amd64.tar.gz" | \
 		tar -zxv --directory=$(KUBEBUILDER) --strip-components=1
 
-all: fmt vet manifests test manager
+all: fmt vet test manifests manager
 
 # Run tests
 test: generate
@@ -54,7 +58,7 @@ deploy: manifests
 	kustomize build config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
-manifests:
+manifests: deps
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 	mv -f config/rbac/* config/default/rbac/
 	rm -rf config/rbac
@@ -64,10 +68,10 @@ fmt:
 	go fmt ./pkg/... ./cmd/...
 
 # Run go vet against code
-vet:
+vet: deps
 	go vet ./pkg/... ./cmd/...
 
-deps: $(DEP) $(KUBEBUILDER)
+deps: $(DEP) $(COUNTERFEITER) $(KUBEBUILDER)
 	dep ensure
 
 # Generate code
@@ -75,7 +79,7 @@ generate: deps
 	go generate ./pkg/... ./cmd/...
 
 # Build the docker image
-docker-build: test
+docker-build: fmt vet manifests test
 	docker build . -t ${IMG}
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/manager_image_patch.yaml

@@ -298,18 +298,6 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:365890f7d52eac944b5bf56b966eb6df304c90c79eb441bc739313656975fdf5"
-  name = "github.com/maxbrunsfeld/counterfeiter"
-  packages = [
-    ".",
-    "arguments",
-    "generator",
-  ]
-  pruneopts = "T"
-  revision = "2d74a219416bffff638e30a3775c76715f1968a7"
-  version = "v6.0.1"
-
-[[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
   name = "github.com/modern-go/concurrent"
   packages = ["."]
@@ -1063,7 +1051,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/emicklei/go-restful",
-    "github.com/maxbrunsfeld/counterfeiter",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "golang.org/x/net/context",
