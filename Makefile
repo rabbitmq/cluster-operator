@@ -72,7 +72,7 @@ vet: deps
 	go vet ./pkg/... ./cmd/...
 
 deps: $(DEP) $(COUNTERFEITER) $(KUBEBUILDER)
-	dep ensure
+	dep ensure -v
 
 # Generate code
 generate: deps
