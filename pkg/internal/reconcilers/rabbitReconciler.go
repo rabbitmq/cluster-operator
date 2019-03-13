@@ -2,11 +2,12 @@ package reconcilers
 
 import (
 	"context"
+	"errors"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 	"k8s.io/api/apps/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,7 +44,7 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 	instance := &rabbitmqv1beta1.RabbitmqCluster{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
@@ -51,11 +52,17 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	plan, planError := getPlan(instance.Spec.Plan)
+	if planError != nil {
+		return reconcile.Result{}, planError
+	}
+
 	generationContext := generator.GenerationContext{
 		InstanceName: instance.Name,
 		Namespace:    instance.Namespace,
-		Nodes:        instance.Spec.Nodes,
+		Nodes:        plan.Nodes,
 	}
+
 	resources, err := r.Generator.Build(generationContext)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -68,7 +75,7 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		found := resource.EmptyResource
 		err = r.Get(context.TODO(), types.NamespacedName{Name: resource.Name, Namespace: resource.Namespace}, found)
-		if err != nil && errors.IsNotFound(err) {
+		if err != nil && apierrors.IsNotFound(err) {
 			log.Info("Creating "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
 			err = r.Create(context.TODO(), resource.ResourceObject)
 			if err != nil {
@@ -92,4 +99,22 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	return reconcile.Result{}, nil
+}
+
+type PlanConfiguration struct {
+	Nodes int32
+}
+
+func getPlan(name string) (PlanConfiguration, error) {
+	plans := map[string]PlanConfiguration{
+		"ha": {
+			Nodes: int32(3),
+		},
+	}
+	plan, ok := plans[name]
+	if ok == false {
+		return PlanConfiguration{}, errors.New("Plan of type " + name + " not found")
+	}
+
+	return plan, nil
 }

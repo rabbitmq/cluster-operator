@@ -28,13 +28,13 @@ spec:
           type: object
         spec:
           properties:
-            nodes:
-              description: Number of nodes in the RabbitMQ cluster
-              format: int32
-              minimum: 1
-              type: integer
+            plan:
+              description: Deployment plan for the RabbitMQ Cluster
+              enum:
+              - ha
+              type: string
           required:
-          - nodes
+          - plan
           type: object
         status:
           type: object

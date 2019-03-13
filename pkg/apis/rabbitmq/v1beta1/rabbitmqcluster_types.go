@@ -25,9 +25,9 @@ import (
 
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
 type RabbitmqClusterSpec struct {
-	// Number of nodes in the RabbitMQ cluster
-	// +kubebuilder:validation:Minimum=1
-	Nodes int32 `json:"nodes"`
+	// Deployment plan for the RabbitMQ Cluster
+	// +kubebuilder:validation:Enum=ha
+	Plan string `json:"plan"`
 }
 
 // RabbitmqClusterStatus defines the observed state of RabbitmqCluster

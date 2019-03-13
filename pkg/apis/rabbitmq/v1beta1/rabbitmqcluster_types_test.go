@@ -37,7 +37,7 @@ func TestStorageRabbitmqCluster(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: RabbitmqClusterSpec{
-			Nodes: int32(1),
+			Plan: "ha",
 		},
 	}
 	g := gomega.NewGomegaWithT(t)

@@ -34,14 +34,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 			expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
 			depKey = types.NamespacedName{Name: "foo-rabbitmq", Namespace: "default"}
 
-			nodes := int32(3)
 			instance = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Nodes: nodes,
+					Plan: "ha",
 				},
 			}
 

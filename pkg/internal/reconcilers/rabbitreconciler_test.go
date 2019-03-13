@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers/reconcilersfakes"
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
@@ -13,8 +14,10 @@ import (
 	"k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -57,8 +60,28 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(result).To(Equal(reconcile.Result{}))
 			Expect(resultErr).To(Equal(badRequestError))
 		})
+
+		It("returns an empty object and an error when the plan is not recognised", func() {
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				obj.(*rabbitmqv1beta1.RabbitmqCluster).Spec.Plan = "fake-plan"
+				return nil
+			})
+			err := errors.New("Plan of type fake-plan not found")
+			generator.BuildReturns(make([]TargetResource, 0), err)
+			result, resultErr := reconciler.Reconcile(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
+			})
+
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(resultErr).To(Equal(err))
+		})
+
 		It("returns an empty object and an error when kustomize fails", func() {
-			repository.GetReturns(nil)
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				obj.(*rabbitmqv1beta1.RabbitmqCluster).Spec.Plan = "ha"
+				return nil
+			})
+
 			err := errors.New("whatever")
 			generator.BuildReturns(make([]TargetResource, 0), err)
 			result, resultErr := reconciler.Reconcile(reconcile.Request{
@@ -69,7 +92,10 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(resultErr).To(Equal(err))
 		})
 		It("returns an empty object and an error when referencing a resource fails", func() {
-			repository.GetReturns(nil)
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				obj.(*rabbitmqv1beta1.RabbitmqCluster).Spec.Plan = "ha"
+				return nil
+			})
 			resource := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resources := []TargetResource{resource}
 			generator.BuildReturns(resources, nil)
@@ -83,12 +109,21 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(resultErr).To(Equal(err))
 		})
 		It("creates the resource if it is not found", func() {
-			repository.GetReturnsOnCall(0, nil)
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					return nil
+				case *v1.Service:
+					return notFoundError
+				default:
+					return errors.New("Test error")
+				}
+			})
 			resource := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resources := []TargetResource{resource}
 			generator.BuildReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
-			repository.GetReturnsOnCall(1, notFoundError)
 
 			reconciler.Reconcile(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
@@ -100,14 +135,24 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(resourceObject).To(Equal(resource.ResourceObject))
 		})
 		It("creates multiple resources if they are not found", func() {
-			repository.GetReturnsOnCall(0, nil)
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					return nil
+				case *v1.Service:
+					return notFoundError
+				case *v1beta1.StatefulSet:
+					return notFoundError
+				default:
+					return errors.New("Test error")
+				}
+			})
 			resource1 := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resource2 := TargetResource{ResourceObject: &v1beta1.StatefulSet{}, EmptyResource: &v1beta1.StatefulSet{}, Name: "", Namespace: ""}
 			resources := []TargetResource{resource1, resource2}
 			generator.BuildReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
-			repository.GetReturnsOnCall(1, notFoundError)
-			repository.GetReturnsOnCall(2, notFoundError)
 
 			reconciler.Reconcile(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
@@ -124,12 +169,21 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(resourceObject2).To(Equal(resource2.ResourceObject))
 		})
 		It("returns an empty result if it cannot create the resource", func() {
-			repository.GetReturnsOnCall(0, nil)
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					return nil
+				case *v1.Service:
+					return notFoundError
+				default:
+					return errors.New("Test error")
+				}
+			})
 			resource := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resources := []TargetResource{resource}
 			generator.BuildReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
-			repository.GetReturnsOnCall(1, notFoundError)
 			createError := errors.New("fake error")
 			repository.CreateReturns(createError)
 
@@ -141,12 +195,21 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(resultErr).To(Equal(createError))
 		})
 		It("returns an empty object and an error in case of unexpected error when loading the resource", func() {
-			repository.GetReturnsOnCall(0, nil)
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					return nil
+				case *v1.Service:
+					return badRequestError
+				default:
+					return errors.New("Test error")
+				}
+			})
 			resource := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resources := []TargetResource{resource}
 			generator.BuildReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
-			repository.GetReturnsOnCall(1, badRequestError)
 
 			result, resultErr := reconciler.Reconcile(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
@@ -156,7 +219,17 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(resultErr).To(Equal(badRequestError))
 		})
 		It("checks for changes to existing stateful set and updates the cluster", func() {
-			repository.GetReturnsOnCall(0, nil)
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					return nil
+				case *v1beta1.StatefulSet:
+					return nil
+				default:
+					return errors.New("Test error")
+				}
+			})
 			three := int32(3)
 			statefulSet := &v1beta1.StatefulSet{
 				Spec: v1beta1.StatefulSetSpec{
@@ -173,7 +246,6 @@ var _ = Describe("Rabbitreconciler", func() {
 			resources := []TargetResource{resource}
 			generator.BuildReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
-			repository.GetReturnsOnCall(1, nil)
 			repository.UpdateReturns(nil)
 
 			result, resultErr := reconciler.Reconcile(reconcile.Request{
@@ -189,7 +261,17 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(resultErr).To(BeNil())
 		})
 		It("does not update if the resource has been created", func() {
-			repository.GetReturnsOnCall(0, nil)
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					return nil
+				case *v1beta1.StatefulSet:
+					return notFoundError
+				default:
+					return errors.New("Test error")
+				}
+			})
 			three := int32(3)
 			statefulSet := &v1beta1.StatefulSet{
 				Spec: v1beta1.StatefulSetSpec{
@@ -206,7 +288,6 @@ var _ = Describe("Rabbitreconciler", func() {
 			resources := []TargetResource{resource}
 			generator.BuildReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
-			repository.GetReturnsOnCall(1, notFoundError)
 
 			result, resultErr := reconciler.Reconcile(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
@@ -217,7 +298,17 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(resultErr).To(BeNil())
 		})
 		It("checks for changes to existing stateful set and does not update the cluster if there are no changes", func() {
-			repository.GetReturnsOnCall(0, nil)
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					return nil
+				case *v1beta1.StatefulSet:
+					return nil
+				default:
+					return errors.New("Test error")
+				}
+			})
 			three := int32(3)
 			statefulSet := &v1beta1.StatefulSet{
 				Spec: v1beta1.StatefulSetSpec{
@@ -233,7 +324,6 @@ var _ = Describe("Rabbitreconciler", func() {
 			resources := []TargetResource{resource}
 			generator.BuildReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
-			repository.GetReturnsOnCall(1, nil)
 			repository.UpdateReturns(nil)
 
 			result, resultErr := reconciler.Reconcile(reconcile.Request{
