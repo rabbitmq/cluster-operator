@@ -11,6 +11,10 @@ import (
 	"regexp"
 	"strings"
 
+	yaml "gopkg.in/yaml.v2"
+	"sigs.k8s.io/kustomize/pkg/gvk"
+	"sigs.k8s.io/kustomize/pkg/patch"
+
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/cookiegenerator"
 	"k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
@@ -20,6 +24,7 @@ import (
 	"sigs.k8s.io/kustomize/k8sdeps"
 	"sigs.k8s.io/kustomize/pkg/commands/build"
 	"sigs.k8s.io/kustomize/pkg/fs"
+	"sigs.k8s.io/kustomize/pkg/types"
 )
 
 const stringLen = 24
@@ -93,41 +98,60 @@ func (k *KustomizeResourceGenerator) parseYaml(generationContext GenerationConte
 
 	return output, nil
 }
-func populateOverlayDirectory(filesystem fs.FileSystem, generationContext GenerationContext) error {
 
+func populateOverlayDirectory(filesystem fs.FileSystem, generationContext GenerationContext) error {
 	filesystem.Mkdir("/overlay/")
-	var kustomization bytes.Buffer
-	fmt.Fprintf(&kustomization, "namePrefix: %s-\n", generationContext.InstanceName)
-	fmt.Fprintf(&kustomization, "namespace: %s\n", generationContext.Namespace)
-	kustomization.WriteString("commonLabels:\n")
-	fmt.Fprintf(&kustomization, "  instance: %s\n", generationContext.InstanceName)
-	kustomization.WriteString("bases:\n")
-	kustomization.WriteString("- ../base\n")
-	kustomization.WriteString("patchesJSON6902:\n")
-	kustomization.WriteString("- target:\n")
-	kustomization.WriteString("    group: apps\n")
-	kustomization.WriteString("    version: v1beta1\n")
-	kustomization.WriteString("    kind: StatefulSet\n")
-	kustomization.WriteString("    name: rabbitmq\n")
-	statefulSetPatch := []PatchJSON6902{
+	statefulSetPatchName := "statefulset.json"
+	writePatchFile(statefulSetPatchName, generationContext, filesystem)
+	writeKustomizationFile(statefulSetPatchName, generationContext, filesystem)
+	return nil
+}
+func writePatchFile(filename string, generationContext GenerationContext, filesystem fs.FileSystem) error {
+	patch := []PatchJSON6902{
 		{
 			Op:    "replace",
 			Path:  "/spec/replicas",
 			Value: generationContext.Nodes,
 		},
 	}
-	statefulSetPatchJson, parseErr := json.Marshal(statefulSetPatch)
+	patchJson, parseErr := json.Marshal(patch)
 	if parseErr != nil {
 		return parseErr
 	}
 
-	statefulSetPatchName := "statefulset.json"
-	if err := filesystem.WriteFile("/overlay/"+statefulSetPatchName, statefulSetPatchJson); err != nil {
+	if err := filesystem.WriteFile("/overlay/"+filename, patchJson); err != nil {
 		return err
 	}
+	return nil
+}
 
-	fmt.Fprintf(&kustomization, "  path: %s\n", statefulSetPatchName)
-	if err := filesystem.WriteFile("/overlay/kustomization.yaml", kustomization.Bytes()); err != nil {
+func writeKustomizationFile(patchFileName string, generationContext GenerationContext, filesystem fs.FileSystem) error {
+	kustomize := &types.Kustomization{
+		NamePrefix: generationContext.InstanceName + "-",
+		Namespace:  generationContext.Namespace,
+		CommonLabels: map[string]string{
+			"instance": generationContext.InstanceName,
+		},
+		Bases: []string{"../base"},
+		PatchesJson6902: []patch.Json6902{
+			{
+				Path: patchFileName,
+				Target: &patch.Target{
+					Gvk: gvk.Gvk{
+						Group:   "apps",
+						Version: "v1beta1",
+						Kind:    "StatefulSet",
+					},
+					Name: "rabbitmq",
+				},
+			},
+		},
+	}
+	kustomizeYaml, err := yaml.Marshal(kustomize)
+	if err != nil {
+		return err
+	}
+	if err := filesystem.WriteFile("/overlay/kustomization.yaml", kustomizeYaml); err != nil {
 		return err
 	}
 	return nil
