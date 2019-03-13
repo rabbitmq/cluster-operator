@@ -27,7 +27,17 @@ import (
 	"sigs.k8s.io/kustomize/pkg/types"
 )
 
-const stringLen = 24
+type GenerationContext struct {
+	InstanceName string
+	Namespace    string
+	Nodes        int32
+}
+
+type PatchJSON6902 struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value"`
+}
 
 //go:generate counterfeiter . ResourceGenerator
 
@@ -46,48 +56,25 @@ func NewKustomizeResourceGenerator(filepath string) *KustomizeResourceGenerator 
 }
 
 func (k *KustomizeResourceGenerator) Build(generationContext GenerationContext) ([]TargetResource, error) {
-	yamlString, err := k.parseYaml(generationContext)
+	yamlString, err := k.parseYamlString(generationContext)
 	if err != nil {
 		return nil, err
 	}
-	return decode(yamlString)
+	return decodeToObjects(yamlString)
 }
 
-type GenerationContext struct {
-	InstanceName string
-	Namespace    string
-	Nodes        int32
-}
-
-type PatchJSON6902 struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value"`
-}
-
-func (k *KustomizeResourceGenerator) parseYaml(generationContext GenerationContext) (string, error) {
-	instanceName := generationContext.InstanceName
-	namespace := generationContext.Namespace
-
-	f := k8sdeps.NewFactory()
+func (k *KustomizeResourceGenerator) parseYamlString(generationContext GenerationContext) (string, error) {
 	filesystem := fs.MakeFakeFS()
-	files, err := ioutil.ReadDir(k.Filepath)
-	if err != nil {
+
+	if err := k.populateBaseDirectory(filesystem, generationContext); err != nil {
+		return "", err
+	}
+	if err := populateOverlayDirectory(filesystem, generationContext); err != nil {
 		return "", err
 	}
 
-	for _, file := range files {
-		bytes, err := parseBytes(k.Filepath, file, instanceName, namespace)
-		if err != nil {
-			return "", err
-		}
-		filesystem.Mkdir("/base/")
-		filesystem.WriteFile("/base/"+file.Name(), bytes)
-	}
-
-	populateOverlayDirectory(filesystem, generationContext)
-
 	var out bytes.Buffer
+	f := k8sdeps.NewFactory()
 	cmd := build.NewCmdBuild(&out, filesystem, f.ResmapF, f.TransformerF)
 	cmd.SetArgs([]string{"/overlay"})
 	cmd.SetOutput(ioutil.Discard)
@@ -99,6 +86,22 @@ func (k *KustomizeResourceGenerator) parseYaml(generationContext GenerationConte
 	return output, nil
 }
 
+func (k *KustomizeResourceGenerator) populateBaseDirectory(filesystem fs.FileSystem, generationContext GenerationContext) error {
+	files, err := ioutil.ReadDir(k.Filepath)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		bytes, err := parseBytes(k.Filepath, file, generationContext.InstanceName, generationContext.Namespace)
+		if err != nil {
+			return err
+		}
+		filesystem.Mkdir("/base/")
+		filesystem.WriteFile("/base/"+file.Name(), bytes)
+	}
+	return nil
+}
 func populateOverlayDirectory(filesystem fs.FileSystem, generationContext GenerationContext) error {
 	filesystem.Mkdir("/overlay/")
 	statefulSetPatchName := "statefulset.json"
@@ -181,7 +184,7 @@ type TargetResource struct {
 	Namespace      string
 }
 
-func decode(yaml string) ([]TargetResource, error) {
+func decodeToObjects(yaml string) ([]TargetResource, error) {
 	resources := strings.Split(yaml, "---")
 	resourceArray := make([]TargetResource, 0, 9)
 	for _, resource := range resources {
