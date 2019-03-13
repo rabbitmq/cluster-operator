@@ -1,6 +1,6 @@
-
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+GCP_PROJECT = $$(gcloud config get-value project)
+IMG ?= eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager
 
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
