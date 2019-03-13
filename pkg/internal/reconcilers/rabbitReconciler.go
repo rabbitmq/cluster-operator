@@ -6,9 +6,11 @@ import (
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
+	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/secret"
 	"k8s.io/api/apps/v1beta1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,7 +26,7 @@ type Repository interface {
 	Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error
 	Create(ctx context.Context, obj runtime.Object) error
 	Update(ctx context.Context, obj runtime.Object) error
-	SetControllerReference(owner, object v1.Object) error
+	SetControllerReference(owner, object metav1.Object) error
 }
 
 type RabbitReconciler struct {
@@ -63,13 +65,30 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 		Nodes:        plan.Nodes,
 	}
 
+	secret, secretError := secret.New(generationContext)
+	if secretError != nil {
+		return reconcile.Result{}, secretError
+	}
+
+	foundSecret := &v1.Secret{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, foundSecret)
+	if err != nil && apierrors.IsNotFound(err) {
+		log.Info("Creating "+secret.Kind, "namespace", secret.Namespace, "name", secret.Name)
+		err = r.Create(context.TODO(), secret)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	resources, err := r.Generator.Build(generationContext)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
 	for _, resource := range resources {
-		if err := r.SetControllerReference(instance, resource.ResourceObject.(v1.Object)); err != nil {
+		if err := r.SetControllerReference(instance, resource.ResourceObject.(metav1.Object)); err != nil {
 			return reconcile.Result{}, err
 		}
 

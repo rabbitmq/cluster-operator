@@ -8,14 +8,6 @@ resources:
   - configmap.yml
   - rbac.yml
 
-secretGenerator:
-  - name: rabbitmq
-    literals:
-      # Generate using `printf "%s" "$(pwgen 20 1)" | base64`
-      # format is:
-      # - erlang-cookie=base64cookie
-      - erlang-cookie=
-
 generatorOptions:
   disableNameSuffixHash: true
 
