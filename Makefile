@@ -36,6 +36,11 @@ $(KUBEBUILDER):
 
 all: fmt vet test manifests manager
 
+test_env:
+	export TEST_ASSET_KUBECTL=$(TEST_ASSET_KUBECTL)
+	export TEST_ASSET_KUBE_APISERVER=$(TEST_ASSET_KUBE_APISERVER)
+	export TEST_ASSET_ETCD=$(TEST_ASSET_ETCD)
+
 # Run tests
 test: generate
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
