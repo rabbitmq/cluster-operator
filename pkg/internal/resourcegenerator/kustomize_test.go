@@ -16,9 +16,9 @@ var _ = Describe("Kustomize", func() {
 	Context("Build function", func() {
 		It("parses the target yaml into k8s resource", func() {
 			generationContext := GenerationContext{
-				InstanceName: "anything",
-				Namespace:    "anyNamespace",
-				Nodes:        2,
+				InstanceName: "rabbit",
+				Namespace:    "rabbit-namespace",
+				Nodes:        int32(3),
 			}
 			objects, err := generator.Build(generationContext)
 

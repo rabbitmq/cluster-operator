@@ -42,7 +42,7 @@ type PatchJSON6902 struct {
 //go:generate counterfeiter . ResourceGenerator
 
 type ResourceGenerator interface {
-	Build(GenerationContext) ([]TargetResource, error)
+	Build(generationContext GenerationContext) ([]TargetResource, error)
 }
 
 type KustomizeResourceGenerator struct {
