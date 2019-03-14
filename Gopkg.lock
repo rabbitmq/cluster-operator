@@ -270,6 +270,14 @@
   version = "v1.1.5"
 
 [[projects]]
+  digest = "1:663cc8454702691d4d089e6df5acc61d87b9c9a933a28b7615200e5b5a4f0cfd"
+  name = "github.com/kubernetes-sigs/kustomize"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "a6f65144121d1955266b0cd836ce954c04122dc8"
+  version = "v2.0.3"
+
+[[projects]]
   branch = "master"
   digest = "1:173c1a4b67a54fb4d76311e3fb7eb8a586df8146ab39ca054ec330b6cc72f0cb"
   name = "github.com/mailru/easyjson"
@@ -999,7 +1007,14 @@
     "k8sdeps/transformer/hash",
     "k8sdeps/transformer/patch",
     "k8sdeps/validator",
+    "pkg/commands",
     "pkg/commands/build",
+    "pkg/commands/edit",
+    "pkg/commands/edit/add",
+    "pkg/commands/edit/fix",
+    "pkg/commands/edit/set",
+    "pkg/commands/kustfile",
+    "pkg/commands/misc",
     "pkg/constants",
     "pkg/expansion",
     "pkg/factory",
@@ -1051,6 +1066,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/emicklei/go-restful",
+    "github.com/kubernetes-sigs/kustomize",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "golang.org/x/net/context",

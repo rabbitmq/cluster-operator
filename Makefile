@@ -1,6 +1,7 @@
 # Image URL to use all building/pushing image targets
 GCP_PROJECT = $$(gcloud config get-value project)
-IMG ?= eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager
+IMG_VERSION = $(shell date -u +'%Y-%m-%d.%H%M')
+IMG ?= eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager:$(IMG_VERSION)
 
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
@@ -12,13 +13,22 @@ $(DEP):
 
 COUNTERFEITER := $(GOPATH)/bin/counterfeiter
 $(COUNTERFEITER):
-	go get -u "github.com/maxbrunsfeld/counterfeiter"
+	go get -u github.com/maxbrunsfeld/counterfeiter
+
+LOCAL_BIN := $(CURDIR)/bin
+PATH := $(LOCAL_BIN):$(PATH)
+export PATH
 
 KUBEBUILDER_VERSION := 1.0.8
 PLATFORM := $(shell uname -s | tr '[:upper:]' '[:lower:]')
-KUBEBUILDER := $(CURDIR)/bin/kubebuilder_$(KUBEBUILDER_VERSION)
+KUBEBUILDER := $(LOCAL_BIN)/kubebuilder_$(KUBEBUILDER_VERSION)
 PATH := $(KUBEBUILDER)/bin:$(PATH)
 export PATH
+
+$(KUBEBUILDER):
+	mkdir -p $(KUBEBUILDER) && \
+	curl --silent --fail --location "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KUBEBUILDER_VERSION)/kubebuilder_$(KUBEBUILDER_VERSION)_$(PLATFORM)_amd64.tar.gz" | \
+		tar -zxv --directory=$(KUBEBUILDER) --strip-components=1
 
 TEST_ASSET_KUBECTL := $(KUBEBUILDER)/bin/kubectl
 export TEST_ASSET_KUBECTL
@@ -29,12 +39,20 @@ export TEST_ASSET_KUBE_APISERVER
 TEST_ASSET_ETCD := $(KUBEBUILDER)/bin/etcd
 export TEST_ASSET_ETCD
 
-$(KUBEBUILDER):
-	mkdir -p $(KUBEBUILDER) && \
-	curl --silent --fail --location "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KUBEBUILDER_VERSION)/kubebuilder_$(KUBEBUILDER_VERSION)_$(PLATFORM)_amd64.tar.gz" | \
-		tar -zxv --directory=$(KUBEBUILDER) --strip-components=1
+KUSTOMIZE_VERSION := 2.0.3
+KUSTOMIZE := $(LOCAL_BIN)/kustomize_$(KUSTOMIZE_VERSION)
+KUSTOMIZE_URL := https://github.com/kubernetes-sigs/kustomize/releases/download/v$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_$(PLATFORM)_amd64
+$(KUSTOMIZE):
+	curl --silent --fail --location --output $(KUSTOMIZE) "$(KUSTOMIZE_URL)" && \
+	touch $(KUSTOMIZE) && \
+	chmod +x $(KUSTOMIZE) && \
+	($(KUSTOMIZE) version | grep $(KUSTOMIZE_VERSION)) && \
+	ln -sf $(KUSTOMIZE) $(CURDIR)/bin/kustomize
 
 all: fmt vet test manifests manager
+
+env:
+	export PATH=$(PATH)
 
 test_env:
 	export TEST_ASSET_KUBECTL=$(TEST_ASSET_KUBECTL)
@@ -58,9 +76,9 @@ install: manifests
 	kubectl apply -f config/crds
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
+deploy: $(KUSTOMIZE) manifests
 	kubectl apply -f config/crds
-	kustomize build config/default | kubectl apply -f -
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: deps
