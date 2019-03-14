@@ -7,12 +7,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
+	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans"
+	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans/plansfakes"
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers/reconcilersfakes"
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator/resourcegeneratorfakes"
 	"k8s.io/api/apps/v1beta1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,13 +30,15 @@ var _ = Describe("Rabbitreconciler", func() {
 		generator       *resourcegeneratorfakes.FakeResourceGenerator
 		notFoundError   *apierrors.StatusError
 		badRequestError *apierrors.StatusError
+		plans           *plansfakes.FakePlans
 	)
 
 	Context("Reconcile", func() {
 		BeforeEach(func() {
 			repository = new(reconcilersfakes.FakeRepository)
 			generator = new(resourcegeneratorfakes.FakeResourceGenerator)
-			reconciler = NewRabbitReconciler(repository, generator)
+			plans = new(plansfakes.FakePlans)
+			reconciler = NewRabbitReconciler(repository, generator, plans)
 
 			groupResource := schema.GroupResource{}
 			notFoundError = apierrors.NewNotFound(groupResource, "rabbit")
@@ -66,14 +70,14 @@ var _ = Describe("Rabbitreconciler", func() {
 				obj.(*rabbitmqv1beta1.RabbitmqCluster).Spec.Plan = "fake-plan"
 				return nil
 			})
-			err := errors.New("Plan of type fake-plan not found")
-			generator.BuildReturns(make([]TargetResource, 0), err)
+			errPlan := errors.New("")
+			plans.GetReturns(Configuration{}, errPlan)
 			result, resultErr := reconciler.Reconcile(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
 			})
 
 			Expect(result).To(Equal(reconcile.Result{}))
-			Expect(resultErr).To(Equal(err))
+			Expect(resultErr).To(BeIdenticalTo(errPlan))
 		})
 
 		It("returns an empty object and an error when kustomize fails", func() {
@@ -124,15 +128,20 @@ var _ = Describe("Rabbitreconciler", func() {
 			resources := []TargetResource{resource}
 			generator.BuildReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
+			planConfiguration := Configuration{Nodes: int32(2)}
+			plans.GetReturns(planConfiguration, nil)
 
 			reconciler.Reconcile(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
 			})
 			ctx, resourceObject := repository.CreateArgsForCall(0)
+			buildContext := generator.BuildArgsForCall(0)
 
 			Expect(repository.CreateCallCount()).To(Equal(1))
 			Expect(ctx).To(Equal(context.TODO()))
 			Expect(resourceObject).To(Equal(resource.ResourceObject))
+
+			Expect(buildContext.Nodes).To(Equal(planConfiguration.Nodes))
 		})
 		It("creates multiple resources if they are not found", func() {
 			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {

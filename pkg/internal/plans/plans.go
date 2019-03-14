@@ -6,15 +6,20 @@ type Configuration struct {
 	Nodes int32
 }
 
-type Plans struct {
+type RabbitPlans struct {
 	configurations map[string]Configuration
+}
+
+//go:generate counterfeiter . Plans
+type Plans interface {
+	Get(string) (Configuration, error)
 }
 
 var UnrecognisedPlanError = errors.New("Plan name is no recognised")
 
 type UnrecognisedPlan struct{}
 
-func (p Plans) Get(name string) (Configuration, error) {
+func (p RabbitPlans) Get(name string) (Configuration, error) {
 	plan, ok := p.configurations[name]
 	if ok == false {
 		return Configuration{}, UnrecognisedPlanError
@@ -23,8 +28,8 @@ func (p Plans) Get(name string) (Configuration, error) {
 	return plan, nil
 }
 
-func New() *Plans {
-	plans := new(Plans)
+func New() *RabbitPlans {
+	plans := new(RabbitPlans)
 	plans.configurations = map[string]Configuration{
 		"single": {
 			Nodes: int32(1),

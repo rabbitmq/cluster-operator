@@ -2,13 +2,14 @@ package reconcilers
 
 import (
 	"context"
-	"errors"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans"
+	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans"
 	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 	"k8s.io/api/apps/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,12 +31,14 @@ type Repository interface {
 type RabbitReconciler struct {
 	Repository
 	Generator generator.ResourceGenerator
+	plans     Plans
 }
 
-func NewRabbitReconciler(repository Repository, generator generator.ResourceGenerator) *RabbitReconciler {
+func NewRabbitReconciler(repository Repository, generator generator.ResourceGenerator, plans plans.Plans) *RabbitReconciler {
 	return &RabbitReconciler{
 		Repository: repository,
 		Generator:  generator,
+		plans:      plans,
 	}
 }
 
@@ -52,9 +55,9 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	plan, planError := getPlan(instance.Spec.Plan)
-	if planError != nil {
-		return reconcile.Result{}, planError
+	plan, errPlan := r.plans.Get(instance.Spec.Plan)
+	if errPlan != nil {
+		return reconcile.Result{}, errPlan
 	}
 
 	generationContext := generator.GenerationContext{
@@ -99,22 +102,4 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	return reconcile.Result{}, nil
-}
-
-type PlanConfiguration struct {
-	Nodes int32
-}
-
-func getPlan(name string) (PlanConfiguration, error) {
-	plans := map[string]PlanConfiguration{
-		"ha": {
-			Nodes: int32(3),
-		},
-	}
-	plan, ok := plans[name]
-	if ok == false {
-		return PlanConfiguration{}, errors.New("Plan of type " + name + " not found")
-	}
-
-	return plan, nil
 }
