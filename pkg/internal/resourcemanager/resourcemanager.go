@@ -6,7 +6,15 @@ import (
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 )
 
-func Configure(instance *rabbitmqv1beta1.RabbitmqCluster, plans plans.Plans, generator ResourceGenerator) ([]TargetResource, error) {
+//go:generate counterfeiter . ResourceManager
+
+type ResourceManager interface {
+	Configure(*rabbitmqv1beta1.RabbitmqCluster, plans.Plans, ResourceGenerator) ([]TargetResource, error)
+}
+
+type RabbitResourceManager struct{}
+
+func (r *RabbitResourceManager) Configure(instance *rabbitmqv1beta1.RabbitmqCluster, plans plans.Plans, generator ResourceGenerator) ([]TargetResource, error) {
 
 	_, errPlan := plans.Get(instance.Spec.Plan)
 	if errPlan != nil {

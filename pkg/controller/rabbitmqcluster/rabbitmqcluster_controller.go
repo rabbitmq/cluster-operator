@@ -21,6 +21,7 @@ import (
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans"
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers"
 	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
+	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcemanager"
 	"k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,7 +118,8 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 	resourceGenerator := generator.NewKustomizeResourceGenerator("templates/")
 	repository := &DefaultRepository{Client: r.Client, scheme: r.scheme}
 	plans := plans.New()
-	reconciler := NewRabbitReconciler(repository, resourceGenerator, plans)
+	resourceManager := &resourcemanager.RabbitResourceManager{}
+	reconciler := NewRabbitReconciler(repository, resourceGenerator, plans, resourceManager)
 	return reconciler.Reconcile(request)
 
 }
