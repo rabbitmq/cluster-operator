@@ -16,14 +16,14 @@ type RabbitResourceManager struct{}
 
 func (r *RabbitResourceManager) Configure(instance *rabbitmqv1beta1.RabbitmqCluster, plans plans.Plans, generator ResourceGenerator) ([]TargetResource, error) {
 
-	_, errPlan := plans.Get(instance.Spec.Plan)
+	plan, errPlan := plans.Get(instance.Spec.Plan)
 	if errPlan != nil {
 		return []TargetResource{}, errPlan
 	}
 	generationContext := GenerationContext{
 		InstanceName: instance.Name,
 		Namespace:    instance.Namespace,
-		Nodes:        int32(3),
+		Nodes:        plan.Nodes,
 	}
 	return generator.Build(generationContext)
 }

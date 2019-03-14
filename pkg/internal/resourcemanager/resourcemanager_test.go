@@ -64,7 +64,7 @@ var _ = Describe("Resourcemanager", func() {
 		It("builds the context from the plan and instance to pass to the generator", func() {
 			var TestBuild = func(nodes int32) {
 				configuration := Configuration{
-					Nodes: int32(3),
+					Nodes: nodes,
 				}
 				plans.GetReturns(configuration, nil)
 
