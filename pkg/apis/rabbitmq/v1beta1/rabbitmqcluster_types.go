@@ -26,7 +26,7 @@ import (
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
 type RabbitmqClusterSpec struct {
 	// Deployment plan for the RabbitMQ Cluster
-	// +kubebuilder:validation:Enum=ha
+	// +kubebuilder:validation:Enum=ha,single
 	Plan string `json:"plan"`
 }
 

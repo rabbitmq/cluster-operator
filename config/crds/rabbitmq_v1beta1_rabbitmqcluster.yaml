@@ -32,6 +32,7 @@ spec:
               description: Deployment plan for the RabbitMQ Cluster
               enum:
               - ha
+              - single
               type: string
           required:
           - plan
