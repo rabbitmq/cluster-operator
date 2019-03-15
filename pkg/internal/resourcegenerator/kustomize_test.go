@@ -23,7 +23,7 @@ var _ = Describe("Kustomize", func() {
 			objects, err := generator.Build(generationContext)
 
 			Expect(err).To(BeNil())
-			Expect(len(objects)).To(Equal(7))
+			Expect(len(objects)).To(Equal(6))
 		})
 	})
 })

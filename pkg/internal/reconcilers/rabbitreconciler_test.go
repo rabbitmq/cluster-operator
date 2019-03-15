@@ -9,8 +9,6 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers/reconcilersfakes"
-	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
-	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator/resourcegeneratorfakes"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcemanager/resourcemanagerfakes"
 	"k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
@@ -26,7 +24,6 @@ var _ = Describe("Rabbitreconciler", func() {
 	var (
 		reconciler      *RabbitReconciler
 		repository      *reconcilersfakes.FakeRepository
-		generator       *resourcegeneratorfakes.FakeResourceGenerator
 		notFoundError   *apierrors.StatusError
 		badRequestError *apierrors.StatusError
 		resourceManager *resourcemanagerfakes.FakeResourceManager
@@ -35,7 +32,6 @@ var _ = Describe("Rabbitreconciler", func() {
 	Context("Reconcile", func() {
 		BeforeEach(func() {
 			repository = new(reconcilersfakes.FakeRepository)
-			generator = new(resourcegeneratorfakes.FakeResourceGenerator)
 			resourceManager = new(resourcemanagerfakes.FakeResourceManager)
 
 			reconciler = NewRabbitReconciler(repository, resourceManager)
@@ -285,7 +281,7 @@ var _ = Describe("Rabbitreconciler", func() {
 			}
 			resource := TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
 			resources := []TargetResource{resource}
-			generator.BuildReturns(resources, nil)
+			resourceManager.ConfigureReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
 
 			result, resultErr := reconciler.Reconcile(reconcile.Request{
@@ -321,7 +317,7 @@ var _ = Describe("Rabbitreconciler", func() {
 			}
 			resource := TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
 			resources := []TargetResource{resource}
-			generator.BuildReturns(resources, nil)
+			resourceManager.ConfigureReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
 			repository.UpdateReturns(nil)
 

@@ -8,14 +8,12 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
-	"regexp"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
 	"sigs.k8s.io/kustomize/pkg/gvk"
 	"sigs.k8s.io/kustomize/pkg/patch"
 
-	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/cookiegenerator"
 	"k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
@@ -165,14 +163,6 @@ func parseBytes(filepath string, file os.FileInfo, instanceName, namespace strin
 	if err != nil {
 		return bytes, err
 	}
-	if file.Name() == "kustomization.yaml" {
-		erlangCookie, err := cookiegenerator.Generate()
-		if err != nil {
-			return bytes, err
-		}
-		re := regexp.MustCompile("erlang-cookie=")
-		bytes = re.ReplaceAll(bytes, []byte("erlang-cookie="+erlangCookie))
-	}
 
 	return bytes, nil
 }
@@ -196,8 +186,6 @@ func decodeToObjects(yaml string) ([]TargetResource, error) {
 			fmt.Printf("%#v", err)
 		}
 		switch o := obj.(type) {
-		case *v1.Secret:
-			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &v1.Secret{}, Name: o.Name, Namespace: o.Namespace})
 		case *v1.Service:
 			resourceArray = append(resourceArray, TargetResource{ResourceObject: obj, EmptyResource: &v1.Service{}, Name: o.Name, Namespace: o.Namespace})
 		case *v1.ConfigMap:
