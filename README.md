@@ -56,11 +56,11 @@ We are gitignoring the vendor directory because it is huge. When getting started
 
 ## How to push the Manager docker image
 
-1. `export IMG=eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-manager`
+1. gcloud config set project cf-rabbitmq
 2. `gcloud auth configure-docker`
-3. `make docker-build`
-4. `make docker-push`
-5. To deploy, run `make deploy`
+2. `make docker-build`
+3. `make docker-push`
+4. To deploy, run `make deploy`
 
 # Tear down
 

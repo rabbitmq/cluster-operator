@@ -108,11 +108,17 @@ func populateOverlayDirectory(filesystem fs.FileSystem, generationContext Genera
 	return nil
 }
 func writePatchFile(filename string, generationContext GenerationContext, filesystem fs.FileSystem) error {
+	//TODO Check if there's a way to do a replace on an array that is not by index
 	patch := []PatchJSON6902{
 		{
 			Op:    "replace",
 			Path:  "/spec/replicas",
 			Value: generationContext.Nodes,
+		},
+		{
+			Op:    "replace",
+			Path:  "/spec/template/spec/containers/0/env/0/valueFrom/secretKeyRef/name",
+			Value: generationContext.InstanceName,
 		},
 	}
 	patchJson, parseErr := json.Marshal(patch)

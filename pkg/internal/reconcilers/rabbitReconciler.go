@@ -5,7 +5,7 @@ import (
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcemanager"
-	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/secret"
+	cookie "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/secret"
 	"k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,12 +31,14 @@ type Repository interface {
 type RabbitReconciler struct {
 	Repository
 	resourceManager resourcemanager.ResourceManager
+	secret          cookie.Secret
 }
 
-func NewRabbitReconciler(repository Repository, resourceManager resourcemanager.ResourceManager) *RabbitReconciler {
+func NewRabbitReconciler(repository Repository, resourceManager resourcemanager.ResourceManager, secret cookie.Secret) *RabbitReconciler {
 	return &RabbitReconciler{
 		Repository:      repository,
 		resourceManager: resourceManager,
+		secret:          secret,
 	}
 }
 
@@ -54,31 +56,41 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	resources, err := r.resourceManager.Configure(instance)
-
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	secret, secretError := secret.New(instance)
+	// Secret generation has been intentionally separated from other resources as it is not idempotent and should be isolated as such
+	desiredSecret, secretError := r.secret.New(instance)
 	if secretError != nil {
+		log.Info("Error parsing secret")
 		return reconcile.Result{}, secretError
 	}
 
+	if err := r.SetControllerReference(instance, desiredSecret); err != nil {
+		log.Info("Error setting controller reference for Secret", "namespace", desiredSecret.Namespace, "name", desiredSecret.Name)
+		return reconcile.Result{}, err
+	}
+
 	foundSecret := &v1.Secret{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, foundSecret)
+	err = r.Get(context.TODO(), types.NamespacedName{Name: desiredSecret.Name, Namespace: desiredSecret.Namespace}, foundSecret)
 	if err != nil && apierrors.IsNotFound(err) {
-		log.Info("Creating "+secret.Kind, "namespace", secret.Namespace, "name", secret.Name)
-		err = r.Create(context.TODO(), secret)
+		log.Info("Creating Secret", "namespace", desiredSecret.Namespace, "name", desiredSecret.Name)
+		err = r.Create(context.TODO(), desiredSecret)
 		if err != nil {
+			log.Info("Error creating Secret", "namespace", desiredSecret.Namespace, "name", desiredSecret.Name)
 			return reconcile.Result{}, err
 		}
 	} else if err != nil {
+		log.Info("Error getting Secret", "namespace", desiredSecret.Namespace, "name", desiredSecret.Name)
 		return reconcile.Result{}, err
+	}
+	resources, configureErr := r.resourceManager.Configure(instance)
+
+	if configureErr != nil {
+		log.Info("Error configuring resources")
+		return reconcile.Result{}, configureErr
 	}
 
 	for _, resource := range resources {
 		if err := r.SetControllerReference(instance, resource.ResourceObject.(metav1.Object)); err != nil {
+			log.Info("Error setting controller reference for "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
 			return reconcile.Result{}, err
 		}
 
@@ -88,9 +100,11 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 			log.Info("Creating "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
 			err = r.Create(context.TODO(), resource.ResourceObject)
 			if err != nil {
+				log.Info("Error creating "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
 				return reconcile.Result{}, err
 			}
 		} else if err != nil {
+			log.Info("Error getting "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
 			return reconcile.Result{}, err
 		} else {
 			switch o := resource.ResourceObject.(type) {
@@ -100,6 +114,7 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 					*foundStatefulSet.Spec.Replicas = *o.Spec.Replicas
 					log.Info("Updating "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
 					if err := r.Update(context.TODO(), foundStatefulSet); err != nil {
+						log.Info("Error updating "+resource.ResourceObject.GetObjectKind().GroupVersionKind().Kind, "namespace", resource.Namespace, "name", resource.Name)
 						return reconcile.Result{}, err
 					}
 				}

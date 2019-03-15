@@ -30,6 +30,12 @@ spec:
               mountPath: /etc/rabbitmq/enabled_plugins
               subPath: enabled_plugins
               readOnly: true
+          env:
+            - name: RABBITMQ_ERLANG_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: erlang-cookie
       volumes:
         - name: config-volume
           configMap:

@@ -15,7 +15,7 @@ type Plans interface {
 	Get(string) (Configuration, error)
 }
 
-var UnrecognisedPlanError = errors.New("Plan name is no recognised")
+var UnrecognisedPlanError = errors.New("Plan name is not recognised")
 
 type UnrecognisedPlan struct{}
 

@@ -11,9 +11,11 @@ import (
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers/reconcilersfakes"
 	resourcegenerator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcemanager/resourcemanagerfakes"
+	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/secret/secretfakes"
 	"k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,14 +30,16 @@ var _ = Describe("Rabbitreconciler", func() {
 		notFoundError   *apierrors.StatusError
 		badRequestError *apierrors.StatusError
 		resourceManager *resourcemanagerfakes.FakeResourceManager
+		rabbitSecret    *secretfakes.FakeSecret
 	)
 
 	Context("Reconcile", func() {
 		BeforeEach(func() {
 			repository = new(reconcilersfakes.FakeRepository)
 			resourceManager = new(resourcemanagerfakes.FakeResourceManager)
+			rabbitSecret = new(secretfakes.FakeSecret)
 
-			reconciler = NewRabbitReconciler(repository, resourceManager)
+			reconciler = NewRabbitReconciler(repository, resourceManager, rabbitSecret)
 
 			groupResource := schema.GroupResource{}
 			notFoundError = apierrors.NewNotFound(groupResource, "rabbit")
@@ -62,12 +66,195 @@ var _ = Describe("Rabbitreconciler", func() {
 			Expect(resultErr).To(Equal(badRequestError))
 		})
 
+		It("returns an error if the secret is not parsable", func() {
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					o.Name = "rabbit"
+					o.Namespace = "default"
+					return nil
+				}
+				return nil
+			})
+			err := errors.New("secret parsing failed")
+			newSecret := &v1.Secret{}
+			rabbitSecret.NewReturns(newSecret, err)
+
+			result, resultErr := reconciler.Reconcile(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
+			})
+			instanceUsed := rabbitSecret.NewArgsForCall(0)
+
+			Expect(instanceUsed.Spec.Plan).To(Equal("ha"))
+			Expect(instanceUsed.Name).To(Equal("rabbit"))
+			Expect(instanceUsed.Namespace).To(Equal("default"))
+
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(resultErr).To(Equal(err))
+		})
+
+		It("returns an error if the controller reference for the secret cannot be set", func() {
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					o.Name = "rabbit"
+					o.Namespace = "default"
+					return nil
+				}
+				return nil
+			})
+			newSecret := &v1.Secret{}
+			rabbitSecret.NewReturns(newSecret, nil)
+			err := errors.New("referencing failed")
+			repository.SetControllerReferenceReturns(err)
+
+			result, resultErr := reconciler.Reconcile(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
+			})
+
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(resultErr).To(Equal(err))
+		})
+
+		It("returns an error if retrieving the secret fails", func() {
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					o.Namespace = "rabbit-namespace"
+					o.Name = "rabbit"
+					return nil
+				case *v1.Secret:
+					return badRequestError
+				default:
+					return errors.New("Test error")
+				}
+			})
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
+			repository.SetControllerReferenceReturns(nil)
+
+			result, resultErr := reconciler.Reconcile(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
+			})
+
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(resultErr).To(Equal(badRequestError))
+		})
+
+		It("creates the secret if it does not exist", func() {
+			var instance *rabbitmqv1beta1.RabbitmqCluster
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					o.Namespace = "rabbit-namespace"
+					o.Name = "rabbit"
+					instance = o
+					return nil
+				case *v1.Secret:
+					return notFoundError
+				default:
+					return errors.New("Test error")
+				}
+			})
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
+			repository.SetControllerReferenceReturns(nil)
+
+			reconciler.Reconcile(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
+			})
+			ctx, resourceObject := repository.CreateArgsForCall(0)
+			requestInstance := rabbitSecret.NewArgsForCall(0)
+
+			Expect(repository.GetCallCount()).To(Equal(2))
+			Expect(repository.CreateCallCount()).To(Equal(1))
+			Expect(ctx).To(Equal(context.TODO()))
+			Expect(resourceObject).To(Equal(newSecret))
+
+			Expect(instance).To(Equal(requestInstance))
+		})
+		It("returns an error if secret creation fails", func() {
+			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					o.Namespace = "rabbit-namespace"
+					o.Name = "rabbit"
+					return nil
+				case *v1.Secret:
+					return notFoundError
+				default:
+					return errors.New("Test error")
+				}
+			})
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
+			repository.SetControllerReferenceReturns(nil)
+			err := errors.New("creation error")
+			repository.CreateReturns(err)
+
+			result, resultErr := reconciler.Reconcile(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
+			})
+
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(resultErr).To(Equal(err))
+		})
+
 		It("returns an empty object and an error when kustomize fails", func() {
 			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
-				obj.(*rabbitmqv1beta1.RabbitmqCluster).Spec.Plan = "ha"
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					return nil
+				case *v1.Secret:
+					return nil
+				}
 				return nil
 			})
 
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
 			err := errors.New("whatever")
 			resourceManager.ConfigureReturns(make([]resourcegenerator.TargetResource, 0), err)
 			result, resultErr := reconciler.Reconcile(reconcile.Request{
@@ -88,6 +275,17 @@ var _ = Describe("Rabbitreconciler", func() {
 				}
 				return nil
 			})
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
 			resource := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
@@ -118,6 +316,17 @@ var _ = Describe("Rabbitreconciler", func() {
 					return errors.New("Test error")
 				}
 			})
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
 			resource := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
@@ -152,6 +361,17 @@ var _ = Describe("Rabbitreconciler", func() {
 					return errors.New("Test error")
 				}
 			})
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
 			resource1 := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resource2 := resourcegenerator.TargetResource{ResourceObject: &v1beta1.StatefulSet{}, EmptyResource: &v1beta1.StatefulSet{}, Name: "", Namespace: ""}
 			resources := []resourcegenerator.TargetResource{resource1, resource2}
@@ -188,6 +408,17 @@ var _ = Describe("Rabbitreconciler", func() {
 					return errors.New("Test error")
 				}
 			})
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
 			resource := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
@@ -216,6 +447,17 @@ var _ = Describe("Rabbitreconciler", func() {
 					return errors.New("Test error")
 				}
 			})
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
 			resource := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
 			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
@@ -254,6 +496,17 @@ var _ = Describe("Rabbitreconciler", func() {
 					Replicas: &two,
 				},
 			}
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
 			resource := resourcegenerator.TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
 			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
@@ -298,6 +551,17 @@ var _ = Describe("Rabbitreconciler", func() {
 					Replicas: &two,
 				},
 			}
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
 			resource := resourcegenerator.TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
 			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
@@ -336,6 +600,17 @@ var _ = Describe("Rabbitreconciler", func() {
 					Replicas: &three,
 				},
 			}
+			newSecret := &v1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit",
+					Namespace: "rabbit-namespace",
+				},
+			}
+			rabbitSecret.NewReturns(newSecret, nil)
 			resource := resourcegenerator.TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
 			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)

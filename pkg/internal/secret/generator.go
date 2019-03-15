@@ -13,18 +13,15 @@ import (
 
 const stringLen = 24
 
-func generate() ([]byte, error) {
-	encoding := base64.RawURLEncoding
+//go:generate counterfeiter . Secret
 
-	randomBytes := make([]byte, encoding.DecodedLen(stringLen))
-	if _, err := rand.Read(randomBytes); err != nil {
-		return []byte{}, fmt.Errorf("reading random bytes failed:. %s", err)
-	}
-
-	return []byte(strings.TrimPrefix(encoding.EncodeToString(randomBytes), "-")), nil
+type Secret interface {
+	New(instance *rabbitmqv1beta1.RabbitmqCluster) (*v1.Secret, error)
 }
 
-func New(instance *rabbitmqv1beta1.RabbitmqCluster) (*v1.Secret, error) {
+type RabbitSecret struct{}
+
+func (r *RabbitSecret) New(instance *rabbitmqv1beta1.RabbitmqCluster) (*v1.Secret, error) {
 	cookie, err := generate()
 	if err != nil {
 		return nil, err
@@ -48,4 +45,15 @@ func New(instance *rabbitmqv1beta1.RabbitmqCluster) (*v1.Secret, error) {
 	}
 
 	return secret, nil
+}
+
+func generate() ([]byte, error) {
+	encoding := base64.RawURLEncoding
+
+	randomBytes := make([]byte, encoding.DecodedLen(stringLen))
+	if _, err := rand.Read(randomBytes); err != nil {
+		return []byte{}, fmt.Errorf("reading random bytes failed:. %s", err)
+	}
+
+	return []byte(strings.TrimPrefix(encoding.EncodeToString(randomBytes), "-")), nil
 }
