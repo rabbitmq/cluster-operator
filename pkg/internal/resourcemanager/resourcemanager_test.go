@@ -27,7 +27,7 @@ var _ = Describe("Resourcemanager", func() {
 			plans = new(plansfakes.FakePlans)
 			generator = new(resourcegeneratorfakes.FakeResourceGenerator)
 
-			resourceManager = &RabbitResourceManager{}
+			resourceManager = NewRabbitResourceManager(plans, generator)
 
 			instance = &rabbitmqv1beta1.RabbitmqCluster{
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -45,7 +45,7 @@ var _ = Describe("Resourcemanager", func() {
 			}
 		})
 		It("retrieves the plan", func() {
-			resourceManager.Configure(instance, plans, generator)
+			resourceManager.Configure(instance)
 			planName := plans.GetArgsForCall(0)
 
 			Expect(instance.Spec.Plan).To(Equal(planName))
@@ -55,7 +55,7 @@ var _ = Describe("Resourcemanager", func() {
 			planErr := errors.New("")
 			plans.GetReturns(Configuration{}, planErr)
 
-			targetResource, err := resourceManager.Configure(instance, plans, generator)
+			targetResource, err := resourceManager.Configure(instance)
 
 			Expect(targetResource).To(Equal([]TargetResource{}))
 			Expect(err).To(BeIdenticalTo(planErr))
@@ -68,7 +68,7 @@ var _ = Describe("Resourcemanager", func() {
 				}
 				plans.GetReturns(configuration, nil)
 
-				resourceManager.Configure(instance, plans, generator)
+				resourceManager.Configure(instance)
 				generationContext := generator.BuildArgsForCall(0)
 
 				Expect(generationContext.Namespace).To(Equal(instance.Namespace))

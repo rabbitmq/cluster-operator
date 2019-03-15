@@ -5,18 +5,15 @@ import (
 	"sync"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans"
 	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcemanager"
 )
 
 type FakeResourceManager struct {
-	ConfigureStub        func(*v1beta1.RabbitmqCluster, plans.Plans, generator.ResourceGenerator) ([]generator.TargetResource, error)
+	ConfigureStub        func(*v1beta1.RabbitmqCluster) ([]generator.TargetResource, error)
 	configureMutex       sync.RWMutex
 	configureArgsForCall []struct {
 		arg1 *v1beta1.RabbitmqCluster
-		arg2 plans.Plans
-		arg3 generator.ResourceGenerator
 	}
 	configureReturns struct {
 		result1 []generator.TargetResource
@@ -30,18 +27,16 @@ type FakeResourceManager struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceManager) Configure(arg1 *v1beta1.RabbitmqCluster, arg2 plans.Plans, arg3 generator.ResourceGenerator) ([]generator.TargetResource, error) {
+func (fake *FakeResourceManager) Configure(arg1 *v1beta1.RabbitmqCluster) ([]generator.TargetResource, error) {
 	fake.configureMutex.Lock()
 	ret, specificReturn := fake.configureReturnsOnCall[len(fake.configureArgsForCall)]
 	fake.configureArgsForCall = append(fake.configureArgsForCall, struct {
 		arg1 *v1beta1.RabbitmqCluster
-		arg2 plans.Plans
-		arg3 generator.ResourceGenerator
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("Configure", []interface{}{arg1, arg2, arg3})
+	}{arg1})
+	fake.recordInvocation("Configure", []interface{}{arg1})
 	fake.configureMutex.Unlock()
 	if fake.ConfigureStub != nil {
-		return fake.ConfigureStub(arg1, arg2, arg3)
+		return fake.ConfigureStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -56,17 +51,17 @@ func (fake *FakeResourceManager) ConfigureCallCount() int {
 	return len(fake.configureArgsForCall)
 }
 
-func (fake *FakeResourceManager) ConfigureCalls(stub func(*v1beta1.RabbitmqCluster, plans.Plans, generator.ResourceGenerator) ([]generator.TargetResource, error)) {
+func (fake *FakeResourceManager) ConfigureCalls(stub func(*v1beta1.RabbitmqCluster) ([]generator.TargetResource, error)) {
 	fake.configureMutex.Lock()
 	defer fake.configureMutex.Unlock()
 	fake.ConfigureStub = stub
 }
 
-func (fake *FakeResourceManager) ConfigureArgsForCall(i int) (*v1beta1.RabbitmqCluster, plans.Plans, generator.ResourceGenerator) {
+func (fake *FakeResourceManager) ConfigureArgsForCall(i int) *v1beta1.RabbitmqCluster {
 	fake.configureMutex.RLock()
 	defer fake.configureMutex.RUnlock()
 	argsForCall := fake.configureArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1
 }
 
 func (fake *FakeResourceManager) ConfigureReturns(result1 []generator.TargetResource, result2 error) {

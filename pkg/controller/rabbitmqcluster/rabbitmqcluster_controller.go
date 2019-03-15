@@ -118,8 +118,8 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 	resourceGenerator := generator.NewKustomizeResourceGenerator("templates/")
 	repository := &DefaultRepository{Client: r.Client, scheme: r.scheme}
 	plans := plans.New()
-	resourceManager := &resourcemanager.RabbitResourceManager{}
-	reconciler := NewRabbitReconciler(repository, resourceGenerator, plans, resourceManager)
+	resourceManager := resourcemanager.NewRabbitResourceManager(plans, resourceGenerator)
+	reconciler := NewRabbitReconciler(repository, resourceManager)
 	return reconciler.Reconcile(request)
 
 }

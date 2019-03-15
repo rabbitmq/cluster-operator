@@ -4,9 +4,6 @@ import (
 	"context"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans"
-	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans"
-	generator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcemanager"
 	"k8s.io/api/apps/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,16 +28,12 @@ type Repository interface {
 
 type RabbitReconciler struct {
 	Repository
-	Generator       generator.ResourceGenerator
-	plans           Plans
 	resourceManager resourcemanager.ResourceManager
 }
 
-func NewRabbitReconciler(repository Repository, generator generator.ResourceGenerator, plans plans.Plans, resourceManager resourcemanager.ResourceManager) *RabbitReconciler {
+func NewRabbitReconciler(repository Repository, resourceManager resourcemanager.ResourceManager) *RabbitReconciler {
 	return &RabbitReconciler{
 		Repository:      repository,
-		Generator:       generator,
-		plans:           plans,
 		resourceManager: resourceManager,
 	}
 }
@@ -59,7 +52,7 @@ func (r *RabbitReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	resources, err := r.resourceManager.Configure(instance, r.plans, r.Generator)
+	resources, err := r.resourceManager.Configure(instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}

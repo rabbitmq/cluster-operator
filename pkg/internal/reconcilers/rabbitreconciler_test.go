@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans/plansfakes"
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers/reconcilersfakes"
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
@@ -30,7 +29,6 @@ var _ = Describe("Rabbitreconciler", func() {
 		generator       *resourcegeneratorfakes.FakeResourceGenerator
 		notFoundError   *apierrors.StatusError
 		badRequestError *apierrors.StatusError
-		plans           *plansfakes.FakePlans
 		resourceManager *resourcemanagerfakes.FakeResourceManager
 	)
 
@@ -38,10 +36,9 @@ var _ = Describe("Rabbitreconciler", func() {
 		BeforeEach(func() {
 			repository = new(reconcilersfakes.FakeRepository)
 			generator = new(resourcegeneratorfakes.FakeResourceGenerator)
-			plans = new(plansfakes.FakePlans)
 			resourceManager = new(resourcemanagerfakes.FakeResourceManager)
 
-			reconciler = NewRabbitReconciler(repository, generator, plans, resourceManager)
+			reconciler = NewRabbitReconciler(repository, resourceManager)
 
 			groupResource := schema.GroupResource{}
 			notFoundError = apierrors.NewNotFound(groupResource, "rabbit")
@@ -125,7 +122,7 @@ var _ = Describe("Rabbitreconciler", func() {
 				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
 			})
 			ctx, resourceObject := repository.CreateArgsForCall(0)
-			requestInstance, _, _ := resourceManager.ConfigureArgsForCall(0)
+			requestInstance := resourceManager.ConfigureArgsForCall(0)
 
 			Expect(repository.CreateCallCount()).To(Equal(1))
 			Expect(ctx).To(Equal(context.TODO()))

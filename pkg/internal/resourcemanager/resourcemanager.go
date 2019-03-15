@@ -3,27 +3,34 @@ package resourcemanager
 import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/plans"
-	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
+	resourcegenerator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 )
 
 //go:generate counterfeiter . ResourceManager
 
 type ResourceManager interface {
-	Configure(*rabbitmqv1beta1.RabbitmqCluster, plans.Plans, ResourceGenerator) ([]TargetResource, error)
+	Configure(*rabbitmqv1beta1.RabbitmqCluster) ([]resourcegenerator.TargetResource, error)
 }
 
-type RabbitResourceManager struct{}
+type RabbitResourceManager struct {
+	generator resourcegenerator.ResourceGenerator
+	plans     plans.Plans
+}
 
-func (r *RabbitResourceManager) Configure(instance *rabbitmqv1beta1.RabbitmqCluster, plans plans.Plans, generator ResourceGenerator) ([]TargetResource, error) {
+func NewRabbitResourceManager(plans plans.Plans, generator resourcegenerator.ResourceGenerator) *RabbitResourceManager {
+	return &RabbitResourceManager{plans: plans, generator: generator}
+}
 
-	plan, errPlan := plans.Get(instance.Spec.Plan)
+func (r *RabbitResourceManager) Configure(instance *rabbitmqv1beta1.RabbitmqCluster) ([]resourcegenerator.TargetResource, error) {
+
+	plan, errPlan := r.plans.Get(instance.Spec.Plan)
 	if errPlan != nil {
-		return []TargetResource{}, errPlan
+		return []resourcegenerator.TargetResource{}, errPlan
 	}
-	generationContext := GenerationContext{
+	generationContext := resourcegenerator.GenerationContext{
 		InstanceName: instance.Name,
 		Namespace:    instance.Namespace,
 		Nodes:        plan.Nodes,
 	}
-	return generator.Build(generationContext)
+	return r.generator.Build(generationContext)
 }
