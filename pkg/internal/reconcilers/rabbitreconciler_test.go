@@ -9,6 +9,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
 	. "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/reconcilers/reconcilersfakes"
+	resourcegenerator "github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcegenerator"
 	"github.com/pivotal/rabbitmq-for-kubernetes/pkg/internal/resourcemanager/resourcemanagerfakes"
 	"k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
@@ -68,7 +69,7 @@ var _ = Describe("Rabbitreconciler", func() {
 			})
 
 			err := errors.New("whatever")
-			resourceManager.ConfigureReturns(make([]TargetResource, 0), err)
+			resourceManager.ConfigureReturns(make([]resourcegenerator.TargetResource, 0), err)
 			result, resultErr := reconciler.Reconcile(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: "rabbit", Namespace: "default"},
 			})
@@ -78,11 +79,17 @@ var _ = Describe("Rabbitreconciler", func() {
 		})
 		It("returns an empty object and an error when referencing a resource fails", func() {
 			repository.GetCalls(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
-				obj.(*rabbitmqv1beta1.RabbitmqCluster).Spec.Plan = "ha"
+				switch o := obj.(type) {
+				case *rabbitmqv1beta1.RabbitmqCluster:
+					o.Spec.Plan = "ha"
+					return nil
+				case *v1.Secret:
+					return nil
+				}
 				return nil
 			})
-			resource := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
-			resources := []TargetResource{resource}
+			resource := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
+			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
 			err := errors.New("referencing failed")
 			repository.SetControllerReferenceReturns(err)
@@ -105,12 +112,14 @@ var _ = Describe("Rabbitreconciler", func() {
 					return nil
 				case *v1.Service:
 					return notFoundError
+				case *v1.Secret:
+					return nil
 				default:
 					return errors.New("Test error")
 				}
 			})
-			resource := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
-			resources := []TargetResource{resource}
+			resource := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
+			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
 
@@ -137,13 +146,15 @@ var _ = Describe("Rabbitreconciler", func() {
 					return notFoundError
 				case *v1beta1.StatefulSet:
 					return notFoundError
+				case *v1.Secret:
+					return nil
 				default:
 					return errors.New("Test error")
 				}
 			})
-			resource1 := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
-			resource2 := TargetResource{ResourceObject: &v1beta1.StatefulSet{}, EmptyResource: &v1beta1.StatefulSet{}, Name: "", Namespace: ""}
-			resources := []TargetResource{resource1, resource2}
+			resource1 := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
+			resource2 := resourcegenerator.TargetResource{ResourceObject: &v1beta1.StatefulSet{}, EmptyResource: &v1beta1.StatefulSet{}, Name: "", Namespace: ""}
+			resources := []resourcegenerator.TargetResource{resource1, resource2}
 			resourceManager.ConfigureReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
 
@@ -171,12 +182,14 @@ var _ = Describe("Rabbitreconciler", func() {
 					return nil
 				case *v1.Service:
 					return notFoundError
+				case *v1.Secret:
+					return nil
 				default:
 					return errors.New("Test error")
 				}
 			})
-			resource := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
-			resources := []TargetResource{resource}
+			resource := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
+			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
 			createError := errors.New("fake error")
@@ -197,12 +210,14 @@ var _ = Describe("Rabbitreconciler", func() {
 					return nil
 				case *v1.Service:
 					return badRequestError
+				case *v1.Secret:
+					return nil
 				default:
 					return errors.New("Test error")
 				}
 			})
-			resource := TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
-			resources := []TargetResource{resource}
+			resource := resourcegenerator.TargetResource{ResourceObject: &v1.Service{}, EmptyResource: &v1.Service{}, Name: "", Namespace: ""}
+			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
 
@@ -221,6 +236,8 @@ var _ = Describe("Rabbitreconciler", func() {
 					return nil
 				case *v1beta1.StatefulSet:
 					return nil
+				case *v1.Secret:
+					return nil
 				default:
 					return errors.New("Test error")
 				}
@@ -237,8 +254,8 @@ var _ = Describe("Rabbitreconciler", func() {
 					Replicas: &two,
 				},
 			}
-			resource := TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
-			resources := []TargetResource{resource}
+			resource := resourcegenerator.TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
+			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
 			repository.UpdateReturns(nil)
@@ -261,6 +278,8 @@ var _ = Describe("Rabbitreconciler", func() {
 				case *rabbitmqv1beta1.RabbitmqCluster:
 					o.Spec.Plan = "ha"
 					return nil
+				case *v1.Secret:
+					return nil
 				case *v1beta1.StatefulSet:
 					return notFoundError
 				default:
@@ -279,8 +298,8 @@ var _ = Describe("Rabbitreconciler", func() {
 					Replicas: &two,
 				},
 			}
-			resource := TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
-			resources := []TargetResource{resource}
+			resource := resourcegenerator.TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
+			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
 
@@ -297,6 +316,8 @@ var _ = Describe("Rabbitreconciler", func() {
 				switch o := obj.(type) {
 				case *rabbitmqv1beta1.RabbitmqCluster:
 					o.Spec.Plan = "ha"
+					return nil
+				case *v1.Secret:
 					return nil
 				case *v1beta1.StatefulSet:
 					return nil
@@ -315,8 +336,8 @@ var _ = Describe("Rabbitreconciler", func() {
 					Replicas: &three,
 				},
 			}
-			resource := TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
-			resources := []TargetResource{resource}
+			resource := resourcegenerator.TargetResource{ResourceObject: statefulSet, EmptyResource: foundStatefulSet, Name: "", Namespace: ""}
+			resources := []resourcegenerator.TargetResource{resource}
 			resourceManager.ConfigureReturns(resources, nil)
 			repository.SetControllerReferenceReturns(nil)
 			repository.UpdateReturns(nil)
