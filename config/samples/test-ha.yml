@@ -3,6 +3,6 @@ kind: RabbitmqCluster
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: test
+  name: test-ha
 spec:
   plan: "ha"

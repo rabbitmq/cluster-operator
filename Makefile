@@ -5,6 +5,11 @@ ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
 
+SILENT := 1>/dev/null 2>&1
+
+BOLD := $(shell tput bold)
+NORMAL := $(shell tput sgr0)
+
 
 
 ### VARS ###
@@ -26,7 +31,9 @@ define DOCKER_IMAGE
 eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager
 endef
 
+K8S_NAMESPACE ?= rabbitmq-for-kubernetes
 K8S_MANAGER_NAMESPACE = rabbitmq-for-kubernetes-system
+
 
 
 ### DEPS ###
@@ -107,7 +114,7 @@ manager: generate fmt vet test manifests ## Build manager binary
 	go build -o bin/manager github.com/pivotal/rabbitmq-for-kubernetes/cmd/manager
 
 .PHONY: run
-run: generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate fmt vet ## Run against the currently targeted K8S cluster
 	go run ./cmd/manager/main.go
 
 .PHONY: deploy_crds
@@ -126,6 +133,18 @@ patch_manager_image:
 
 .PHONY: deploy
 deploy: deploy_crds deploy_manager patch_manager_image ## Deploy Manager in the currently targeted K8S cluster
+
+namespace:
+	kubectl get namespace $(K8S_NAMESPACE) $(SILENT) || \
+	kubectl create namespace $(K8S_NAMESPACE)
+
+.PHONY: single
+single: namespace ## Ask Manager to provision a single-node RabbitMQ
+	kubectl apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
+
+.PHONY: ha
+ha: namespace ## Ask Manager to provision for an HA RabbitMQ
+	kubectl apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: delete
 delete: ## Delete all Manager resources
