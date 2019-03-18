@@ -13,7 +13,7 @@ endif
 # We use the Pivotal Tracker story ID that we are currently working on.
 # As we make progress with the story, we push new images which re-use the story ID tag.
 # When the story is delivered, the image tagged with this story ID should be used for acceptance.
-OPERATOR_IMAGE_VERSION = 164498730
+DOCKER_IMAGE_VERSION = 164498730
 
 # Since we use multiple projects (cf-rabbitmq & cf-rabbitmq-core),
 # we resolve the currently targeted GCP project just-in-time, from the local env.
@@ -21,12 +21,12 @@ define GCP_PROJECT
 $$($(GCLOUD) config get-value project)
 endef
 
-# This is the private Docker image registry that stores the RabbitMQ for K8S operator image
-# We refer to it as "the manager"
-define OPERATOR_IMAGE
-eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager:$(OPERATOR_IMAGE_VERSION)
+# Private Docker image reference for the RabbitMQ for K8S Manager image
+define DOCKER_IMAGE
+eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager
 endef
 
+K8S_MANAGER_NAMESPACE = rabbitmq-for-kubernetes-system
 
 
 ### DEPS ###
@@ -110,14 +110,22 @@ manager: generate fmt vet test manifests ## Build manager binary
 run: generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./cmd/manager/main.go
 
-.PHONY: install
-install: manifests ## Install CRDs into a cluster
+.PHONY: deploy_crds
+deploy_crds: manifests
 	kubectl apply -f config/crds
 
-.PHONY: deploy
-deploy: $(KUSTOMIZE) manifests ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	kubectl apply -f config/crds
+.PHONY: deploy_manager
+deploy_manager: $(KUSTOMIZE)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
+
+.PHONY: patch_manager_image
+patch_manager_image:
+	kubectl patch statefulset rabbitmq-for-kubernetes-controller-manager \
+	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION))", "name": "manager"}]}}}}' \
+	  --namespace=$(K8S_MANAGER_NAMESPACE)
+
+.PHONY: deploy
+deploy: deploy_crds deploy_manager patch_manager_image ## Deploy Manager in the currently targeted K8S cluster
 
 .PHONY: manifests
 manifests: deps ## Generate manifests e.g. CRD, RBAC etc.
@@ -143,13 +151,14 @@ generate: deps ## Generate code
 
 .PHONY: image_build
 image_build: fmt vet test manifests
-	docker build . -t $(OPERATOR_IMAGE)
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(OPERATOR_IMAGE)"'@' ./config/default/manager_image_patch.yaml
+	docker build . \
+	  --tag $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION)
+	  --tag $(DOCKER_IMAGE):latest
 
 .PHONY: image_publish
 image_publish:
-	docker push $(OPERATOR_IMAGE)
+	docker push $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION) && \
+	docker push $(DOCKER_IMAGE):latest
 
 .PHONY: image
 image: image_build image_publish ## Build & publish Docker image
