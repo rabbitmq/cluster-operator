@@ -49,6 +49,7 @@ $(KUSTOMIZE):
 	($(KUSTOMIZE) version | grep $(KUSTOMIZE_VERSION)) && \
 	ln -sf $(KUSTOMIZE) $(CURDIR)/bin/kustomize
 
+.DEFAULT_GOAL := all
 all: fmt vet test manifests manager
 
 env:
