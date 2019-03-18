@@ -93,7 +93,7 @@ $(KUSTOMIZE):
 .DEFAULT_GOAL := help
 .PHONY: help
 help:
-	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN { FS = "[:#]" } ; { printf "\033[36m%-12s\033[0m %s\n", $$1, $$4 }' | sort
+	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN { FS = "[:#]" } ; { printf "\033[36m%-16s\033[0m %s\n", $$1, $$4 }' | sort
 
 .PHONY: env
 env: ## Set shell environment to run commands - eval "$(make env)"
@@ -142,6 +142,10 @@ namespace:
 single: namespace ## Ask Manager to provision a single-node RabbitMQ
 	kubectl apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
 
+.PHONY: single_delete
+single_delete: ## Delete single-node RabbitMQ
+	kubectl delete --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
+
 .PHONY: ha
 ha: namespace ## Ask Manager to provision for an HA RabbitMQ
 	kubectl apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
@@ -149,6 +153,10 @@ ha: namespace ## Ask Manager to provision for an HA RabbitMQ
 .PHONY: delete
 delete: ## Delete all Manager resources
 	kubectl delete namespaces $(K8S_MANAGER_NAMESPACE)
+
+.PHONY: ha_delete
+ha_delete: ## Delete HA RabbitMQ
+	kubectl delete --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: manifests
 manifests: deps ## Generate manifests e.g. CRD, RBAC etc.
