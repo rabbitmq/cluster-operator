@@ -136,7 +136,9 @@ deploy: deploy_crds deploy_manager patch_manager_image ## Deploy Manager in the 
 
 .PHONY: delete
 delete: ## Delete manager & all deployments
-	kubectl delete namespaces $(K8S_MANAGER_NAMESPACE) $(K8S_NAMESPACE)
+	kubectl delete namespaces $(K8S_MANAGER_NAMESPACE) ; \
+	kubectl delete namespaces $(K8S_NAMESPACE) ; \
+	true
 
 namespace:
 	kubectl get namespace $(K8S_NAMESPACE) $(SILENT) || \
