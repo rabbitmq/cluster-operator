@@ -129,10 +129,13 @@ deploy_manager: $(KUSTOMIZE)
 patch_manager_image:
 	kubectl patch statefulset rabbitmq-for-kubernetes-controller-manager \
 	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION))", "name": "manager"}]}}}}' \
-	  --namespace=$(K8S_MANAGER_NAMESPACE)
+	  --namespace=$(K8S_MANAGER_NAMESPACE) && \
+	echo "$(BOLD)Force manager pod to re-create using the new image...$(NORMAL)"
+	echo "If image pull fails on first deploy, it won't recover."
+	kubectl delete pod/rabbitmq-for-kubernetes-controller-manager-0 --namespace=$(K8S_MANAGER_NAMESPACE)
 
 .PHONY: deploy
-deploy: deploy_crds deploy_manager patch_manager_image ## Deploy Manager in the currently targeted K8S cluster
+deploy: manifests deploy_crds deploy_manager patch_manager_image ## Deploy Manager in the currently targeted K8S cluster
 
 .PHONY: delete
 delete: ## Delete manager & all deployments
