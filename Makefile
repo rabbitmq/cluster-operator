@@ -1,3 +1,5 @@
+SHELL := bash# we want bash behaviour in all shell invocations
+
 # Since we use multiple projects (cf-rabbitmq & cf-rabbitmq-core),
 # we resolve the currently targeted GCP project just-in-time, from the local env
 GCP_PROJECT = $$(gcloud config get-value project)
