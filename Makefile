@@ -133,8 +133,8 @@ delete: ## Delete all Manager resources
 
 .PHONY: manifests
 manifests: deps ## Generate manifests e.g. CRD, RBAC etc.
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
-	mv -f config/rbac/* config/default/rbac/
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all && \
+	mv -f config/rbac/* config/default/rbac/ && \
 	rm -rf config/rbac
 
 .PHONY: fmt
