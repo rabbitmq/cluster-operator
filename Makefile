@@ -83,66 +83,73 @@ $(KUSTOMIZE):
 ### TARGETS ###
 #
 
-.DEFAULT_GOAL := all
+.DEFAULT_GOAL := help
+.PHONY: help
+help:
+	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN { FS = "[:#]" } ; { printf "\033[36m%-12s\033[0m %s\n", $$1, $$4 }' | sort
 
-all: fmt vet test manifests manager
-
-env:
+.PHONY: env
+env: ## Set shell environment to run commands - eval "$(make env)"
 	export PATH=$(PATH)
 
-test_env:
+.PHONY: test_env
+test_env: ## Set shell environment required to run tests - eval "$(make test_env)"
 	export TEST_ASSET_KUBECTL=$(TEST_ASSET_KUBECTL)
 	export TEST_ASSET_KUBE_APISERVER=$(TEST_ASSET_KUBE_APISERVER)
 	export TEST_ASSET_ETCD=$(TEST_ASSET_ETCD)
 
-# Run tests
-test: generate
+.PHONY: test
+test: generate ## Run tests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
-# Build manager binary
-manager: generate fmt vet
+.PHONY: manager
+manager: generate fmt vet test manifests ## Build manager binary
 	go build -o bin/manager github.com/pivotal/rabbitmq-for-kubernetes/cmd/manager
 
-# Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet
+.PHONY: run
+run: generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./cmd/manager/main.go
 
-# Install CRDs into a cluster
-install: manifests
+.PHONY: install
+install: manifests ## Install CRDs into a cluster
 	kubectl apply -f config/crds
 
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: $(KUSTOMIZE) manifests
+.PHONY: deploy
+deploy: $(KUSTOMIZE) manifests ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 	kubectl apply -f config/crds
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: deps
+.PHONY: manifests
+manifests: deps ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 	mv -f config/rbac/* config/default/rbac/
 	rm -rf config/rbac
 
-# Run go fmt against code
-fmt:
+.PHONY: fmt
+fmt: ## Run go fmt against code
 	go fmt ./pkg/... ./cmd/...
 
-# Run go vet against code
-vet: deps
+.PHONY: vet
+vet: deps ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
 
-deps: $(DEP) $(COUNTERFEITER) $(KUBEBUILDER)
+.PHONY: deps
+deps: $(DEP) $(COUNTERFEITER) $(KUBEBUILDER) ## Resolve dependencies
 	dep ensure -v
 
-# Generate code
-generate: deps
+.PHONY: generate
+generate: deps ## Generate code
 	go generate ./pkg/... ./cmd/...
 
-# Build the docker image
-docker-build: fmt vet manifests test
-	docker build . -t $(OPERATOR_IMAGE_VERSION)
+.PHONY: image_build
+image_build: fmt vet test manifests
+	docker build . -t $(OPERATOR_IMAGE)
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"$(OPERATOR_IMAGE)"'@' ./config/default/manager_image_patch.yaml
 
-# Push the docker image
-docker-push:
+.PHONY: image_publish
+image_publish:
 	docker push $(OPERATOR_IMAGE)
+
+.PHONY: image
+image: image_build image_publish ## Build & publish Docker image
