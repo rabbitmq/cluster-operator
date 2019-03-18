@@ -118,7 +118,7 @@ run: generate fmt vet ## Run against the currently targeted K8S cluster
 	go run ./cmd/manager/main.go
 
 .PHONY: deploy_crds
-deploy_crds: manifests
+deploy_crds:
 	kubectl apply -f config/crds
 
 .PHONY: deploy_manager
