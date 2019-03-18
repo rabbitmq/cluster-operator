@@ -85,6 +85,18 @@ $(KUSTOMIZE):
 	($(KUSTOMIZE) version | grep $(KUSTOMIZE_VERSION)) && \
 	ln -sf $(KUSTOMIZE) $(CURDIR)/bin/kustomize
 
+FLY := $(LOCAL_BIN)/fly
+FLY_URL := https://pcf-rabbitmq.ci.cf-app.com/api/v1/cli?arch=amd64&platform=$(PLATFORM)
+$(FLY):
+	curl --silent --fail --location --output $(FLY) "$(FLY_URL)" && \
+	touch $(FLY) && \
+	chmod +x $(FLY) && \
+	$(FLY) --version
+
+LPASS := /usr/local/bin/lpass
+$(LPASS):
+	brew install lastpass-cli
+
 
 
 ### TARGETS ###
@@ -220,3 +232,13 @@ image: image_build image_publish ## Build & publish Docker image
 images: ## Show all Docker images stored on GCR
 	$(GCLOUD) container images list-tags $(DOCKER_IMAGE) && \
 	echo && $(GCLOUD) container images describe $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION)
+
+.PHONY: ci
+ci: $(FLY) $(LPASS) ## Configure CI
+	GIT_SSH_KEY=$$($(LPASS) show "Shared-PCF RabbitMQ/github.com" --notes) && \
+	( $(FLY) --target pcf-rabbitmq status || \
+	  $(FLY) --target pcf-rabbitmq login --concourse-url https://pcf-rabbitmq.ci.cf-app.com/ ) && \
+	$(FLY) --target pcf-rabbitmq set-pipeline \
+	  --pipeline rmq-k8s \
+	  --var git-ssh-key="$$GIT_SSH_KEY" \
+	  --config ci/pipeline.yml

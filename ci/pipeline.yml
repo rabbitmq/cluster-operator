@@ -1,0 +1,39 @@
+---
+resources:
+- name: rabbitmq-for-kubernetes
+  type: git
+  source:
+    uri: git@github.com:pivotal/rabbitmq-for-kubernetes
+    branch: master
+    private_key: ((git-ssh-key))
+
+jobs:
+- name: test
+  serial: true
+  plan:
+  - get: rabbitmq-for-kubernetes
+    trigger: true
+  - task: unit
+    tags:
+    - k8s
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: golang
+          tag: 1.12
+      caches:
+        - path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes/bin
+      inputs:
+      - name: rabbitmq-for-kubernetes
+        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+      run:
+        path: sh
+        args:
+        - -exc
+        - |
+          export GOPATH=$PWD/go
+          export PATH=$PATH:$GOPATH/bin
+          cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
+          make test
