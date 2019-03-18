@@ -134,6 +134,10 @@ patch_manager_image:
 .PHONY: deploy
 deploy: deploy_crds deploy_manager patch_manager_image ## Deploy Manager in the currently targeted K8S cluster
 
+.PHONY: delete
+delete: ## Delete manager & all deployments
+	kubectl delete namespaces $(K8S_MANAGER_NAMESPACE) $(K8S_NAMESPACE)
+
 namespace:
 	kubectl get namespace $(K8S_NAMESPACE) $(SILENT) || \
 	kubectl create namespace $(K8S_NAMESPACE)
@@ -150,9 +154,6 @@ single_delete: ## Delete single-node RabbitMQ
 ha: namespace ## Ask Manager to provision for an HA RabbitMQ
 	kubectl apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
 
-.PHONY: delete
-delete: ## Delete all Manager resources
-	kubectl delete namespaces $(K8S_MANAGER_NAMESPACE)
 
 .PHONY: ha_delete
 ha_delete: ## Delete HA RabbitMQ
