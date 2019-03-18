@@ -164,6 +164,13 @@ fmt: ## Run go fmt against code
 vet: deps ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
 
+.PHONY: resources
+resources:
+	@echo "$(BOLD)$(K8S_NAMESPACE)$(NORMAL)" && \
+	kubectl get all --namespace=$(K8S_NAMESPACE) && \
+	echo -e "\n$(BOLD)$(K8S_MANAGER_NAMESPACE)$(NORMAL)" && \
+	kubectl get all --namespace=$(K8S_MANAGER_NAMESPACE)
+
 .PHONY: deps
 deps: $(DEP) $(COUNTERFEITER) $(KUBEBUILDER) ## Resolve dependencies
 	dep ensure -v
