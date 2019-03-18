@@ -151,6 +151,11 @@ namespace:
 single: namespace ## Ask Manager to provision a single-node RabbitMQ
 	kubectl apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
 
+.PHONY: single_port_forward
+single_port_forward: ## Ask Manager to provision a single-node RabbitMQ
+	@echo "$(BOLD)http://127.0.0.1:15672/#/login/guest/guest$(NORMAL)" && \
+	kubectl port-forward service/test-single-rabbitmq 15672:15672 --namespace=$(K8S_NAMESPACE)
+
 .PHONY: single_delete
 single_delete: ## Delete single-node RabbitMQ
 	kubectl delete --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
@@ -159,10 +164,14 @@ single_delete: ## Delete single-node RabbitMQ
 ha: namespace ## Ask Manager to provision for an HA RabbitMQ
 	kubectl apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
 
-
 .PHONY: ha_delete
 ha_delete: ## Delete HA RabbitMQ
 	kubectl delete --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
+
+.PHONY: ha_port_forward
+ha_port_forward: ## Ask Manager to provision a single-node RabbitMQ
+	@echo "$(BOLD)http://127.0.0.1:15672/#/login/guest/guest$(NORMAL)" && \
+	kubectl port-forward service/test-ha-rabbitmq 15672:15672 --namespace=$(K8S_NAMESPACE)
 
 .PHONY: manifests
 manifests: deps ## Generate manifests e.g. CRD, RBAC etc.
