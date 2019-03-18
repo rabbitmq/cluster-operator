@@ -1,6 +1,14 @@
-# Image URL to use all building/pushing image targets
+# Since we use multiple projects (cf-rabbitmq & cf-rabbitmq-core),
+# we resolve the currently targeted GCP project just-in-time, from the local env
 GCP_PROJECT = $$(gcloud config get-value project)
-IMG_VERSION = $(shell date -u +'%Y-%m-%d.%H%M')
+
+# IMG_VERSION matches the Pivotal Tracker story ID that we are currently working on
+# As we make progress with the story, we push new images which re-use the story ID tag
+# When the story is delivered, the image tagged with this story ID should be used for acceptance
+IMG_VERSION = 164498730
+
+# This is the private Docker image registry that stores the RabbitMQ for K8S operator image
+# We refer to it as "the manager"
 IMG ?= eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager:$(IMG_VERSION)
 
 ifndef GOPATH
