@@ -127,6 +127,10 @@ patch_manager_image:
 .PHONY: deploy
 deploy: deploy_crds deploy_manager patch_manager_image ## Deploy Manager in the currently targeted K8S cluster
 
+.PHONY: delete
+delete: ## Delete all Manager resources
+	kubectl delete namespaces $(K8S_MANAGER_NAMESPACE)
+
 .PHONY: manifests
 manifests: deps ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
