@@ -162,3 +162,8 @@ image_publish:
 
 .PHONY: image
 image: image_build image_publish ## Build & publish Docker image
+
+.PHONY: images
+images: ## Show all Docker images stored on GCR
+	$(GCLOUD) container images list-tags $(DOCKER_IMAGE) && \
+	echo && $(GCLOUD) container images describe $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION)
