@@ -217,7 +217,7 @@ generate: deps ## Generate code
 .PHONY: image_build
 image_build: fmt vet test manifests
 	docker build . \
-	  --tag $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION)
+	  --tag $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION) \
 	  --tag $(DOCKER_IMAGE):latest
 
 .PHONY: image_publish
