@@ -20,22 +20,22 @@ NORMAL := $(shell tput sgr0)
 # When the story is delivered, the image tagged with this story ID should be used for acceptance.
 DOCKER_IMAGE_VERSION = 164498730
 
-# Since we use multiple projects (cf-rabbitmq & cf-rabbitmq-core),
-# we resolve the currently targeted GCP project just-in-time, from the local env.
-define GCP_PROJECT
-$$($(GCLOUD) config get-value project)
-endef
+# This can be either cf-rabbitmq (default) or cf-rabbitmq-core
+GCP_PROJECT ?= cf-rabbitmq
+
 GCP_SERVICE_ACCOUNT = rabbitmq-for-kubernetes
 GCP_SERVICE_ACCOUNT_DESCRIPTION = k8s manager images (https://github.com/pivotal/rabbitmq-for-kubernetes)
-GCP_SERVICE_ACCOUNT_KEY = $(GCP_SERVICE_ACCOUNT).key.json
-GCP_BUCKET_NAME=eu.artifacts.$(GCP_PROJECT).appspot.com
+GCP_SERVICE_ACCOUNT_EMAIL = $(GCP_SERVICE_ACCOUNT)@$(GCP_PROJECT).iam.gserviceaccount.com
+GCP_SERVICE_ACCOUNT_KEY_FILE = $(GCP_SERVICE_ACCOUNT).key.json
+GCP_SERVICE_ACCOUNT_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/$(GCP_SERVICE_ACCOUNT_EMAIL)" --notes)
+GCP_BUCKET_NAME = eu.artifacts.$(GCP_PROJECT).appspot.com
+
+GIT_SSH_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/pcf-rabbitmq+github@pivotal.io" --notes)
 
 # Private Docker image reference for the RabbitMQ for K8S Manager image
-define DOCKER_IMAGE
-eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager
-endef
+DOCKER_IMAGE = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager
 
-K8S_NAMESPACE ?= rabbitmq-for-kubernetes
+K8S_NAMESPACE = rabbitmq-for-kubernetes
 K8S_MANAGER_NAMESPACE = rabbitmq-for-kubernetes-system
 
 
@@ -240,19 +240,21 @@ images: ## Show all Docker images stored on GCR
 
 .PHONY: ci
 ci: $(FLY) $(LPASS) ## Configure CI
-	GIT_SSH_KEY=$$($(LPASS) show "Shared-PCF RabbitMQ/github.com" --notes) && \
+	GIT_SSH_KEY=$(GIT_SSH_KEY) && \
+	GCP_SERVICE_ACCOUNT_KEY=$(GCP_SERVICE_ACCOUNT_KEY) && \
 	( $(FLY) --target pcf-rabbitmq status || \
 	  $(FLY) --target pcf-rabbitmq login --concourse-url https://pcf-rabbitmq.ci.cf-app.com/ ) && \
 	$(FLY) --target pcf-rabbitmq set-pipeline \
 	  --pipeline rmq-k8s \
 	  --var git-ssh-key="$$GIT_SSH_KEY" \
+	  --var gcp-service-account-key="$$GCP_SERVICE_ACCOUNT_KEY" \
 	  --config ci/pipeline.yml
 
 .PHONY: service_account
 service_account: $(GCLOUD) $(GSUTIL) tmp
 	$(GCLOUD) iam service-accounts create $(GCP_SERVICE_ACCOUNT) --display-name="$(GCP_SERVICE_ACCOUNT_DESCRIPTION)" && \
-	$(GCLOUD) iam service-accounts keys create --iam-account="$(GCP_SERVICE_ACCOUNT)@$(GCP_PROJECT).iam.gserviceaccount.com" tmp/$(GCP_SERVICE_ACCOUNT_KEY) && \
-	$(GSUTIL) iam ch serviceAccount:$(GCP_SERVICE_ACCOUNT)@$(GCP_PROJECT).iam.gserviceaccount.com:admin gs://$(GCP_BUCKET_NAME)
+	$(GCLOUD) iam service-accounts keys create --iam-account="$(GCP_SERVICE_ACCOUNT_EMAIL)" tmp/$(GCP_SERVICE_ACCOUNT_KEY_FILE) && \
+	$(GSUTIL) iam ch serviceAccount:$(GCP_SERVICE_ACCOUNT_EMAIL):admin gs://$(GCP_BUCKET_NAME)
 
 tmp:
 	mkdir -p tmp

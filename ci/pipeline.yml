@@ -1,17 +1,25 @@
 ---
 resources:
-- name: rabbitmq-for-kubernetes
+# https://github.com/concourse/git-resource
+- name: &repo rabbitmq-for-kubernetes
   type: git
   source:
     uri: git@github.com:pivotal/rabbitmq-for-kubernetes
     branch: master
     private_key: ((git-ssh-key))
+# https://github.com/concourse/docker-image-resource
+- name: &image rabbitmq-k8s-manager
+  type: docker-image
+  source:
+    repository: eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-manager
+    username: _json_key
+    password: ((gcp-service-account-key))
 
 jobs:
 - name: test
   serial: true
   plan:
-  - get: rabbitmq-for-kubernetes
+  - get: *repo
     trigger: true
   - task: unit
     tags:
@@ -26,8 +34,8 @@ jobs:
       caches:
         - path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes/bin
       inputs:
-      - name: rabbitmq-for-kubernetes
-        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+      - name: *repo
+        path: &repo_path /go/src/github.com/pivotal/rabbitmq-for-kubernetes
       run:
         path: sh
         args:
@@ -37,3 +45,8 @@ jobs:
           export PATH=$PATH:$GOPATH/bin
           cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
           make test
+  # https://concoursetutorial.com/miscellaneous/docker-images/
+  - put: *image
+    params:
+      build: *repo_path
+
