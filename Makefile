@@ -25,6 +25,10 @@ DOCKER_IMAGE_VERSION = 164498730
 define GCP_PROJECT
 $$($(GCLOUD) config get-value project)
 endef
+GCP_SERVICE_ACCOUNT = rabbitmq-for-kubernetes
+GCP_SERVICE_ACCOUNT_DESCRIPTION = k8s manager images (https://github.com/pivotal/rabbitmq-for-kubernetes)
+GCP_SERVICE_ACCOUNT_KEY = $(GCP_SERVICE_ACCOUNT).key.json
+GCP_BUCKET_NAME=eu.artifacts.$(GCP_PROJECT).appspot.com
 
 # Private Docker image reference for the RabbitMQ for K8S Manager image
 define DOCKER_IMAGE
@@ -40,7 +44,8 @@ K8S_MANAGER_NAMESPACE = rabbitmq-for-kubernetes-system
 #
 
 GCLOUD := /usr/local/bin/gcloud
-$(GCLOUD):
+GSUTIL := /usr/local/bin/gsutil
+$(GCLOUD) $(GSUTIL):
 	brew cask install google-cloud-sdk
 
 DEP := $(GOPATH)/bin/dep
@@ -242,3 +247,12 @@ ci: $(FLY) $(LPASS) ## Configure CI
 	  --pipeline rmq-k8s \
 	  --var git-ssh-key="$$GIT_SSH_KEY" \
 	  --config ci/pipeline.yml
+
+.PHONY: service_account
+service_account: $(GCLOUD) $(GSUTIL) tmp
+	$(GCLOUD) iam service-accounts create $(GCP_SERVICE_ACCOUNT) --display-name="$(GCP_SERVICE_ACCOUNT_DESCRIPTION)" && \
+	$(GCLOUD) iam service-accounts keys create --iam-account="$(GCP_SERVICE_ACCOUNT)@$(GCP_PROJECT).iam.gserviceaccount.com" tmp/$(GCP_SERVICE_ACCOUNT_KEY) && \
+	$(GSUTIL) iam ch serviceAccount:$(GCP_SERVICE_ACCOUNT)@$(GCP_PROJECT).iam.gserviceaccount.com:admin gs://$(GCP_BUCKET_NAME)
+
+tmp:
+	mkdir -p tmp
