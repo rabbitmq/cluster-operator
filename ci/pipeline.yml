@@ -11,6 +11,7 @@ resources:
 - name: &image rabbitmq-k8s-manager
   type: docker-image
   source:
+    # https://github.com/concourse/docker-image-resource/pull/193#issuecomment-402865356
     repository: eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-manager
     username: _json_key
     password: ((gcp-service-account-key))
@@ -32,21 +33,40 @@ jobs:
           repository: golang
           tag: 1.12
       caches:
-        - path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes/bin
+        - path: app_cache
+        - path: go_cache
       inputs:
       - name: *repo
-        path: &repo_path /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+      outputs:
+      - name: &docker_image_path docker_image_build
+      params:
+        # To use the right value for TERM, check what terms are available in the image: find /lib/terminfo -type f
+        # To double-check that a specific term is available, run: infocmp xterm-256color
+        TERM: xterm-256color
       run:
         path: sh
         args:
         - -exc
         - |
-          export GOPATH=$PWD/go
+          set -eu
+          export BUILD_PATH=$PWD
+          export APP_CACHE_PATH=$BUILD_PATH/app_cache
+          export GO_CACHE_PATH=$BUILD_PATH/go_cache
+          export DOCKER_IMAGE_PATH=$BUILD_PATH/docker_image_build
+          export GOPATH=$BUILD_PATH/go
           export PATH=$PATH:$GOPATH/bin
           cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
+          [ -d $APP_CACHE_PATH/bin ] && mv $APP_CACHE_PATH/bin .
+          [ -d $APP_CACHE_PATH/vendor ] && mv $APP_CACHE_PATH/vendor .
+          [ -d $GO_CACHE_PATH/bin ] && mv $GO_CACHE_PATH/bin $GOPATH
           make test
-  # https://concoursetutorial.com/miscellaneous/docker-images/
+          cp -r bin $APP_CACHE_PATH/
+          cp -r vendor $APP_CACHE_PATH/
+          cp -r $GOPATH/bin $GO_CACHE_PATH/
+          cp -r pkg cmd vendor templates Dockerfile $DOCKER_IMAGE_PATH/
+  # https://blog.scottlogic.com/2016/06/20/declarative-ci-cd-with-concourse.html
   - put: *image
     params:
-      build: *repo_path
+      build: *docker_image_path
 
