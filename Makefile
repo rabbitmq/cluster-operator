@@ -15,10 +15,10 @@ NORMAL := $(shell tput sgr0)
 ### VARS ###
 #
 
-# We use the Pivotal Tracker story ID that we are currently working on.
-# As we make progress with the story, we push new images which re-use the story ID tag.
-# When the story is delivered, the image tagged with this story ID should be used for acceptance.
-DOCKER_IMAGE_VERSION = 164498730
+# We want to tag the image with the commit sha & dirty if there are uncommitted changes
+GIT_REF = $$(git rev-parse --short HEAD)
+GIT_DIRTY = $$(git diff --quiet || echo "-dirty")
+DOCKER_IMAGE_VERSION = $(GIT_REF)$(GIT_DIRTY)
 
 # This can be either cf-rabbitmq (default) or cf-rabbitmq-core
 GCP_PROJECT ?= cf-rabbitmq
@@ -33,10 +33,12 @@ GCP_BUCKET_NAME = eu.artifacts.$(GCP_PROJECT).appspot.com
 GIT_SSH_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/pcf-rabbitmq+github@pivotal.io" --notes)
 
 # Private Docker image reference for the RabbitMQ for K8S Manager image
-DOCKER_IMAGE = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager
+DOCKER_IMAGE = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager-dev
 
 K8S_NAMESPACE = rabbitmq-for-kubernetes
 K8S_MANAGER_NAMESPACE = rabbitmq-for-kubernetes-system
+
+MANAGER_BIN = tmp/manager
 
 
 
@@ -126,12 +128,11 @@ test_env: ## Set shell environment required to run tests - eval "$(make test_env
 test: generate ## Run tests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
+$(MANAGER_BIN): generate fmt vet test manifests tmp ## Build manager binary
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(MANAGER_BIN) github.com/pivotal/rabbitmq-for-kubernetes/cmd/manager
+
 .PHONY: build
-build: generate fmt vet test manifests tmp ## Build manager binary
-	CGO_ENABLED=0 \
-	GOOS=linux \
-	GOARCH=amd64 \
-	go build -a -o tmp/manager github.com/pivotal/rabbitmq-for-kubernetes/cmd/manager
+build: $(MANAGER_BIN)
 
 .PHONY: run
 run: generate fmt vet ## Run against the currently targeted K8S cluster
@@ -223,7 +224,7 @@ generate: deps ## Generate code
 	go generate ./pkg/... ./cmd/...
 
 .PHONY: image_build
-image_build: fmt vet test manifests
+image_build: $(MANAGER_BIN)
 	docker build . \
 	  --tag $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION) \
 	  --tag $(DOCKER_IMAGE):latest

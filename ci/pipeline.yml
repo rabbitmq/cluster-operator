@@ -64,7 +64,7 @@ jobs:
           cp -r bin $APP_CACHE_PATH/
           cp -r vendor $APP_CACHE_PATH/
           cp -r $GOPATH/bin $GO_CACHE_PATH/
-          cp -r tmp/manager templates Dockerfile $DOCKER_IMAGE_PATH/
+          cp -r tmp templates Dockerfile $DOCKER_IMAGE_PATH/
   # https://blog.scottlogic.com/2016/06/20/declarative-ci-cd-with-concourse.html
   - put: *image
     params:
