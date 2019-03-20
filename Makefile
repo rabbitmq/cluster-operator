@@ -25,7 +25,7 @@ GCP_PROJECT ?= cf-rabbitmq
 
 GCP_SERVICE_ACCOUNT = rabbitmq-for-kubernetes
 GCP_SERVICE_ACCOUNT_DESCRIPTION = k8s manager images (https://github.com/pivotal/rabbitmq-for-kubernetes)
-GCP_SERVICE_ACCOUNT_EMAIL = $(GCP_SERVICE_ACCOUNT)@$(GCP_PROJECT).iam.gserviceaccount.com
+GCP_SERVICE_ACCOUNT_EMAIL = $(GCP_SERVICE_ACCOUNT)@cf-rabbitmq.iam.gserviceaccount.com
 GCP_SERVICE_ACCOUNT_KEY_FILE = $(GCP_SERVICE_ACCOUNT).key.json
 GCP_SERVICE_ACCOUNT_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/$(GCP_SERVICE_ACCOUNT_EMAIL)" --notes)
 GCP_BUCKET_NAME = eu.artifacts.$(GCP_PROJECT).appspot.com
