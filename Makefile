@@ -126,9 +126,12 @@ test_env: ## Set shell environment required to run tests - eval "$(make test_env
 test: generate ## Run tests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
-.PHONY: manager
-manager: generate fmt vet test manifests ## Build manager binary
-	go build -o bin/manager github.com/pivotal/rabbitmq-for-kubernetes/cmd/manager
+.PHONY: build
+build: generate fmt vet test manifests tmp ## Build manager binary
+	CGO_ENABLED=0 \
+	GOOS=linux \
+	GOARCH=amd64 \
+	go build -a -o tmp/manager github.com/pivotal/rabbitmq-for-kubernetes/cmd/manager
 
 .PHONY: run
 run: generate fmt vet ## Run against the currently targeted K8S cluster
