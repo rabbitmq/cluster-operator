@@ -69,4 +69,4 @@ jobs:
   - put: *image
     params:
       build: *docker_image_path
-
+      tag_file: rabbitmq-for-kubernetes/.git/short_ref
