@@ -70,3 +70,38 @@ jobs:
     params:
       build: *docker_image_path
       tag_file: rabbitmq-for-kubernetes/.git/short_ref
+
+- name: smoke-tests
+  serial: true
+  plan:
+  - get: *repo
+  - get: *image
+    passed: [build]
+    trigger: true
+  - task: run-smoke-tests
+    tags:
+    - k8s
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: golang
+          tag: 1.12
+      inputs:
+      - name: *repo
+        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+      params:
+        # To use the right value for TERM, check what terms are available in the image: find /lib/terminfo -type f
+        # To double-check that a specific term is available, run: infocmp xterm-256color
+        TERM: xterm-256color
+      run:
+        path: sh
+        args:
+        - -exc
+        - |
+          export BUILD_PATH=$PWD
+          export GOPATH=$BUILD_PATH/go
+          export PATH=$PATH:$GOPATH/bin
+          cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
+          make single_smoke_test

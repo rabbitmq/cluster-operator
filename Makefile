@@ -172,6 +172,18 @@ namespace:
 single: namespace ## Ask Manager to provision a single-node RabbitMQ
 	kubectl apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
 
+.PHONY: single_smoke_test
+single_smoke_test: single
+	./scripts/wait_for_rabbitmq_cluster test-single-rabbitmq
+	kubectl exec -it test-single-rabbitmq-0 rabbitmqctl -- add_user test test || true
+	kubectl exec -it test-single-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
+	-kubectl delete jobs.batch single-smoke-test
+	kubectl create job single-smoke-test --image=pivotalrabbitmq/perf-test -- bin/runjava com.rabbitmq.perf.PerfTest --uri "amqp://test:test@test-single-rabbitmq.rabbitmq-for-kubernetes.svc.cluster.local" --pmessage=100 --rate 10
+	@echo "Waiting for smoke tests to complete (timeout is 60 seconds)"
+	@kubectl wait --for=condition=complete job/single-smoke-test --timeout=60s || (echo "Smoke tests failed"; exit 1)
+	@kubectl delete jobs.batch single-smoke-test
+	@echo "Smoke tests completed successfully"
+
 .PHONY: single_port_forward
 single_port_forward: ## Ask Manager to provision a single-node RabbitMQ
 	@echo "$(BOLD)http://127.0.0.1:15672/#/login/guest/guest$(NORMAL)" && \
