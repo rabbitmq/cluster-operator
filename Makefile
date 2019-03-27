@@ -167,6 +167,7 @@ delete: ## Delete manager & all deployments
 namespace:
 	kubectl get namespace $(K8S_NAMESPACE) $(SILENT) || \
 	kubectl create namespace $(K8S_NAMESPACE)
+	kubectl config set-context --current --namespace=$(K8S_NAMESPACE)
 
 .PHONY: single
 single: namespace ## Ask Manager to provision a single-node RabbitMQ
