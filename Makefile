@@ -174,7 +174,7 @@ single: namespace ## Ask Manager to provision a single-node RabbitMQ
 
 .PHONY: single_smoke_test
 single_smoke_test: single
-	./scripts/wait_for_rabbitmq_cluster test-single-rabbitmq
+	./scripts/wait_for_rabbitmq_cluster test-single-rabbitmq $(K8S_MANAGER_NAMESPACE)
 	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- add_user test test || true
 	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
 	-kubectl --namespace=$(K8S_MANAGER_NAMESPACE) delete jobs.batch single-smoke-test
@@ -186,7 +186,7 @@ single_smoke_test: single
 
 .PHONY: ha_smoke_test
 ha_smoke_test: ha
-	./scripts/wait_for_rabbitmq_cluster test-ha-rabbitmq
+	./scripts/wait_for_rabbitmq_cluster test-ha-rabbitmq $(K8S_MANAGER_NAMESPACE)
 	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) exec -it test-ha-rabbitmq-0 rabbitmqctl -- add_user test test || true
 	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) exec -it test-ha-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
 	-kubectl --namespace=$(K8S_MANAGER_NAMESPACE) delete jobs.batch ha-smoke-test
