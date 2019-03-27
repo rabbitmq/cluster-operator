@@ -6,6 +6,8 @@ resources:
     uri: git@github.com:pivotal/rabbitmq-for-kubernetes
     branch: master
     private_key: ((git-ssh-key))
+    paths:
+    - ci/Dockerfile
 - name: &image rabbitmq-k8s-ci
   type: docker-image
   source:
