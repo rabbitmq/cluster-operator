@@ -277,6 +277,8 @@ service_account: $(GCLOUD) $(GSUTIL) tmp
 	$(GCLOUD) iam service-accounts create $(GCP_SERVICE_ACCOUNT) --display-name="$(GCP_SERVICE_ACCOUNT_DESCRIPTION)" && \
 	$(GCLOUD) iam service-accounts keys create --iam-account="$(GCP_SERVICE_ACCOUNT_EMAIL)" tmp/$(GCP_SERVICE_ACCOUNT_KEY_FILE) && \
 	$(GSUTIL) iam ch serviceAccount:$(GCP_SERVICE_ACCOUNT_EMAIL):admin gs://$(GCP_BUCKET_NAME)
+	# TODO: GKE service account used for smoke tests should be separated from the bucket admin
+	$(GCLOUD) projects add-iam-policy-binding cf-rabbitmq --role=roles/container.developer --member=serviceAccount:rabbitmq-for-kubernetes@cf-rabbitmq.iam.gserviceaccount.com
 
 tmp:
 	mkdir -p tmp

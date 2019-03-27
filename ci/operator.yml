@@ -86,7 +86,7 @@ jobs:
       image_resource:
         type: docker-image
         source:
-          tag: f93c99d
+          tag: latest
           repository: eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-ci
           username: _json_key
           password: ((gcp-service-account-key))
