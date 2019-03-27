@@ -7,7 +7,7 @@ main() {
 
   expected_replicas=$(kubectl get statefulsets.apps "$cluster_name"  -o json | jq .spec.replicas)
   echo "Waiting for ${expected_replicas} node(s) of the ${cluster_name} cluster to become available..."
-  for i in {1..60}; do
+  for i in {1..180}; do
     ready_replicas=$(kubectl get statefulsets.apps "$cluster_name"  -o json | jq .status.readyReplicas)
     if [[ ${ready_replicas} == ${expected_replicas} ]]; then
       echo "done"

@@ -111,4 +111,7 @@ jobs:
           EOF
           gcloud auth activate-service-account --key-file=gcp.key
           gcloud container clusters get-credentials cluster-1 --zone europe-west1-c --project cf-rabbitmq
+          echo "Testing single node cluster..."
           make single_smoke_test
+          echo "Testing multi-node cluster..."
+          make ha_smoke_test

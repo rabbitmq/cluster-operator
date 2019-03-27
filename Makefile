@@ -167,22 +167,33 @@ delete: ## Delete manager & all deployments
 namespace:
 	kubectl get namespace $(K8S_NAMESPACE) $(SILENT) || \
 	kubectl create namespace $(K8S_NAMESPACE)
-	kubectl config set-context --current --namespace=$(K8S_NAMESPACE)
 
 .PHONY: single
 single: namespace ## Ask Manager to provision a single-node RabbitMQ
-	kubectl apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
+	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: single_smoke_test
 single_smoke_test: single
 	./scripts/wait_for_rabbitmq_cluster test-single-rabbitmq
-	kubectl exec -it test-single-rabbitmq-0 rabbitmqctl -- add_user test test || true
-	kubectl exec -it test-single-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
-	-kubectl delete jobs.batch single-smoke-test
-	kubectl create job single-smoke-test --image=pivotalrabbitmq/perf-test -- bin/runjava com.rabbitmq.perf.PerfTest --uri "amqp://test:test@test-single-rabbitmq.rabbitmq-for-kubernetes.svc.cluster.local" --pmessage=100 --rate 10
+	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- add_user test test || true
+	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
+	-kubectl --namespace=$(K8S_MANAGER_NAMESPACE) delete jobs.batch single-smoke-test
+	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) create job single-smoke-test --image=pivotalrabbitmq/perf-test -- bin/runjava com.rabbitmq.perf.PerfTest --uri "amqp://test:test@test-single-rabbitmq.rabbitmq-for-kubernetes.svc.cluster.local" --pmessage=100 --rate 10
 	@echo "Waiting for smoke tests to complete (timeout is 60 seconds)"
-	@kubectl wait --for=condition=complete job/single-smoke-test --timeout=60s || (echo "Smoke tests failed"; exit 1)
-	@kubectl delete jobs.batch single-smoke-test
+	@kubectl --namespace=$(K8S_MANAGER_NAMESPACE) wait --for=condition=complete job/single-smoke-test --timeout=60s || (echo "Smoke tests failed"; exit 1)
+	@kubectl --namespace=$(K8S_MANAGER_NAMESPACE) delete jobs.batch single-smoke-test
+	@echo "Smoke tests completed successfully"
+
+.PHONY: ha_smoke_test
+ha_smoke_test: ha
+	./scripts/wait_for_rabbitmq_cluster test-ha-rabbitmq
+	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) exec -it test-ha-rabbitmq-0 rabbitmqctl -- add_user test test || true
+	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) exec -it test-ha-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
+	-kubectl --namespace=$(K8S_MANAGER_NAMESPACE) delete jobs.batch ha-smoke-test
+	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) create job ha-smoke-test --image=pivotalrabbitmq/perf-test -- bin/runjava com.rabbitmq.perf.PerfTest --uri "amqp://test:test@test-ha-rabbitmq.rabbitmq-for-kubernetes.svc.cluster.local" --pmessage=100 --rate 10
+	@echo "Waiting for smoke tests to complete (timeout is 60 seconds)"
+	@kubectl --namespace=$(K8S_MANAGER_NAMESPACE) wait --for=condition=complete job/ha-smoke-test --timeout=60s || (echo "Smoke tests failed"; exit 1)
+	@kubectl --namespace=$(K8S_MANAGER_NAMESPACE) delete jobs.batch ha-smoke-test
 	@echo "Smoke tests completed successfully"
 
 .PHONY: single_port_forward
@@ -196,7 +207,7 @@ single_delete: ## Delete single-node RabbitMQ
 
 .PHONY: ha
 ha: namespace ## Ask Manager to provision for an HA RabbitMQ
-	kubectl apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
+	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: ha_delete
 ha_delete: ## Delete HA RabbitMQ
