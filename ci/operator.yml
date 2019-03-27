@@ -86,8 +86,10 @@ jobs:
       image_resource:
         type: docker-image
         source:
-          repository: golang
-          tag: 1.12
+          tag: f93c99d
+          repository: eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-ci
+          username: _json_key
+          password: ((gcp-service-account-key))
       inputs:
       - name: *repo
         path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
@@ -104,4 +106,9 @@ jobs:
           export GOPATH=$BUILD_PATH/go
           export PATH=$PATH:$GOPATH/bin
           cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
+          cat > gcp.key <<EOF
+          ((gcp-service-account-key))
+          EOF
+          gcloud auth activate-service-account --key-file=gcp.key
+          gcloud container clusters get-credentials cluster-1 --zone europe-west1-c --project cf-rabbitmq
           make single_smoke_test
