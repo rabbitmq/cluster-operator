@@ -264,7 +264,12 @@ ci: $(FLY) $(LPASS) ## Configure CI
 	  --pipeline rmq-k8s \
 	  --var git-ssh-key="$$GIT_SSH_KEY" \
 	  --var gcp-service-account-key="$$GCP_SERVICE_ACCOUNT_KEY" \
-	  --config ci/pipeline.yml
+	  --config ci/operator.yml && \
+	$(FLY) --target pcf-rabbitmq set-pipeline \
+	  --pipeline rmq-k8s-image \
+	  --var git-ssh-key="$$GIT_SSH_KEY" \
+	  --var gcp-service-account-key="$$GCP_SERVICE_ACCOUNT_KEY" \
+	  --config ci/docker-image.yml
 
 .PHONY: service_account
 service_account: $(GCLOUD) $(GSUTIL) tmp

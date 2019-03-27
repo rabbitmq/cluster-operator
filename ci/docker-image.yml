@@ -1,0 +1,25 @@
+---
+resources:
+- name: &repo rabbitmq-for-kubernetes
+  type: git
+  source:
+    uri: git@github.com:pivotal/rabbitmq-for-kubernetes
+    branch: master
+    private_key: ((git-ssh-key))
+- name: &image rabbitmq-k8s-ci
+  type: docker-image
+  source:
+    repository: eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-ci
+    username: _json_key
+    password: ((gcp-service-account-key))
+
+jobs:
+- name: image
+  serial: true
+  plan:
+  - get: *repo
+    trigger: true
+  - put: *image
+    params:
+      build: rabbitmq-for-kubernetes/ci
+      tag_file: rabbitmq-for-kubernetes/.git/short_ref
