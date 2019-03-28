@@ -24,7 +24,7 @@ DOCKER_IMAGE_VERSION = $(GIT_REF)$(GIT_DIRTY)
 GCP_PROJECT ?= cf-rabbitmq
 
 GCP_SERVICE_ACCOUNT = rabbitmq-for-kubernetes
-GCP_SERVICE_ACCOUNT_DESCRIPTION = k8s manager images (https://github.com/pivotal/rabbitmq-for-kubernetes)
+GCP_SERVICE_ACCOUNT_DESCRIPTION = k8s operator images (https://github.com/pivotal/rabbitmq-for-kubernetes)
 GCP_SERVICE_ACCOUNT_EMAIL = $(GCP_SERVICE_ACCOUNT)@cf-rabbitmq.iam.gserviceaccount.com
 GCP_SERVICE_ACCOUNT_KEY_FILE = $(GCP_SERVICE_ACCOUNT).key.json
 GCP_SERVICE_ACCOUNT_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/$(GCP_SERVICE_ACCOUNT_EMAIL)" --notes)
@@ -32,13 +32,13 @@ GCP_BUCKET_NAME = eu.artifacts.$(GCP_PROJECT).appspot.com
 
 GIT_SSH_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/pcf-rabbitmq+github@pivotal.io" --notes)
 
-# Private Docker image reference for the RabbitMQ for K8S Manager image
-DOCKER_IMAGE = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-manager-dev
+# Private Docker image reference for the RabbitMQ for K8S Operator image
+DOCKER_IMAGE = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-operator-dev
 
 K8S_NAMESPACE = rabbitmq-for-kubernetes
-K8S_MANAGER_NAMESPACE = rabbitmq-for-kubernetes-system
+K8S_OPERATOR_NAMESPACE = rabbitmq-for-kubernetes-system
 
-MANAGER_BIN = tmp/manager
+OPERATOR_BIN = tmp/operator
 
 
 
@@ -128,39 +128,39 @@ test_env: ## Set shell environment required to run tests - eval "$(make test_env
 test: generate ## Run tests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
-$(MANAGER_BIN): generate fmt vet test manifests tmp ## Build manager binary
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(MANAGER_BIN) github.com/pivotal/rabbitmq-for-kubernetes/cmd/manager
+$(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(OPERATOR_BIN) github.com/pivotal/rabbitmq-for-kubernetes/cmd/operator
 
 .PHONY: build
-build: $(MANAGER_BIN)
+build: $(OPERATOR_BIN)
 
 .PHONY: run
 run: generate fmt vet ## Run against the currently targeted K8S cluster
-	go run ./cmd/manager/main.go
+	go run ./cmd/operator/main.go
 
 .PHONY: deploy_crds
 deploy_crds:
 	kubectl apply -f config/crds
 
-.PHONY: deploy_manager
-deploy_manager: $(KUSTOMIZE)
+.PHONY: deploy_operator
+deploy_operator: $(KUSTOMIZE)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-.PHONY: patch_manager_image
-patch_manager_image:
-	kubectl patch statefulset rabbitmq-for-kubernetes-controller-manager \
-	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION))", "name": "manager"}]}}}}' \
-	  --namespace=$(K8S_MANAGER_NAMESPACE) && \
-	echo "$(BOLD)Force manager pod to re-create using the new image...$(NORMAL)"
+.PHONY: patch_operator_image
+patch_operator_image:
+	kubectl patch statefulset rabbitmq-for-kubernetes-controller-operator \
+	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION))", "name": "operator"}]}}}}' \
+	  --namespace=$(K8S_OPERATOR_NAMESPACE) && \
+	echo "$(BOLD)Force operator pod to re-create using the new image...$(NORMAL)"
 	echo "If image pull fails on first deploy, it won't recover."
-	kubectl delete pod/rabbitmq-for-kubernetes-controller-manager-0 --namespace=$(K8S_MANAGER_NAMESPACE)
+	kubectl delete pod/rabbitmq-for-kubernetes-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
 
 .PHONY: deploy
-deploy: manifests deploy_crds deploy_manager patch_manager_image ## Deploy Manager in the currently targeted K8S cluster
+deploy: manifests deploy_crds deploy_operator patch_operator_image ## Deploy Operator in the currently targeted K8S cluster
 
 .PHONY: delete
-delete: ## Delete manager & all deployments
-	kubectl delete namespaces $(K8S_MANAGER_NAMESPACE) ; \
+delete: ## Delete operator & all deployments
+	kubectl delete namespaces $(K8S_OPERATOR_NAMESPACE) ; \
 	kubectl delete namespaces $(K8S_NAMESPACE) ; \
 	true
 
@@ -169,8 +169,8 @@ namespace:
 	kubectl create namespace $(K8S_NAMESPACE)
 
 .PHONY: single
-single: namespace ## Ask Manager to provision a single-node RabbitMQ
-	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
+single: namespace ## Ask Operator to provision a single-node RabbitMQ
+	kubectl --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: single_smoke_test
 single_smoke_test: single
@@ -197,7 +197,7 @@ ha_smoke_test: ha
 	@echo "Smoke tests completed successfully"
 
 .PHONY: single_port_forward
-single_port_forward: ## Ask Manager to provision a single-node RabbitMQ
+single_port_forward: ## Ask Operator to provision a single-node RabbitMQ
 	@echo "$(BOLD)http://127.0.0.1:15672/#/login/guest/guest$(NORMAL)" && \
 	kubectl port-forward service/test-single-rabbitmq 15672:15672 --namespace=$(K8S_NAMESPACE)
 
@@ -206,15 +206,15 @@ single_delete: ## Delete single-node RabbitMQ
 	kubectl delete --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: ha
-ha: namespace ## Ask Manager to provision for an HA RabbitMQ
-	kubectl --namespace=$(K8S_MANAGER_NAMESPACE) apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
+ha: namespace ## Ask Operator to provision for an HA RabbitMQ
+	kubectl --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: ha_delete
 ha_delete: ## Delete HA RabbitMQ
 	kubectl delete --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: ha_port_forward
-ha_port_forward: ## Ask Manager to provision a single-node RabbitMQ
+ha_port_forward: ## Ask Operator to provision a single-node RabbitMQ
 	@echo "$(BOLD)http://127.0.0.1:15672/#/login/guest/guest$(NORMAL)" && \
 	kubectl port-forward service/test-ha-rabbitmq 15672:15672 --namespace=$(K8S_NAMESPACE)
 
@@ -236,8 +236,8 @@ vet: deps ## Run go vet against code
 resources:
 	@echo "$(BOLD)$(K8S_NAMESPACE)$(NORMAL)" && \
 	kubectl get all --namespace=$(K8S_NAMESPACE) && \
-	echo -e "\n$(BOLD)$(K8S_MANAGER_NAMESPACE)$(NORMAL)" && \
-	kubectl get all --namespace=$(K8S_MANAGER_NAMESPACE)
+	echo -e "\n$(BOLD)$(K8S_OPERATOR_NAMESPACE)$(NORMAL)" && \
+	kubectl get all --namespace=$(K8S_OPERATOR_NAMESPACE)
 
 .PHONY: deps
 deps: $(DEP) $(COUNTERFEITER) $(KUBEBUILDER) ## Resolve dependencies
@@ -248,7 +248,7 @@ generate: deps ## Generate code
 	go generate ./pkg/... ./cmd/...
 
 .PHONY: image_build
-image_build: $(MANAGER_BIN)
+image_build: $(OPERATOR_BIN)
 	docker build . \
 	  --tag $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION) \
 	  --tag $(DOCKER_IMAGE):latest

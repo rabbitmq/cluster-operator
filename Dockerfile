@@ -1,5 +1,5 @@
 FROM scratch
 WORKDIR /
-COPY tmp/manager .
+COPY tmp/operator .
 COPY templates/ templates/
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["/operator"]

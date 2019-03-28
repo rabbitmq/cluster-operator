@@ -6,9 +6,9 @@ metadata:
     prometheus.io/scheme: https
     prometheus.io/scrape: "true"
   labels:
-    control-plane: controller-manager
+    control-plane: controller-operator
     controller-tools.k8s.io: "1.0"
-  name: controller-manager-metrics-service
+  name: controller-operator-metrics-service
   namespace: system
 spec:
   ports:
@@ -16,5 +16,5 @@ spec:
     port: 8443
     targetPort: https
   selector:
-    control-plane: controller-manager
+    control-plane: controller-operator
     controller-tools.k8s.io: "1.0"

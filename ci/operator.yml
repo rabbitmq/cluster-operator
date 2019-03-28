@@ -8,11 +8,11 @@ resources:
     branch: master
     private_key: ((git-ssh-key))
 # https://github.com/concourse/docker-image-resource
-- name: &image rabbitmq-k8s-manager
+- name: &image rabbitmq-k8s-operator
   type: docker-image
   source:
     # https://github.com/concourse/docker-image-resource/pull/193#issuecomment-402865356
-    repository: eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-manager
+    repository: eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-operator
     username: _json_key
     password: ((gcp-service-account-key))
 
@@ -22,7 +22,7 @@ jobs:
   plan:
   - get: *repo
     trigger: true
-  - task: manager
+  - task: operator
     tags:
     - k8s
     config:

@@ -48,13 +48,13 @@ kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-ad
 ```
 More information about [Role Based Access](https://cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control).
 
-# RabbitMQ Kubernetes Manager
+# RabbitMQ Kubernetes Operator
 
-## How to set up the Manager for development
+## How to set up the Operator for development
 
 We are gitignoring the vendor directory because it is huge. When getting started, run `dep ensure` to pull dependencies. Add the `-v` flag to see progress or be patient and trust that the process isn't hanging.
 
-## How to push the Manager docker image
+## How to push the Operator docker image
 
 1. gcloud config set project cf-rabbitmq
 2. `gcloud auth configure-docker`
@@ -65,5 +65,5 @@ We are gitignoring the vendor directory because it is huge. When getting started
 # Tear down
 
 1. To delete the cluster run `kubectl delete -f {path to yaml used to deploy e.g. '/config/default/samples/rabbitmq_v1beta1_rabbitmqcluster.yaml}`
-1. To delete the manager run (from the  '/config/default') `kustomize build | kubectl delete -f -`
+1. To delete the operator run (from the  '/config/default') `kustomize build | kubectl delete -f -`
 1. If you've deployed a cluster directly using kustomize from the templates folder, delete the cluster by running (from 'templates') `kustomize build | kubectl delete -f -`
