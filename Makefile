@@ -30,6 +30,12 @@ GCP_SERVICE_ACCOUNT_KEY_FILE = $(GCP_SERVICE_ACCOUNT).key.json
 GCP_SERVICE_ACCOUNT_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/$(GCP_SERVICE_ACCOUNT_EMAIL)" --notes)
 GCP_BUCKET_NAME = eu.artifacts.$(GCP_PROJECT).appspot.com
 
+GCR_VIEWER_ACCOUNT = rmq4k8s-gcr-viewer
+GCR_VIEWER_ACCOUNT_DESCRIPTION = k8s operator images read-only access
+GCR_VIEWER_ACCOUNT_EMAIL = $(GCR_VIEWER_ACCOUNT)@cf-rabbitmq.iam.gserviceaccount.com
+GCR_VIEWER_ACCOUNT_KEY_FILE = $(GCR_VIEWER_ACCOUNT).key.json
+GCR_VIEWER_ACCOUNT_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/$(GCR_VIEWER_ACCOUNT_EMAIL)" --notes)
+
 GIT_SSH_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/pcf-rabbitmq+github@pivotal.io" --notes)
 
 # Private Docker image reference for the RabbitMQ for K8S Operator image
@@ -167,6 +173,8 @@ delete: ## Delete operator & all deployments
 namespace:
 	kubectl get namespace $(K8S_NAMESPACE) $(SILENT) || \
 	kubectl create namespace $(K8S_NAMESPACE)
+	kubectl get namespace $(K8S_OPERATOR_NAMESPACE) $(SILENT) || \
+	kubectl create namespace $(K8S_OPERATOR_NAMESPACE)
 
 .PHONY: single
 single: namespace ## Ask Operator to provision a single-node RabbitMQ
@@ -289,7 +297,19 @@ service_account: $(GCLOUD) $(GSUTIL) tmp
 	$(GCLOUD) iam service-accounts keys create --iam-account="$(GCP_SERVICE_ACCOUNT_EMAIL)" tmp/$(GCP_SERVICE_ACCOUNT_KEY_FILE) && \
 	$(GSUTIL) iam ch serviceAccount:$(GCP_SERVICE_ACCOUNT_EMAIL):admin gs://$(GCP_BUCKET_NAME)
 	# TODO: GKE service account used for smoke tests should be separated from the bucket admin
-	$(GCLOUD) projects add-iam-policy-binding cf-rabbitmq --role=roles/container.developer --member=serviceAccount:rabbitmq-for-kubernetes@cf-rabbitmq.iam.gserviceaccount.com
+	$(GCLOUD) projects add-iam-policy-binding cf-rabbitmq --role=roles/container.developer --member=serviceAccount:$(GCP_SERVICE_ACCOUNT_EMAIL)
+
+
+GCR_VIEWER_KEY_CONTENT = `cat tmp/$(GCR_VIEWER_ACCOUNT_KEY_FILE)`
+.PHONY: gcr_viewer_service_account
+gcr_viewer_service_account: $(GCLOUD) $(GSUTIL) tmp namespace
+	$(GCLOUD) iam service-accounts create $(GCR_VIEWER_ACCOUNT) --display-name="$(GCR_VIEWER_ACCOUNT_DESCRIPTION)" && \
+	$(GCLOUD) iam service-accounts keys create --iam-account="$(GCR_VIEWER_ACCOUNT_EMAIL)" tmp/$(GCR_VIEWER_ACCOUNT_KEY_FILE) && \
+	$(GSUTIL) iam ch serviceAccount:$(GCR_VIEWER_ACCOUNT_EMAIL):objectViewer gs://$(GCP_BUCKET_NAME)
+	kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password="$(GCR_VIEWER_KEY_CONTENT)"
+	kubectl -n $(K8S_OPERATOR_NAMESPACE)  patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT)"}]}'
+
+# $(GCLOUD) projects add-iam-policy-binding cf-rabbitmq --role=roles/storage.objectViewer --member=serviceAccount:$(GCR_VIEWER_ACCOUNT_EMAIL)
 
 tmp:
 	mkdir -p tmp
