@@ -32,6 +32,7 @@ spec:
           livenessProbe:
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 5
             exec:
               command:
                 - "rabbitmq-diagnostics"
@@ -40,6 +41,7 @@ spec:
           readinessProbe:
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 5
             exec:
               command:
                 - "rabbitmq-diagnostics"
