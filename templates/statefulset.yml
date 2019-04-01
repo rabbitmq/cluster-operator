@@ -17,6 +17,13 @@ spec:
         app: rabbitmq
     spec:
       serviceAccountName: rabbitmq
+      # Allow any system user part of abbitmq group (gid 999) to read service account token, a secret mounted as a file
+      # https://github.com/kubernetes/kubernetes/issues/74565
+      # Discovered on GKE v1.13.4-gke.5
+      securityContext:
+        supplementalGroups:
+        - 999
+        fsGroup: 999
       containers:
         - name: rabbitmq
           image: rabbitmq:3.8-rc-management
