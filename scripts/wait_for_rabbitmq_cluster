@@ -5,11 +5,11 @@ main() {
   local cluster_name="${1?cluster name must be specified}"
   local namespace="${2?-namespace must be specified}"
 
-  expected_replicas=$(kubectl --namespace=$namespace get statefulsets.apps "$cluster_name"  -o json | jq .spec.replicas)
-  echo "Waiting for ${expected_replicas} node(s) of the ${cluster_name} cluster to become available..."
+  echo "Waiting for node(s) of the ${cluster_name} cluster to become available..."
   for i in {1..180}; do
+    expected_replicas=$(kubectl --namespace=$namespace get statefulsets.apps "$cluster_name"  -o json | jq .spec.replicas)
     ready_replicas=$(kubectl --namespace=$namespace get statefulsets.apps "$cluster_name"  -o json | jq .status.readyReplicas)
-    if [[ "${ready_replicas}" != "" && ${ready_replicas} == ${expected_replicas} ]]; then
+    if [[ "${expected_replicas}" != "" && "${ready_replicas}" != "" && ${ready_replicas} == ${expected_replicas} ]]; then
       echo "done"
       exit 0
     fi
