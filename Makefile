@@ -164,7 +164,7 @@ patch_operator_image: kubectl
 .PHONY: patch_operator_image_ci
 patch_operator_image_ci: kubectl
 	kubectl patch statefulset rabbitmq-for-kubernetes-controller-operator \
-	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE_CI):$(DOCKER_IMAGE_VERSION))", "name": "operator"}]}}}}' \
+	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE_CI):latest)", "name": "operator"}]}}}}' \
 	  --namespace=$(K8S_OPERATOR_NAMESPACE) && \
 	echo "$(BOLD)Force operator pod to re-create using the new image...$(NORMAL)"
 	echo "If image pull fails on first deploy, it won't recover."
