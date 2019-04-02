@@ -10,7 +10,7 @@ main() {
     expected_replicas=$(kubectl --namespace=$namespace get statefulsets.apps "$cluster_name"  -o json | jq .spec.replicas)
     ready_replicas=$(kubectl --namespace=$namespace get statefulsets.apps "$cluster_name"  -o json | jq .status.readyReplicas)
     if [[ "${expected_replicas}" != "" && "${ready_replicas}" != "" && ${ready_replicas} == ${expected_replicas} ]]; then
-      echo "done"
+      echo "Done, all ${expected_replicas} are now available."
       exit 0
     fi
     echo "- ${ready_replicas} replicas ready"
