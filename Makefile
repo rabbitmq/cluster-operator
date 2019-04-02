@@ -46,7 +46,8 @@ GKE_CLUSTER_CREATOR_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/$(GKE_CLUSTER_CR
 GIT_SSH_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/pcf-rabbitmq+github@pivotal.io" --notes)
 
 # Private Docker image reference for the RabbitMQ for K8S Operator image
-DOCKER_IMAGE = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-operator-dev
+DOCKER_IMAGE := eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-operator-dev
+DOCKER_IMAGE_CI = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-operator
 
 K8S_NAMESPACE = rabbitmq-for-kubernetes
 K8S_OPERATOR_NAMESPACE = rabbitmq-for-kubernetes-system
@@ -160,8 +161,20 @@ patch_operator_image: kubectl
 	echo "If image pull fails on first deploy, it won't recover."
 	kubectl delete pod/rabbitmq-for-kubernetes-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
 
+.PHONY: patch_operator_image_ci
+patch_operator_image_ci: kubectl
+	kubectl patch statefulset rabbitmq-for-kubernetes-controller-operator \
+	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE_CI):$(DOCKER_IMAGE_VERSION))", "name": "operator"}]}}}}' \
+	  --namespace=$(K8S_OPERATOR_NAMESPACE) && \
+	echo "$(BOLD)Force operator pod to re-create using the new image...$(NORMAL)"
+	echo "If image pull fails on first deploy, it won't recover."
+	kubectl delete pod/rabbitmq-for-kubernetes-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
+
 .PHONY: deploy
 deploy: manifests deploy_crds deploy_operator patch_operator_image ## Deploy Operator in the currently targeted K8S cluster
+
+.PHONY: deploy_ci
+deploy_ci: deploy_crds deploy_operator patch_operator_image_ci
 
 .PHONY: delete
 delete: kubectl ## Delete operator & all deployments
