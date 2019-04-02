@@ -107,12 +107,12 @@ jobs:
           export PATH=$PATH:$GOPATH/bin
           cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
           cat > gcp.key <<EOF
-          ((gcp-service-account-key))
+          ((gke-cluster-creator-key))
           EOF
           gcloud auth activate-service-account --key-file=gcp.key
-          gcloud --quiet container clusters create ci-alpha-cluster   --cluster-version=1.13.4-gke.1   --enable-kubernetes-alpha --no-enable-autorepair --machine-type n1-standard-2 --region europe-west1-c
+          gcloud --quiet container clusters create ci-alpha-cluster   --cluster-version=1.13.4-gke.1   --enable-kubernetes-alpha --no-enable-autorepair --no-enable-autoupgrade --enable-ip-alias --no-enable-basic-auth --no-issue-client-certificate --metadata disable-legacy-endpoints=true --machine-type n1-standard-2 --region europe-west1-c
           #gcloud container clusters get-credentials cluster-1 --zone europe-west1-c --project cf-rabbitmq
-          make deploy
+          make deploy_crds deploy_operator patch_operator_image
           echo "Testing single node cluster..."
           make single_smoke_test
           echo "Testing multi-node cluster..."
