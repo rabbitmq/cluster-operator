@@ -4,7 +4,6 @@ RabbitMQ for Kubernetes
 ## Requirements
 You should have the following tools installed:
 * kubectl
-* [kustomize](https://github.com/kubernetes-sigs/kustomize/) (in the future it should become a part of `kubectl`)
 * gcloud
 * [kubebuilder](https://book.kubebuilder.io/quick_start.html)
 * [counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) (run `go get -u github.com/maxbrunsfeld/counterfeiter`)
@@ -29,17 +28,12 @@ kind create cluster
 export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
 ```
 
-## How to deploy with kustomize
-1. Go to the `templates` folder
-2. Set the current namespace to the namespace you are deploying to, for example:
+## How to deploy a RabbitMQ cluster manually
+1. Edit `templates/kustomization.yaml` - set `namePrefix` and `commonLabels` and/or `namespace` `erlang-cookie`
+2. Generate and set the `erlang-cookie`
+3. Run
 ```
-kubectl config set-context $(kubectl config current-context) --namespace=rabbitmq
-```
-3. Edit `kustomization.yaml` - set `namePrefix` and `commonLabels` and/or `namespace` `erlang-cookie`
-4. Generate and set the `erlang-cookie`
-5. Run `kustomize build` to generate the manifest. You can send it directly to `kubectl` like this:
-```
-kustomize build | kubectl apply -f -
+kubectl apply -k templates
 ```
 
 If this fails with a `forbidden: attempt to grant extra privileges` error, you need to grant yourself the Cluster Admin role:
@@ -58,12 +52,11 @@ We are gitignoring the vendor directory because it is huge. When getting started
 
 1. gcloud config set project cf-rabbitmq
 2. `gcloud auth configure-docker`
-2. `make docker-build`
-3. `make docker-push`
+3. `make image`
 4. To deploy, run `make deploy`
 
 # Tear down
 
 1. To delete the cluster run `kubectl delete -f {path to yaml used to deploy e.g. '/config/default/samples/rabbitmq_v1beta1_rabbitmqcluster.yaml}`
-1. To delete the operator run (from the  '/config/default') `kustomize build | kubectl delete -f -`
-1. If you've deployed a cluster directly using kustomize from the templates folder, delete the cluster by running (from 'templates') `kustomize build | kubectl delete -f -`
+1. To delete the operator run `kubectl delete -k config/default`
+1. If you've deployed a cluster manually, delete the cluster by running `kubectl delete -k templates`

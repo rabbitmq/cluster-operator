@@ -79,24 +79,21 @@ $(KUBEBUILDER):
 	curl --silent --fail --location $(KUBEBUILDER_URL) | \
 	  tar -zxv --directory=$(KUBEBUILDER) --strip-components=1
 
-TEST_ASSET_KUBECTL := $(KUBEBUILDER)/bin/kubectl
-export TEST_ASSET_KUBECTL
+KUBECTL_VERSION := 1.14.0
+KUBECTL_URL := https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/$(PLATFORM)/amd64/kubectl
+KUBECTL := $(LOCAL_BIN)/kubectl_$(KUBECTL_VERSION)
+$(KUBECTL):
+	curl --silent --fail --location --output $(KUBECTL) "$(KUBECTL_URL)" && \
+	touch $(KUBECTL) && \
+	chmod +x $(KUBECTL) && \
+	($(KUBECTL) version | grep $(KUBECTL_VERSION)) && \
+	ln -sf $(KUBECTL) $(CURDIR)/bin/kubectl
 
 TEST_ASSET_KUBE_APISERVER := $(KUBEBUILDER)/bin/kube-apiserver
 export TEST_ASSET_KUBE_APISERVER
 
 TEST_ASSET_ETCD := $(KUBEBUILDER)/bin/etcd
 export TEST_ASSET_ETCD
-
-KUSTOMIZE_VERSION := 2.0.3
-KUSTOMIZE_URL := https://github.com/kubernetes-sigs/kustomize/releases/download/v$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_$(PLATFORM)_amd64
-KUSTOMIZE := $(LOCAL_BIN)/kustomize_$(KUSTOMIZE_VERSION)
-$(KUSTOMIZE):
-	curl --silent --fail --location --output $(KUSTOMIZE) "$(KUSTOMIZE_URL)" && \
-	touch $(KUSTOMIZE) && \
-	chmod +x $(KUSTOMIZE) && \
-	($(KUSTOMIZE) version | grep $(KUSTOMIZE_VERSION)) && \
-	ln -sf $(KUSTOMIZE) $(CURDIR)/bin/kustomize
 
 FLY := $(LOCAL_BIN)/fly
 FLY_URL := https://pcf-rabbitmq.ci.cf-app.com/api/v1/cli?arch=amd64&platform=$(PLATFORM)
@@ -126,7 +123,6 @@ env: ## Set shell environment to run commands - eval "$(make env)"
 
 .PHONY: test_env
 test_env: ## Set shell environment required to run tests - eval "$(make test_env)"
-	export TEST_ASSET_KUBECTL=$(TEST_ASSET_KUBECTL)
 	export TEST_ASSET_KUBE_APISERVER=$(TEST_ASSET_KUBE_APISERVER)
 	export TEST_ASSET_ETCD=$(TEST_ASSET_ETCD)
 
@@ -145,86 +141,86 @@ run: generate fmt vet ## Run against the currently targeted K8S cluster
 	go run ./cmd/operator/main.go
 
 .PHONY: deploy_crds
-deploy_crds:
-	kubectl apply -f config/crds
+deploy_crds: $(KUBECTL)
+	$(KUBECTL) apply -f config/crds
 
 .PHONY: deploy_operator
-deploy_operator: $(KUSTOMIZE)
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
+deploy_operator: $(KUBECTL)
+	$(KUBECTL) apply -k config/default
 
 .PHONY: patch_operator_image
-patch_operator_image:
-	kubectl patch statefulset rabbitmq-for-kubernetes-controller-operator \
+patch_operator_image: $(KUBECTL)
+	$(KUBECTL) patch statefulset rabbitmq-for-kubernetes-controller-operator \
 	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION))", "name": "operator"}]}}}}' \
 	  --namespace=$(K8S_OPERATOR_NAMESPACE) && \
 	echo "$(BOLD)Force operator pod to re-create using the new image...$(NORMAL)"
 	echo "If image pull fails on first deploy, it won't recover."
-	kubectl delete pod/rabbitmq-for-kubernetes-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
+	$(KUBECTL) delete pod/rabbitmq-for-kubernetes-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
 
 .PHONY: deploy
 deploy: manifests deploy_crds deploy_operator patch_operator_image ## Deploy Operator in the currently targeted K8S cluster
 
 .PHONY: delete
-delete: ## Delete operator & all deployments
-	kubectl delete namespaces $(K8S_OPERATOR_NAMESPACE) ; \
-	kubectl delete namespaces $(K8S_NAMESPACE) ; \
+delete: $(KUBECTL) ## Delete operator & all deployments
+	$(KUBECTL) delete namespaces $(K8S_OPERATOR_NAMESPACE) ; \
+	$(KUBECTL) delete namespaces $(K8S_NAMESPACE) ; \
 	true
 
-namespace:
-	kubectl get namespace $(K8S_NAMESPACE) $(SILENT) || \
-	kubectl create namespace $(K8S_NAMESPACE)
-	kubectl get namespace $(K8S_OPERATOR_NAMESPACE) $(SILENT) || \
-	kubectl create namespace $(K8S_OPERATOR_NAMESPACE)
+namespace: $(KUBECTL)
+	$(KUBECTL) get namespace $(K8S_NAMESPACE) $(SILENT) || \
+	$(KUBECTL) create namespace $(K8S_NAMESPACE)
+	$(KUBECTL) get namespace $(K8S_OPERATOR_NAMESPACE) $(SILENT) || \
+	$(KUBECTL) create namespace $(K8S_OPERATOR_NAMESPACE)
 
 .PHONY: single
-single: namespace ## Ask Operator to provision a single-node RabbitMQ
-	kubectl --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
+single: $(KUBECTL) namespace ## Ask Operator to provision a single-node RabbitMQ
+	$(KUBECTL) --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: single_smoke_test
-single_smoke_test: single
+single_smoke_test: $(KUBECTL) single
 	./scripts/wait_for_rabbitmq_cluster test-single-rabbitmq $(K8S_NAMESPACE)
-	kubectl --namespace=$(K8S_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- add_user test test || true
-	kubectl --namespace=$(K8S_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
-	-kubectl --namespace=$(K8S_NAMESPACE) delete jobs.batch single-smoke-test
-	kubectl --namespace=$(K8S_NAMESPACE) create job single-smoke-test --image=pivotalrabbitmq/perf-test -- bin/runjava com.rabbitmq.perf.PerfTest --uri "amqp://test:test@test-single-rabbitmq.rabbitmq-for-kubernetes.svc.cluster.local" --pmessage=100 --rate 10
+	$(KUBECTL) --namespace=$(K8S_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- add_user test test || true
+	$(KUBECTL) --namespace=$(K8S_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
+	-$(KUBECTL) --namespace=$(K8S_NAMESPACE) delete jobs.batch single-smoke-test
+	$(KUBECTL) --namespace=$(K8S_NAMESPACE) create job single-smoke-test --image=pivotalrabbitmq/perf-test -- bin/runjava com.rabbitmq.perf.PerfTest --uri "amqp://test:test@test-single-rabbitmq.rabbitmq-for-kubernetes.svc.cluster.local" --pmessage=100 --rate 10
 	@echo "Waiting for smoke tests to complete (timeout is 60 seconds)"
-	@kubectl --namespace=$(K8S_NAMESPACE) wait --for=condition=complete job/single-smoke-test --timeout=60s || (echo "Smoke tests failed"; exit 1)
-	@kubectl --namespace=$(K8S_NAMESPACE) delete jobs.batch single-smoke-test
+	@$(KUBECTL) --namespace=$(K8S_NAMESPACE) wait --for=condition=complete job/single-smoke-test --timeout=60s || (echo "Smoke tests failed"; exit 1)
+	@$(KUBECTL) --namespace=$(K8S_NAMESPACE) delete jobs.batch single-smoke-test
 	@echo "Smoke tests completed successfully"
 
 .PHONY: ha_smoke_test
-ha_smoke_test: ha
+ha_smoke_test: $(KUBECTL) ha
 	./scripts/wait_for_rabbitmq_cluster test-ha-rabbitmq $(K8S_NAMESPACE)
-	kubectl --namespace=$(K8S_NAMESPACE) exec -it test-ha-rabbitmq-0 rabbitmqctl -- add_user test test || true
-	kubectl --namespace=$(K8S_NAMESPACE) exec -it test-ha-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
-	-kubectl --namespace=$(K8S_NAMESPACE) delete jobs.batch ha-smoke-test
-	kubectl --namespace=$(K8S_NAMESPACE) create job ha-smoke-test --image=pivotalrabbitmq/perf-test -- bin/runjava com.rabbitmq.perf.PerfTest --uri "amqp://test:test@test-ha-rabbitmq.rabbitmq-for-kubernetes.svc.cluster.local" --pmessage=100 --rate 10
+	$(KUBECTL) --namespace=$(K8S_NAMESPACE) exec -it test-ha-rabbitmq-0 rabbitmqctl -- add_user test test || true
+	$(KUBECTL) --namespace=$(K8S_NAMESPACE) exec -it test-ha-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
+	-$(KUBECTL) --namespace=$(K8S_NAMESPACE) delete jobs.batch ha-smoke-test
+	$(KUBECTL) --namespace=$(K8S_NAMESPACE) create job ha-smoke-test --image=pivotalrabbitmq/perf-test -- bin/runjava com.rabbitmq.perf.PerfTest --uri "amqp://test:test@test-ha-rabbitmq.rabbitmq-for-kubernetes.svc.cluster.local" --pmessage=100 --rate 10
 	@echo "Waiting for smoke tests to complete (timeout is 60 seconds)"
-	@kubectl --namespace=$(K8S_NAMESPACE) wait --for=condition=complete job/ha-smoke-test --timeout=60s || (echo "Smoke tests failed"; exit 1)
-	@kubectl --namespace=$(K8S_NAMESPACE) delete jobs.batch ha-smoke-test
+	@$(KUBECTL) --namespace=$(K8S_NAMESPACE) wait --for=condition=complete job/ha-smoke-test --timeout=60s || (echo "Smoke tests failed"; exit 1)
+	@$(KUBECTL) --namespace=$(K8S_NAMESPACE) delete jobs.batch ha-smoke-test
 	@echo "Smoke tests completed successfully"
 
 .PHONY: single_port_forward
-single_port_forward: ## Ask Operator to provision a single-node RabbitMQ
+single_port_forward: $(KUBECTL) ## Ask Operator to provision a single-node RabbitMQ
 	@echo "$(BOLD)http://127.0.0.1:15672/#/login/guest/guest$(NORMAL)" && \
-	kubectl port-forward service/test-single-rabbitmq 15672:15672 --namespace=$(K8S_NAMESPACE)
+	$(KUBECTL) port-forward service/test-single-rabbitmq 15672:15672 --namespace=$(K8S_NAMESPACE)
 
 .PHONY: single_delete
-single_delete: ## Delete single-node RabbitMQ
-	kubectl delete --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
+single_delete: $(KUBECTL) ## Delete single-node RabbitMQ
+	$(KUBECTL) delete --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: ha
-ha: namespace ## Ask Operator to provision for an HA RabbitMQ
-	kubectl --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
+ha: $(KUBECTL) namespace ## Ask Operator to provision for an HA RabbitMQ
+	$(KUBECTL) --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: ha_delete
-ha_delete: ## Delete HA RabbitMQ
-	kubectl delete --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
+ha_delete: $(KUBECTL) ## Delete HA RabbitMQ
+	$(KUBECTL) delete --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: ha_port_forward
-ha_port_forward: ## Ask Operator to provision a single-node RabbitMQ
+ha_port_forward: $(KUBECTL) ## Ask Operator to provision a single-node RabbitMQ
 	@echo "$(BOLD)http://127.0.0.1:15672/#/login/guest/guest$(NORMAL)" && \
-	kubectl port-forward service/test-ha-rabbitmq 15672:15672 --namespace=$(K8S_NAMESPACE)
+	$(KUBECTL) port-forward service/test-ha-rabbitmq 15672:15672 --namespace=$(K8S_NAMESPACE)
 
 .PHONY: manifests
 manifests: deps ## Generate manifests e.g. CRD, RBAC etc.
@@ -241,11 +237,11 @@ vet: deps ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
 
 .PHONY: resources
-resources:
+resources: $(KUBECTL)
 	@echo "$(BOLD)$(K8S_NAMESPACE)$(NORMAL)" && \
-	kubectl get all --namespace=$(K8S_NAMESPACE) && \
+	$(KUBECTL) get all --namespace=$(K8S_NAMESPACE) && \
 	echo -e "\n$(BOLD)$(K8S_OPERATOR_NAMESPACE)$(NORMAL)" && \
-	kubectl get all --namespace=$(K8S_OPERATOR_NAMESPACE)
+	$(KUBECTL) get all --namespace=$(K8S_OPERATOR_NAMESPACE)
 
 .PHONY: deps
 deps: $(DEP) $(COUNTERFEITER) $(KUBEBUILDER) ## Resolve dependencies
@@ -302,12 +298,12 @@ service_account: $(GCLOUD) $(GSUTIL) tmp
 
 GCR_VIEWER_KEY_CONTENT = `cat tmp/$(GCR_VIEWER_ACCOUNT_KEY_FILE)`
 .PHONY: gcr_viewer_service_account
-gcr_viewer_service_account: $(GCLOUD) $(GSUTIL) tmp namespace
+gcr_viewer_service_account: $(GCLOUD) $(GSUTIL) $(KUBECTL) tmp namespace
 	$(GCLOUD) iam service-accounts create $(GCR_VIEWER_ACCOUNT) --display-name="$(GCR_VIEWER_ACCOUNT_DESCRIPTION)" && \
 	$(GCLOUD) iam service-accounts keys create --iam-account="$(GCR_VIEWER_ACCOUNT_EMAIL)" tmp/$(GCR_VIEWER_ACCOUNT_KEY_FILE) && \
 	$(GSUTIL) iam ch serviceAccount:$(GCR_VIEWER_ACCOUNT_EMAIL):objectViewer gs://$(GCP_BUCKET_NAME)
-	kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password="$(GCR_VIEWER_KEY_CONTENT)"
-	kubectl -n $(K8S_OPERATOR_NAMESPACE)  patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT)"}]}'
+	$(KUBECTL) -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password="$(GCR_VIEWER_KEY_CONTENT)"
+	$(KUBECTL) -n $(K8S_OPERATOR_NAMESPACE)  patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT)"}]}'
 
 # $(GCLOUD) projects add-iam-policy-binding cf-rabbitmq --role=roles/storage.objectViewer --member=serviceAccount:$(GCR_VIEWER_ACCOUNT_EMAIL)
 
