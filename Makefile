@@ -79,13 +79,15 @@ export PATH
 KUBEBUILDER_VERSION := 1.0.8
 KUBEBUILDER_URL := https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KUBEBUILDER_VERSION)/kubebuilder_$(KUBEBUILDER_VERSION)_$(PLATFORM)_amd64.tar.gz
 KUBEBUILDER := $(LOCAL_BIN)/kubebuilder_$(KUBEBUILDER_VERSION)
-PATH := $(KUBEBUILDER)/bin:$(PATH)
-export PATH
 
 kubebuilder:
 	mkdir -p $(KUBEBUILDER) && \
 	curl --silent --fail --location $(KUBEBUILDER_URL) | \
-	  tar -zxv --directory=$(KUBEBUILDER) --strip-components=1
+	  tar -zxv --directory=$(KUBEBUILDER) --strip-components=1 && \
+	ln -s $(KUBEBUILDER)/bin/kubebuilder ./bin/kubebuilder
+
+TEST_ASSET_KUBECTL := $(KUBEBUILDER)/bin/kubectl
+export TEST_ASSET_KUBECTL
 
 TEST_ASSET_KUBE_APISERVER := $(KUBEBUILDER)/bin/kube-apiserver
 export TEST_ASSET_KUBE_APISERVER
@@ -121,6 +123,7 @@ env: ## Set shell environment to run commands - eval "$(make env)"
 
 .PHONY: test_env
 test_env: ## Set shell environment required to run tests - eval "$(make test_env)"
+	export TEST_ASSET_KUBECTL=$(TEST_ASSET_KUBECTL)
 	export TEST_ASSET_KUBE_APISERVER=$(TEST_ASSET_KUBE_APISERVER)
 	export TEST_ASSET_ETCD=$(TEST_ASSET_ETCD)
 
