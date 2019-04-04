@@ -53,9 +53,9 @@ K8S_NAMESPACE = rabbitmq-for-kubernetes
 K8S_OPERATOR_NAMESPACE = rabbitmq-for-kubernetes-system
 
 OPERATOR_BIN = tmp/operator
-OPERATOR_BIN = tmp/servicebroker
+SERVICEBROKER_BIN = tmp/servicebroker
 
-
+SERVICEBROKER_DIR = servicebroker
 
 ### DEPS ###
 #
@@ -137,7 +137,7 @@ $(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
 
 operator: $(OPERATOR_BIN)
 
-$(SERVICEBROKER_BIN): fmt vet test tmp ## Build broker binary
+$(SERVICEBROKER_BIN): fmt vet test tmp mod_service_broker ## Build broker binary
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(SERVICEBROKER_BIN) github.com/pivotal/rabbitmq-for-kubernetes/servicebroker
 
 servicebroker: $(SERVICEBROKER_BIN)
@@ -262,6 +262,12 @@ fmt: ## Run go fmt against code
 .PHONY: vet
 vet: deps ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
+
+.PHONY: mod
+mod_service_broker:
+	cd $(SERVICEBROKER_DIR) && \
+	GO111MODULE=on go mod vendor
+
 
 .PHONY: resources
 resources: kubectl
