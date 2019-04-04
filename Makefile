@@ -53,6 +53,7 @@ K8S_NAMESPACE = rabbitmq-for-kubernetes
 K8S_OPERATOR_NAMESPACE = rabbitmq-for-kubernetes-system
 
 OPERATOR_BIN = tmp/operator
+OPERATOR_BIN = tmp/servicebroker
 
 
 
@@ -134,6 +135,13 @@ test: generate ## Run tests
 $(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(OPERATOR_BIN) github.com/pivotal/rabbitmq-for-kubernetes/cmd/operator
 
+operator: $(OPERATOR_BIN)
+
+$(SERVICEBROKER_BIN): fmt vet test tmp ## Build broker binary
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(SERVICEBROKER_BIN) github.com/pivotal/rabbitmq-for-kubernetes/servicebroker
+
+servicebroker: $(SERVICEBROKER_BIN)
+
 kubectl:
 	@if [[ "$(KUBECTL_PATH)" == "" || $(KUBECTL_MINOR) -lt 14 ]]; then \
 		echo "You need kubectl 1.14+"; \
@@ -141,7 +149,7 @@ kubectl:
 	fi
 
 .PHONY: build
-build: $(OPERATOR_BIN)
+build: $(OPERATOR_BIN) $(SERVICEBROKER_BIN)
 
 .PHONY: run
 run: generate fmt vet ## Run against the currently targeted K8S cluster
