@@ -138,7 +138,7 @@ $(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
 operator: $(OPERATOR_BIN)
 
 $(SERVICEBROKER_BIN): fmt vet test tmp mod_service_broker ## Build broker binary
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(SERVICEBROKER_BIN) github.com/pivotal/rabbitmq-for-kubernetes/servicebroker
+	GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(SERVICEBROKER_BIN) github.com/pivotal/rabbitmq-for-kubernetes/servicebroker
 
 servicebroker: $(SERVICEBROKER_BIN)
 
@@ -334,11 +334,11 @@ service_account: $(GCLOUD) $(GSUTIL) tmp
 GCR_VIEWER_KEY_CONTENT = `cat tmp/$(GCR_VIEWER_ACCOUNT_KEY_FILE)`
 .PHONY: gcr_viewer_service_account
 gcr_viewer_service_account: $(GCLOUD) $(GSUTIL) kubectl tmp namespace
-	$(GCLOUD) iam service-accounts create $(GCR_VIEWER_ACCOUNT) --display-name="$(GCR_VIEWER_ACCOUNT_DESCRIPTION)" && \
+	$(GCLOUD) iam service-accounts create $(GCR_VIEWER_ACCOUNT) --display-name="$(GCR_VIEWER_ACCOUNT_DESCRIPTION)" || true && \
 	$(GCLOUD) iam service-accounts keys create --iam-account="$(GCR_VIEWER_ACCOUNT_EMAIL)" tmp/$(GCR_VIEWER_ACCOUNT_KEY_FILE) && \
 	$(GSUTIL) iam ch serviceAccount:$(GCR_VIEWER_ACCOUNT_EMAIL):objectViewer gs://$(GCP_BUCKET_NAME)
-	kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password="$(GCR_VIEWER_KEY_CONTENT)"
-	kubectl -n $(K8S_OPERATOR_NAMESPACE)  patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT)"}]}'
+	kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password="$(GCR_VIEWER_KEY_CONTENT)" || true
+	kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT)"}]}'
 
 GKE_CLUSTER_CREATOR_KEY_CONTENT = `cat tmp/$(GKE_CLUSTER_CREATOR_KEY_FILE)`
 .PHONY: gke_cluster_creator_service_account

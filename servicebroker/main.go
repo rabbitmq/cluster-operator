@@ -23,7 +23,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/pivotal/rabbitmq-for-kubernetes/servicebroker/broker"
+	"servicebroker/broker"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/pivotal-cf/brokerapi"
