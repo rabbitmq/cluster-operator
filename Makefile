@@ -130,7 +130,7 @@ test_env: ## Set shell environment required to run tests - eval "$(make test_env
 
 .PHONY: test
 test: generate kubebuilder ## Run tests
-	KUBEBUILDER_CONTROL_PLANE_START_TIMEOUT=60s go test ./pkg/... ./cmd/... -coverprofile cover.out
+	KUBEBUILDER_CONTROL_PLANE_START_TIMEOUT=120s go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 $(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(OPERATOR_BIN) github.com/pivotal/rabbitmq-for-kubernetes/cmd/operator
