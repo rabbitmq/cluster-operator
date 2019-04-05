@@ -138,7 +138,10 @@ $(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
 operator: $(OPERATOR_BIN)
 
 $(SERVICEBROKER_BIN): fmt vet test tmp mod_service_broker ## Build broker binary
-	GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(SERVICEBROKER_BIN) github.com/pivotal/rabbitmq-for-kubernetes/servicebroker
+	pushd servicebroker && \
+	GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o tmp_bin servicebroker && \
+	cp tmp_bin ../$(SERVICEBROKER_BIN) && \
+	popd
 
 servicebroker: $(SERVICEBROKER_BIN)
 
