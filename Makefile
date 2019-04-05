@@ -85,7 +85,7 @@ kubebuilder:
 	mkdir -p $(KUBEBUILDER) && \
 	curl --silent --fail --location $(KUBEBUILDER_URL) | \
 	  tar -zxv --directory=$(KUBEBUILDER) --strip-components=1 && \
-	ln -s $(KUBEBUILDER)/bin/kubebuilder ./bin/kubebuilder
+	ln -f -s $(KUBEBUILDER)/bin/kubebuilder ./bin/kubebuilder
 
 TEST_ASSET_KUBECTL := $(KUBEBUILDER)/bin/kubectl
 export TEST_ASSET_KUBECTL
@@ -129,7 +129,7 @@ test_env: ## Set shell environment required to run tests - eval "$(make test_env
 	export TEST_ASSET_ETCD=$(TEST_ASSET_ETCD)
 
 .PHONY: test
-test: generate ## Run tests
+test: generate kubebuilder ## Run tests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 $(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
