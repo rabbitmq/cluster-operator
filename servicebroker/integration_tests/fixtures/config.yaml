@@ -2,7 +2,7 @@
 # CC, default assumes bosh-lite is used
 cc_endpoint: http://127.0.0.1:8181
 broker:
-  port: 8080
+  port: 8123
   username: "p1-rabbit"
   password: "p1-rabbit-testpwd"
 service_catalog:

@@ -1,0 +1,8 @@
+broker:
+  port: 8080
+  username: some-broker-user
+  password: some-broker-password
+service_catalog:
+  id: some-id
+  service_name: some-marketplace-name
+  service_description: some-description

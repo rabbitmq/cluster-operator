@@ -36,7 +36,6 @@ var (
 
 func init() {
 	flag.StringVar(&configPath, "configPath", "", "Config file location")
-	flag.IntVar(&port, "port", 4567, "Port to listen on")
 }
 
 func main() {
@@ -51,11 +50,12 @@ func main() {
 
 	broker := broker.New(config)
 	credentials := brokerapi.BrokerCredentials{
-		Username: config.ServiceConfig.Username,
-		Password: config.ServiceConfig.Password,
+		Username: config.Broker.Username,
+		Password: config.Broker.Password,
 	}
 
 	brokerAPI := brokerapi.New(broker, logger, credentials)
+	port := config.Broker.Port
 	http.Handle("/", brokerAPI)
 	fmt.Printf("RabbitMQ Service Broker listening on port %d\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
