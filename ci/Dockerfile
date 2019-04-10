@@ -9,4 +9,3 @@ RUN apt-get update \
     && apt-get update \
     && apt-get install -y google-cloud-sdk=${CLOUD_SDK_VERSION}-0 kubectl make jq git
 
-RUN go get github.com/onsi/ginkgo/ginkgo
