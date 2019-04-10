@@ -25,6 +25,39 @@ resources:
     password: ((gcp-service-account-key))
 
 jobs:
+- name: test-broker
+  plan:
+  - get: *repo
+    trigger: true
+  - task: broker-unit-tests
+    tags:
+    - k8s
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: golang
+          tag: 1.12
+      caches:
+        - path: app_cache
+        - path: go_cache
+      inputs:
+      - name: *repo
+        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+      run:
+        path: sh
+        args:
+        - -exc
+        - |
+          set -eu
+          export GOPATH=$PWD/go
+          export PATH=$PATH:$GOPATH/bin
+          cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
+          go get github.com/onsi/ginkgo/ginkgo
+          go get github.com/onsi/gomega/...
+          make broker_tests
+
 - name: build-operator
   serial: true
   plan:
@@ -85,6 +118,7 @@ jobs:
   plan:
   - get: *repo
     trigger: true
+    passed: [test-broker]
   - task: servicebroker
     tags:
     - k8s
@@ -127,13 +161,10 @@ jobs:
           cp -r bin $APP_CACHE_PATH/
           cp -r vendor $APP_CACHE_PATH/
           cp -r $GOPATH/bin $GO_CACHE_PATH/
-          cp -r tmp Dockerfile-servicebroker $DOCKER_IMAGE_PATH/
-          mkdir $DOCKER_IMAGE_PATH/servicebroker
-          cp servicebroker/config.yaml $DOCKER_IMAGE_PATH/servicebroker
+          cp -r tmp/servicebroker servicebroker/config.yaml servicebroker/Dockerfile $DOCKER_IMAGE_PATH/
   # https://blog.scottlogic.com/2016/06/20/declarative-ci-cd-with-concourse.html
   - put: *servicebroker-image
     params:
-      dockerfile: docker_image_build/Dockerfile-servicebroker
       build: *servicebroker_image_path
       tag_file: rabbitmq-for-kubernetes/.git/short_ref
       tag_as_latest: true
