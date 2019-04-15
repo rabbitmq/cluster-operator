@@ -36,6 +36,7 @@ type RabbitmqClustersGetter interface {
 }
 
 // RabbitmqClusterInterface has methods to work with RabbitmqCluster resources.
+//go:generate counterfeiter -o ./fake/fake_rmq_cluster_interface.go . RabbitmqClusterInterface
 type RabbitmqClusterInterface interface {
 	Create(*v1beta1.RabbitmqCluster) (*v1beta1.RabbitmqCluster, error)
 	Update(*v1beta1.RabbitmqCluster) (*v1beta1.RabbitmqCluster, error)

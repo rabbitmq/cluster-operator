@@ -17,6 +17,7 @@ NORMAL := $(shell tput sgr0)
 GIT_REF = $$(git rev-parse --short HEAD)
 GIT_DIRTY = $$(git diff --quiet || echo "-dirty")
 DOCKER_IMAGE_VERSION = $(GIT_REF)$(GIT_DIRTY)
+BROKER_IMAGE_VERSION = $(GIT_REF)$(GIT_DIRTY)
 
 KUBECTL_PATH=$$(which kubectl)
 KUBECTL_MINOR=$$(kubectl version --client=true -o json | jq -r .clientVersion.minor)
@@ -49,13 +50,16 @@ GIT_SSH_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/pcf-rabbitmq+github@pivotal.
 DOCKER_IMAGE := eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-operator-dev
 DOCKER_IMAGE_CI = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-operator
 
+BROKER_IMAGE=eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-broker-dev
+BROKER_IMAGE_CI = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-broker
+
 K8S_NAMESPACE = rabbitmq-for-kubernetes
 K8S_OPERATOR_NAMESPACE = rabbitmq-for-kubernetes-system
 
-OPERATOR_BIN = tmp/operator
-SERVICEBROKER_BIN = tmp/servicebroker
-
 SERVICEBROKER_DIR = servicebroker
+
+OPERATOR_BIN = tmp/operator
+SERVICEBROKER_BIN = $(SERVICEBROKER_DIR)/tmp/servicebroker
 
 ### DEPS ###
 #
@@ -137,7 +141,7 @@ $(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
 
 operator: $(OPERATOR_BIN)
 
-$(SERVICEBROKER_BIN): fmt vet test tmp mod_service_broker ## Build broker binary
+$(SERVICEBROKER_BIN): broker_tmp mod_service_broker ## Build broker binary
 	pushd $(SERVICEBROKER_DIR) && \
 	GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o tmp_bin servicebroker && \
 	cp tmp_bin ../$(SERVICEBROKER_BIN) && \
@@ -212,6 +216,17 @@ broker_tests: mod_service_broker ## run service broker unit and integration test
 	GO111MODULE=on ginkgo  -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -race broker/ && \
 	GO111MODULE=on ginkgo  -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -race integration_tests/ && \
 	popd
+
+kind_broker:
+	pushd $(SERVICEBROKER_DIR) && \
+	kind create cluster || true && \
+	KUBECONFIG="$$(kind get kubeconfig-path --name="kind")" kubectl create namespace $(K8S_NAMESPACE) || true && \
+	KUBECONFIG="$$(kind get kubeconfig-path --name="kind")" kubectl create namespace $(K8S_OPERATOR_NAMESPACE) || true && \
+	kind load docker-image $(BROKER_IMAGE):latest && \
+	KUBECONFIG="$$(kind get kubeconfig-path --name="kind")" kubectl apply -f ../config/crds && \
+	KUBECONFIG="$$(kind get kubeconfig-path --name="kind")" GO111MODULE=on ginkgo  -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -race integration_tests/ && \
+	popd
+	kind delete cluster
 
 .PHONY: single_smoke_test
 single_smoke_test: kubectl single
@@ -294,6 +309,13 @@ deps: $(DEP) $(COUNTERFEITER) ## Resolve dependencies
 generate: deps ## Generate code
 	go generate ./pkg/... ./cmd/...
 
+.PHONY: broker_build
+broker_build: $(SERVICEBROKER_BIN)
+	cd $(SERVICEBROKER_DIR) && \
+	docker build . \
+	  --tag $(BROKER_IMAGE):$(BROKER_IMAGE_VERSION) \
+	  --tag $(BROKER_IMAGE):latest
+
 .PHONY: image_build
 image_build: $(OPERATOR_BIN)
 	docker build . \
@@ -359,3 +381,6 @@ gke_cluster_creator_service_account: $(GCLOUD) $(GSUTIL) tmp namespace
 
 tmp:
 	mkdir -p tmp
+
+broker_tmp:
+	mkdir -p $(SERVICEBROKER_DIR)/tmp

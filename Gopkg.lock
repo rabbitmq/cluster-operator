@@ -10,6 +10,17 @@
   version = "v0.36.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:f5f16082835d029b8d5eb7f1b3c5acebb1e7b2fafdd74a242aad58fe253ef9a9"
+  name = "code.cloudfoundry.org/lager"
+  packages = [
+    ".",
+    "internal/truncate",
+  ]
+  pruneopts = "T"
+  revision = "54c4f2530ddeb742ce9c9ee26f5fa758d6c1b3b6"
+
+[[projects]]
   digest = "1:bd3632deea7c224314b504dc51fbd244a59163e89c0cb730877d51bb13f5f74a"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -125,6 +136,25 @@
   version = "v0.18.0"
 
 [[projects]]
+  digest = "1:9786ddd8ff742e4ad1d8b68f9b1d551584fac49009d5a1680bfb8f812ed1c0ff"
+  name = "github.com/go-playground/locales"
+  packages = [
+    ".",
+    "currency",
+  ]
+  pruneopts = "T"
+  revision = "f63010822830b6fe52288ee52d5a1151088ce039"
+  version = "v0.12.1"
+
+[[projects]]
+  digest = "1:c7965197b6ef4e3f0464248b6a4a6db0b5678e68ed0c7e6aeced022b0c62ac74"
+  name = "github.com/go-playground/universal-translator"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "b32fa301c9fe55953584134cb6853a13c87ec0a1"
+  version = "v0.16.0"
+
+[[projects]]
   digest = "1:74c676217f6583261297ef51c00d945ab470ff5ec5db5a9bf3dcd4cce85ea95f"
   name = "github.com/gobuffalo/envy"
   packages = ["."]
@@ -200,6 +230,14 @@
   pruneopts = "T"
   revision = "7c663266750e7d82587642f65e60bc4083f1f84e"
   version = "v0.2.0"
+
+[[projects]]
+  digest = "1:2cd5a758bcbc5bf6e904e976783cceb3bac3a53511d6fe4e459d8ac45af9e530"
+  name = "github.com/gorilla/mux"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "c5c6c98bc25355028a63748a498942a6398ccd22"
+  version = "v1.7.1"
 
 [[projects]]
   branch = "master"
@@ -278,6 +316,14 @@
   version = "v2.0.3"
 
 [[projects]]
+  digest = "1:6782ffc812e8e700e6952ede1e60487ff1fd9da489eff762985be662a7cfc431"
+  name = "github.com/leodido/go-urn"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "70078a794e8ea4b497ba7c19a78cd60f90ccf0f4"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:173c1a4b67a54fb4d76311e3fb7eb8a586df8146ab39ca054ec330b6cc72f0cb"
   name = "github.com/mailru/easyjson"
@@ -304,6 +350,14 @@
   pruneopts = "T"
   revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
   version = "v1.0.1"
+
+[[projects]]
+  digest = "1:297b0871de84b492ef2cb74cd34223b9c950c9cef9b8122fc6ae56e35a425bd4"
+  name = "github.com/michaelklishin/rabbit-hole"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "2970ce948f0d769c0b30127fa41006dbddf91786"
+  version = "v1.5.0"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -394,6 +448,18 @@
   pruneopts = "T"
   revision = "5f041e8faa004a95c88a202771f4cc3e991971e6"
   version = "v2.0.1"
+
+[[projects]]
+  digest = "1:6ab99c768f9dfa589ce6dc7155d42e8318e0baadec581ec0721d0a0c77a57f96"
+  name = "github.com/pivotal-cf/brokerapi"
+  packages = [
+    ".",
+    "auth",
+    "middlewares/originating_identity_header",
+  ]
+  pruneopts = "T"
+  revision = "4c4fa5e7f2e1a107797d91875abd3091d13d080b"
+  version = "v4.2.3"
 
 [[projects]]
   digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
@@ -664,6 +730,14 @@
   version = "v1.4.7"
 
 [[projects]]
+  digest = "1:0c9ec0e9c7d8cedfe0afb19b4434b54027bc814ee4779121535e68509742a9e5"
+  name = "gopkg.in/go-playground/validator.v9"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "46b4b1e301c24cac870ffcb4ba5c8a703d1ef475"
+  version = "v9.28.0"
+
+[[projects]]
   digest = "1:2d1fbdc6777e5408cabeb02bf336305e724b925ff4546ded0fa8715a7267922a"
   name = "gopkg.in/inf.v0"
   packages = ["."]
@@ -803,6 +877,7 @@
   name = "k8s.io/client-go"
   packages = [
     "discovery",
+    "discovery/fake",
     "dynamic",
     "kubernetes",
     "kubernetes/scheme",
@@ -847,6 +922,7 @@
     "rest",
     "rest/watch",
     "restmapper",
+    "testing",
     "third_party/forked/golang/template",
     "tools/auth",
     "tools/cache",
@@ -1065,11 +1141,16 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "code.cloudfoundry.org/lager",
     "github.com/emicklei/go-restful",
     "github.com/kubernetes-sigs/kustomize",
+    "github.com/michaelklishin/rabbit-hole",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/onsi/gomega/gexec",
+    "github.com/pivotal-cf/brokerapi",
     "golang.org/x/net/context",
+    "gopkg.in/go-playground/validator.v9",
     "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1beta1",
     "k8s.io/api/core/v1",
@@ -1077,12 +1158,22 @@
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
+    "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
+    "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/runtime",
+    "k8s.io/apimachinery/pkg/watch",
+    "k8s.io/client-go/discovery",
+    "k8s.io/client-go/discovery/fake",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
+    "k8s.io/client-go/testing",
+    "k8s.io/client-go/tools/cache",
+    "k8s.io/client-go/tools/clientcmd",
+    "k8s.io/client-go/util/flowcontrol",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "sigs.k8s.io/controller-runtime/pkg/client",

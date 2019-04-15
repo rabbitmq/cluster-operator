@@ -3,10 +3,33 @@ broker:
   username: some-broker-user
   password: some-broker-password
 service_catalog:
-  id: some-id
-  service_name: some-marketplace-name
-  service_description: some-description
+  service_name: "p-rabbitmq-k8s"
+  service_description: "RabbitMQ on K8s"
+  id: 00000000-0000-0000-0000-000000000000
   plans:
-    - name: some-dedicated-name
-      plan_id: some-dedicated-plan-id
-      description: I'm a dedicated plan
+  - plan_id: 11111111-1111-1111-1111-111111111111
+    name: "ha"
+    description: "HA RabbitMQ on K8s"
+  - plan_id: 22222222-2222-2222-2222-222222222222
+    name: "single"
+    description: "Single-node RabbitMQ on K8s"
+logging:
+  level: debug
+  print_stack_traces: true
+rabbitmq:
+  regular_user_tags: "policymaker,management"
+  management_domain: pivotal-rabbitmq.127.0.0.1
+  hosts:
+    - 127.0.0.1
+    - 127.0.0.2
+  dns_host:
+  management:
+    username: admin
+  administrator:
+    username: guest
+    password: guest
+  operator_set_policy:
+    enabled: true
+    policy_name: operator_set_policy
+    policy_definition: '{"ha-mode":"exactly","ha-params":2,"ha-sync-mode":"automatic"}'
+    policy_priority: 50

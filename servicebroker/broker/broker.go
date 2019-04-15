@@ -17,10 +17,6 @@ func New(cfg Config) brokerapi.ServiceBroker {
 	}
 }
 
-func (rabbitmqServiceBroker RabbitMQServiceBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
-	return brokerapi.ProvisionedServiceSpec{}, errors.New("Not implemented")
-}
-
 func (rabbitmqServiceBroker RabbitMQServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
 	return brokerapi.DeprovisionServiceSpec{}, errors.New("Not implemented")
 }

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	rabbithole "github.com/michaelklishin/rabbit-hole"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -20,7 +21,8 @@ const (
 )
 
 var (
-	session *gexec.Session
+	session   *gexec.Session
+	rmqClient *rabbithole.Client
 )
 
 func TestIntegrationtests(t *testing.T) {
@@ -35,6 +37,7 @@ var _ = BeforeSuite(func() {
 	path, err := filepath.Abs(filepath.Join("fixtures", "config.yaml"))
 	Expect(err).ToNot(HaveOccurred())
 
+	// deploy servicebroker to kubernetes
 	command := exec.Command(pathToServiceBroker, "-configPath", path)
 	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())

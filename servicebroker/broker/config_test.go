@@ -20,15 +20,21 @@ var _ = Describe("Config", func() {
 				Password: "some-broker-password",
 			},
 			ServiceCatalog: ServiceCatalog{
-				Name:        "some-marketplace-name",
-				ID:          "some-id",
-				Description: "some-description",
+				ID:          "00000000-0000-0000-0000-000000000000",
+				Name:        "p-rabbitmq-k8s",
+				Description: "RabbitMQ on K8s",
 				Plans: []Plan{
 					Plan{
-						Name:        "some-dedicated-name",
-						ID:          "some-dedicated-plan-id",
-						Description: "I'm a dedicated plan",
-					}},
+						ID:          "11111111-1111-1111-1111-111111111111",
+						Name:        "ha",
+						Description: "HA RabbitMQ on K8s",
+					},
+					Plan{
+						ID:          "22222222-2222-2222-2222-222222222222",
+						Name:        "single",
+						Description: "Single-node RabbitMQ on K8s",
+					},
+				},
 			},
 		}))
 	})
