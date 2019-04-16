@@ -58,7 +58,8 @@ jobs:
         - -exc
         - |
           set -eu
-          export GOPATH=/go
+          export BUILD_PATH=$PWD
+          export GOPATH=$BUILD_PATH/go
           export PATH=$PATH:$GOPATH/bin
           cat > git-ssh-key <<EOF
           ((git-ssh-key))

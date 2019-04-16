@@ -15,3 +15,5 @@ RUN apt-get update \
     && apt-get install -y docker-ce
 
 RUN wget -O /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/0.2.1/kind-linux-amd64 && chmod 755 /usr/local/bin/kind
+
+ENTRYPOINT service docker start && bash
