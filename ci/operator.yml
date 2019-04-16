@@ -45,6 +45,10 @@ jobs:
       inputs:
       - name: *repo
         path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+      params:
+        # To use the right value for TERM, check what terms are available in the image: find /lib/terminfo -type f
+        # To double-check that a specific term is available, run: infocmp xterm-256color
+        TERM: xterm-256color
       run:
         path: sh
         args:
