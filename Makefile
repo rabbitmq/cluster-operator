@@ -141,7 +141,7 @@ $(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
 
 operator: $(OPERATOR_BIN)
 
-$(SERVICEBROKER_BIN): broker_tmp mod_service_broker ## Build broker binary
+$(SERVICEBROKER_BIN): broker_tmp ## Build broker binary
 	pushd $(SERVICEBROKER_DIR) && \
 	GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o tmp_bin servicebroker && \
 	cp tmp_bin ../$(SERVICEBROKER_BIN) && \
@@ -211,13 +211,14 @@ single: kubectl namespace ## Ask Operator to provision a single-node RabbitMQ
 	kubectl --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
 
 .PHONY: broker_tests
-broker_tests: mod_service_broker ## run service broker unit and integration tests
+broker_tests: broker_unit_tests broker_integration_tests ## Run service broker unit and integration tests
+
+broker_unit_tests:
 	pushd $(SERVICEBROKER_DIR) && \
 	GO111MODULE=on ginkgo  -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -race broker/ && \
-	GO111MODULE=on ginkgo  -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -race integration_tests/ && \
 	popd
 
-kind_broker:
+broker_integration_tests:
 	pushd $(SERVICEBROKER_DIR) && \
 	kind create cluster || true && \
 	KUBECONFIG="$$(kind get kubeconfig-path --name="kind")" kubectl create namespace $(K8S_NAMESPACE) || true && \
