@@ -32,13 +32,16 @@ jobs:
   - task: broker-tests
     tags:
     - k8s
+    privileged: true
     config:
       platform: linux
       image_resource:
         type: docker-image
         source:
-          repository: golang
-          tag: 1.12
+          tag: latest
+          repository: eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-ci
+          username: _json_key
+          password: ((gcp-service-account-key))
       caches:
         - path: app_cache
         - path: go_cache
@@ -55,8 +58,16 @@ jobs:
         - -exc
         - |
           set -eu
-          export GOPATH=$PWD/go
+          export GOPATH=/go
           export PATH=$PATH:$GOPATH/bin
+          cat > git-ssh-key <<EOF
+          ((git-ssh-key))
+          EOF
+          eval $(ssh-agent)
+          chmod 600 git-ssh-key
+          ssh-add git-ssh-key
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
           cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
           go get github.com/onsi/ginkgo/ginkgo
           go get github.com/onsi/gomega/...

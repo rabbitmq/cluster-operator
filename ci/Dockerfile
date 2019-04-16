@@ -11,3 +11,6 @@ RUN apt-get update \
     && apt-get update \
     && apt-get install -y google-cloud-sdk=${CLOUD_SDK_VERSION}-0 kubectl make jq git golang-go
 
+ENV GOPATH /go/
+ENV PATH $PATH:/go/bin
+RUN go get -u sigs.k8s.io/kind
