@@ -72,7 +72,9 @@ jobs:
           cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
           go get github.com/onsi/ginkgo/ginkgo
           go get github.com/onsi/gomega/...
-          make broker_tests
+          # TODO: disabled until we can run kind in Concourse or change the way we run these
+          # https://www.pivotaltracker.com/story/show/165383189
+          #make broker_tests
 
 - name: build-operator
   serial: true
