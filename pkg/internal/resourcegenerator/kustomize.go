@@ -134,7 +134,7 @@ func writePatchFile(filename string, generationContext GenerationContext, filesy
 
 func writeKustomizationFile(patchFileName string, generationContext GenerationContext, filesystem fs.FileSystem) error {
 	kustomize := &types.Kustomization{
-		NamePrefix: generationContext.InstanceName + "-",
+		NamePrefix: "p-" + generationContext.InstanceName + "-",
 		Namespace:  generationContext.Namespace,
 		CommonLabels: map[string]string{
 			"instance": generationContext.InstanceName,

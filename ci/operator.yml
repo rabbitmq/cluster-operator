@@ -171,15 +171,23 @@ jobs:
           export DOCKER_IMAGE_PATH=$BUILD_PATH/docker_image_build
           export GOPATH=$BUILD_PATH/go
           export PATH=$PATH:$GOPATH/bin
+          cat > git-ssh-key <<EOF
+          ((git-ssh-key))
+          EOF
+          eval $(ssh-agent)
+          chmod 600 git-ssh-key
+          ssh-add git-ssh-key
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
           cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
           [ -d $APP_CACHE_PATH/bin ] && mv $APP_CACHE_PATH/bin .
           [ -d $APP_CACHE_PATH/vendor ] && mv $APP_CACHE_PATH/vendor .
           [ -d $GO_CACHE_PATH/bin ] && mv $GO_CACHE_PATH/bin $GOPATH
           make servicebroker
-          cp -r bin $APP_CACHE_PATH/
-          cp -r vendor $APP_CACHE_PATH/
-          cp -r $GOPATH/bin $GO_CACHE_PATH/
-          cp -r tmp/servicebroker servicebroker/config.yaml servicebroker/Dockerfile $DOCKER_IMAGE_PATH/
+          # cp -r bin $APP_CACHE_PATH/
+          # cp -r vendor $APP_CACHE_PATH/
+          # cp -r $GOPATH/bin $GO_CACHE_PATH/
+          cp -r servicebroker/tmp servicebroker/config.yaml servicebroker/Dockerfile $DOCKER_IMAGE_PATH/
   # https://blog.scottlogic.com/2016/06/20/declarative-ci-cd-with-concourse.html
   - put: *servicebroker-image
     params:

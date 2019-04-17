@@ -1143,6 +1143,7 @@
   input-imports = [
     "code.cloudfoundry.org/lager",
     "github.com/emicklei/go-restful",
+    "github.com/google/uuid",
     "github.com/kubernetes-sigs/kustomize",
     "github.com/michaelklishin/rabbit-hole",
     "github.com/onsi/ginkgo",

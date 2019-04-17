@@ -70,6 +70,10 @@ spec:
                 secretKeyRef:
                   name: rabbitmq
                   key: erlang-cookie
+            # - name: RABBITMQ_DEFAULT_USER
+            #   value: admin
+            # - name: RABBITMQ_DEFAULT_PASS
+            #   value: alwaysbekind
             - name: MY_POD_NAME
               valueFrom:
                 fieldRef:
