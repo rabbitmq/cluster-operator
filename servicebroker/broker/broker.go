@@ -33,6 +33,10 @@ func (rabbitmqServiceBroker RabbitMQServiceBroker) LastOperation(ctx context.Con
 	return brokerapi.LastOperation{}, errors.New("Not implemented")
 }
 
+func (rabbitmqServiceBroker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
+	return brokerapi.Binding{}, errors.New("Not implemented")
+}
+
 func (rabbitmqServiceBroker RabbitMQServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
 	return brokerapi.UnbindSpec{}, errors.New("Not implemented")
 }
