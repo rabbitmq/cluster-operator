@@ -32,7 +32,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 		BeforeEach(func() {
 			expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-			depKey = types.NamespacedName{Name: "foo-rabbitmq", Namespace: "default"}
+			depKey = types.NamespacedName{Name: "p-foo-rabbitmq", Namespace: "default"}
 
 			instance = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -89,7 +89,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			// Manually delete service since GC isn't enabled in the test control plane
 			Eventually(func() error { return client.Delete(context.TODO(), service) }, timeout).
-				Should(MatchError("services \"foo-rabbitmq\" not found"))
+				Should(MatchError("services \"p-foo-rabbitmq\" not found"))
 		})
 	})
 
