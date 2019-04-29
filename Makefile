@@ -231,7 +231,7 @@ broker_integration_tests:
 
 .PHONY: single_smoke_test
 single_smoke_test: kubectl single
-	./scripts/wait_for_rabbitmq_cluster test-single-rabbitmq $(K8S_NAMESPACE)
+	./scripts/wait_for_rabbitmq_cluster p-test-single-rabbitmq $(K8S_NAMESPACE)
 	kubectl --namespace=$(K8S_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- add_user test test || true
 	kubectl --namespace=$(K8S_NAMESPACE) exec -it test-single-rabbitmq-0 rabbitmqctl -- set_permissions -p "/"  test '.*' '.*' '.*'
 	-kubectl --namespace=$(K8S_NAMESPACE) delete jobs.batch single-smoke-test
