@@ -55,11 +55,23 @@ BROKER_IMAGE_CI = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-broker
 
 K8S_NAMESPACE = rabbitmq-for-kubernetes
 K8S_OPERATOR_NAMESPACE = rabbitmq-for-kubernetes-system
+K8S_SERVICEBROKER_NAMESPACE = rabbitmq-for-kubernetes-servicebroker
 
 SERVICEBROKER_DIR = servicebroker
 
 OPERATOR_BIN = tmp/operator
 SERVICEBROKER_BIN = $(SERVICEBROKER_DIR)/tmp/servicebroker
+
+SERVICEBROKER_EXTERNAL_IP = $(shell kubectl get service servicebroker-lb --namespace $(K8S_SERVICEBROKER_NAMESPACE) -o json | jq -r .status.loadBalancer.ingress[0].ip)
+
+
+register_servicebroker:
+	@if [ "$(SERVICEBROKER_EXTERNAL_IP)" = "" ]; then \
+	echo "Service Broker external ip not found. Make sure you have deployed that."; \
+	exit 1; \
+	fi
+	cf create-service-broker "kr8s" "p1-rabbit" "p1-rabbit-testpwd" "http://$(SERVICEBROKER_EXTERNAL_IP):8080" \
+		|| cf update-service-broker "kr8s" "p1-rabbit" "p1-rabbit-testpwd" "http://$(SERVICEBROKER_EXTERNAL_IP):8080"
 
 ### DEPS ###
 #
@@ -149,6 +161,9 @@ $(SERVICEBROKER_BIN): broker_tmp ## Build broker binary
 
 servicebroker: $(SERVICEBROKER_BIN)
 
+deploy_servicebroker:
+	kubectl run --namespace=rabbitmq-for-kubernetes-servicebroker --generator=run-pod/v1 --image eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-servicebroker servicebroker --port 8080 --expose
+
 kubectl:
 	@if [[ "$(KUBECTL_PATH)" == "" || $(KUBECTL_MINOR) -lt 14 ]]; then \
 		echo "You need kubectl 1.14+"; \
@@ -205,6 +220,8 @@ namespace: kubectl
 	kubectl create namespace $(K8S_NAMESPACE)
 	kubectl get namespace $(K8S_OPERATOR_NAMESPACE) $(SILENT) || \
 	kubectl create namespace $(K8S_OPERATOR_NAMESPACE)
+	kubectl get namespace $(K8S_SERVICEBROKER_NAMESPACE) $(SILENT) || \
+	kubectl create namespace $(K8S_SERVICEBROKER_NAMESPACE)
 
 .PHONY: single
 single: kubectl namespace ## Ask Operator to provision a single-node RabbitMQ
@@ -372,6 +389,8 @@ gcr_viewer_service_account: $(GCLOUD) $(GSUTIL) kubectl tmp namespace
 	$(GSUTIL) iam ch serviceAccount:$(GCR_VIEWER_ACCOUNT_EMAIL):objectViewer gs://$(GCP_BUCKET_NAME)
 	kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password="$(GCR_VIEWER_KEY_CONTENT)" || true
 	kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT)"}]}'
+	kubectl -n $(K8S_SERVICEBROKER_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password="$(GCR_VIEWER_KEY_CONTENT)" || true
+	kubectl -n $(K8S_SERVICEBROKER_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT)"}]}'
 
 GKE_CLUSTER_CREATOR_KEY_CONTENT = `cat tmp/$(GKE_CLUSTER_CREATOR_KEY_FILE)`
 .PHONY: gke_cluster_creator_service_account
