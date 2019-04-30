@@ -22,6 +22,7 @@ func init() {
 type Config struct {
 	Broker         Broker         `yaml:"broker" validate:"required"`
 	ServiceCatalog ServiceCatalog `yaml:"service_catalog" validate:"required"`
+	RabbitMQ       RabbitMQ       `yaml:"rabbitmq"`
 }
 
 type Broker struct {
@@ -41,6 +42,25 @@ type Plan struct {
 	ID          string `yaml:"plan_id" validate:"required"`
 	Name        string `yaml:"name" validate:"required"`
 	Description string `yaml:"description" validate:"required"`
+}
+
+type RabbitMQ struct {
+	// Hosts            Hosts                 `yaml:"hosts"`
+	DNSHost          string                `yaml:"dns_host"`
+	Administrator    AdminCredentials      `yaml:"administrator" validate:"required"`
+	Management       ManagementCredentials `yaml:"management"`
+	ManagementDomain string                `yaml:"management_domain" validate:"required"`
+	RegularUserTags  string                `yaml:"regular_user_tags"`
+	TLS              bool                  `yaml:"ssl"`
+}
+
+type ManagementCredentials struct {
+	Username string `yaml:"username"`
+}
+
+type AdminCredentials struct {
+	Username string `yaml:"username" validate:"required"`
+	Password string `yaml:"password" validate:"required"`
 }
 
 func ReadConfig(path string) (Config, error) {

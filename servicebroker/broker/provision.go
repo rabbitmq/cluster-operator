@@ -54,7 +54,7 @@ func (rabbitmqServiceBroker RabbitMQServiceBroker) Provision(ctx context.Context
 		return brokerapi.ProvisionedServiceSpec{}, fmt.Errorf("Failed to create RMQ cluster: %s", err)
 	}
 
-	return brokerapi.ProvisionedServiceSpec{}, nil
+	return brokerapi.ProvisionedServiceSpec{IsAsync: true}, nil
 }
 
 func (rabbitMQServiceBroker RabbitMQServiceBroker) GenerateSpec(instanceID string, details brokerapi.ProvisionDetails) (spec rmq.RabbitmqCluster, err error) {

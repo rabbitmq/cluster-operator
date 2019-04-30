@@ -26,8 +26,8 @@ rabbitmq:
   management:
     username: admin
   administrator:
-    username: guest
-    password: guest
+    username: admin
+    password: pass
   operator_set_policy:
     enabled: true
     policy_name: operator_set_policy

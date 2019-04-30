@@ -18,6 +18,7 @@ var _ = Describe("the lifecycle of a service instance", func() {
 	const (
 		serviceID = "00000000-0000-0000-0000-000000000000"
 		planID    = "11111111-1111-1111-1111-111111111111"
+		bindingID = "22222222-2222-2222-2222-222222222222"
 	)
 
 	It("succeeds for one SI and binding", func() {
@@ -25,7 +26,7 @@ var _ = Describe("the lifecycle of a service instance", func() {
 
 		By("sending a provision request")
 		provisionResponse, provisionBody := provision(serviceInstanceID, serviceID, planID)
-		Expect(provisionResponse.StatusCode).To(Equal(http.StatusCreated), string(provisionBody))
+		Expect(provisionResponse.StatusCode).To(Equal(http.StatusAccepted), string(provisionBody))
 
 		By("checking that the rabbitmq pod is created with the correct plan")
 		planCommand := exec.Command("kubectl", "-n", "rabbitmq-for-kubernetes", "get", "rabbitmqcluster", serviceInstanceID, "-o=jsonpath='{.spec.plan}'")
@@ -35,6 +36,20 @@ var _ = Describe("the lifecycle of a service instance", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(string(planSession.Out.Contents())).To(Equal("'ha'"))
 
+		By("sending a binding request")
+		var bindBody []byte
+		Eventually(func() int {
+			var bindResponse *http.Response
+			bindResponse, bindBody = bind(bindingID, serviceInstanceID, serviceID, planID)
+			return bindResponse.StatusCode
+		}, "5000ms").Should(Equal(http.StatusCreated), string(bindBody))
+
+		By("checking the binding credentials")
+		var binding map[string]interface{}
+		Expect(json.Unmarshal(bindBody, &binding)).To(Succeed())
+		Expect(binding).To(HaveKeyWithValue("credentials", SatisfyAll(
+			HaveKeyWithValue("username", "admin"),
+			HaveKeyWithValue("vhost", serviceInstanceID))))
 	})
 })
 
@@ -52,4 +67,18 @@ func provision(serviceInstanceID, serviceID, planID string) (*http.Response, []b
 	Expect(err).NotTo(HaveOccurred())
 
 	return doRequest(http.MethodPut, provisionURL(serviceInstanceID), bytes.NewReader(provisionDetails))
+}
+
+func bindURL(serviceInstanceID, bindingID string) string {
+	return fmt.Sprintf("%sservice_instances/%s/service_bindings/%s", baseURL, serviceInstanceID, bindingID)
+}
+
+func bind(bindingID, serviceInstanceID, serviceID, planID string) (*http.Response, []byte) {
+	bindDetails, err := json.Marshal(map[string]string{
+		"service_id": serviceID,
+		"plan_id":    planID,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	return doRequest(http.MethodPut, bindURL(serviceInstanceID, bindingID), bytes.NewReader(bindDetails))
 }

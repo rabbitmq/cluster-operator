@@ -22,6 +22,7 @@ logging:
 rabbitmq:
   regular_user_tags: "policymaker,management"
   management_domain: pivotal-rabbitmq.127.0.0.1
+  ssl: false
   hosts:
     - 127.0.0.1
     - 127.0.0.2
@@ -29,8 +30,8 @@ rabbitmq:
   management:
     username: admin
   administrator:
-    username: guest
-    password: guest
+    username: admin
+    password: alwaysbekind
   operator_set_policy:
     enabled: true
     policy_name: operator_set_policy

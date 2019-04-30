@@ -29,8 +29,8 @@ rabbitmq:
   management:
     username: admin
   administrator:
-    username: guest
-    password: guest
+    username: admin
+    password: alwaysbekind
   operator_set_policy:
     enabled: true
     policy_name: operator_set_policy
