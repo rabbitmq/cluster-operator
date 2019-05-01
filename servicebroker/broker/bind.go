@@ -118,7 +118,7 @@ func (b Builder) Build() (output interface{}, err error) {
 }
 
 func (b Builder) dashboardURL() string {
-	return fmt.Sprintf("https://%s/#/login/%s/%s", b.MgmtDomain, b.Username, b.Password)
+	return fmt.Sprintf("http://%s/#/login/%s/%s", b.MgmtDomain, b.Username, b.Password)
 }
 
 func (b Builder) uriForBinding(hostname string) string {
@@ -134,7 +134,7 @@ func (b Builder) urisForBinding() []string {
 }
 
 func (b Builder) httpapiuriForBinding() string {
-	return fmt.Sprintf("https://%s:%s@%s/api/", b.Username, b.Password, b.MgmtDomain)
+	return fmt.Sprintf("http://%s:%s@%s/api/", b.Username, b.Password, b.MgmtDomain)
 }
 
 func (b Builder) httpapiurisForBinding() []string {
