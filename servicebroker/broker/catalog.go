@@ -23,6 +23,7 @@ func (b RabbitMQServiceBroker) Services(ctx context.Context) ([]brokerapi.Servic
 			Description: b.Config.ServiceCatalog.Description,
 			Bindable:    true,
 			Plans:       plans,
+			Tags:        []string{"rabbitmq", "amqp"},
 		},
 	}, nil
 }
