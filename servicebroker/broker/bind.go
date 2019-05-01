@@ -70,7 +70,7 @@ func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindin
 		Username:      broker.Config.RabbitMQ.Administrator.Username,
 		Password:      broker.Config.RabbitMQ.Administrator.Password,
 		TLS:           bool(broker.Config.RabbitMQ.TLS),
-		ProtocolPorts: map[string]int{"amqp": 4567, "clustering": 25672, "http": 15672},
+		ProtocolPorts: map[string]int{"amqp": 5672, "clustering": 25672, "http": 15672},
 	}
 
 	credentials, err := credsBuilder.Build()
@@ -89,7 +89,7 @@ type Builder struct {
 	Username      string
 	Password      string
 	TLS           bool
-	ProtocolPorts map[string]int // key=protocol, value=port, e.g. "amqp": 4567
+	ProtocolPorts map[string]int // key=protocol, value=port, e.g. "amqp": 5672
 }
 
 func (b Builder) Build() (output interface{}, err error) {
