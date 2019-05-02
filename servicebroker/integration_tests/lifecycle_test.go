@@ -49,7 +49,7 @@ var _ = Describe("the lifecycle of a service instance", func() {
 		Expect(json.Unmarshal(bindBody, &binding)).To(Succeed())
 		Expect(binding).To(HaveKeyWithValue("credentials", SatisfyAll(
 			HaveKeyWithValue("username", "admin"),
-			HaveKeyWithValue("vhost", serviceInstanceID))))
+			HaveKeyWithValue("vhost", "%2f"))))
 	})
 })
 

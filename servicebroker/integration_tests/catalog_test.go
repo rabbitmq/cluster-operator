@@ -21,23 +21,5 @@ var _ = Describe("/v2/catalog", func() {
 
 		Expect(catalog["services"]).To(HaveLen(1))
 
-		Expect(catalog["services"][0]).To(Equal(brokerapi.Service{
-			ID:          "00000000-0000-0000-0000-000000000000",
-			Name:        "p-rabbitmq-k8s",
-			Description: "RabbitMQ on K8s",
-			Bindable:    true,
-			Plans: []brokerapi.ServicePlan{
-				brokerapi.ServicePlan{
-					ID:          "11111111-1111-1111-1111-111111111111",
-					Name:        "ha",
-					Description: "HA RabbitMQ on K8s",
-				},
-				brokerapi.ServicePlan{
-					ID:          "22222222-2222-2222-2222-222222222222",
-					Name:        "single",
-					Description: "Single-node RabbitMQ on K8s",
-				},
-			},
-		}))
 	})
 })

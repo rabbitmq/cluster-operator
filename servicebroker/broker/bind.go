@@ -53,7 +53,6 @@ func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindin
 
 	getOptions := metav1.GetOptions{}
 	service, err := kubernetesClient.CoreV1().Services("rabbitmq-for-kubernetes").Get(fmt.Sprintf("p-%s-rabbitmq", instanceID), getOptions)
-	fmt.Printf("Service object: %+v", service)
 	if err != nil {
 		return brokerapi.Binding{}, fmt.Errorf("Failed to retrieve service: %s", err)
 	}
