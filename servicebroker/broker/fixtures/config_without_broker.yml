@@ -6,3 +6,20 @@ service_catalog:
     - name: some-dedicated-name
       plan_id: some-dedicated-plan-id
       description: I'm a dedicated plan
+rabbitmq:
+  regular_user_tags: "policymaker,management"
+  management_domain: pivotal-rabbitmq.127.0.0.1
+  hosts:
+    - 127.0.0.1
+    - 127.0.0.2
+  dns_host:
+  management:
+    username: admin
+  administrator:
+    username: admin
+    password: pass
+  operator_set_policy:
+    enabled: true
+    policy_name: operator_set_policy
+    policy_definition: '{"ha-mode":"exactly","ha-params":2,"ha-sync-mode":"automatic"}'
+    policy_priority: 50

@@ -36,6 +36,14 @@ var _ = Describe("Config", func() {
 					},
 				},
 			},
+			RabbitMQ: RabbitMQ{
+				DNSHost:          "",
+				Administrator:    AdminCredentials{Username: "admin", Password: "pass"},
+				Management:       ManagementCredentials{Username: "admin"},
+				ManagementDomain: "pivotal-rabbitmq.127.0.0.1",
+				RegularUserTags:  "policymaker,management",
+				TLS:              false,
+			},
 		}))
 	})
 

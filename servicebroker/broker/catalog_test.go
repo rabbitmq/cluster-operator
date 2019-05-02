@@ -20,6 +20,7 @@ var _ = Describe("Catalog", func() {
 			Name:        defaultCfg.ServiceCatalog.Name,
 			Description: defaultCfg.ServiceCatalog.Description,
 			Bindable:    true,
+			Tags:        []string{"rabbitmq", "amqp"},
 			Plans: []brokerapi.ServicePlan{
 				brokerapi.ServicePlan{
 					ID:          "11111111-1111-1111-1111-111111111111",
