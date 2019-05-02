@@ -44,7 +44,7 @@ func createKubernetesClient() (*kubernetes.Clientset, error) {
 }
 
 func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
-	vhost := instanceID
+	vhost := "%2f"
 
 	kubernetesClient, err := createKubernetesClient()
 	if err != nil {
