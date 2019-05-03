@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"servicebroker/binding"
+	"servicebroker/utils/binding"
 
 	"github.com/pivotal-cf/brokerapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

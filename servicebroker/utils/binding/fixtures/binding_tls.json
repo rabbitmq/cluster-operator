@@ -1,0 +1,158 @@
+{
+ "dashboard_url": "http://pivotal-rabbitmq.sys.philippinebrown.cf-app.com/#/login/b2a5de47-796b-414d-bab4-eb299c268653/cfrnvvjtr6t803ilrdhgbe8mn7",
+ "hostname": "10.0.4.100",
+ "hostnames": [
+  "10.0.4.100",
+  "10.0.4.101"
+ ],
+ "http_api_uri": "http://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@pivotal-rabbitmq.sys.philippinebrown.cf-app.com/api/",
+ "http_api_uris": [
+  "http://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@pivotal-rabbitmq.sys.philippinebrown.cf-app.com/api/"
+ ],
+ "password": "cfrnvvjtr6t803ilrdhgbe8mn7",
+ "protocols": {
+  "amqp+ssl": {
+   "host": "10.0.4.100",
+   "hosts": [
+    "10.0.4.100",
+    "10.0.4.101"
+   ],
+   "password": "cfrnvvjtr6t803ilrdhgbe8mn7",
+   "port": 5671,
+   "ssl": true,
+   "uri": "amqps://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:5671/6418d19f-e9e8-4c8b-9c92-5087c89cbc46",
+   "uris": [
+    "amqps://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:5671/6418d19f-e9e8-4c8b-9c92-5087c89cbc46",
+    "amqps://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.101:5671/6418d19f-e9e8-4c8b-9c92-5087c89cbc46"
+   ],
+   "username": "b2a5de47-796b-414d-bab4-eb299c268653",
+   "vhost": "6418d19f-e9e8-4c8b-9c92-5087c89cbc46"
+  },
+  "management": {
+   "host": "10.0.4.100",
+   "hosts": [
+    "10.0.4.100",
+    "10.0.4.101"
+   ],
+   "password": "cfrnvvjtr6t803ilrdhgbe8mn7",
+   "path": "/api/",
+   "port": 15672,
+   "ssl": false,
+   "uri": "http://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:15672/api/",
+   "uris": [
+    "http://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:15672/api/",
+    "http://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.101:15672/api/"
+   ],
+   "username": "b2a5de47-796b-414d-bab4-eb299c268653"
+  },
+  "management+ssl": {
+   "host": "10.0.4.100",
+   "hosts": [
+    "10.0.4.100",
+    "10.0.4.101"
+   ],
+   "password": "cfrnvvjtr6t803ilrdhgbe8mn7",
+   "path": "/api/",
+   "port": 15672,
+   "ssl": false,
+   "uri": "http://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:15672/api/",
+   "uris": [
+    "http://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:15672/api/",
+    "http://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.101:15672/api/"
+   ],
+   "username": "b2a5de47-796b-414d-bab4-eb299c268653"
+  },
+  "mqtt": {
+   "host": "10.0.4.100",
+   "hosts": [
+    "10.0.4.100",
+    "10.0.4.101"
+   ],
+   "password": "cfrnvvjtr6t803ilrdhgbe8mn7",
+   "port": 1883,
+   "ssl": false,
+   "uri": "mqtt://6418d19f-e9e8-4c8b-9c92-5087c89cbc46%3Ab2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:1883",
+   "uris": [
+    "mqtt://6418d19f-e9e8-4c8b-9c92-5087c89cbc46%3Ab2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:1883",
+    "mqtt://6418d19f-e9e8-4c8b-9c92-5087c89cbc46%3Ab2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.101:1883"
+   ],
+   "username": "6418d19f-e9e8-4c8b-9c92-5087c89cbc46:b2a5de47-796b-414d-bab4-eb299c268653"
+  },
+  "mqtt+ssl": {
+   "host": "10.0.4.100",
+   "hosts": [
+    "10.0.4.100",
+    "10.0.4.101"
+   ],
+   "password": "cfrnvvjtr6t803ilrdhgbe8mn7",
+   "port": 8883,
+   "ssl": true,
+   "uri": "mqtt+ssl://6418d19f-e9e8-4c8b-9c92-5087c89cbc46%3Ab2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:8883",
+   "uris": [
+    "mqtt+ssl://6418d19f-e9e8-4c8b-9c92-5087c89cbc46%3Ab2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:8883",
+    "mqtt+ssl://6418d19f-e9e8-4c8b-9c92-5087c89cbc46%3Ab2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.101:8883"
+   ],
+   "username": "6418d19f-e9e8-4c8b-9c92-5087c89cbc46:b2a5de47-796b-414d-bab4-eb299c268653"
+  },
+  "stomp": {
+   "host": "10.0.4.100",
+   "hosts": [
+    "10.0.4.100",
+    "10.0.4.101"
+   ],
+   "password": "cfrnvvjtr6t803ilrdhgbe8mn7",
+   "port": 61613,
+   "ssl": false,
+   "uri": "stomp://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:61613",
+   "uris": [
+    "stomp://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:61613",
+    "stomp://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.101:61613"
+   ],
+   "username": "b2a5de47-796b-414d-bab4-eb299c268653",
+   "vhost": "6418d19f-e9e8-4c8b-9c92-5087c89cbc46"
+  },
+  "stomp+ssl": {
+   "host": "10.0.4.100",
+   "hosts": [
+    "10.0.4.100",
+    "10.0.4.101"
+   ],
+   "password": "cfrnvvjtr6t803ilrdhgbe8mn7",
+   "port": 61614,
+   "ssl": true,
+   "uri": "stomp+ssl://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:61614",
+   "uris": [
+    "stomp+ssl://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:61614",
+    "stomp+ssl://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.101:61614"
+   ],
+   "username": "b2a5de47-796b-414d-bab4-eb299c268653",
+   "vhost": "6418d19f-e9e8-4c8b-9c92-5087c89cbc46"
+  },
+  "ws": {
+   "host": "10.0.4.100",
+   "hosts": [
+    "10.0.4.100",
+    "10.0.4.101"
+   ],
+   "password": "cfrnvvjtr6t803ilrdhgbe8mn7",
+   "port": 15674,
+   "ssl": false,
+   "uri": "http/web-stomp://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:15674/6418d19f-e9e8-4c8b-9c92-5087c89cbc46",
+   "uris": [
+    "http/web-stomp://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100:15674/6418d19f-e9e8-4c8b-9c92-5087c89cbc46",
+    "http/web-stomp://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.101:15674/6418d19f-e9e8-4c8b-9c92-5087c89cbc46"
+   ],
+   "username": "b2a5de47-796b-414d-bab4-eb299c268653",
+   "vhost": "6418d19f-e9e8-4c8b-9c92-5087c89cbc46"
+  }
+ },
+ "ssl": true,
+ "uri": "amqps://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100/6418d19f-e9e8-4c8b-9c92-5087c89cbc46",
+ "uris": [
+  "amqps://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.100/6418d19f-e9e8-4c8b-9c92-5087c89cbc46",
+  "amqps://b2a5de47-796b-414d-bab4-eb299c268653:cfrnvvjtr6t803ilrdhgbe8mn7@10.0.4.101/6418d19f-e9e8-4c8b-9c92-5087c89cbc46"
+ ],
+ "username": "b2a5de47-796b-414d-bab4-eb299c268653",
+ "vhost": "6418d19f-e9e8-4c8b-9c92-5087c89cbc46"
+}
+
