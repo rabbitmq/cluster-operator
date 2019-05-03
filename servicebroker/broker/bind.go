@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"servicebroker/utils/binding"
+	"servicebroker/utils/rabbithutch"
 
+	rabbithole "github.com/michaelklishin/rabbit-hole"
 	"github.com/pivotal-cf/brokerapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -24,6 +26,7 @@ func createKubernetesClient() (*kubernetes.Clientset, error) {
 
 func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
 	vhost := "%2f"
+	username := bindingID
 
 	kubernetesClient, err := createKubernetesClient()
 	if err != nil {
@@ -39,16 +42,36 @@ func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindin
 	var serviceIP string
 	if len(service.Status.LoadBalancer.Ingress) > 0 {
 		serviceIP = service.Status.LoadBalancer.Ingress[0].IP
+	} else {
+		return brokerapi.Binding{}, fmt.Errorf("Failed to retrieve service IP for %s", service.Name)
+	}
+
+	client, _ := rabbithole.NewClient(
+		fmt.Sprintf("http://%s:15672", serviceIP),
+		broker.Config.RabbitMQ.Administrator.Username,
+		broker.Config.RabbitMQ.Administrator.Password,
+	)
+
+	rabbit := rabbithutch.New(client)
+
+	protocolPorts, err := rabbit.ProtocolPorts()
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
+
+	password, err := rabbit.CreateUserAndGrantPermissions(username, vhost, broker.Config.RabbitMQ.RegularUserTags)
+	if err != nil {
+		return brokerapi.Binding{}, err
 	}
 
 	credsBuilder := binding.Builder{
 		MgmtDomain:    fmt.Sprintf("%s:%d", serviceIP, 15672),
 		Hostnames:     []string{serviceIP},
 		VHost:         vhost,
-		Username:      broker.Config.RabbitMQ.Administrator.Username,
-		Password:      broker.Config.RabbitMQ.Administrator.Password,
+		Username:      username,
+		Password:      password,
 		TLS:           bool(broker.Config.RabbitMQ.TLS),
-		ProtocolPorts: map[string]int{"amqp": 5672, "clustering": 25672, "http": 15672},
+		ProtocolPorts: protocolPorts,
 	}
 
 	credentials, err := credsBuilder.Build()
@@ -57,5 +80,4 @@ func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindin
 	}
 
 	return brokerapi.Binding{Credentials: credentials}, nil
-
 }
