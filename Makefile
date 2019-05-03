@@ -50,8 +50,8 @@ GIT_SSH_KEY = $$($(LPASS) show "Shared-PCF RabbitMQ/pcf-rabbitmq+github@pivotal.
 DOCKER_IMAGE := eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-operator-dev
 DOCKER_IMAGE_CI = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-operator
 
-BROKER_IMAGE=eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-broker-dev
-BROKER_IMAGE_CI = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-broker
+BROKER_IMAGE=eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-servicebroker
+BROKER_IMAGE_CI = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-servicebroker
 
 K8S_NAMESPACE = rabbitmq-for-kubernetes
 K8S_OPERATOR_NAMESPACE = rabbitmq-for-kubernetes-system
@@ -170,8 +170,8 @@ deploy_crds: kubectl
 deploy_operator: kubectl
 	kubectl apply -k config/default
 
-deploy_servicebroker:
-	kubectl run --namespace=rabbitmq-for-kubernetes-servicebroker --generator=run-pod/v1 --image eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-servicebroker servicebroker --port 8080 --expose
+deploy_servicebroker: kubectl
+	kubectl apply -k servicebroker/templates
 
 .PHONY: patch_operator_image
 patch_operator_image: kubectl
@@ -181,6 +181,15 @@ patch_operator_image: kubectl
 	echo "$(BOLD)Force operator pod to re-create using the new image...$(NORMAL)"
 	echo "If image pull fails on first deploy, it won't recover."
 	kubectl delete pod/rabbitmq-for-kubernetes-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
+
+.PHONY: patch_operator_image
+patch_servicebroker_image: kubectl
+	kubectl patch replicaset rabbitmq-for-kubernetes-servicebroker \
+	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(BROKER_IMAGE):latest)", "name": "servicebroker"}]}}}}' \
+	  --namespace=$(K8S_SERVICEBROKER_NAMESPACE) && \
+	echo "$(BOLD)Force broker pod to re-create using the new image...$(NORMAL)"
+	echo "If image pull fails on first deploy, it won't recover."
+	kubectl delete pods --all --namespace=$(K8S_SERVICEBROKER_NAMESPACE)
 
 .PHONY: patch_operator_image_ci
 patch_operator_image_ci: kubectl
@@ -192,10 +201,12 @@ patch_operator_image_ci: kubectl
 	kubectl delete pod/rabbitmq-for-kubernetes-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
 
 .PHONY: deploy
-deploy: manifests deploy_crds deploy_operator patch_operator_image ## Deploy Operator in the currently targeted K8S cluster
+deploy: manifests namespace deploy_crds deploy_operator patch_operator_image ## Deploy Operator in the currently targeted K8S cluster
 
 .PHONY: deploy_ci
-deploy_ci: deploy_crds deploy_operator patch_operator_image_ci
+deploy_ci: namespace deploy_crds deploy_operator patch_operator_image_ci
+
+deploy_all: deploy_ci deploy_servicebroker patch_servicebroker_image
 
 ## CREATE ##
 #
