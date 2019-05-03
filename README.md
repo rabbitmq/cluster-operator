@@ -60,3 +60,11 @@ We are gitignoring the vendor directory because it is huge. When getting started
 1. To delete the cluster run `kubectl delete -f {path to yaml used to deploy e.g. '/config/default/samples/rabbitmq_v1beta1_rabbitmqcluster.yaml}`
 1. To delete the operator run `kubectl delete -k config/default`
 1. If you've deployed a cluster manually, delete the cluster by running `kubectl delete -k templates`
+
+## Deploy a new operator and service broker (e.g. for acceptance)
+
+1. `make delete`
+2. `make deploy_all`
+3. `make gcr_viewer_service_account` - if this fails with an error about exhausted key quota delete some of the keys in the service account in GCP
+3. If only testing the operator: `make single`, `make ha`
+4. If testing the broker, `make register_servicebroker` and continue in PCF

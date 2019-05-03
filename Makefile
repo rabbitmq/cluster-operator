@@ -53,16 +53,17 @@ DOCKER_IMAGE_CI = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-operator
 BROKER_IMAGE=eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-servicebroker
 BROKER_IMAGE_CI = eu.gcr.io/$(GCP_PROJECT)/rabbitmq-k8s-servicebroker
 
-K8S_NAMESPACE = rabbitmq-for-kubernetes
-K8S_OPERATOR_NAMESPACE = rabbitmq-for-kubernetes-system
-K8S_SERVICEBROKER_NAMESPACE = rabbitmq-for-kubernetes-servicebroker
+K8S_PREFIX = rabbitmq-for-kubernetes
+K8S_NAMESPACE = $(K8S_PREFIX)
+K8S_OPERATOR_NAMESPACE = $(K8S_PREFIX)-system
+K8S_SERVICEBROKER_NAMESPACE = $(K8S_PREFIX)-servicebroker
 
 SERVICEBROKER_DIR = servicebroker
 
 OPERATOR_BIN = tmp/operator
 SERVICEBROKER_BIN = $(SERVICEBROKER_DIR)/tmp/servicebroker
 
-SERVICEBROKER_EXTERNAL_IP = $(shell kubectl get service servicebroker-lb --namespace $(K8S_SERVICEBROKER_NAMESPACE) -o json | jq -r .status.loadBalancer.ingress[0].ip)
+SERVICEBROKER_EXTERNAL_IP = $(shell kubectl get service $(K8S_PREFIX)-servicebroker --namespace $(K8S_SERVICEBROKER_NAMESPACE) -o json | jq -r .status.loadBalancer.ingress[0].ip)
 
 ### DEPS ###
 #
@@ -175,16 +176,16 @@ deploy_servicebroker: kubectl
 
 .PHONY: patch_operator_image
 patch_operator_image: kubectl
-	kubectl patch statefulset rabbitmq-for-kubernetes-controller-operator \
+	kubectl patch statefulset $(K8S_PREFIX)-controller-operator \
 	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION))", "name": "operator"}]}}}}' \
 	  --namespace=$(K8S_OPERATOR_NAMESPACE) && \
 	echo "$(BOLD)Force operator pod to re-create using the new image...$(NORMAL)"
 	echo "If image pull fails on first deploy, it won't recover."
-	kubectl delete pod/rabbitmq-for-kubernetes-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
+	kubectl delete pod $(K8S_PREFIX)-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
 
 .PHONY: patch_operator_image
 patch_servicebroker_image: kubectl
-	kubectl patch replicaset rabbitmq-for-kubernetes-servicebroker \
+	kubectl patch replicaset $(K8S_PREFIX)-servicebroker \
 	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(BROKER_IMAGE):latest)", "name": "servicebroker"}]}}}}' \
 	  --namespace=$(K8S_SERVICEBROKER_NAMESPACE) && \
 	echo "$(BOLD)Force broker pod to re-create using the new image...$(NORMAL)"
@@ -193,12 +194,12 @@ patch_servicebroker_image: kubectl
 
 .PHONY: patch_operator_image_ci
 patch_operator_image_ci: kubectl
-	kubectl patch statefulset rabbitmq-for-kubernetes-controller-operator \
+	kubectl patch statefulset $(K8S_PREFIX)-controller-operator \
 	  --patch='{"spec": {"template": {"spec": {"containers": [{"image": "$(shell echo $(DOCKER_IMAGE_CI):latest)", "name": "operator"}]}}}}' \
 	  --namespace=$(K8S_OPERATOR_NAMESPACE) && \
 	echo "$(BOLD)Force operator pod to re-create using the new image...$(NORMAL)"
 	echo "If image pull fails on first deploy, it won't recover."
-	kubectl delete pod/rabbitmq-for-kubernetes-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
+	kubectl delete pod $(K8S_PREFIX)-controller-operator-0 --namespace=$(K8S_OPERATOR_NAMESPACE)
 
 .PHONY: deploy
 deploy: manifests namespace deploy_crds deploy_operator patch_operator_image ## Deploy Operator in the currently targeted K8S cluster
