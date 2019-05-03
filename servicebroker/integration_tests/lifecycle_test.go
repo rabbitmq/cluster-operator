@@ -42,14 +42,14 @@ var _ = Describe("the lifecycle of a service instance", func() {
 			var bindResponse *http.Response
 			bindResponse, bindBody = bind(bindingID, serviceInstanceID, serviceID, planID)
 			return bindResponse.StatusCode
-		}, "5000ms").Should(Equal(http.StatusCreated), string(bindBody))
+		}, "60s").Should(Equal(http.StatusCreated), string(bindBody))
 
 		By("checking the binding credentials")
 		var binding map[string]interface{}
 		Expect(json.Unmarshal(bindBody, &binding)).To(Succeed())
 		Expect(binding).To(HaveKeyWithValue("credentials", SatisfyAll(
-			HaveKeyWithValue("username", "admin"),
-			HaveKeyWithValue("vhost", "%2f"))))
+			HaveKeyWithValue("username", bindingID),
+			HaveKeyWithValue("vhost", serviceInstanceID))))
 	})
 })
 

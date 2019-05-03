@@ -25,7 +25,7 @@ func createKubernetesClient() (*kubernetes.Clientset, error) {
 }
 
 func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
-	vhost := "%2f"
+	vhost := instanceID
 	username := bindingID
 
 	kubernetesClient, err := createKubernetesClient()
@@ -57,9 +57,21 @@ func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindin
 
 	rabbit := rabbithutch.New(client)
 
-	protocolPorts, err := rabbit.ProtocolPorts()
+	protocolsPorts, err := rabbit.ProtocolPorts()
 	if err != nil {
 		return brokerapi.Binding{}, err
+	}
+
+	ok, err := rabbit.VHostExists(vhost)
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
+
+	if !ok {
+		err = rabbit.VHostCreate(vhost)
+		if err != nil {
+			return brokerapi.Binding{}, err
+		}
 	}
 
 	password, err := rabbit.CreateUserAndGrantPermissions(username, vhost, broker.Config.RabbitMQ.RegularUserTags)
@@ -74,7 +86,7 @@ func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindin
 		Username:      username,
 		Password:      password,
 		TLS:           bool(broker.Config.RabbitMQ.TLS),
-		ProtocolPorts: protocolPorts,
+		ProtocolPorts: protocolsPorts,
 	}
 
 	credentials, err := credsBuilder.Build()
