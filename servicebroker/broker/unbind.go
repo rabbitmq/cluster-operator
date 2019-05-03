@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"servicebroker/broker"
 	"servicebroker/utils/rabbithutch"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole"
 	"github.com/pivotal-cf/brokerapi"
@@ -34,12 +35,12 @@ func (rabbitmqServiceBroker RabbitMQServiceBroker) Unbind(ctx context.Context, i
 
 	client, _ := rabbithole.NewClient(
 		fmt.Sprintf("http://%s:15672", serviceIP),
-		broker.Config.RabbitMQ.Administrator.Username,
-		broker.Config.RabbitMQ.Administrator.Password,
+		rabbitmqServiceBroker.Config.RabbitMQ.Administrator.Username,
+		rabbitmqServiceBroker.Config.RabbitMQ.Administrator.Password,
 	)
 
 	rabbit := rabbithutch.New(client)
-	err := rabbit.DeleteUserAndConnections(username)
+	err = rabbit.DeleteUserAndConnections(username)
 	if err != nil {
 		return brokerapi.UnbindSpec{}, err
 	}
