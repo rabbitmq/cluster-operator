@@ -29,10 +29,6 @@ func (rabbitmqServiceBroker RabbitMQServiceBroker) Update(ctx context.Context, i
 	return brokerapi.UpdateServiceSpec{}, errors.New("Not implemented")
 }
 
-func (rabbitmqServiceBroker RabbitMQServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
-	return brokerapi.UnbindSpec{}, errors.New("Not implemented")
-}
-
 func (rabbitmqServiceBroker RabbitMQServiceBroker) GetBinding(ctx context.Context, instanceID, bindingID string) (brokerapi.GetBindingSpec, error) {
 	return brokerapi.GetBindingSpec{}, errors.New("Not implemented")
 }
