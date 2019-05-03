@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"servicebroker/broker"
+	"servicebroker/utils/rabbithutch"
+
 	rabbithole "github.com/michaelklishin/rabbit-hole"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal/rabbitmq-for-kubernetes/servicebroker/broker"
-	"github.com/pivotal/rabbitmq-for-kubernetes/servicebroker/utils/rabbithutch"
 )
 
 func (rabbitmqServiceBroker RabbitMQServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
