@@ -64,15 +64,6 @@ SERVICEBROKER_BIN = $(SERVICEBROKER_DIR)/tmp/servicebroker
 
 SERVICEBROKER_EXTERNAL_IP = $(shell kubectl get service servicebroker-lb --namespace $(K8S_SERVICEBROKER_NAMESPACE) -o json | jq -r .status.loadBalancer.ingress[0].ip)
 
-
-register_servicebroker:
-	@if [ "$(SERVICEBROKER_EXTERNAL_IP)" = "" ]; then \
-	echo "Service Broker external ip not found. Make sure you have deployed that."; \
-	exit 1; \
-	fi
-	cf create-service-broker "kr8s" "p1-rabbit" "p1-rabbit-testpwd" "http://$(SERVICEBROKER_EXTERNAL_IP):8080" \
-		|| cf update-service-broker "kr8s" "p1-rabbit" "p1-rabbit-testpwd" "http://$(SERVICEBROKER_EXTERNAL_IP):8080"
-
 ### DEPS ###
 #
 
@@ -124,8 +115,6 @@ LPASS := /usr/local/bin/lpass
 $(LPASS):
 	brew install lastpass-cli
 
-
-
 ### TARGETS ###
 #
 
@@ -144,10 +133,6 @@ test_env: ## Set shell environment required to run tests - eval "$(make test_env
 	export TEST_ASSET_KUBE_APISERVER=$(TEST_ASSET_KUBE_APISERVER)
 	export TEST_ASSET_ETCD=$(TEST_ASSET_ETCD)
 
-.PHONY: test
-test: generate kubebuilder ## Run tests
-	KUBEBUILDER_CONTROL_PLANE_START_TIMEOUT=120s go test ./pkg/... ./cmd/... -coverprofile cover.out
-
 $(OPERATOR_BIN): generate fmt vet test manifests tmp ## Build operator binary
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(OPERATOR_BIN) github.com/pivotal/rabbitmq-for-kubernetes/cmd/operator
 
@@ -160,9 +145,6 @@ $(SERVICEBROKER_BIN): broker_tmp ## Build broker binary
 	popd
 
 servicebroker: $(SERVICEBROKER_BIN)
-
-deploy_servicebroker:
-	kubectl run --namespace=rabbitmq-for-kubernetes-servicebroker --generator=run-pod/v1 --image eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-servicebroker servicebroker --port 8080 --expose
 
 kubectl:
 	@if [[ "$(KUBECTL_PATH)" == "" || $(KUBECTL_MINOR) -lt 14 ]]; then \
@@ -177,6 +159,9 @@ build: $(OPERATOR_BIN) $(SERVICEBROKER_BIN)
 run: generate fmt vet ## Run against the currently targeted K8S cluster
 	go run ./cmd/operator/main.go
 
+## DEPLOY ##
+#
+
 .PHONY: deploy_crds
 deploy_crds: kubectl
 	kubectl apply -f config/crds
@@ -184,6 +169,9 @@ deploy_crds: kubectl
 .PHONY: deploy_operator
 deploy_operator: kubectl
 	kubectl apply -k config/default
+
+deploy_servicebroker:
+	kubectl run --namespace=rabbitmq-for-kubernetes-servicebroker --generator=run-pod/v1 --image eu.gcr.io/cf-rabbitmq/rabbitmq-k8s-servicebroker servicebroker --port 8080 --expose
 
 .PHONY: patch_operator_image
 patch_operator_image: kubectl
@@ -209,11 +197,36 @@ deploy: manifests deploy_crds deploy_operator patch_operator_image ## Deploy Ope
 .PHONY: deploy_ci
 deploy_ci: deploy_crds deploy_operator patch_operator_image_ci
 
+## CREATE ##
+#
+
+.PHONY: single
+single: kubectl namespace ## Ask Operator to provision a single-node RabbitMQ
+	kubectl --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
+
+.PHONY: ha
+ha: kubectl namespace ## Ask Operator to provision for an HA RabbitMQ
+	kubectl --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
+
+## DELETE ##
+#
+
 .PHONY: delete
-delete: kubectl ## Delete operator & all deployments
+delete: kubectl ## Delete operator, service broker & all deployments
 	kubectl delete namespaces $(K8S_OPERATOR_NAMESPACE) ; \
+	kubectl delete namespaces $(K8S_SERVICEBROKER_NAMESPACE) ; \
 	kubectl delete namespaces $(K8S_NAMESPACE) ; \
 	true
+
+.PHONY: single_delete
+single_delete: kubectl ## Delete single-node RabbitMQ
+	kubectl delete --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
+
+.PHONY: ha_delete
+ha_delete: kubectl ## Delete HA RabbitMQ
+	kubectl delete --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
+
+## GET ##
 
 namespace: kubectl
 	kubectl get namespace $(K8S_NAMESPACE) $(SILENT) || \
@@ -223,9 +236,19 @@ namespace: kubectl
 	kubectl get namespace $(K8S_SERVICEBROKER_NAMESPACE) $(SILENT) || \
 	kubectl create namespace $(K8S_SERVICEBROKER_NAMESPACE)
 
-.PHONY: single
-single: kubectl namespace ## Ask Operator to provision a single-node RabbitMQ
-	kubectl --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
+.PHONY: resources
+resources: kubectl
+	@echo "$(BOLD)$(K8S_NAMESPACE)$(NORMAL)" && \
+	kubectl get all --namespace=$(K8S_NAMESPACE) && \
+	echo -e "\n$(BOLD)$(K8S_OPERATOR_NAMESPACE)$(NORMAL)" && \
+	kubectl get all --namespace=$(K8S_OPERATOR_NAMESPACE)
+
+## TEST ##
+#
+
+.PHONY: test
+test: generate kubebuilder ## Run tests
+	KUBEBUILDER_CONTROL_PLANE_START_TIMEOUT=120s go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: broker_tests
 broker_tests: broker_unit_tests broker_integration_tests ## Run service broker unit and integration tests
@@ -275,18 +298,6 @@ single_port_forward: kubectl ## Ask Operator to provision a single-node RabbitMQ
 	@echo "$(BOLD)http://127.0.0.1:15672/#/login/guest/guest$(NORMAL)" && \
 	kubectl port-forward service/test-single-rabbitmq 15672:15672 --namespace=$(K8S_NAMESPACE)
 
-.PHONY: single_delete
-single_delete: kubectl ## Delete single-node RabbitMQ
-	kubectl delete --filename=config/samples/test-single.yml --namespace=$(K8S_NAMESPACE)
-
-.PHONY: ha
-ha: kubectl namespace ## Ask Operator to provision for an HA RabbitMQ
-	kubectl --namespace=$(K8S_OPERATOR_NAMESPACE) apply --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
-
-.PHONY: ha_delete
-ha_delete: kubectl ## Delete HA RabbitMQ
-	kubectl delete --filename=config/samples/test-ha.yml --namespace=$(K8S_NAMESPACE)
-
 .PHONY: ha_port_forward
 ha_port_forward: kubectl ## Ask Operator to provision a single-node RabbitMQ
 	@echo "$(BOLD)http://127.0.0.1:15672/#/login/guest/guest$(NORMAL)" && \
@@ -312,13 +323,6 @@ mod_service_broker:
 	GO111MODULE=on go mod vendor
 
 
-.PHONY: resources
-resources: kubectl
-	@echo "$(BOLD)$(K8S_NAMESPACE)$(NORMAL)" && \
-	kubectl get all --namespace=$(K8S_NAMESPACE) && \
-	echo -e "\n$(BOLD)$(K8S_OPERATOR_NAMESPACE)$(NORMAL)" && \
-	kubectl get all --namespace=$(K8S_OPERATOR_NAMESPACE)
-
 .PHONY: deps
 deps: $(DEP) $(COUNTERFEITER) ## Resolve dependencies
 	dep ensure -v
@@ -327,8 +331,11 @@ deps: $(DEP) $(COUNTERFEITER) ## Resolve dependencies
 generate: deps ## Generate code
 	go generate ./pkg/... ./cmd/...
 
-.PHONY: broker_build
-broker_build: $(SERVICEBROKER_BIN)
+## DOCKER IMAGE ##
+#
+
+.PHONY: broker_image_build
+broker_image_build: $(SERVICEBROKER_BIN)
 	cd $(SERVICEBROKER_DIR) && \
 	docker build . \
 	  --tag $(BROKER_IMAGE):$(BROKER_IMAGE_VERSION) \
@@ -340,6 +347,11 @@ image_build: $(OPERATOR_BIN)
 	  --tag $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION) \
 	  --tag $(DOCKER_IMAGE):latest
 
+.PHONY: broker_image_publish
+broker_image_publish:
+	docker push $(BROKER_IMAGE):$(BROKER_IMAGE_VERSION) && \
+	docker push $(BROKER_IMAGE):latest
+
 .PHONY: image_publish
 image_publish:
 	docker push $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION) && \
@@ -348,10 +360,26 @@ image_publish:
 .PHONY: image
 image: image_build image_publish ## Build & publish Docker image
 
+broker_image: broker_image_build broker_image_publish
+
 .PHONY: images
 images: $(GCLOUD) ## Show all Docker images stored on GCR
 	$(GCLOUD) container images list-tags $(DOCKER_IMAGE) && \
 	echo && $(GCLOUD) container images describe $(DOCKER_IMAGE):$(DOCKER_IMAGE_VERSION)
+
+## CF CONFIG ##
+#
+
+register_servicebroker:
+	@if [ "$(SERVICEBROKER_EXTERNAL_IP)" = "" ]; then \
+	echo "Service Broker external ip not found. Make sure you have deployed that."; \
+	exit 1; \
+	fi
+	cf create-service-broker "kr8s" "p1-rabbit" "p1-rabbit-testpwd" "http://$(SERVICEBROKER_EXTERNAL_IP):8080" \
+		|| cf update-service-broker "kr8s" "p1-rabbit" "p1-rabbit-testpwd" "http://$(SERVICEBROKER_EXTERNAL_IP):8080"
+
+## CI ##
+#
 
 .PHONY: ci
 ci: $(FLY) $(LPASS) ## Configure CI
@@ -371,6 +399,9 @@ ci: $(FLY) $(LPASS) ## Configure CI
 	  --var git-ssh-key="$$GIT_SSH_KEY" \
 	  --var gcp-service-account-key="$$GCP_SERVICE_ACCOUNT_KEY" \
 	  --config ci/docker-image.yml
+
+## IAAS CONFIG ##
+#
 
 .PHONY: service_account
 service_account: $(GCLOUD) $(GSUTIL) tmp
