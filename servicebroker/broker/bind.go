@@ -46,11 +46,14 @@ func (broker RabbitMQServiceBroker) Bind(ctx context.Context, instanceID, bindin
 		return brokerapi.Binding{}, fmt.Errorf("Failed to retrieve service IP for %s", service.Name)
 	}
 
-	client, _ := rabbithole.NewClient(
+	client, err := rabbithole.NewClient(
 		fmt.Sprintf("http://%s:15672", serviceIP),
 		broker.Config.RabbitMQ.Administrator.Username,
 		broker.Config.RabbitMQ.Administrator.Password,
 	)
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
 
 	rabbit := rabbithutch.New(client)
 
