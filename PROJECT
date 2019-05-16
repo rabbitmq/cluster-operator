@@ -1,0 +1,3 @@
+version: "1"
+domain: pivotal.io
+repo: github.com/pivotal/rabbitmq-for-kubernetes
