@@ -7,6 +7,7 @@ all: test manager
 # Run tests
 test: generate fmt vet manifests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
+	ginkgo -r pkg/controller/rabbitmqcluster/
 
 # Build manager binary
 manager: generate fmt vet
