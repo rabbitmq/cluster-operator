@@ -18,14 +18,17 @@ package rabbitmqcluster_test
 
 import (
 	"context"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"fmt"
 	"sync"
 	"time"
+
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -98,9 +101,15 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 
 			sts := &appsv1.StatefulSet{}
-
 			Eventually(func() error { return client.Get(context.TODO(), stsName, sts) }, timeout).
 				Should(Succeed())
+
+			clientSet, err := kubernetes.NewForConfig(cfg)
+			Expect(err).NotTo(HaveOccurred())
+			pods, err := clientSet.CoreV1().Pods("default").List(metav1.ListOptions{
+				LabelSelector: fmt.Sprintf("app=%s", rabbitmqCluster.ObjectMeta.Name)})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(pods.Items)).To(Equal(1))
 		})
 	})
 })

@@ -126,10 +126,10 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 		Spec: appsv1.StatefulSetSpec{
 			Replicas: &single,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"sts": instance.Name},
+				MatchLabels: map[string]string{"app": instance.Name},
 			},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"sts": instance.Name}},
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": instance.Name}},
 			},
 		},
 	}
