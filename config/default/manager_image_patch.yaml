@@ -7,6 +7,6 @@ spec:
   template:
     spec:
       containers:
-      # Change the value of image field below to your controller image URL
-      - image: IMAGE_URL
-        name: manager
+      - name: manager
+        image: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller:latest
+

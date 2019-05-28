@@ -1,7 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
-
+CONTROLLER_IMAGER=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
 all: test manager
 
 # Run tests
@@ -38,6 +37,11 @@ fmt:
 vet:
 	go vet ./pkg/... ./cmd/...
 
+# Cleanup all controller artefacts
+# destroy: manifests
+#    kubectl delete -f config/crds
+#    kustomize build config/default | kubectl delete -f -
+
 # Generate code
 generate:
 ifndef GOPATH
@@ -47,10 +51,10 @@ endif
 
 # Build the docker image
 docker-build: test
-	docker build . -t ${IMG}
+	docker build . -t ${CONTROLLER_IMAGER}
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/manager_image_patch.yaml
 
 # Push the docker image
 docker-push:
-	docker push ${IMG}
+	docker push ${CONTROLLER_IMAGER}
