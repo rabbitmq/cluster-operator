@@ -18,6 +18,7 @@ package rabbitmqcluster
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/pkg/apis/rabbitmq/v1beta1"
@@ -71,9 +72,7 @@ func AddController(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create
-	// Uncomment watch a Deployment created by RabbitmqCluster - change this for objects you create
-	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &rabbitmqv1beta1.RabbitmqCluster{},
 	})
@@ -95,10 +94,10 @@ type ReconcileRabbitmqCluster struct {
 // Reconcile reads that state of the cluster for a RabbitmqCluster object and makes changes based on the state read
 // and what is in the RabbitmqCluster.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  The scaffolding writes
-// a Deployment as an example
-// Automatically generate RBAC rules to allow the Controller to read and write Deployments
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=get;update;patch
+
+// Automatically generate RBAC rules to allow the Controller to read and write stateful set
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
 func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -112,6 +111,7 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
+		fmt.Printf("Error reading object: %v \n", err)
 		return reconcile.Result{}, err
 	}
 
@@ -122,28 +122,56 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "p-" + instance.Name,
 			Namespace: instance.Namespace,
+			Labels: map[string]string{
+				"app": instance.Name,
+			},
 		},
 		Spec: appsv1.StatefulSetSpec{
+			//ServiceName: instance.Name,
 			Replicas: &single,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": instance.Name},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": instance.Name}},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "rabbitmq",
+							Image: "rabbitmq:3.7.15",
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          "amqp",
+									ContainerPort: 5672,
+								},
+								{
+									Name:          "http",
+									ContainerPort: 15672,
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
 	if err := controllerutil.SetControllerReference(instance, deploy, r.scheme); err != nil {
+		fmt.Printf("Error setting controller reference: %v \n", err)
 		return reconcile.Result{}, err
 	}
 
 	// TODO(user): Change this for the object type created by your controller
-	// Check if the Deployment already exists
+	// Check if the stateful set already exists
 	found := &appsv1.StatefulSet{}
 	err = r.Get(context.TODO(), types.NamespacedName{Name: deploy.Name, Namespace: deploy.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
 		log.Info("Creating RabbitmqCluster StatefulSet", "namespace", deploy.Namespace, "name", deploy.Name)
 		err = r.Create(context.TODO(), deploy)
+
+		if err != nil {
+			fmt.Printf("Error creating: %v \n", err)
+		}
+
 		return reconcile.Result{}, err
 	} else if err != nil {
 		return reconcile.Result{}, err

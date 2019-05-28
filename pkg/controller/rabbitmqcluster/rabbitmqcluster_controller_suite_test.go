@@ -17,6 +17,7 @@ limitations under the License.
 package rabbitmqcluster_test
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -48,6 +49,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	cfg, err = t.Start()
+	kctl := t.ControlPlane.KubeCtl()
+
+	stdout, _, err := kctl.Run("version")
+	fmt.Println(stdout)
 	Expect(err).NotTo(HaveOccurred())
 })
 
