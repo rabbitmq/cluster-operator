@@ -127,8 +127,8 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 			},
 		},
 		Spec: appsv1.StatefulSetSpec{
-			//ServiceName: instance.Name,
-			Replicas: &single,
+			ServiceName: instance.Name,
+			Replicas:    &single,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": instance.Name},
 			},
@@ -138,7 +138,7 @@ func (r *ReconcileRabbitmqCluster) Reconcile(request reconcile.Request) (reconci
 					Containers: []corev1.Container{
 						{
 							Name:  "rabbitmq",
-							Image: "rabbitmq:3.7.15",
+							Image: "rabbitmq:3.8-rc-management",
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "amqp",
