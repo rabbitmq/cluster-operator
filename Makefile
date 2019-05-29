@@ -58,3 +58,11 @@ docker-build: test
 # Push the docker image
 docker-push:
 	docker push ${CONTROLLER_IMAGER}
+
+GCR_VIEWER_KEY_CONTENT = `cat ~/Desktop/cf-rabbitmq-for-k8s-bunny-875a177ce777.json`
+GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
+GCR_VIEWER_ACCOUNT='gcr-viewer'
+K8S_OPERATOR_NAMESPACE='pivotal-rabbitmq-system'
+gcr_viewer:
+	kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password="$(GCR_VIEWER_KEY_CONTENT)" || true
+	kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT)"}]}'
