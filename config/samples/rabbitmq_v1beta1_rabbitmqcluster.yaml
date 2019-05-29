@@ -1,8 +1,0 @@
-apiVersion: rabbitmq.pivotal.io/v1beta1
-kind: RabbitmqCluster
-metadata:
-  labels:
-    controller-tools.k8s.io: "1.0"
-  name: rabbitmqcluster-sample
-spec:
-  plan: single
