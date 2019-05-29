@@ -20,8 +20,8 @@ import (
 	"flag"
 	"os"
 
-	rabbitmqv1beta1 "github.com/pivotal-cf/sk8s-home/api/v1beta1"
-	"github.com/pivotal-cf/sk8s-home/controllers"
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -56,6 +56,7 @@ func main() {
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")

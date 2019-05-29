@@ -27,6 +27,7 @@ import (
 type RabbitmqClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Plan string `json:"plan"`
 }
 
 // RabbitmqClusterStatus defines the observed state of RabbitmqCluster
