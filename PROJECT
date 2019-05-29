@@ -1,0 +1,3 @@
+version: "2"
+domain: pivotal.io
+repo: github.com/pivotal-cf/sk8s-home

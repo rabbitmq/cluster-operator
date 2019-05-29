@@ -1,0 +1,7 @@
+apiVersion: rabbitmq.pivotal.io/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmqcluster-sample
+spec:
+  # Add fields here
+  foo: bar
