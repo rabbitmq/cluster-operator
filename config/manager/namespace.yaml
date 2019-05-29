@@ -1,0 +1,10 @@
+# This file is not managed by kustomize. It is created
+# so that we can deploy the namespace before granting
+# access to our private image registry.
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+  name: pivotal-rabbitmq-system

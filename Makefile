@@ -12,6 +12,10 @@ test: generate fmt vet manifests
 manager: generate fmt vet
 	go build -o bin/manager github.com/pivotal/rabbitmq-for-kubernetes/cmd/manager
 
+# Build manager binary
+deploy-manager:
+	kustomize build config/default | kubectl apply -f -
+
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
 	go run ./cmd/manager/main.go
@@ -21,9 +25,7 @@ install: manifests
 	kubectl apply -f config/crds
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	kubectl apply -f config/crds
-	kustomize build config/default | kubectl apply -f -
+deploy: manifests install deploy-namespace gcr-viewer deploy-manager
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
@@ -37,10 +39,13 @@ fmt:
 vet:
 	go vet ./pkg/... ./cmd/...
 
+deploy-namespace:
+	kubectl apply -f config/manager/namespace.yaml
+
 # Cleanup all controller artefacts
-# destroy: manifests
-#    kubectl delete -f config/crds
-#    kustomize build config/default | kubectl delete -f -
+destroy:
+	kubectl delete -f config/crds
+	kustomize build config/default | kubectl delete -f -
 
 # Generate code
 generate:
@@ -63,6 +68,6 @@ GCR_VIEWER_KEY_CONTENT = `cat ~/Desktop/cf-rabbitmq-for-k8s-bunny-875a177ce777.j
 GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
 GCR_VIEWER_ACCOUNT='gcr-viewer'
 K8S_OPERATOR_NAMESPACE='pivotal-rabbitmq-system'
-gcr_viewer:
+gcr-viewer:
 	kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password="$(GCR_VIEWER_KEY_CONTENT)" || true
 	kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT)"}]}'
