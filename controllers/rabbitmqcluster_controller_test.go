@@ -23,15 +23,16 @@ import (
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
 
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -44,11 +45,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 		var stopMgr chan struct{}
 		var mgrStopped *sync.WaitGroup
 		var client runtimeClient.Client
-		var requests chan reconcile.Request
 		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		var expectedRequest reconcile.Request
+		var requests chan reconcile.Request
 		var stsName types.NamespacedName
+		var testReconciler reconcile.Reconciler
 		const timeout = time.Millisecond * 700
+		var scheme *runtime.Scheme
 
 		BeforeEach(func() {
 			stsName = types.NamespacedName{Name: "p-foo", Namespace: "default"}
@@ -71,15 +74,26 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 			// channel when it is finished.
-			mgr, err := manager.New(cfg, manager.Options{})
+
+			scheme = runtime.NewScheme()
+			rabbitmqv1beta1.AddToScheme(scheme)
+			defaultscheme.AddToScheme(scheme)
+			mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
+
 			Expect(err).NotTo(HaveOccurred())
 			client = mgr.GetClient()
 
-			err = (&controllers.RabbitmqClusterReconciler{
-				Client: mgr.GetClient(),
-				Log:    ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
+			reconciler := &controllers.RabbitmqClusterReconciler{
+				Client: client,
+				Log:    ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
 				Scheme: mgr.GetScheme(),
-			}).SetupWithManager(mgr)
+			}
+
+			testReconciler, requests = SetupTestReconcile(reconciler)
+
+			err = ctrl.NewControllerManagedBy(mgr).
+				For(&rabbitmqv1beta1.RabbitmqCluster{}).
+				Complete(testReconciler)
 
 			Expect(err).NotTo(HaveOccurred())
 
@@ -97,8 +111,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 			mgrStopped.Wait()
 		})
 
-		It("Creates a one pod sts when plan is set to single", func() {
-			// Create the RabbitmqCluster object and expect the Reconcile to be created
+		It("Creates sts when rabbitmqcluster is created", func() {
+			// Create the RabbitmqCluster object and expect the Reconcile to be called
 			err := client.Create(context.TODO(), rabbitmqCluster)
 			Expect(err).NotTo(HaveOccurred())
 			defer client.Delete(context.TODO(), rabbitmqCluster)
@@ -111,7 +125,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 			sts, err := clientSet.AppsV1().StatefulSets("default").Get(stsName.Name, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sts.Name).To(Equal(stsName.Name))
-
 		})
 	})
 })
+
+func SetupTestReconcile(inner reconcile.Reconciler) (reconcile.Reconciler, chan reconcile.Request) {
+	requests := make(chan reconcile.Request)
+	fn := reconcile.Func(func(req reconcile.Request) (reconcile.Result, error) {
+		result, err := inner.Reconcile(req)
+		requests <- req
+		return result, err
+	})
+	return fn, requests
+}

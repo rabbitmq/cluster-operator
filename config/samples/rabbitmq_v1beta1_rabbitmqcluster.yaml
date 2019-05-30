@@ -3,5 +3,4 @@ kind: RabbitmqCluster
 metadata:
   name: rabbitmqcluster-sample
 spec:
-  # Add fields here
-  foo: bar
+  plan: single

@@ -23,6 +23,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -37,12 +38,13 @@ var (
 func init() {
 
 	rabbitmqv1beta1.AddToScheme(scheme)
+	defaultscheme.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
 	var metricsAddr string
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-addr", ":12345", "The address the metric endpoint binds to.")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.Logger(true))
