@@ -1,6 +1,7 @@
 
 # Image URL to use all building/pushing image targets
 CONTROLLER_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
+CI_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
@@ -40,6 +41,9 @@ install: manifests
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests install deploy-namespace gcr-viewer deploy-manager
 
+# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy_ci: manifests install deploy-namespace deploy-manager
+
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
@@ -61,6 +65,10 @@ docker-build: test
 	docker build . -t ${CONTROLLER_IMAGE}
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/manager_image_patch.yaml
+
+docker-build-ci:
+	docker build ci/ -t ${CI_IMAGE}
+	docker push ${CI_IMAGE}
 
 # Push the docker image
 docker-push:
