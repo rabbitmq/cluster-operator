@@ -4,6 +4,8 @@ CONTROLLER_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-con
 CI_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
 CI_CLUSTER=dev-bunny
 GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
+RABBITMQ_USERNAME=guest
+RABBITMQ_PASSWORD=guest
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
@@ -76,6 +78,9 @@ docker-build-ci:
 docker-push:
 	docker push ${CONTROLLER_IMAGE}
 
+rabbitmq-smoke-test: fetch-service-ip
+	curl -u $(RABBITMQ_USERNAME):$(RABBITMQ_PASSWORD) http://$(SERVICE_HOST):15672/api/aliveness-test/%2f
+
 GCR_VIEWER_KEY_CONTENT = `cat ~/Desktop/cf-rabbitmq-for-k8s-bunny-875a177ce777.json`
 GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
 GCR_VIEWER_ACCOUNT='gcr-viewer'
@@ -94,3 +99,9 @@ CONTROLLER_GEN=$(shell go env GOPATH)/bin/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+fetch-service-ip:
+ifeq ($(SERVICE_HOST),)
+SERVICE_HOST=$(shell kubectl get svc -l app=rabbitmqcluster-sample -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+endif
+
