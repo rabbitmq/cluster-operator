@@ -1,0 +1,33 @@
+---
+git-ssh-key: |
+  -----BEGIN RSA PRIVATE KEY-----
+  MIIEogIBAAKCAQEA8L9sTBpA9gOE6ildfi1pCDIXJi9lLv7q/q2sP2pyZs3J6HUR
+  BAeJJXMe/+7G323FmzOK5xejTTZJXd2R7vOF8P/a6YYFUh5aOFVBKvFRO4MMEGDi
+  JNRhWUTes7MxbeF2pRprkhfucMPvKRwqAGqKu1iCFsQ4HDcyGXAWwKijOtp/0Ubf
+  cls5NUZQToElNKY8iWknuWPWaVNqugylLEQZ08b8/KPmNSIV+DwDMlm2b0jWnVyk
+  W6UkaOtja9vKwnK2tGVbA/w2QX5zFQhgfgpgmKj7zfYu4bWfh9u2rEwkrQQKlXoo
+  lzVuBXWDPobSZBGaZoEqH+8l2LOIfxmbYV5vpQIDAQABAoIBADRNghuugHpyHUg6
+  IGOvPehX6YuUNGlXXHpkBM3qNFx9TOZBuKaldHg8YHm9yFr2ID4tnnnCOuolZx8L
+  ag79vRW0oDynrzQ9/9/JNdU8hCdnuxE72yWhNl0Mh02HGrACkaIg8UnWBSleh/Do
+  e3+Hpgg5nFmR25bVrv6zyV2lxYCdV8x7ky5tSk1qA69JlAxY3k/v5UqbNGRvQveK
+  aRngVB+ti22L5/FzpErS8enTpp6XWLALPya2RWwY6yxkdRy4uX8+RwrKqGFox5k4
+  GOJal9nmLPLaCzPwOG7LkY8Z9w2+jvdI2XaFGwY1W76LTP+uOnS+frq8ZkpKi9Dx
+  WRP0YKkCgYEA/m63d2LTz2aX+9aANYGue073BtUgqmiAMhHzE5tAz1i79Zvdkjea
+  24GLSyfiM4achX7AjmbR+9W0UB6MHdfCBoKVi/GIErKobkwLJnGZ9m2uMXUJDcZs
+  RKfUpW+nrkbCEP5Yp07t+HIMeR4/AtQZmG1MLgL8Y5HUTvisFmv9OHcCgYEA8jsf
+  imcMIQLs4XscBrcDyiHGAFa26NYTIhhg5uUGop5l2BtZBL7t3PV/1ftV4XGS5/J8
+  4wmewx/+KeW3gE4WPFTpsezYREfLP52pp1LAInRfreJrff3q4ZA7azuk5CeofAU+
+  ebTCs+gyhl65c/RPtkKMac4jrqFVIs64/8+PO8MCgYApaId/bJwgQwg1OmG/U428
+  D8vwVrtsQHmsrHMtG7VeiYh9npJe+6G+W8T5xFHyJNRQfaKFCoLeQ5eG+pG/QaAY
+  QyRnlDWbJWx4FvQxm4d9LbiN4AhLL6HrQo0/J37YxDdNYLe48wWTy6vwAlYq9a38
+  ur0NN/svkUpGV/5Z39VkXQKBgEzBvWHe+3Huel+M4jmifrnrb9GlqLopM9DnBrXD
+  txGKvdz39YJSeg89X+/Pf8w7cAC9zyMmZj+QgLqIB1jJ5bPieFcgJPumAFq9PAhA
+  aY/BbpwsFkHLV0V4rctyD/MYOgRqqPxp8hSOLIx1sbBzp1qqxdG1N4tbph2sgeTV
+  wZ5/AoGABtJVu5cXKTc09WiwGwc86pj5mAZnl9MUM85ajLEEqgeD+uMqvHi5uBH8
+  OEagWlAtGsmFw8mBnRs94yzfdEZ+p7shGnyUMNofvPwu0cenPLQ9Wng4OQocZDar
+  EtCKJDe0VvLq7LVoi6heVQc4npiOOyb/Wg7d89hs6UyUCAQfrs0=
+  -----END RSA PRIVATE KEY-----
+gcp-service-account-key: '{"type":"service_account","project_id":"cf-rabbitmq-for-k8s-bunny","private_key_id":"1da1de14b9c4de606418bf6d6f2b3c9b422680e3","private_key":"-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDqIY7Nne3gDVo0\norh0rGPJgf5st3FrS5k9eS9o4Hn9Zmk3yFdLSGi2mPRS7M9R42Sof4bs0qTX9voV\n2V93WB7lMFFetwxYzthKaeEnl6AeJbDLCNJyrcgsu4/p9zkrj2gv6cj03MIkM7bk\nD6f8Efswbs0ib8x3rGtwA6D0pLGeFRBExeiHRuLUksrvzwmJ6hkPSOpUAMtj+E6P\nt2QwtmjLCLa66yfh7dZvF+Hnufqcl0DyunfZiYJSLN+trREj1sI8qaA2ju2/MjBM\nrtwdOTURy5PleOkkrvVUa+SRMtsRutxaUHFmLpukTLzzosLDwTr6LGKepHoiy/Bs\npsnpQGUDAgMBAAECggEAMB43eCC2C68S0/CBUlE/rOFPhc5pu/BsjQrD6J0B1Udf\n5nwBHNLD2osy43wR27WNMWgMNc3Q3SXAHg9vpFpy9w1oG7wpCHNyVlDOWlG6MZfz\nbrbgcXsvwanGmQIbOM2fTwGQMGrSZ5hNRS/GiXK0mi6bcDFj51CDQCEuyjiy3Fb5\nOIRt6kvon9lsOLSW7dzUSc2hzmfEBxqF/mqSA4HadMtPWiQIRs630/x3kMo7dusM\nsjKAbJgpl9Hwwl3eJgA60zWmS6OC0cWBKGPqZ3h+eZLRxZC0wWo6hTTxDSL5WDd4\nR1t30kBT+Q85QbUMsE22hU/oaayvUMG5mMoBR7ByuQKBgQD65OCPeaIlHE1jP10M\nsUEwNdZWISVSQUfKulbjgPqu5zextBUYHfDmfGS0dGGzx8b08LcxXP9Z0TgnxBry\n3CLUngdgB9R1rIIIvlkgdXqc7jmMSEp8ncPRqF6swMcqDi6cGcXEo2DxM8P0BOK4\nykG4Sj7Dx5q0+p5/BCelkni0RQKBgQDu5VkSJRT+4QoVhW/YzRu+n6tDl0cBHHue\nI8mZ3mWlWbgKy9A397SCkhVuZCmSlrpyVulbhmSY/DQh6AnP5jrSR6GrwSPVPO8C\nvgCHwobZVJBZwNQi7l8tCLgVICck/RHz+1zKHMv9KwEg9BqsiAo+OZW9OHH27UZ3\nzbvAsXJcpwKBgQCwjXtQu4FUqBP1MVOjaOC8skYAGhcPSQziJjqaodrGVcMlc9oc\nPIWXTBX5vqQ6RO1G1FW1kQHIDKh9o0xrdmm0QPhjpV7m59whlwFVDBaadDFe/Ege\nZU61LMxiuM3uVEiMZL5835OKaKkOAJoi+4E/1E9SqhW+IVaDf0L/CpGSGQKBgQDM\nc8w/Ey1c1QvkT0bhrOhJxCy2tAk4kj/Zn5cx8Hvdf2NbGgMhYwVBmfRtfZt2sTjw\nEiG1CteddnrHaea73rYIsPVUIP+hx3xmRGX/yiPOa+j+Z2EmZAtgZ03kBph5t3xd\n6ooHD44lJWDZ6w/JCMR7bJ0SS/R896SPc6tzxmmxkQKBgQD5lcmYnv8qig8ki+mA\nlQuS2Ml4K7AkCIK9fUsV9lhc89hv5t/8UVIQFQjiXwq/7lZhstAUxYeqyrN0qXdr\nezNcksOLnqbfvDSwR9AtlhgfiTKlbR1CP+/0go2DaO+UpQhwNby9yq1ZkjOXexlO\nIeE3YPhGFt7wkVS0y9uMqFmYiA==\n-----END PRIVATE KEY-----\n","client_email":"rmq-k8s-ci@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com","client_id":"102049149354210851824","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"https://www.googleapis.com/robot/v1/metadata/x509/rmq-k8s-ci%40cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com"}'
+rmq-k8s-ci-kubectl-service-account-key: '{"type":"service_account","project_id":"cf-rabbitmq-for-k8s-bunny","private_key_id":"32cba27cec8553e507e4d6237e0c62d522216fd0","private_key":"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDfojGKhYdu2ejG\nJSdPaPElhjtw+DbTL6NQp+6CAv1amIlzJIfnhss2ihyWDeceNi035y3SfGnRi+GK\nWCrlIN9vqcoy3a3P3Vzx0sqbj25VD/uPQ9Fiu7VXkOs4JdwMnfr+KhUXFUM1SnY4\n7nlrCE8gJaep9KuSAE4m2Bpshqmc8ztbLNCBkbzAFE4ftUD2QeIzY8b7KR4pKow/\ndSwzzZ2f3phy34sG1PAGmaBSHKZeIxM72RrfMkaCoaqoVSA5GTXPqlPhDHT3ZFbQ\nvh4oOM5mxGmEEz4xhFO/JgA3slDUFI/Ql2UYvP6e9pVJl4uslFFCl4Zq79nVv+IO\niM/4Rh+tAgMBAAECggEAA8QETRlG9TWP7InJ2Bzq7w190BRIlH+SMOLUzjVsAyvb\ntm7c0hmuEzZdfNzqn9K41KXuk5jHYu95ZFUzStI0OBZ31g02cWIOo354u8+gtVJr\nk1PIk0Xt5K6xzmQ77FiwOboVdUZ98B2QbWXhRmnk9d0sdSQudodbrRdTz+nLskFK\npKQvu+zLcJLthA0BvC6VHT5EUmCPitMqjh3vPmGtZM66jCPs9riCQNXGMCAzb4Ez\nbm8es1FwkH+ityvRGu9mD7t4uU7BRVSPukawwYS+TJzm1euJPXFJxs7D5GuIxMfk\nhVShAseP9xI8FCIJai3/7ZCuXLY48cWm2JWtpKo+AQKBgQD2M4p1rIkicTbnGcCw\nfIe8pP9LM2NEZ03rjLAfZYCKFp8MalxTsUbQ1phUnVHYuAi3sLDf+C9PgxYXCx+/\nxk9qDkydhstp/W3j8CjPMvazNqAvZL9ZxqZSTQRMgfZDAJC9BlGq7oDdpTMrh4F8\nClQtA6x/RS+ol2kdXS9gm1Sz4QKBgQDoiLe2dpLNcCH+0Z0Hlz5Utr7Zc/QBzMfk\nwbV5tdvSAYnt7q3ZnrmB9LcvvMugdKxJRrmLrv7D0qZb6DG0P/IVXWovUMlc7AgK\nMKW4R2Qr/PuG5Y5xO5NwQduV5YAVLSmeByUEOcX09YqYbeCa34Z7rF+Mi+Qz7OfK\nkPUDY1ylTQKBgQDe8KMTla4EW0KdGEvNRKbhYwOuRBVCrsz3XElr1M0FviA97N44\nBxKaL4h3LpIbzeJO/BfeZ+3ncUuCiFcyoE/vOI2WI6Z1DsEAo8tAfOS6Od/pqrA/\niku3wPgAk7q8x3lJQbyYLSrSCjMA2s6c1PmOXYJJKQxT/O95YJVzRJT54QKBgCfw\n++VafqLNBPnZFWjtYKZ6cVO2qA37F8bCQyKxyx1KaF+3JKOBsQmSeDi57BwWjlVT\n0aEdoOMP9sVIn+j/Jtzmm8uey8erP0JI0t5RXPJ1VNr56Tqn6g5ZMZeQwSxiAokD\nXydXqRoHZxQBo5fWlyn9FLh2eu80XSgdOAip84rtAoGBAONoT2M0Y8q+S7SOr171\ntlSSSf87GfCiqxobpsNCyOK3YJoupEVtqkJ1vc9iP5wv5qV4NiRhEyzkF+X6Sj8+\nBrqgVok4oI/mn9xPFAs1pCc8Bhb14QN4p/ruUVawdPz6xDT8FdgaL6mNM01COOXS\nJf9DwTFkNMyfI1gIt6wyWxRm\n-----END PRIVATE KEY-----\n","client_email":"rmq-k8s-ci-kubectl@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com","client_id":"104867284292164710142","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"https://www.googleapis.com/robot/v1/metadata/x509/rmq-k8s-ci-kubectl%40cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com"}'
+
+
