@@ -3,6 +3,7 @@
 CONTROLLER_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
 CI_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
 CI_CLUSTER=dev-bunny
+GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
@@ -21,13 +22,9 @@ manager: generate fmt vet
 deploy-manager:
 	kustomize build config/default | kubectl apply -f -
 
-# Deploy namespace
-deploy-namespace:
-	kubectl apply -f config/manager/namespace.yaml
-
 configure-kubectl-ci:
 	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
-	gcloud container clusters get-credentials $(CI_CLUSTER)
+	gcloud container clusters get-credentials $(CI_CLUSTER) --region europe-west1-b --project $(GCP_PROJECT)
 
 # Cleanup all controller artefacts
 destroy:
@@ -44,10 +41,10 @@ install: manifests
 	kubectl apply -f config/crd/bases
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests install deploy-namespace gcr-viewer deploy-manager
+deploy: manifests install gcr-viewer deploy-manager
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy-ci: configure-kubectl-ci manifests install deploy-namespace deploy-manager
+deploy-ci: configure-kubectl-ci manifests install deploy-manager
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
