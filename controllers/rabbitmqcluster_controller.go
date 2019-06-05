@@ -47,6 +47,8 @@ type RabbitmqClusterReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// TODO This is not being generated at the moment due to controller version v0.2.0-beta.1 not working for rbac.
+// Try this again when v0.2.0 is available -
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
