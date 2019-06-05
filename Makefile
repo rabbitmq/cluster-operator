@@ -23,21 +23,25 @@ manager: generate fmt vet
 # Deploy manager
 deploy-manager:
 	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system"'@' ./config/default/kustomization.yaml
+	sed -i'' -e '/nameSuffix/ D' ./config/default/kustomization.yaml
 	kustomize build config/default | kubectl apply -f -
 
 # Deploy manager in CI
 deploy-manager-ci:
 	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system-ci"'@' ./config/default/kustomization.yaml
+	echo "nameSuffix: -ci" >> config/default/kustomization.yaml
 	kustomize build config/default | kubectl apply -f -
 
 # Deploy local rabbitmqcluster
 deploy-sample:
 	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system"'@' ./config/samples/kustomization.yaml
+	sed -i'' -e '/nameSuffix/ D' ./config/samples/kustomization.yaml
 	kustomize build config/samples | kubectl apply -f -
 
 # Deploy CI rabbitmqcluster
 deploy-sample-ci:
 	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system-ci"'@' ./config/samples/kustomization.yaml
+	echo "nameSuffix: -ci" >> config/samples/kustomization.yaml
 	kustomize build config/samples | kubectl apply -f -
 
 configure-kubectl-ci:
