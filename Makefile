@@ -22,7 +22,23 @@ manager: generate fmt vet
 
 # Deploy manager
 deploy-manager:
+	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system"'@' ./config/default/kustomization.yaml
 	kustomize build config/default | kubectl apply -f -
+
+# Deploy manager in CI
+deploy-manager-ci:
+	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system-ci"'@' ./config/default/kustomization.yaml
+	kustomize build config/default | kubectl apply -f -
+
+# Deploy local rabbitmqcluster
+deploy-sample:
+	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system"'@' ./config/samples/kustomization.yaml
+	kustomize build config/samples | kubectl apply -f -
+
+# Deploy CI rabbitmqcluster
+deploy-sample-ci:
+	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system-ci"'@' ./config/samples/kustomization.yaml
+	kustomize build config/samples | kubectl apply -f -
 
 configure-kubectl-ci:
 	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
@@ -31,8 +47,6 @@ configure-kubectl-ci:
 # Cleanup all controller artefacts
 destroy:
 	kustomize build config/default | kubectl delete -f -
-	kubectl delete -f config/crds
-	kubectl delete -f config/manager/namespace.yaml
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
@@ -40,13 +54,14 @@ run: generate fmt vet
 
 # Install CRDs into a cluster
 install: manifests
+	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system"'@' ./config/samples/kustomization.yaml
 	kubectl apply -f config/crd/bases
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests install gcr-viewer deploy-manager
+deploy: manifests install deploy-manager gcr-viewer deploy-sample
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy-ci: configure-kubectl-ci manifests install deploy-manager
+deploy-ci: configure-kubectl-ci manifests install deploy-manager-ci deploy-sample-ci
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
@@ -81,7 +96,7 @@ docker-push:
 rabbitmq-smoke-test: fetch-service-ip
 	curl -u $(RABBITMQ_USERNAME):$(RABBITMQ_PASSWORD) http://$(SERVICE_HOST):15672/api/aliveness-test/%2f
 
-GCR_VIEWER_KEY_CONTENT = `cat ~/Desktop/cf-rabbitmq-for-k8s-bunny-875a177ce777.json`
+GCR_VIEWER_KEY_CONTENT = `cat ~/Desktop/cf-rabbitmq-for-k8s-bunny-86c8f31fc27e.json`
 GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
 GCR_VIEWER_ACCOUNT='gcr-viewer'
 K8S_OPERATOR_NAMESPACE='pivotal-rabbitmq-system'
