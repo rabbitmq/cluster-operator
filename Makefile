@@ -42,7 +42,7 @@ configure-kubectl-ci:
 
 # Cleanup all controller artefacts
 destroy:
-	kubectl apply -k config/default/base
+	kubectl delete -k config/default/base
 
 destroy-ci:
 	kubectl delete -k config/default/overlays/ci
