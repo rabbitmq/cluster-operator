@@ -34,7 +34,7 @@ deploy-sample:
 
 # Deploy CI rabbitmqcluster
 deploy-sample-ci:
-	kubectl apply -k config/samples/overlays/ci
+	kustomize build config/samples/overlays/ci | kapp deploy -y -a rabbitmqcluster -f -
 
 configure-kubectl-ci:
 	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
@@ -83,7 +83,7 @@ docker-build: test
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/base/manager_image_patch.yaml
 
-docker-build-ci:
+docker-build-ci-image:
 	docker build ci/ -t ${CI_IMAGE}
 	docker push ${CI_IMAGE}
 
