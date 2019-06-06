@@ -1,4 +1,5 @@
 ---
+namespace: pivotal-rabbitmq-system
 resources:
 - rabbitmq_v1beta1_rabbitmqcluster.yaml
 - service.yaml

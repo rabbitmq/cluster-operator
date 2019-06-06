@@ -22,27 +22,19 @@ manager: generate fmt vet
 
 # Deploy manager
 deploy-manager:
-	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system"'@' ./config/default/kustomization.yaml
-	sed -i'' -e '/nameSuffix/ D' ./config/default/kustomization.yaml
-	kustomize build config/default | kubectl apply -f -
+	kubectl apply -k config/default/base
 
 # Deploy manager in CI
 deploy-manager-ci:
-	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system-ci"'@' ./config/default/kustomization.yaml
-	echo "nameSuffix: -ci" >> config/default/kustomization.yaml
-	kustomize build config/default | kubectl apply -f -
+	kubectl apply -k config/default/overlays/ci
 
 # Deploy local rabbitmqcluster
 deploy-sample:
-	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system"'@' ./config/samples/kustomization.yaml
-	sed -i'' -e '/nameSuffix/ D' ./config/samples/kustomization.yaml
-	kustomize build config/samples | kubectl apply -f -
+	kubectl apply -k config/samples/base
 
 # Deploy CI rabbitmqcluster
 deploy-sample-ci:
-	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system-ci"'@' ./config/samples/kustomization.yaml
-	echo "nameSuffix: -ci" >> config/samples/kustomization.yaml
-	kustomize build config/samples | kubectl apply -f -
+	kubectl apply -k config/samples/overlays/ci
 
 configure-kubectl-ci:
 	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
@@ -50,7 +42,10 @@ configure-kubectl-ci:
 
 # Cleanup all controller artefacts
 destroy:
-	kustomize build config/default | kubectl delete -f -
+	kubectl apply -k config/default/base
+
+destroy-ci:
+	kubectl delete -k config/default/overlays/ci
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
@@ -58,7 +53,6 @@ run: generate fmt vet
 
 # Install CRDs into a cluster
 install: manifests
-	sed -i'' -e 's@namespace: .*@namespace: '"pivotal-rabbitmq-system"'@' ./config/samples/kustomization.yaml
 	kubectl apply -f config/crd/bases
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
@@ -87,7 +81,7 @@ generate: controller-gen
 docker-build: test
 	docker build . -t ${CONTROLLER_IMAGE}
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/base/manager_image_patch.yaml
 
 docker-build-ci:
 	docker build ci/ -t ${CI_IMAGE}
@@ -119,8 +113,9 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
+# TODO - We have temporarily hard coded the ci suffix until we modularize our labels [https://www.pivotaltracker.com/story/show/166494390]
 fetch-service-ip:
 ifeq ($(SERVICE_HOST),)
-SERVICE_HOST=$(shell kubectl get svc -l app=rabbitmqcluster-sample -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+SERVICE_HOST=$(shell kubectl get svc -l app=rabbitmqcluster-sample-ci -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
 endif
 

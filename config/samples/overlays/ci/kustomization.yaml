@@ -1,0 +1,9 @@
+---
+namespace: pivotal-rabbitmq-system-ci
+bases:
+- ../../base
+
+patches:
+- service_selector_app_patch.yaml
+
+nameSuffix: -ci

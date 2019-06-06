@@ -1,0 +1,6 @@
+bases:
+- ../../base
+
+nameSuffix: -ci
+namespace: pivotal-rabbitmq-system-ci
+
