@@ -48,7 +48,7 @@ destroy:
 	kubectl delete -k config/default/base
 
 destroy-ci: configure-kubectl-ci
-	kubectl delete -k config/default/overlays/ci
+	kubectl delete -k config/default/overlays/ci --ignore-not-found=true
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
