@@ -13,8 +13,11 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 all: manager
 
 # Run tests
-test: generate fmt vet manifests
-	go test ./api/... ./controllers/... -coverprofile cover.out
+unit-test: generate fmt vet manifests
+	ginkgo -r api/
+
+integration-test: generate fmt vet manifests
+	ginkgo -r controllers/
 
 # Build manager binary
 manager: generate fmt vet
