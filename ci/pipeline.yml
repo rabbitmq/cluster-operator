@@ -17,10 +17,40 @@ resources:
     password: ((gcp-service-account-key))
 
 jobs:
+- name: integration-tests
+  serial: true
+  plan:
+  - get: *repo
+    trigger: true
+  - task: run-integration-tests
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          tag: latest
+          repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
+          username: _json_key
+          password: ((gcp-service-account-key))
+      inputs:
+      - name: *repo
+        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
+          echo "Running unit tests"
+          make unit-test
+          echo "Running integration tests"
+          make integration-test
+
 - name: build-operator
   serial: true
   plan:
   - get: *repo
+    passed: [integration-tests]
     trigger: true
   - put: *operator-image
     params:
@@ -36,6 +66,39 @@ jobs:
     passed: [build-operator]
     trigger: true
   - task: run-smoke-tests
+    on_success:
+      task: destroy-ci
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            tag: latest
+            repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
+            username: _json_key
+            password: ((gcp-service-account-key))
+        inputs:
+        - name: *repo
+          path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+        params:
+          # To use the right value for TERM, check what terms are available in the image: find /lib/terminfo -type f
+          # To double-check that a specific term is available, run: infocmp xterm-256color
+          TERM: xterm-256color
+          KUBECTL_SECRET_TOKEN: ((rmq-k8s-ci-kubectl-service-account-key))
+          KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
+        run:
+          path: bash
+          args:
+          - -exc
+          - |
+            set +x
+            echo "Outputting kubectl token to a file"
+            echo -n $KUBECTL_SECRET_TOKEN > $KUBECTL_SECRET_TOKEN_PATH
+            set -x
+            export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
+            cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
+            echo "Destroying ci environment"
+            make destroy-ci
     config:
       platform: linux
       image_resource:
@@ -59,13 +122,12 @@ jobs:
         args:
         - -exc
         - |
-          export BUILD_PATH=$PWD
-          export GOPATH=$BUILD_PATH/go
-          export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
-          export GO111MODULE=on
+          set +x
+          echo "Outputting kubectl token to a file"
           echo -n $KUBECTL_SECRET_TOKEN > $KUBECTL_SECRET_TOKEN_PATH
-          export KUBECTL_SECRET_TOKEN_PATH=$BUILD_PATH/$KUBECTL_SECRET_TOKEN_PATH
-          cd $GOPATH/src/github.com/pivotal/rabbitmq-for-kubernetes
+          set -x
+          export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
+          cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
           echo "Deploying ci environment"
           make deploy-ci
           echo "Testing single node cluster..."
