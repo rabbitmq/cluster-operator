@@ -47,7 +47,7 @@ configure-kubectl-ci:
 destroy:
 	kubectl delete -k config/default/base
 
-destroy-ci:
+destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/default/overlays/ci
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
