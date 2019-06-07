@@ -4,6 +4,7 @@ ARG CLOUD_SDK_VERSION=240.0.0
 ARG GO_VERSION=1.12.5
 ARG KAPP_VERSION="v0.7.0"
 ARG KUBEBUILDER_VERSION="2.0.0-alpha.2"
+ARG CONTROLLER_GEN_VERSION="v0.2.0-beta.1"
 
 RUN apt-get update \
   && apt-get install -y curl gnupg \
@@ -28,5 +29,7 @@ ENV PATH /go/bin:/usr/local/go/bin:/usr/local/kubebuilder/bin:$PATH
 RUN go get -u github.com/onsi/ginkgo/...
 
 ENV GO111MODULE on
+
+RUN go get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION}
 
 ENTRYPOINT /bin/bash

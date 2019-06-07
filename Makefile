@@ -10,12 +10,11 @@ RABBITMQ_PASSWORD=guest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
-all: manager
-
-# Run tests
+# Run unit tests
 unit-test: generate fmt vet manifests
 	ginkgo -r api/
 
+# Run integration tests
 integration-test: generate fmt vet manifests
 	ginkgo -r controllers/
 
