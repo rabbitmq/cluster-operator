@@ -51,6 +51,8 @@ type RabbitmqClusterReconciler struct {
 // Try this again when v0.2.0 is available -
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
 
@@ -74,7 +76,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	// Create 🐰 stateful set
 	single := int32(1)
 
-	deploy := &appsv1.StatefulSet{
+	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "p-" + instance.Name,
 			Namespace: instance.Namespace,
@@ -135,17 +137,69 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			},
 		},
 	}
-	if err := controllerutil.SetControllerReference(instance, deploy, r.Scheme); err != nil {
+
+	if err := controllerutil.SetControllerReference(instance, statefulSet, r.Scheme); err != nil {
 		fmt.Printf("Error setting controller reference: %v \n", err)
 		return reconcile.Result{}, err
 	}
 
 	// Check if the stateful set already exists
 	found := &appsv1.StatefulSet{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: deploy.Name, Namespace: deploy.Namespace}, found)
+	err = r.Get(context.TODO(), types.NamespacedName{Name: statefulSet.Name, Namespace: statefulSet.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating RabbitmqCluster StatefulSet", "namespace", deploy.Namespace, "name", deploy.Name)
-		err = r.Create(context.TODO(), deploy)
+		log.Info("Creating RabbitmqCluster StatefulSet", "namespace", statefulSet.Namespace, "name", statefulSet.Name)
+		err = r.Create(context.TODO(), statefulSet)
+
+		if err != nil {
+			fmt.Printf("Error creating: %v \n", err)
+		}
+
+		//return reconcile.Result{}, err
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Update the found object and write the result back if there are any changes
+	// TODO at the moment we don't care what the spec looks like because we don't know what we want in the spec.
+	// Once we have determined the set of properties that must exist in the spec in order to deliver the features that customers want,
+	// we should do better comparison testing on the desired and actual object.
+	if !reflect.DeepEqual(statefulSet.Spec, found.Spec) {
+		found.Spec = statefulSet.Spec
+		log.Info("Updating RabbitmqCluster StatefulSet", "namespace", statefulSet.Namespace, "name", statefulSet.Name)
+		err = r.Update(context.TODO(), found)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rabbitmq-default-plugins",
+			Namespace: instance.Namespace,
+		},
+		Data: map[string]string{
+			"enabled_plugins": "[" +
+				"rabbitmq_management," +
+				"rabbitmq_peer_discovery_k8s," +
+				"rabbitmq_federation," +
+				"rabbitmq_federation_management," +
+				"rabbitmq_shovel," +
+				"rabbitmq_shovel_management," +
+				"rabbitmq_prometheus].",
+		},
+	}
+
+	if err := controllerutil.SetControllerReference(instance, configMap, r.Scheme); err != nil {
+		fmt.Printf("Error setting controller reference: %v \n", err)
+		return reconcile.Result{}, err
+	}
+
+	// Check if the stateful set already exists
+	foundConfigMap := &corev1.ConfigMap{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, foundConfigMap)
+	if err != nil && errors.IsNotFound(err) {
+		log.Info("Creating RabbitmqCluster ConfigMap", "namespace", configMap.Namespace, "name", configMap.Name)
+		err = r.Create(context.TODO(), configMap)
 
 		if err != nil {
 			fmt.Printf("Error creating: %v \n", err)
@@ -156,14 +210,10 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return reconcile.Result{}, err
 	}
 
-	// Update the found object and write the result back if there are any changes
-	// TODO at the moment we don't care what the spec looks like because we don't know what we want in the spec.
-	// Once we have determined the set of properties that must exist in the spec in order to deliver the features that customers want,
-	// we should do better comparison testing on the desired and actual object.
-	if !reflect.DeepEqual(deploy.Spec, found.Spec) {
-		found.Spec = deploy.Spec
-		log.Info("Updating RabbitmqCluster StatefulSet", "namespace", deploy.Namespace, "name", deploy.Name)
-		err = r.Update(context.TODO(), found)
+	if !reflect.DeepEqual(configMap.Data, foundConfigMap.Data) {
+		foundConfigMap.Data = configMap.Data
+		log.Info("Updating RabbitmqCluster ConfigMap", "namespace", configMap.Namespace, "name", configMap.Name)
+		err = r.Update(context.TODO(), foundConfigMap)
 		if err != nil {
 			return reconcile.Result{}, err
 		}

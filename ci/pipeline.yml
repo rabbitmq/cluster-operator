@@ -58,14 +58,14 @@ jobs:
       tag_file: rabbitmq-for-kubernetes/.git/short_ref
       tag_as_latest: true
 
-- name: smoke-tests
+- name: system-tests
   serial: true
   plan:
   - get: *repo
   - get: *operator-image
     passed: [build-operator]
     trigger: true
-  - task: run-smoke-tests
+  - task: run-system-tests
     on_success:
       task: destroy-ci
       config:
@@ -131,4 +131,4 @@ jobs:
           echo "Deploying ci environment"
           make deploy-ci
           echo "Testing single node cluster..."
-          make rabbitmq-smoke-test
+          make rabbitmq-system-tests-ci
