@@ -80,7 +80,7 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./api/...
 
 # Build the docker image
-docker-build: test
+docker-build:
 	docker build . -t ${CONTROLLER_IMAGE}
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/base/manager_image_patch.yaml
@@ -93,8 +93,11 @@ docker-build-ci-image:
 docker-push:
 	docker push ${CONTROLLER_IMAGE}
 
-rabbitmq-smoke-test: fetch-service-ip
-	curl -u $(RABBITMQ_USERNAME):$(RABBITMQ_PASSWORD) http://$(SERVICE_HOST):15672/api/aliveness-test/%2f
+rabbitmq-system-tests: fetch-service-ip
+	RABBITMQ_USERNAME=$(RABBITMQ_USERNAME) RABBITMQ_PASSWORD=$(RABBITMQ_PASSWORD) SERVICE_HOST=$(SERVICE_HOST) ginkgo -r system_tests/
+
+rabbitmq-system-tests-ci: fetch-service-ip-ci
+	RABBITMQ_USERNAME=$(RABBITMQ_USERNAME) RABBITMQ_PASSWORD=$(RABBITMQ_PASSWORD) SERVICE_HOST=$(SERVICE_HOST) ginkgo -r system_tests/
 
 GCR_VIEWER_KEY_CONTENT = `cat ~/Desktop/cf-rabbitmq-for-k8s-bunny-86c8f31fc27e.json`
 GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
@@ -118,6 +121,10 @@ endif
 # TODO - We have temporarily hard coded the ci suffix until we modularize our labels [https://www.pivotaltracker.com/story/show/166494390]
 fetch-service-ip:
 ifeq ($(SERVICE_HOST),)
-SERVICE_HOST=$(shell kubectl -n pivotal-rabbitmq-system-ci get svc -l app=rabbitmqcluster-sample-ci -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+SERVICE_HOST=$(shell kubectl -n pivotal-rabbitmq-system get svc -l app=rabbitmqcluster-sample -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
 endif
 
+fetch-service-ip-ci:
+ifeq ($(SERVICE_HOST),)
+SERVICE_HOST=$(shell kubectl -n pivotal-rabbitmq-system-ci get svc -l app=rabbitmqcluster-sample-ci -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+endif
