@@ -94,10 +94,10 @@ docker-push:
 	docker push ${CONTROLLER_IMAGE}
 
 rabbitmq-system-tests: fetch-service-ip
-	RABBITMQ_USERNAME=$(RABBITMQ_USERNAME) RABBITMQ_PASSWORD=$(RABBITMQ_PASSWORD) SERVICE_HOST=$(SERVICE_HOST) ginkgo -r system_tests/
+	RABBITMQ_USERNAME=$(RABBITMQ_USERNAME) RABBITMQ_PASSWORD=$(RABBITMQ_PASSWORD) SERVICE_HOST=$(SERVICE_HOST) NAMESPACE="pivotal-rabbitmq-system" PODNAME="p-rabbitmqcluster-sample-0" ginkgo -r system_tests/
 
 rabbitmq-system-tests-ci: fetch-service-ip-ci
-	RABBITMQ_USERNAME=$(RABBITMQ_USERNAME) RABBITMQ_PASSWORD=$(RABBITMQ_PASSWORD) SERVICE_HOST=$(SERVICE_HOST) ginkgo -r system_tests/
+	RABBITMQ_USERNAME=$(RABBITMQ_USERNAME) RABBITMQ_PASSWORD=$(RABBITMQ_PASSWORD) SERVICE_HOST=$(SERVICE_HOST) NAMESPACE="pivotal-rabbitmq-system-ci" PODNAME="p-rabbitmqcluster-sample-ci-0" ginkgo -r system_tests/
 
 GCR_VIEWER_KEY_CONTENT = `cat ~/Desktop/cf-rabbitmq-for-k8s-bunny-86c8f31fc27e.json`
 GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'

@@ -21,10 +21,15 @@ var _ = Describe("Plugin tests", func() {
 	})
 
 	It("has required plugins enabled", func() {
+		namespace := MustHaveEnv("NAMESPACE")
+		podname := MustHaveEnv("PODNAME")
+
 		kubectlArgs := []string{
+			"-n",
+			namespace,
 			"exec",
 			"-it",
-			"p-rabbitmqcluster-sample-0",
+			podname,
 			"--",
 			"rabbitmq-plugins", "is_enabled",
 			"rabbitmq_federation",
