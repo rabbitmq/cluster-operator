@@ -53,6 +53,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
+
 func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("rabbitmqcluster", req.NamespacedName)
@@ -94,6 +95,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 						{
 							Name:  "rabbitmq",
 							Image: "rabbitmq:3.8-rc-management",
+							Env: []corev1.EnvVar{
+								{
+									Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+									Value: "/opt/rabbitmq-configmap/enabled_plugins",
+								},
+							},
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "amqp",
@@ -102,6 +109,24 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 								{
 									Name:          "http",
 									ContainerPort: 15672,
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "rabbitmq-default-plugins",
+									MountPath: "/opt/rabbitmq-configmap/",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "rabbitmq-default-plugins",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "rabbitmq-default-plugins",
+									},
 								},
 							},
 						},
@@ -132,6 +157,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	// Update the found object and write the result back if there are any changes
+	// TODO at the moment we don't care what the spec looks like because we don't know what we want in the spec.
+	// Once we have determined the set of properties that must exist in the spec in order to deliver the features that customers want,
+	// we should do better comparison testing on the desired and actual object.
 	if !reflect.DeepEqual(deploy.Spec, found.Spec) {
 		found.Spec = deploy.Spec
 		log.Info("Updating RabbitmqCluster StatefulSet", "namespace", deploy.Namespace, "name", deploy.Name)

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-default-plugins
+  namespace: pivotal-rabbitmq-system
+data:
+  enabled_plugins: '[rabbitmq_management,rabbitmq_peer_discovery_k8s,rabbitmq_federation,rabbitmq_federation_management,rabbitmq_shovel,rabbitmq_shovel_management,rabbitmq_prometheus].'
