@@ -97,7 +97,7 @@ rabbitmq-system-tests: fetch-service-ip
 	RABBITMQ_USERNAME=$(RABBITMQ_USERNAME) RABBITMQ_PASSWORD=$(RABBITMQ_PASSWORD) SERVICE_HOST=$(SERVICE_HOST) NAMESPACE="pivotal-rabbitmq-system" PODNAME="p-rabbitmqcluster-sample-0" ginkgo -r system_tests/
 
 rabbitmq-system-tests-ci: fetch-service-ip-ci
-	RABBITMQ_USERNAME=$(RABBITMQ_USERNAME) RABBITMQ_PASSWORD=$(RABBITMQ_PASSWORD) SERVICE_HOST=$(SERVICE_HOST) NAMESPACE="pivotal-rabbitmq-system-ci" PODNAME="p-rabbitmqcluster-sample-ci-0" ginkgo -r system_tests/
+	RABBITMQ_USERNAME=$(RABBITMQ_USERNAME) RABBITMQ_PASSWORD=$(RABBITMQ_PASSWORD) SERVICE_HOST=$(SERVICE_HOST_CI) NAMESPACE="pivotal-rabbitmq-system-ci" PODNAME="p-rabbitmqcluster-sample-ci-0" ginkgo -r system_tests/
 
 GCR_VIEWER_KEY_CONTENT = `cat ~/Desktop/cf-rabbitmq-for-k8s-bunny-86c8f31fc27e.json`
 GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
@@ -125,6 +125,6 @@ SERVICE_HOST=$(shell kubectl -n pivotal-rabbitmq-system get svc -l app=rabbitmqc
 endif
 
 fetch-service-ip-ci:
-ifeq ($(SERVICE_HOST),)
-SERVICE_HOST=$(shell kubectl -n pivotal-rabbitmq-system-ci get svc -l app=rabbitmqcluster-sample-ci -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+ifeq ($(SERVICE_HOST_CI),)
+SERVICE_HOST_CI=$(shell kubectl -n pivotal-rabbitmq-system-ci get svc -l app=rabbitmqcluster-sample-ci -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
 endif
