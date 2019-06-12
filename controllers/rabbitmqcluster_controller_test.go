@@ -52,9 +52,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 		var testReconciler reconcile.Reconciler
 		const timeout = time.Millisecond * 700
 		var scheme *runtime.Scheme
+		var confMapName types.NamespacedName
 
 		BeforeEach(func() {
 			stsName = types.NamespacedName{Name: "p-foo", Namespace: "default"}
+			confMapName = types.NamespacedName{Name: "rabbitmq-default-plugins", Namespace: "default"}
 
 			expectedRequest = reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -125,6 +127,19 @@ var _ = Describe("RabbitmqclusterController", func() {
 			sts, err := clientSet.AppsV1().StatefulSets("default").Get(stsName.Name, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sts.Name).To(Equal(stsName.Name))
+		})
+
+		It("Creates the configmap when rabbitmqcluster is created", func() {
+			err := client.Create(context.TODO(), rabbitmqCluster)
+			Expect(err).NotTo(HaveOccurred())
+			defer client.Delete(context.TODO(), rabbitmqCluster)
+
+			clientSet, err := kubernetes.NewForConfig(cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			configMap, err := clientSet.CoreV1().ConfigMaps("default").Get(confMapName.Name, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configMap.Name).To(Equal(confMapName.Name))
 		})
 	})
 })

@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -69,7 +68,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		fmt.Printf("Error reading object: %v \n", err)
+		log.Errorf("Failed getting Rabbitmq cluster object failed with error: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -139,7 +138,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	if err := controllerutil.SetControllerReference(instance, statefulSet, r.Scheme); err != nil {
-		fmt.Printf("Error setting controller reference: %v \n", err)
+		log.Errorf("Failed setting controller reference using StatefulSet with error: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -149,25 +148,25 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	if err != nil && errors.IsNotFound(err) {
 		log.Info("Creating RabbitmqCluster StatefulSet", "namespace", statefulSet.Namespace, "name", statefulSet.Name)
 		err = r.Create(context.TODO(), statefulSet)
-
 		if err != nil {
-			fmt.Printf("Error creating: %v \n", err)
+			log.Errorf("Failed creating RabbitmqCluster StatefulSet with error: %v", err)
 		}
 
 		//return reconcile.Result{}, err
 	} else if err != nil {
+		log.Errorf("Failed getting RabbitmqCluster StatefulSet with error: %v", err)
 		return reconcile.Result{}, err
-	}
-
-	// Update the found object and write the result back if there are any changes
-	// TODO at the moment we don't care what the spec looks like because we don't know what we want in the spec.
-	// Once we have determined the set of properties that must exist in the spec in order to deliver the features that customers want,
-	// we should do better comparison testing on the desired and actual object.
-	if !reflect.DeepEqual(statefulSet.Spec, found.Spec) {
+	} else if !reflect.DeepEqual(statefulSet.Spec, found.Spec) {
+		// Update the found object and write the result back if there are any changes
+		// TODO at the moment we don't care what the spec looks like because we don't know what we want in the spec.
+		// Once we have determined the set of properties that must exist in the spec in order to deliver the features that customers want,
+		// we should do better comparison testing on the desired and actual object.
 		found.Spec = statefulSet.Spec
-		log.Info("Updating RabbitmqCluster StatefulSet", "namespace", statefulSet.Namespace, "name", statefulSet.Name)
+		log.Info("Updating RabbitmqCluster StatefulSet", " namespace: ", statefulSet.Namespace, " name: ", statefulSet.Name)
+
 		err = r.Update(context.TODO(), found)
 		if err != nil {
+			log.Errorf("Failed updating RabbitmqCluster StatefulSet with error: %v", err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -190,7 +189,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	if err := controllerutil.SetControllerReference(instance, configMap, r.Scheme); err != nil {
-		fmt.Printf("Error setting controller reference: %v \n", err)
+		log.Errorf("Failed setting controller reference using ConfigMap with error: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -202,11 +201,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		err = r.Create(context.TODO(), configMap)
 
 		if err != nil {
-			fmt.Printf("Error creating: %v \n", err)
+			log.Errorf("Failed creating RabbitmqCluster ConfigMap with error: %v", err)
 		}
 
 		return reconcile.Result{}, err
 	} else if err != nil {
+		log.Errorf("Failed getting RabbitmqCluster ConfigMap object with err %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -215,6 +215,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		log.Info("Updating RabbitmqCluster ConfigMap", "namespace", configMap.Namespace, "name", configMap.Name)
 		err = r.Update(context.TODO(), foundConfigMap)
 		if err != nil {
+			log.Errorf("Failed updating RabbitmqCluster ConfigMap with error: %v", err)
 			return reconcile.Result{}, err
 		}
 	}
