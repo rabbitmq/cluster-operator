@@ -78,8 +78,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 			// channel when it is finished.
 
 			scheme = runtime.NewScheme()
-			rabbitmqv1beta1.AddToScheme(scheme)
-			defaultscheme.AddToScheme(scheme)
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
+			Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+
 			mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
 
 			Expect(err).NotTo(HaveOccurred())
@@ -106,19 +107,17 @@ var _ = Describe("RabbitmqclusterController", func() {
 				defer mgrStopped.Done()
 				Expect(mgr.Start(stopMgr)).NotTo(HaveOccurred())
 			}()
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			close(stopMgr)
 			mgrStopped.Wait()
 		})
 
 		It("Creates sts when rabbitmqcluster is created", func() {
-			// Create the RabbitmqCluster object and expect the Reconcile to be called
-			err := client.Create(context.TODO(), rabbitmqCluster)
-			Expect(err).NotTo(HaveOccurred())
-			defer client.Delete(context.TODO(), rabbitmqCluster)
-
 			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 
 			clientSet, err := kubernetes.NewForConfig(cfg)
@@ -130,10 +129,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("Creates the configmap when rabbitmqcluster is created", func() {
-			err := client.Create(context.TODO(), rabbitmqCluster)
-			Expect(err).NotTo(HaveOccurred())
-			defer client.Delete(context.TODO(), rabbitmqCluster)
-
 			clientSet, err := kubernetes.NewForConfig(cfg)
 			Expect(err).NotTo(HaveOccurred())
 
