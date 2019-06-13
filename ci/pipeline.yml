@@ -14,7 +14,7 @@ resources:
   source:
     repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
     username: _json_key
-    password: ((gcp-service-account-key))
+    password: ((gcr-push-service-account-key))
 
 jobs:
 - name: integration-tests
@@ -31,7 +31,7 @@ jobs:
           tag: latest
           repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
           username: _json_key
-          password: ((gcp-service-account-key))
+          password: ((gcr-push-service-account-key))
       inputs:
       - name: *repo
         path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
@@ -76,7 +76,7 @@ jobs:
             tag: latest
             repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
             username: _json_key
-            password: ((gcp-service-account-key))
+            password: ((gcr-push-service-account-key))
         inputs:
         - name: *repo
           path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
@@ -107,7 +107,7 @@ jobs:
           tag: latest
           repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
           username: _json_key
-          password: ((gcp-service-account-key))
+          password: ((gcr-push-service-account-key))
       inputs:
       - name: *repo
         path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
