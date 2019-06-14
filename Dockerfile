@@ -6,6 +6,7 @@ WORKDIR /workspace
 COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
+COPY internal/ internal/
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum

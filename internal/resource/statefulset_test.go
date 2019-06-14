@@ -5,34 +5,87 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var _ = Describe("Resource", func() {
 	Context("StatefulSet", func() {
 		var instance rabbitmqv1beta1.RabbitmqCluster
+		var sts *appsv1.StatefulSet
 
-		It("Creates a working StatefulSet with minimum requirements", func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{}
-			instance.Namespace = "foo"
-			instance.Name = "foo"
+		Context("Creates a working StatefulSet with minimum requirements", func() {
 
-			sts := resource.GenerateStatefulSet(instance)
+			BeforeEach(func() {
+				instance = rabbitmqv1beta1.RabbitmqCluster{}
+				instance.Namespace = "foo"
+				instance.Name = "foo"
+				sts = resource.GenerateStatefulSet(instance)
+			})
 
-			requiredContainerPorts := []int32{5672, 15672}
-			var actualContainerPorts []int32
+			It("with required container ports", func() {
 
-			for _, container := range sts.Spec.Template.Spec.Containers {
-				if container.Name == "rabbitmq" {
-					for _, port := range container.Ports {
-						actualContainerPorts = append(actualContainerPorts, port.ContainerPort)
+				requiredContainerPorts := []int32{5672, 15672}
+				var actualContainerPorts []int32
+
+				for _, container := range sts.Spec.Template.Spec.Containers {
+					if container.Name == "rabbitmq" {
+						for _, port := range container.Ports {
+							actualContainerPorts = append(actualContainerPorts, port.ContainerPort)
+						}
+						break
 					}
-					break
 				}
-			}
 
-			for _, port := range requiredContainerPorts {
-				Expect(actualContainerPorts).To(ContainElement(port))
-			}
+				Expect(actualContainerPorts).Should(ConsistOf(requiredContainerPorts))
+			})
+
+			It("with required environment variable", func() {
+
+				requiredEnvVariables := []corev1.EnvVar{
+
+					{
+						Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+						Value: "/opt/rabbitmq-configmap/enabled_plugins",
+					},
+				}
+
+				for _, container := range sts.Spec.Template.Spec.Containers {
+					if container.Name == "rabbitmq" {
+						Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
+					}
+				}
+			})
+
+			It("with required VolumeMounts", func() {
+				requiredVolumeMount := corev1.VolumeMount{
+					Name:      "rabbitmq-default-plugins",
+					MountPath: "/opt/rabbitmq-configmap/",
+				}
+
+				for _, container := range sts.Spec.Template.Spec.Containers {
+					if container.Name == "rabbitmq" {
+						Expect(container.VolumeMounts).Should(ConsistOf(requiredVolumeMount))
+					}
+				}
+			})
+
+			It("with required Volume", func() {
+
+				requiredVolume := corev1.Volume{
+					Name: "rabbitmq-default-plugins",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "rabbitmq-default-plugins",
+							},
+						},
+					},
+				}
+
+				Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(requiredVolume))
+			})
+
 		})
 	})
 })
