@@ -12,7 +12,7 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 
 # Run unit tests
 unit-test: generate fmt vet manifests
-	ginkgo -r api/
+	ginkgo -r api/ internal/
 
 # Run integration tests
 integration-test: generate fmt vet manifests

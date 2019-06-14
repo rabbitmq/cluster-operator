@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 
-	"github.com/pivotal/rabbitmq-for-kubernetes/controllers/internal/resource"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
