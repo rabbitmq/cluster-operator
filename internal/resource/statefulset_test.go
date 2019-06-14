@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/controllers/internal/resource"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 )
 
 var _ = Describe("Resource", func() {
