@@ -9,83 +9,81 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("Resource", func() {
-	Context("StatefulSet", func() {
-		var instance rabbitmqv1beta1.RabbitmqCluster
-		var sts *appsv1.StatefulSet
+var _ = Describe("StatefulSet", func() {
+	var instance rabbitmqv1beta1.RabbitmqCluster
+	var sts *appsv1.StatefulSet
 
-		Context("Creates a working StatefulSet with minimum requirements", func() {
+	Context("Creates a working StatefulSet with minimum requirements", func() {
 
-			BeforeEach(func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{}
-				instance.Namespace = "foo"
-				instance.Name = "foo"
-				sts = resource.GenerateStatefulSet(instance)
-			})
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance.Namespace = "foo"
+			instance.Name = "foo"
+			sts = resource.GenerateStatefulSet(instance)
+		})
 
-			It("with required container ports", func() {
+		It("with required Container Ports", func() {
 
-				requiredContainerPorts := []int32{5672, 15672}
-				var actualContainerPorts []int32
+			requiredContainerPorts := []int32{5672, 15672}
+			var actualContainerPorts []int32
 
-				for _, container := range sts.Spec.Template.Spec.Containers {
-					if container.Name == "rabbitmq" {
-						for _, port := range container.Ports {
-							actualContainerPorts = append(actualContainerPorts, port.ContainerPort)
-						}
-						break
+			for _, container := range sts.Spec.Template.Spec.Containers {
+				if container.Name == "rabbitmq" {
+					for _, port := range container.Ports {
+						actualContainerPorts = append(actualContainerPorts, port.ContainerPort)
 					}
+					break
 				}
+			}
 
-				Expect(actualContainerPorts).Should(ConsistOf(requiredContainerPorts))
-			})
+			Expect(actualContainerPorts).Should(ConsistOf(requiredContainerPorts))
+		})
 
-			It("with required environment variable", func() {
+		It("with required Environment Variable", func() {
 
-				requiredEnvVariables := []corev1.EnvVar{
+			requiredEnvVariables := []corev1.EnvVar{
 
-					{
-						Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
-						Value: "/opt/rabbitmq-configmap/enabled_plugins",
-					},
+				{
+					Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+					Value: "/opt/rabbitmq-configmap/enabled_plugins",
+				},
+			}
+
+			for _, container := range sts.Spec.Template.Spec.Containers {
+				if container.Name == "rabbitmq" {
+					Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
 				}
+			}
+		})
 
-				for _, container := range sts.Spec.Template.Spec.Containers {
-					if container.Name == "rabbitmq" {
-						Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
-					}
+		It("with required Volume Mounts", func() {
+			requiredVolumeMount := corev1.VolumeMount{
+				Name:      "rabbitmq-default-plugins",
+				MountPath: "/opt/rabbitmq-configmap/",
+			}
+
+			for _, container := range sts.Spec.Template.Spec.Containers {
+				if container.Name == "rabbitmq" {
+					Expect(container.VolumeMounts).Should(ConsistOf(requiredVolumeMount))
 				}
-			})
+			}
+		})
 
-			It("with required VolumeMounts", func() {
-				requiredVolumeMount := corev1.VolumeMount{
-					Name:      "rabbitmq-default-plugins",
-					MountPath: "/opt/rabbitmq-configmap/",
-				}
+		It("with required Volume", func() {
 
-				for _, container := range sts.Spec.Template.Spec.Containers {
-					if container.Name == "rabbitmq" {
-						Expect(container.VolumeMounts).Should(ConsistOf(requiredVolumeMount))
-					}
-				}
-			})
-
-			It("with required Volume", func() {
-
-				requiredVolume := corev1.Volume{
-					Name: "rabbitmq-default-plugins",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "rabbitmq-default-plugins",
-							},
+			requiredVolume := corev1.Volume{
+				Name: "rabbitmq-default-plugins",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "rabbitmq-default-plugins",
 						},
 					},
-				}
+				},
+			}
 
-				Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(requiredVolume))
-			})
-
+			Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(requiredVolume))
 		})
+
 	})
 })
