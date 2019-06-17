@@ -15,6 +15,14 @@ resources:
     repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
     username: _json_key
     password: ((gcr-push-service-account-key))
+- name: every-friday
+  type: time
+  source:
+    start: 8:00 AM
+    stop: 9:00 AM
+    days:
+    - Friday
+    location: Europe/London
 
 jobs:
 - name: integration-tests
@@ -132,3 +140,29 @@ jobs:
           make deploy-ci
           echo "Testing single node cluster..."
           make rabbitmq-system-tests-ci
+
+- name: renew-env
+  serial: true
+  plan:
+  - get: every-friday
+    trigger: true
+  - task: renew-toolsmith-environment
+    tags: [toolsmiths-shared-vsphere]
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          tag: latest
+          repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
+          username: _json_key
+          password: ((gcr-push-service-account-key))
+      params:
+        TOKEN: ((toolsmith-api-token))
+      run:
+        path: bash
+        args:
+        - -ec
+        - |
+          echo "curling https://environments.toolsmiths.cf-app.com/custom_gcp_environments/20/renew"
+          curl -H "Authorization: OAuth ${TOKEN}" https://environments.toolsmiths.cf-app.com/custom_gcp_environments/20/renew
