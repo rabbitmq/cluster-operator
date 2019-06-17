@@ -45,9 +45,11 @@ configure-kubectl-ci:
 # Cleanup all controller artefacts
 destroy:
 	kubectl delete -k config/default/base
+	kubectl delete -k config/namespace/base
 
 destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/default/overlays/ci --ignore-not-found=true
+	kubectl delete -k config/namespace/overlays/ci
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
@@ -57,11 +59,17 @@ run: generate fmt vet
 install: manifests
 	kubectl apply -f config/crd/bases
 
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests install deploy-manager gcr-viewer deploy-sample
+deploy-namespace:
+	kubectl apply -k config/namespace/base
+
+deploy-namespace-ci:
+	kubectl apply -k config/namespace/overlays/ci
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy-ci: configure-kubectl-ci manifests install deploy-manager-ci deploy-sample-ci
+deploy: manifests deploy-namespace gcr-viewer deploy-manager deploy-sample
+
+# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci deploy-manager-ci deploy-sample-ci
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
