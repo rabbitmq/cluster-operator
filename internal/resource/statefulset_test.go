@@ -10,30 +10,28 @@ import (
 )
 
 var _ = Describe("StatefulSet", func() {
+
 	var instance rabbitmqv1beta1.RabbitmqCluster
 	var sts *appsv1.StatefulSet
 
-	Context("Creates a working StatefulSet with minimum requirements", func() {
+	BeforeEach(func() {
 
-		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{}
-			instance.Namespace = "foo"
-			instance.Name = "foo"
-			sts = resource.GenerateStatefulSet(instance)
-		})
+		instance = rabbitmqv1beta1.RabbitmqCluster{}
+		instance.Namespace = "foo"
+		instance.Name = "foo"
+		sts = resource.GenerateStatefulSet(instance)
+	})
+
+	Context("Creates a working StatefulSet with minimum requirements", func() {
 
 		It("with required Container Ports", func() {
 
 			requiredContainerPorts := []int32{5672, 15672}
 			var actualContainerPorts []int32
 
-			for _, container := range sts.Spec.Template.Spec.Containers {
-				if container.Name == "rabbitmq" {
-					for _, port := range container.Ports {
-						actualContainerPorts = append(actualContainerPorts, port.ContainerPort)
-					}
-					break
-				}
+			container := extractContainer(sts, "rabbitmq")
+			for _, port := range container.Ports {
+				actualContainerPorts = append(actualContainerPorts, port.ContainerPort)
 			}
 
 			Expect(actualContainerPorts).Should(ConsistOf(requiredContainerPorts))
@@ -49,24 +47,19 @@ var _ = Describe("StatefulSet", func() {
 				},
 			}
 
-			for _, container := range sts.Spec.Template.Spec.Containers {
-				if container.Name == "rabbitmq" {
-					Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
-				}
-			}
+			container := extractContainer(sts, "rabbitmq")
+			Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
 		})
 
 		It("with required Volume Mounts", func() {
+
 			requiredVolumeMount := corev1.VolumeMount{
 				Name:      "rabbitmq-default-plugins",
 				MountPath: "/opt/rabbitmq-configmap/",
 			}
 
-			for _, container := range sts.Spec.Template.Spec.Containers {
-				if container.Name == "rabbitmq" {
-					Expect(container.VolumeMounts).Should(ConsistOf(requiredVolumeMount))
-				}
-			}
+			container := extractContainer(sts, "rabbitmq")
+			Expect(container.VolumeMounts).Should(ConsistOf(requiredVolumeMount))
 		})
 
 		It("with required Volume", func() {
@@ -86,4 +79,31 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 	})
+
+	Context("Creates a strongly recommended StatefulSet", func() {
+
+		It("with Liveness Probe", func() {
+
+			container := extractContainer(sts, "rabbitmq")
+			actualProbeCommand := container.LivenessProbe.Handler.Exec.Command
+			Expect(actualProbeCommand).To(Equal([]string{"rabbitmq-diagnostics", "ping"}))
+		})
+
+		It("with Readiness Probe", func() {
+
+			container := extractContainer(sts, "rabbitmq")
+			actualProbeCommand := container.ReadinessProbe.Handler.Exec.Command
+			Expect(actualProbeCommand).To(Equal([]string{"rabbitmq-diagnostics", "check_running"}))
+		})
+	})
 })
+
+func extractContainer(sts *appsv1.StatefulSet, containerName string) *corev1.Container {
+	for _, container := range sts.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			return &container
+		}
+	}
+
+	return &corev1.Container{}
+}

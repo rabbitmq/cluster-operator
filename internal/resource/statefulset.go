@@ -53,6 +53,30 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 									MountPath: "/opt/rabbitmq-configmap/",
 								},
 							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									Exec: &corev1.ExecAction{
+										Command: []string{"rabbitmq-diagnostics", "ping"},
+									},
+								},
+								InitialDelaySeconds: 10,
+								TimeoutSeconds:      5,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									Exec: &corev1.ExecAction{
+										Command: []string{"rabbitmq-diagnostics", "check_running"},
+									},
+								},
+								InitialDelaySeconds: 10,
+								TimeoutSeconds:      5,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 					},
 					Volumes: []corev1.Volume{
