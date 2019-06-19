@@ -10,41 +10,106 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
-var _ = Describe("Plugin tests", func() {
+var _ = Describe("System tests", func() {
+	var namespace, podname string
+	var clientSet *kubernetes.Clientset
 
-	It("can create a test queue and push a message", func() {
-		response, err := rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+	BeforeEach(func() {
+		var err error
+		namespace = MustHaveEnv("NAMESPACE")
+		podname = MustHaveEnv("PODNAME")
+		clientSet, err = createClientSet()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(response.Status).To(Equal("ok"))
 	})
 
-	It("has required plugins enabled", func() {
-		namespace := MustHaveEnv("NAMESPACE")
-		podname := MustHaveEnv("PODNAME")
+	Context("Plugin tests", func() {
+		It("can create a test queue and push a message", func() {
+			response, err := rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response.Status).To(Equal("ok"))
+		})
 
-		kubectlArgs := []string{
-			"-n",
-			namespace,
-			"exec",
-			"-it",
-			podname,
-			"--",
-			"rabbitmq-plugins", "is_enabled",
-			"rabbitmq_federation",
-			"rabbitmq_federation_management",
-			"rabbitmq_management",
-			"rabbitmq_peer_discovery_common",
-			"rabbitmq_peer_discovery_k8s",
-			"rabbitmq_shovel",
-			"rabbitmq_shovel_management",
-			"rabbitmq_prometheus"}
-		kubectlCmd := exec.Command("kubectl", kubectlArgs...)
-		err := kubectlCmd.Run()
-		Expect(err).NotTo(HaveOccurred())
+		It("has required plugins enabled", func() {
+
+			kubectlArgs := []string{
+				"-n",
+				namespace,
+				"exec",
+				"-it",
+				podname,
+				"--",
+				"rabbitmq-plugins", "is_enabled",
+				"rabbitmq_federation",
+				"rabbitmq_federation_management",
+				"rabbitmq_management",
+				"rabbitmq_peer_discovery_common",
+				"rabbitmq_peer_discovery_k8s",
+				"rabbitmq_shovel",
+				"rabbitmq_shovel_management",
+				"rabbitmq_prometheus"}
+			kubectlCmd := exec.Command("kubectl", kubectlArgs...)
+			err := kubectlCmd.Run()
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("ReadinessProbe tests", func() {
+		It("stops Rabbitmq app and expects empty endpoints", func() {
+
+			// Run kubectl exec rabbitmqctl stop_app
+			err := startStopRabbitmqApp("stop", namespace, podname)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Check endpoints and expect they are not ready
+			Eventually(func() int {
+				return endpointPoller(clientSet, namespace, "rabbitmqcluster-service")
+			}, 45, 3).Should(Equal(0))
+
+		})
+
+		AfterEach(func() {
+			err := startStopRabbitmqApp("start", namespace, podname)
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 })
+
+func startStopRabbitmqApp(startOrStop, namespace, podname string) error {
+	kubectlArgs := []string{
+		"-n",
+		namespace,
+		"exec",
+		"-it",
+		podname,
+		"--",
+		"rabbitmqctl", fmt.Sprintf("%s_app", startOrStop),
+	}
+
+	kubectlCmd := exec.Command("kubectl", kubectlArgs...)
+	err := kubectlCmd.Run()
+	return err
+}
+
+func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName string) int {
+	endpoints, err := clientSet.CoreV1().Endpoints(namespace).Get(endpointName, v1.GetOptions{})
+
+	if err != nil {
+		fmt.Printf("Failed to Get endpoint %s: %v", endpointName, err)
+		return -1
+	}
+
+	ret := 0
+	for _, endpointSubset := range endpoints.Subsets {
+		ret = ret + len(endpointSubset.Addresses)
+	}
+
+	return ret
+}
 
 func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
