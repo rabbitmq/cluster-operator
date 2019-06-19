@@ -82,13 +82,6 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("Creates a strongly recommended StatefulSet", func() {
 
-		It("with Liveness Probe", func() {
-
-			container := extractContainer(sts, "rabbitmq")
-			actualProbeCommand := container.LivenessProbe.Handler.Exec.Command
-			Expect(actualProbeCommand).To(Equal([]string{"rabbitmq-diagnostics", "ping"}))
-		})
-
 		It("with Readiness Probe", func() {
 
 			container := extractContainer(sts, "rabbitmq")
