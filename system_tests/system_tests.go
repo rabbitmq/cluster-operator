@@ -36,14 +36,10 @@ var _ = Describe("System tests", func() {
 
 		It("has required plugins enabled", func() {
 
-			kubectlArgs := []string{
-				"-n",
-				namespace,
-				"exec",
-				"-it",
+			err := kubectlExec(namespace,
 				podname,
-				"--",
-				"rabbitmq-plugins", "is_enabled",
+				"rabbitmq-plugins",
+				"is_enabled",
 				"rabbitmq_federation",
 				"rabbitmq_federation_management",
 				"rabbitmq_management",
@@ -51,9 +47,9 @@ var _ = Describe("System tests", func() {
 				"rabbitmq_peer_discovery_k8s",
 				"rabbitmq_shovel",
 				"rabbitmq_shovel_management",
-				"rabbitmq_prometheus"}
-			kubectlCmd := exec.Command("kubectl", kubectlArgs...)
-			err := kubectlCmd.Run()
+				"rabbitmq_prometheus",
+			)
+
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -62,24 +58,24 @@ var _ = Describe("System tests", func() {
 		It("stops Rabbitmq app and expects empty endpoints", func() {
 
 			// Run kubectl exec rabbitmqctl stop_app
-			err := startStopRabbitmqApp("stop", namespace, podname)
+			err := kubectlExec(namespace, podname, "rabbitmqctl", "stop_app")
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check endpoints and expect they are not ready
 			Eventually(func() int {
 				return endpointPoller(clientSet, namespace, "rabbitmqcluster-service")
-			}, 45, 3).Should(Equal(0))
+			}, 35, 3).Should(Equal(0))
 
 		})
 
 		AfterEach(func() {
-			err := startStopRabbitmqApp("start", namespace, podname)
+			err := kubectlExec(namespace, podname, "rabbitmqctl", "start_app")
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
 
-func startStopRabbitmqApp(startOrStop, namespace, podname string) error {
+func kubectlExec(namespace, podname, cmd string, args ...string) error {
 	kubectlArgs := []string{
 		"-n",
 		namespace,
@@ -87,8 +83,10 @@ func startStopRabbitmqApp(startOrStop, namespace, podname string) error {
 		"-it",
 		podname,
 		"--",
-		"rabbitmqctl", fmt.Sprintf("%s_app", startOrStop),
+		cmd,
 	}
+
+	kubectlArgs = append(kubectlArgs, args...)
 
 	kubectlCmd := exec.Command("kubectl", kubectlArgs...)
 	err := kubectlCmd.Run()
