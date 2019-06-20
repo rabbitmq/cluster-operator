@@ -55,22 +55,29 @@ var _ = Describe("System tests", func() {
 	})
 
 	Context("ReadinessProbe tests", func() {
-		It("stops Rabbitmq app and expects empty endpoints", func() {
+		It("checks whether the rabbitmq cluster is ready to serve traffic", func() {
+			By("not publishing addresses after stopping Rabbitmq app", func() {
 
-			// Run kubectl exec rabbitmqctl stop_app
-			err := kubectlExec(namespace, podname, "rabbitmqctl", "stop_app")
-			Expect(err).NotTo(HaveOccurred())
+				// Run kubectl exec rabbitmqctl stop_app
+				err := kubectlExec(namespace, podname, "rabbitmqctl", "stop_app")
+				Expect(err).NotTo(HaveOccurred())
 
-			// Check endpoints and expect they are not ready
-			Eventually(func() int {
-				return endpointPoller(clientSet, namespace, "rabbitmqcluster-service")
-			}, 35, 3).Should(Equal(0))
+				// Check endpoints and expect addresses are not ready
+				Eventually(func() int {
+					return endpointPoller(clientSet, namespace, "rabbitmqcluster-service")
+				}, 35, 3).Should(Equal(0))
+			})
 
-		})
+			By("publishing addresses after starting the Rabbitmq app", func() {
+				err := kubectlExec(namespace, podname, "rabbitmqctl", "start_app")
+				Expect(err).ToNot(HaveOccurred())
 
-		AfterEach(func() {
-			err := kubectlExec(namespace, podname, "rabbitmqctl", "start_app")
-			Expect(err).ToNot(HaveOccurred())
+				// Check endpoints and expect addresses are ready
+				Eventually(func() int {
+					return endpointPoller(clientSet, namespace, "rabbitmqcluster-service")
+				}, 35, 3).Should(BeNumerically(">", 0))
+			})
+
 		})
 	})
 })
