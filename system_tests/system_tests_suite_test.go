@@ -15,13 +15,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string
-
 func TestSystemTests(t *testing.T) {
-	rabbitmqHostName = MustHaveEnv("SERVICE_HOST")
-	rabbitmqUsername = MustHaveEnv("RABBITMQ_USERNAME")
-	rabbitmqPassword = MustHaveEnv("RABBITMQ_PASSWORD")
-
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "SystemTests Suite")
 }

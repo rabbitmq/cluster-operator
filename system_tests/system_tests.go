@@ -18,22 +18,32 @@ import (
 var _ = Describe("System tests", func() {
 	var namespace, podname string
 	var clientSet *kubernetes.Clientset
+	var rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string
 
 	BeforeEach(func() {
 		var err error
 		namespace = MustHaveEnv("NAMESPACE")
 		podname = "p-rabbitmqcluster-sample-0"
+
 		clientSet, err = createClientSet()
+		Expect(err).NotTo(HaveOccurred())
+
+		rabbitmqHostName = MustHaveEnv("SERVICE_HOST")
+
+		rabbitmqUsername, err = getRabbitmqUsernameOrPassword(clientSet, namespace, "rabbitmq-username")
+		Expect(err).NotTo(HaveOccurred())
+
+		rabbitmqPassword, err = getRabbitmqUsernameOrPassword(clientSet, namespace, "rabbitmq-password")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("Plugin tests", func() {
-		It("can create a test queue and push a message", func() {
-			response, err := rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(response.Status).To(Equal("ok"))
-		})
+	It("can create a test queue and push a message", func() {
+		response, err := rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(response.Status).To(Equal("ok"))
+	})
 
+	Context("Plugin tests", func() {
 		It("has required plugins enabled", func() {
 
 			err := kubectlExec(namespace,
@@ -154,4 +164,17 @@ func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword 
 
 type HealthcheckResponse struct {
 	Status string `json:"status"`
+}
+
+func getRabbitmqUsernameOrPassword(clientset *kubernetes.Clientset, namespace, keyName string) (string, error) {
+	secret, err := clientset.CoreV1().Secrets(namespace).Get("rabbitmq-secret", v1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	value, ok := secret.Data[keyName]
+	if !ok {
+		return "", fmt.Errorf(fmt.Sprintf("cannot find %s in rabbitmq-secret", keyName))
+	}
+	return string(value), nil
 }
