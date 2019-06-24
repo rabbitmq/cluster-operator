@@ -16,13 +16,14 @@ import (
 )
 
 var _ = Describe("System tests", func() {
-	var namespace, podname string
+	var namespace, instanceName, podname string
 	var clientSet *kubernetes.Clientset
 	var rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string
 
 	BeforeEach(func() {
 		var err error
 		namespace = MustHaveEnv("NAMESPACE")
+		instanceName = "p-rabbitmqcluster-sample"
 		podname = "p-rabbitmqcluster-sample-0"
 
 		clientSet, err = createClientSet()
@@ -30,10 +31,10 @@ var _ = Describe("System tests", func() {
 
 		rabbitmqHostName = MustHaveEnv("SERVICE_HOST")
 
-		rabbitmqUsername, err = getRabbitmqUsernameOrPassword(clientSet, namespace, "rabbitmq-username")
+		rabbitmqUsername, err = getRabbitmqUsernameOrPassword(clientSet, namespace, instanceName,"rabbitmq-username")
 		Expect(err).NotTo(HaveOccurred())
 
-		rabbitmqPassword, err = getRabbitmqUsernameOrPassword(clientSet, namespace, "rabbitmq-password")
+		rabbitmqPassword, err = getRabbitmqUsernameOrPassword(clientSet, namespace, instanceName,"rabbitmq-password")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -166,8 +167,8 @@ type HealthcheckResponse struct {
 	Status string `json:"status"`
 }
 
-func getRabbitmqUsernameOrPassword(clientset *kubernetes.Clientset, namespace, keyName string) (string, error) {
-	secret, err := clientset.CoreV1().Secrets(namespace).Get("rabbitmq-secret", v1.GetOptions{})
+func getRabbitmqUsernameOrPassword(clientset *kubernetes.Clientset, namespace, instanceName, keyName string) (string, error) {
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("%s-rabbitmq-secret", instanceName), v1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

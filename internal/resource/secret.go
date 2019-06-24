@@ -21,7 +21,7 @@ func GenerateSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, e
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rabbitmq-secret",
+			Name:      instance.Name + "-rabbitmq-secret",
 			Namespace: instance.Namespace,
 		},
 		Type: corev1.SecretTypeOpaque,

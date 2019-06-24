@@ -10,15 +10,15 @@ import (
 )
 
 var _ = Describe("StatefulSet", func() {
-
 	var instance rabbitmqv1beta1.RabbitmqCluster
 	var sts *appsv1.StatefulSet
+	var secretName string
 
 	BeforeEach(func() {
-
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
+		secretName = instance.Name + "-rabbitmq-secret"
 		sts = resource.GenerateStatefulSet(instance)
 	})
 
@@ -90,7 +90,7 @@ var _ = Describe("StatefulSet", func() {
 				Name: "rabbitmq-secret",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: "rabbitmq-secret",
+						SecretName: secretName,
 						Items: []corev1.KeyToPath{
 							{
 								Key:  "rabbitmq-username",

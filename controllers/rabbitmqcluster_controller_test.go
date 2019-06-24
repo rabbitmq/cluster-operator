@@ -54,7 +54,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		var clientSet *kubernetes.Clientset
 		var stsName = "p-foo"
 		var confMapName = "rabbitmq-default-plugins"
-		var secretName = "rabbitmq-secret"
+		var secretName = "foo-rabbitmq-secret"
 
 		BeforeEach(func() {
 			expectedRequest = reconcile.Request{
@@ -132,7 +132,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(configMap.Name).To(Equal(confMapName))
 		})
 
-		It("creates a rabbitmq-secret secret object", func() {
+		It("creates a rabbitmq secret object", func() {
 			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 
 			secret, err := clientSet.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})

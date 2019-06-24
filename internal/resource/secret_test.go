@@ -12,12 +12,14 @@ import (
 var _ = Describe("Secret", func() {
 	var instance rabbitmqv1beta1.RabbitmqCluster
 	var secret *corev1.Secret
+	var secretName string
 	var err error
 
 	BeforeEach(func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
+		secretName = instance.Name + "-rabbitmq-secret"
 	})
 
 	Context("when succeeds", func() {
@@ -28,7 +30,7 @@ var _ = Describe("Secret", func() {
 		})
 
 		It("creates the secret 'rabbitmq-secret'", func() {
-			Expect(secret.Name).To(Equal("rabbitmq-secret"))
+			Expect(secret.Name).To(Equal(secretName))
 		})
 
 		It("creates a 'opaque' secret ", func() {

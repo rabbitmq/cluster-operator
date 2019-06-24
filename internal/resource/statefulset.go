@@ -94,7 +94,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 							Name: "rabbitmq-secret",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: "rabbitmq-secret",
+									SecretName: instance.Name + "-rabbitmq-secret",
 									Items: []corev1.KeyToPath{
 										{
 											Key:  "rabbitmq-username",
