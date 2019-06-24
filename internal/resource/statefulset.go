@@ -36,6 +36,14 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 									Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
 									Value: "/opt/rabbitmq-configmap/enabled_plugins",
 								},
+								{
+									Name:  "RABBITMQ_DEFAULT_PASS_FILE",
+									Value: "/opt/rabbitmq-secret/rabbitmq-password",
+								},
+								{
+									Name:  "RABBITMQ_DEFAULT_USER_FILE",
+									Value: "/opt/rabbitmq-secret/rabbitmq-username",
+								},
 							},
 							Ports: []corev1.ContainerPort{
 								{
@@ -51,6 +59,10 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 								{
 									Name:      "rabbitmq-default-plugins",
 									MountPath: "/opt/rabbitmq-configmap/",
+								},
+								{
+									Name:      "rabbitmq-secret",
+									MountPath: "/opt/rabbitmq-secret/",
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
@@ -78,10 +90,27 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 								},
 							},
 						},
+						{
+							Name: "rabbitmq-secret",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "rabbitmq-secret",
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "rabbitmq-username",
+											Path: "rabbitmq-username",
+										},
+										{
+											Key:  "rabbitmq-password",
+											Path: "rabbitmq-password",
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
 		},
 	}
-
 }

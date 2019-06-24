@@ -41,23 +41,22 @@ import (
 )
 
 var _ = Describe("RabbitmqclusterController", func() {
-	Context("Reconcile", func() {
+	Context("when Reconcile is called", func() {
 		var stopMgr chan struct{}
 		var mgrStopped *sync.WaitGroup
 		var client runtimeClient.Client
 		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		var expectedRequest reconcile.Request
 		var requests chan reconcile.Request
-		var stsName types.NamespacedName
 		var testReconciler reconcile.Reconciler
 		const timeout = time.Millisecond * 700
 		var scheme *runtime.Scheme
-		var confMapName types.NamespacedName
+		var clientSet *kubernetes.Clientset
+		var stsName = "p-foo"
+		var confMapName = "rabbitmq-default-plugins"
+		var secretName = "rabbitmq-secret"
 
 		BeforeEach(func() {
-			stsName = types.NamespacedName{Name: "p-foo", Namespace: "default"}
-			confMapName = types.NamespacedName{Name: "rabbitmq-default-plugins", Namespace: "default"}
-
 			expectedRequest = reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name: "foo", Namespace: "default",
@@ -82,7 +81,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
 
 			mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
-
 			Expect(err).NotTo(HaveOccurred())
 			client = mgr.GetClient()
 
@@ -97,7 +95,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			err = ctrl.NewControllerManagedBy(mgr).
 				For(&rabbitmqv1beta1.RabbitmqCluster{}).
 				Complete(testReconciler)
-
 			Expect(err).NotTo(HaveOccurred())
 
 			stopMgr = make(chan struct{})
@@ -109,6 +106,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}()
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			clientSet, err = kubernetes.NewForConfig(cfg)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -117,24 +116,28 @@ var _ = Describe("RabbitmqclusterController", func() {
 			mgrStopped.Wait()
 		})
 
-		It("Creates sts when rabbitmqcluster is created", func() {
+		It("creates sts", func() {
 			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 
-			clientSet, err := kubernetes.NewForConfig(cfg)
+			sts, err := clientSet.AppsV1().StatefulSets("default").Get(stsName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
-
-			sts, err := clientSet.AppsV1().StatefulSets("default").Get(stsName.Name, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(sts.Name).To(Equal(stsName.Name))
+			Expect(sts.Name).To(Equal(stsName))
 		})
 
-		It("Creates the configmap when rabbitmqcluster is created", func() {
-			clientSet, err := kubernetes.NewForConfig(cfg)
-			Expect(err).NotTo(HaveOccurred())
+		It("creates the configmap", func() {
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 
-			configMap, err := clientSet.CoreV1().ConfigMaps("default").Get(confMapName.Name, metav1.GetOptions{})
+			configMap, err := clientSet.CoreV1().ConfigMaps("default").Get(confMapName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(configMap.Name).To(Equal(confMapName.Name))
+			Expect(configMap.Name).To(Equal(confMapName))
+		})
+
+		It("creates a rabbitmq-secret secret object", func() {
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+
+			secret, err := clientSet.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(secret.Name).To(Equal(secretName))
 		})
 	})
 })

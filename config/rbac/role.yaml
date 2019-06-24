@@ -47,6 +47,26 @@ rules:
   - update
   - patch
 - apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - secrets/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
   - rabbitmq.pivotal.io
   resources:
   - rabbitmqclusters

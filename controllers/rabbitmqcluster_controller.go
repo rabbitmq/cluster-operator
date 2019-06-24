@@ -41,14 +41,14 @@ type RabbitmqClusterReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// Try this again when v0.2.0 is available -
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=secrets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
-
 func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	logger := r.Log.WithValues("rabbitmqcluster", req.NamespacedName)
@@ -65,15 +65,21 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		logger.Error(err, "failed getting Rabbitmq cluster object")
 		return reconcile.Result{}, err
 	}
+	rabbitmqSecret, err := resource.GenerateSecret(*instance)
+
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 
 	resources := []runtime.Object{
 		resource.GenerateStatefulSet(*instance),
 		resource.GenerateConfigMap(*instance),
+		rabbitmqSecret,
 	}
 
 	for _, re := range resources {
 		if err := controllerutil.SetControllerReference(instance, re.(metav1.Object), r.Scheme); err != nil {
-			logger.Error(err, "Failed setting controller reference using StatefulSet")
+			logger.Error(err, "Failed setting controller reference")
 			return reconcile.Result{}, err
 		}
 

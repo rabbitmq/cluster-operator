@@ -37,7 +37,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(actualContainerPorts).Should(ConsistOf(requiredContainerPorts))
 		})
 
-		It("with required Environment Variable", func() {
+		It("with required plugins and secrets Environment Variables", func() {
 
 			requiredEnvVariables := []corev1.EnvVar{
 
@@ -45,26 +45,37 @@ var _ = Describe("StatefulSet", func() {
 					Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
 					Value: "/opt/rabbitmq-configmap/enabled_plugins",
 				},
+				{
+					Name:  "RABBITMQ_DEFAULT_PASS_FILE",
+					Value: "/opt/rabbitmq-secret/rabbitmq-password",
+				},
+				{
+					Name:  "RABBITMQ_DEFAULT_USER_FILE",
+					Value: "/opt/rabbitmq-secret/rabbitmq-username",
+				},
 			}
 
 			container := extractContainer(sts, "rabbitmq")
 			Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
 		})
 
-		It("with required Volume Mounts", func() {
+		It("with required Config Map and Secret Volume Mounts", func() {
 
-			requiredVolumeMount := corev1.VolumeMount{
+			configMapVolumeMount := corev1.VolumeMount{
 				Name:      "rabbitmq-default-plugins",
 				MountPath: "/opt/rabbitmq-configmap/",
 			}
+			secretVolumeMount := corev1.VolumeMount{
+				Name:      "rabbitmq-secret",
+				MountPath: "/opt/rabbitmq-secret/",
+			}
 
 			container := extractContainer(sts, "rabbitmq")
-			Expect(container.VolumeMounts).Should(ConsistOf(requiredVolumeMount))
+			Expect(container.VolumeMounts).Should(ConsistOf(configMapVolumeMount, secretVolumeMount))
 		})
 
-		It("with required Volume", func() {
-
-			requiredVolume := corev1.Volume{
+		It("with required Config Map and Secret Volumes", func() {
+			configMapVolume := corev1.Volume{
 				Name: "rabbitmq-default-plugins",
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -75,13 +86,31 @@ var _ = Describe("StatefulSet", func() {
 				},
 			}
 
-			Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(requiredVolume))
+			secretVolume := corev1.Volume{
+				Name: "rabbitmq-secret",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: "rabbitmq-secret",
+						Items: []corev1.KeyToPath{
+							{
+								Key:  "rabbitmq-username",
+								Path: "rabbitmq-username",
+							},
+							{
+								Key:  "rabbitmq-password",
+								Path: "rabbitmq-password",
+							},
+						},
+					},
+				},
+			}
+
+			Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(configMapVolume, secretVolume))
 		})
 
 	})
 
 	Context("Creates a strongly recommended StatefulSet", func() {
-
 		It("with Readiness Probe", func() {
 
 			container := extractContainer(sts, "rabbitmq")
