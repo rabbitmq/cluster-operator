@@ -11,11 +11,11 @@ RABBITMQ_PASSWORD=guest
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
 # Run unit tests
-unit-test: generate fmt vet manifests
+unit-tests: generate fmt vet manifests
 	ginkgo -r api/ internal/
 
 # Run integration tests
-integration-test: generate fmt vet manifests
+integration-tests: generate fmt vet manifests
 	ginkgo -r controllers/
 
 # Build manager binary
@@ -101,10 +101,10 @@ docker-build-ci-image:
 docker-push:
 	docker push ${CONTROLLER_IMAGE}
 
-rabbitmq-system-tests: fetch-service-ip
+system-tests: fetch-service-ip
 	SERVICE_HOST=$(SERVICE_HOST) NAMESPACE="pivotal-rabbitmq-system" ginkgo -r system_tests/
 
-rabbitmq-system-tests-ci: fetch-service-ip-ci
+system-tests-ci: fetch-service-ip-ci
 	SERVICE_HOST=$(SERVICE_HOST_CI) NAMESPACE="pivotal-rabbitmq-system-ci" ginkgo -r system_tests/
 
 GCR_VIEWER_KEY=$(shell lpass show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --notes | jq -c)

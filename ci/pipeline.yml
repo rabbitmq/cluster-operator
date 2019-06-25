@@ -50,9 +50,9 @@ jobs:
         - |
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
           echo "Running unit tests"
-          make unit-test
+          make unit-tests
           echo "Running integration tests"
-          make integration-test
+          make integration-tests
 
 - name: build-operator
   serial: true
@@ -139,7 +139,7 @@ jobs:
           echo "Deploying ci environment"
           make deploy-ci
           echo "Testing single node cluster..."
-          make rabbitmq-system-tests-ci
+          make system-tests-ci
 
 - name: renew-env
   serial: true
