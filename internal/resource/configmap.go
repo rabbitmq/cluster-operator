@@ -10,7 +10,7 @@ func GenerateConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ConfigM
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rabbitmq-default-plugins",
+			Name:      instance.Name + "-rabbitmq-default-plugins",
 			Namespace: instance.Namespace,
 		},
 		Data: map[string]string{

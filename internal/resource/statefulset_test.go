@@ -12,13 +12,14 @@ import (
 var _ = Describe("StatefulSet", func() {
 	var instance rabbitmqv1beta1.RabbitmqCluster
 	var sts *appsv1.StatefulSet
-	var secretName string
+	var secretName, configMapName string
 
 	BeforeEach(func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
 		secretName = instance.Name + "-rabbitmq-secret"
+		configMapName = instance.Name + "-rabbitmq-default-plugins"
 		sts = resource.GenerateStatefulSet(instance)
 	})
 
@@ -80,7 +81,7 @@ var _ = Describe("StatefulSet", func() {
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "rabbitmq-default-plugins",
+							Name: configMapName,
 						},
 					},
 				},

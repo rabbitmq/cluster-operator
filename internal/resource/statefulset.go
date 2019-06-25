@@ -85,7 +85,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "rabbitmq-default-plugins",
+										Name: instance.Name + "-rabbitmq-default-plugins",
 									},
 								},
 							},
