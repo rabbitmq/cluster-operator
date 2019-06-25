@@ -23,7 +23,7 @@ var _ = Describe("System tests", func() {
 	BeforeEach(func() {
 		var err error
 		namespace = MustHaveEnv("NAMESPACE")
-		instanceName = "p-rabbitmqcluster-sample"
+		instanceName = "rabbitmqcluster-sample"
 		podname = "p-rabbitmqcluster-sample-0"
 
 		clientSet, err = createClientSet()
