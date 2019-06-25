@@ -3,5 +3,3 @@ cover.out
 **/*.yaml-e
 bin/
 .idea/
-tmp/
-servicebroker/tmp_bin
