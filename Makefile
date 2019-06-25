@@ -1,6 +1,7 @@
 
 # Image URL to use all building/pushing image targets
 CONTROLLER_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
+CONTROLLER_IMAGE_LOCAL=cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
 CI_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
 CI_CLUSTER=dev-bunny
 GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
@@ -92,6 +93,12 @@ docker-build:
 	docker build . -t ${CONTROLLER_IMAGE}
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/base/manager_image_patch.yaml
+
+docker-build-local:
+	docker build . -t ${CONTROLLER_IMAGE_LOCAL}
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_LOCAL}"'@' ./config/default/base/manager_image_patch.yaml
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: IfNotPresent@' ./config/manager/manager.yaml
 
 docker-build-ci-image:
 	docker build ci/ -t ${CI_IMAGE}
