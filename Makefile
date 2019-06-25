@@ -102,10 +102,10 @@ docker-push:
 	docker push ${CONTROLLER_IMAGE}
 
 rabbitmq-system-tests: fetch-service-ip
-	SERVICE_HOST=$(SERVICE_HOST) NAMESPACE="pivotal-rabbitmq-system"  ginkgo -r system_tests/
+	SERVICE_HOST=$(SERVICE_HOST) NAMESPACE="pivotal-rabbitmq-system" ginkgo -r system_tests/
 
 rabbitmq-system-tests-ci: fetch-service-ip-ci
-	SERVICE_HOST=$(SERVICE_HOST_CI) NAMESPACE="pivotal-rabbitmq-system-ci"  ginkgo -r system_tests/
+	SERVICE_HOST=$(SERVICE_HOST_CI) NAMESPACE="pivotal-rabbitmq-system-ci" ginkgo -r system_tests/
 
 GCR_VIEWER_KEY=$(shell lpass show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --notes | jq -c)
 GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
