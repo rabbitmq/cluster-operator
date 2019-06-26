@@ -18,45 +18,31 @@ package controllers_test
 
 import (
 	"context"
-	"sync"
 	"time"
-
-	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
-
-	"k8s.io/apimachinery/pkg/runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	defaultscheme "k8s.io/client-go/kubernetes/scheme"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var _ = Describe("RabbitmqclusterController", func() {
 	Context("when Reconcile is called", func() {
-		var stopMgr chan struct{}
-		var mgrStopped *sync.WaitGroup
-		var client runtimeClient.Client
-		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		var expectedRequest reconcile.Request
-		var expectedRequest2 reconcile.Request
-		var requests chan reconcile.Request
-		var testReconciler reconcile.Reconciler
 		const timeout = time.Millisecond * 700
-		var scheme *runtime.Scheme
-		var clientSet *kubernetes.Clientset
-		var stsName = "p-foo"
-		var configMapBaseName = "rabbitmq-default-plugins"
-		var configMapName string
-		var secretName = "foo-rabbitmq-secret"
+		var (
+			rabbitmqCluster   *rabbitmqv1beta1.RabbitmqCluster
+			expectedRequest   reconcile.Request
+			clientSet         *kubernetes.Clientset
+			stsName           = "p-foo"
+			configMapBaseName = "rabbitmq-default-plugins"
+			configMapName     string
+			secretName        = "foo-rabbitmq-secret"
+		)
 
 		BeforeEach(func() {
 			expectedRequest = reconcile.Request{
@@ -75,39 +61,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
+			var err error
 			configMapName = rabbitmqCluster.Name + "-" + configMapBaseName
-			// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-			// channel when it is finished.
-
-			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
-			Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
-
-			mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
-			Expect(err).NotTo(HaveOccurred())
-			client = mgr.GetClient()
-
-			reconciler := &controllers.RabbitmqClusterReconciler{
-				Client: client,
-				Log:    ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
-				Scheme: mgr.GetScheme(),
-			}
-
-			testReconciler, requests = SetupTestReconcile(reconciler)
-
-			err = ctrl.NewControllerManagedBy(mgr).
-				For(&rabbitmqv1beta1.RabbitmqCluster{}).
-				Complete(testReconciler)
-			Expect(err).NotTo(HaveOccurred())
-
-			stopMgr = make(chan struct{})
-			mgrStopped = &sync.WaitGroup{}
-			mgrStopped.Add(1)
-			go func() {
-				defer mgrStopped.Done()
-				Expect(mgr.Start(stopMgr)).NotTo(HaveOccurred())
-			}()
-
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			clientSet, err = kubernetes.NewForConfig(cfg)
 			Expect(err).NotTo(HaveOccurred())
@@ -119,8 +74,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(err.Error()).To(ContainSubstring("not found"))
 			}
 
-			close(stopMgr)
-			mgrStopped.Wait()
 		})
 
 		It("creates the StatefulSet", func() {
@@ -148,9 +101,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 		Context("Using a second RabbitmqCluster", func() {
 
-			var rabbitmqClusterRabbit2 *rabbitmqv1beta1.RabbitmqCluster
-			var clientSetRabbit2 *kubernetes.Clientset
-			var configMapNameRabbit2 string
+			var (
+				rabbitmqClusterRabbit2 *rabbitmqv1beta1.RabbitmqCluster
+				clientSetRabbit2       *kubernetes.Clientset
+				expectedRequest2       reconcile.Request
+				configMapNameRabbit2   string
+			)
 
 			BeforeEach(func() {
 				// Create second cluster name rabbit2
@@ -198,13 +154,3 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 })
-
-func SetupTestReconcile(inner reconcile.Reconciler) (reconcile.Reconciler, chan reconcile.Request) {
-	requests := make(chan reconcile.Request)
-	fn := reconcile.Func(func(req reconcile.Request) (reconcile.Result, error) {
-		result, err := inner.Reconcile(req)
-		requests <- req
-		return result, err
-	})
-	return fn, requests
-}
