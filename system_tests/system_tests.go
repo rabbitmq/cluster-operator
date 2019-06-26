@@ -91,6 +91,9 @@ var _ = Describe("System tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(func() string {
 				response, _ := rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+				if response == nil {
+					return ""
+				}
 				return response.Status
 			}, 35).Should(Equal("ok"))
 		})
