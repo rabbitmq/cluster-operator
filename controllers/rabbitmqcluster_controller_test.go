@@ -35,23 +35,23 @@ var _ = Describe("RabbitmqclusterController", func() {
 	Context("when Reconcile is called", func() {
 		const timeout = time.Millisecond * 700
 		var (
-			rabbitmqCluster   *rabbitmqv1beta1.RabbitmqCluster
-			expectedRequest   reconcile.Request
-			clientSet         *kubernetes.Clientset
-			stsName           = "p-foo"
-			configMapBaseName = "rabbitmq-default-plugins"
-			configMapName     string
-			secretName        = "foo-rabbitmq-secret"
+			rabbitmqClusterFoo    *rabbitmqv1beta1.RabbitmqCluster
+			expectedRequestForFoo reconcile.Request
+			clientSetFoo          *kubernetes.Clientset
+			stsName               = "p-foo"
+			configMapBaseName     = "rabbitmq-default-plugins"
+			configMapName         string
+			secretName            = "foo-rabbitmq-secret"
 		)
 
 		BeforeEach(func() {
-			expectedRequest = reconcile.Request{
+			expectedRequestForFoo = reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name: "foo", Namespace: "default",
 				},
 			}
 
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+			rabbitmqClusterFoo = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "default",
@@ -62,14 +62,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 
 			var err error
-			configMapName = rabbitmqCluster.Name + "-" + configMapBaseName
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			clientSet, err = kubernetes.NewForConfig(cfg)
+			configMapName = rabbitmqClusterFoo.Name + "-" + configMapBaseName
+			Expect(client.Create(context.TODO(), rabbitmqClusterFoo)).NotTo(HaveOccurred())
+			clientSetFoo, err = kubernetes.NewForConfig(cfg)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
-			err := client.Delete(context.TODO(), rabbitmqCluster)
+			err := client.Delete(context.TODO(), rabbitmqClusterFoo)
 			if err != nil {
 				Expect(err.Error()).To(ContainSubstring("not found"))
 			}
@@ -77,48 +77,48 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("creates the StatefulSet", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequestForFoo)))
 
-			sts, err := clientSet.AppsV1().StatefulSets("default").Get(stsName, metav1.GetOptions{})
+			sts, err := clientSetFoo.AppsV1().StatefulSets("default").Get(stsName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sts.Name).To(Equal(stsName))
 		})
 
 		It("creates the configmap", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequestForFoo)))
 
-			configMap, err := clientSet.CoreV1().ConfigMaps("default").Get(configMapName, metav1.GetOptions{})
+			configMap, err := clientSetFoo.CoreV1().ConfigMaps("default").Get(configMapName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configMap.Name).To(Equal(configMapName))
 		})
 
 		It("creates a rabbitmq secret object", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequestForFoo)))
 
-			secret, err := clientSet.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})
+			secret, err := clientSetFoo.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(secret.Name).To(Equal(secretName))
 		})
 		Context("Using a second RabbitmqCluster", func() {
 
 			var (
-				rabbitmqClusterRabbit2 *rabbitmqv1beta1.RabbitmqCluster
-				clientSetRabbit2       *kubernetes.Clientset
-				expectedRequest2       reconcile.Request
-				configMapNameRabbit2   string
+				rabbitmqClusterBar    *rabbitmqv1beta1.RabbitmqCluster
+				clientSetBar          *kubernetes.Clientset
+				expectedRequestForBar reconcile.Request
+				configMapNameBar      string
 			)
 
 			BeforeEach(func() {
-				// Create second cluster name rabbit2
-				expectedRequest2 = reconcile.Request{
+				// Create second cluster name bar
+				expectedRequestForBar = reconcile.Request{
 					NamespacedName: types.NamespacedName{
-						Name: "rabbit2", Namespace: "default",
+						Name: "bar", Namespace: "default",
 					},
 				}
 
-				rabbitmqClusterRabbit2 = &rabbitmqv1beta1.RabbitmqCluster{
+				rabbitmqClusterBar = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "rabbit2",
+						Name:      "bar",
 						Namespace: "default",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -127,28 +127,28 @@ var _ = Describe("RabbitmqclusterController", func() {
 				}
 
 				var err error
-				Expect(client.Create(context.TODO(), rabbitmqClusterRabbit2)).NotTo(HaveOccurred())
-				clientSetRabbit2, err = kubernetes.NewForConfig(cfg)
+				Expect(client.Create(context.TODO(), rabbitmqClusterBar)).NotTo(HaveOccurred())
+				clientSetBar, err = kubernetes.NewForConfig(cfg)
 				Expect(err).NotTo(HaveOccurred())
 
-				configMapNameRabbit2 = rabbitmqClusterRabbit2.Name + "-" + configMapBaseName
+				configMapNameBar = rabbitmqClusterBar.Name + "-" + configMapBaseName
 			})
 
 			AfterEach(func() {
-				Expect(client.Delete(context.TODO(), rabbitmqClusterRabbit2)).NotTo(HaveOccurred())
+				Expect(client.Delete(context.TODO(), rabbitmqClusterBar)).NotTo(HaveOccurred())
 			})
 
-			It("creates two ConfigMaps and deletes one rabbitmqCluster", func() {
-				Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-				Eventually(requests, timeout).Should(Receive(Equal(expectedRequest2)))
+			It("deletes rabbitmqClusterFoo and finds configMap bar", func() {
+				Eventually(requests, timeout).Should(Receive(Equal(expectedRequestForFoo)))
+				Eventually(requests, timeout).Should(Receive(Equal(expectedRequestForBar)))
 
-				_, err := clientSetRabbit2.CoreV1().ConfigMaps("default").Get(configMapNameRabbit2, metav1.GetOptions{})
+				_, err := clientSetBar.CoreV1().ConfigMaps("default").Get(configMapNameBar, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 
-				err = client.Delete(context.TODO(), rabbitmqCluster)
+				err = client.Delete(context.TODO(), rabbitmqClusterFoo)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = clientSetRabbit2.CoreV1().ConfigMaps("default").Get(configMapNameRabbit2, metav1.GetOptions{})
+				_, err = clientSetBar.CoreV1().ConfigMaps("default").Get(configMapNameBar, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
