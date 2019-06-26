@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("System tests", func() {
-	var namespace, instanceName, podname string
+	var namespace, instanceName, statefulSetName, podname string
 	var clientSet *kubernetes.Clientset
 	var rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string
 
@@ -16,6 +16,7 @@ var _ = Describe("System tests", func() {
 		var err error
 		namespace = MustHaveEnv("NAMESPACE")
 		instanceName = "rabbitmqcluster-sample"
+		statefulSetName = "p-" + instanceName
 		podname = "p-rabbitmqcluster-sample-0"
 
 		clientSet, err = createClientSet()
@@ -23,10 +24,10 @@ var _ = Describe("System tests", func() {
 
 		rabbitmqHostName = MustHaveEnv("SERVICE_HOST")
 
-		rabbitmqUsername, err = getRabbitmqUsernameOrPassword(clientSet, namespace, instanceName,"rabbitmq-username")
+		rabbitmqUsername, err = getRabbitmqUsernameOrPassword(clientSet, namespace, instanceName, "rabbitmq-username")
 		Expect(err).NotTo(HaveOccurred())
 
-		rabbitmqPassword, err = getRabbitmqUsernameOrPassword(clientSet, namespace, instanceName,"rabbitmq-password")
+		rabbitmqPassword, err = getRabbitmqUsernameOrPassword(clientSet, namespace, instanceName, "rabbitmq-password")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -83,5 +84,15 @@ var _ = Describe("System tests", func() {
 
 		})
 	})
-})
 
+	Context("when the RabbitmqCluster StatefulSet is delete", func() {
+		It("reconciles the state, and the cluster is working again", func() {
+			err := kubectlDelete(namespace, "statefulset", statefulSetName)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() string {
+				response, _ := rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+				return response.Status
+			}, 35).Should(Equal("ok"))
+		})
+	})
+})

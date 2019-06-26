@@ -12,4 +12,3 @@ func TestSystemTests(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "SystemTests Suite")
 }
-

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +33,12 @@ import (
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+var (
+	ownerKey  = ".metadata.controller"
+	ownerKind = "RabbitmqCluster"
+	apiGVStr  = rabbitmqv1beta1.GroupVersion.String()
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -94,7 +101,23 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	if err := mgr.GetFieldIndexer().IndexField(&appsv1.StatefulSet{}, ownerKey, func(rawObj runtime.Object) []string {
+		statefulSet := rawObj.(*appsv1.StatefulSet)
+		owner := metav1.GetControllerOf(statefulSet)
+		if owner == nil {
+			return nil
+		}
+		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
+			return nil
+		}
+		return []string{owner.Name}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&rabbitmqv1beta1.RabbitmqCluster{}).
+		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }

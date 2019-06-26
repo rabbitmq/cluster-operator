@@ -48,7 +48,6 @@ func createClientSet() (*kubernetes.Clientset, error) {
 	return clientset, err
 }
 
-
 func kubectlExec(namespace, podname, cmd string, args ...string) error {
 	kubectlArgs := []string{
 		"-n",
@@ -61,6 +60,20 @@ func kubectlExec(namespace, podname, cmd string, args ...string) error {
 	}
 
 	kubectlArgs = append(kubectlArgs, args...)
+
+	kubectlCmd := exec.Command("kubectl", kubectlArgs...)
+	err := kubectlCmd.Run()
+	return err
+}
+
+func kubectlDelete(namespace, object, objectName string) error {
+	kubectlArgs := []string{
+		"-n",
+		namespace,
+		"delete",
+		object,
+		objectName,
+	}
 
 	kubectlCmd := exec.Command("kubectl", kubectlArgs...)
 	err := kubectlCmd.Run()

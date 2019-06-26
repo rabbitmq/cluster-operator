@@ -123,7 +123,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			mgrStopped.Wait()
 		})
 
-		It("creates sts", func() {
+		It("creates the StatefulSet", func() {
 			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 
 			sts, err := clientSet.AppsV1().StatefulSets("default").Get(stsName, metav1.GetOptions{})
@@ -146,7 +146,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(secret.Name).To(Equal(secretName))
 		})
-
 		Context("Using a second RabbitmqCluster", func() {
 
 			var rabbitmqClusterRabbit2 *rabbitmqv1beta1.RabbitmqCluster
