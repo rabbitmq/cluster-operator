@@ -95,7 +95,7 @@ var _ = Describe("System tests", func() {
 					return ""
 				}
 				return response.Status
-			}, 35).Should(Equal("ok"))
+			}, 120, 5).Should(Equal("ok"))
 		})
 	})
 })
