@@ -53,7 +53,7 @@ destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/namespace/overlays/ci
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet
+run: generate manifests fmt vet install deploy-namespace
 	go run ./main.go
 
 # Install CRDs into a cluster
