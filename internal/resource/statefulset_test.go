@@ -23,9 +23,9 @@ var _ = Describe("StatefulSet", func() {
 		sts = resource.GenerateStatefulSet(instance)
 	})
 
-	Context("Creates a working StatefulSet with minimum requirements", func() {
+	Context("when creating a working StatefulSet with minimum requirements", func() {
 
-		It("with required Container Ports", func() {
+		It("specifies required Container Ports", func() {
 
 			requiredContainerPorts := []int32{5672, 15672}
 			var actualContainerPorts []int32
@@ -38,7 +38,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(actualContainerPorts).Should(ConsistOf(requiredContainerPorts))
 		})
 
-		It("with required plugins and secrets Environment Variables", func() {
+		It("uses required plugins and secrets Environment Variables", func() {
 
 			requiredEnvVariables := []corev1.EnvVar{
 
@@ -60,7 +60,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
 		})
 
-		It("with required Config Map and Secret Volume Mounts", func() {
+		It("creates required Config Map and Secret Volume Mounts", func() {
 
 			configMapVolumeMount := corev1.VolumeMount{
 				Name:      "rabbitmq-default-plugins",
@@ -75,7 +75,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(container.VolumeMounts).Should(ConsistOf(configMapVolumeMount, secretVolumeMount))
 		})
 
-		It("with required Config Map and Secret Volumes", func() {
+		It("uses required Config Map and Secret Volumes", func() {
 			configMapVolume := corev1.Volume{
 				Name: "rabbitmq-default-plugins",
 				VolumeSource: corev1.VolumeSource{
@@ -109,10 +109,13 @@ var _ = Describe("StatefulSet", func() {
 			Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(configMapVolume, secretVolume))
 		})
 
+		It("does not mount the default service account in its pods", func() {
+			Expect(*sts.Spec.Template.Spec.AutomountServiceAccountToken).To(BeFalse())
+		})
 	})
 
-	Context("Creates a strongly recommended StatefulSet", func() {
-		It("with Readiness Probe", func() {
+	Context("when creating a strongly recommended StatefulSet", func() {
+		It("defines a Readiness Probe", func() {
 
 			container := extractContainer(sts, "rabbitmq")
 			actualProbeCommand := container.ReadinessProbe.Handler.Exec.Command

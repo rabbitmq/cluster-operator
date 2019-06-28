@@ -99,6 +99,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(secret.Name).To(Equal(secretName))
 		})
+
 		Context("Using a second RabbitmqCluster", func() {
 
 			var (

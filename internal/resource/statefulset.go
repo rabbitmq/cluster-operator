@@ -9,6 +9,7 @@ import (
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
 	single := int32(1)
+	f := false
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -27,6 +28,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": instance.Name}},
 				Spec: corev1.PodSpec{
+					AutomountServiceAccountToken: &f,
 					Containers: []corev1.Container{
 						{
 							Name:  "rabbitmq",
