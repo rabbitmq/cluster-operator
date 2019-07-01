@@ -385,6 +385,15 @@ spec:
           type: object
         spec:
           properties:
+            image:
+              properties:
+                repository:
+                  type: string
+              required:
+              - repository
+              type: object
+            imagePullSecret:
+              type: string
             plan:
               enum:
               - single

@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,6 +11,15 @@ import (
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
 	single := int32(1)
 	f := false
+	image := "rabbitmq:3.8-rc-management"
+
+	if instance.Spec.Image.Repository != "" {
+		image = fmt.Sprintf("%s/%s", instance.Spec.Image.Repository, image)
+	}
+	imagePullSecrets := []corev1.LocalObjectReference{}
+	if instance.Spec.ImagePullSecret != "" {
+		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: instance.Spec.ImagePullSecret})
+	}
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -29,10 +39,11 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": instance.Name}},
 				Spec: corev1.PodSpec{
 					AutomountServiceAccountToken: &f,
+					ImagePullSecrets:             imagePullSecrets,
 					Containers: []corev1.Container{
 						{
 							Name:  "rabbitmq",
-							Image: "rabbitmq:3.8-rc-management",
+							Image: image,
 							Env: []corev1.EnvVar{
 								{
 									Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",

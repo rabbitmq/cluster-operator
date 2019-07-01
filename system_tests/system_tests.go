@@ -1,10 +1,21 @@
 package system_tests
 
 import (
+	"context"
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("System tests", func() {
@@ -98,4 +109,64 @@ var _ = Describe("System tests", func() {
 			}, 120, 5).Should(Equal("ok"))
 		})
 	})
+
+	Context("when using our gcr repository for our Rabbitmq management image", func() {
+		var (
+			client             client.Client
+			serviceAccountName string
+			serviceAccount     *corev1.ServiceAccount
+			rabbitmqCluster    *rabbitmqv1beta1.RabbitmqCluster
+		)
+
+		BeforeEach(func() {
+			scheme := runtime.NewScheme()
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
+			Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+
+			config, err := createRestConfig()
+			Expect(err).NotTo(HaveOccurred())
+
+			mgr, err := ctrl.NewManager(config, ctrl.Options{Scheme: scheme})
+			Expect(err).NotTo(HaveOccurred())
+			client = mgr.GetClient()
+
+			// we are relying on the `make destroy/destroy-ci` to cleanup the state
+			// so that we have a chance to debug if it failed locally and in the ci
+			serviceAccountName = "system-test-gcr-repo"
+			serviceAccount = &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      serviceAccountName,
+					Namespace: namespace,
+				},
+			}
+
+			Expect(client.Create(context.TODO(), serviceAccount)).NotTo(HaveOccurred())
+		})
+
+		It("successfully creates pods using image from gcr", func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-one",
+					Namespace: namespace,
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Plan: "single",
+					Image: rabbitmqv1beta1.RabbitmqClusterImageSpec{
+						Repository: "eu.gcr.io/cf-rabbitmq-for-k8s-bunny",
+					},
+					ImagePullSecret: "gcr-viewer",
+				},
+			}
+			Expect(createRabbitmqCluster(client, rabbitmqCluster)).NotTo(HaveOccurred())
+
+			sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("p-%s", "rabbitmq-one"), metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(Equal("eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq:3.8-rc-management"))
+			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(Equal("gcr-viewer"))
+		})
+	})
 })
+
+func createRabbitmqCluster(client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	return client.Create(context.TODO(), rabbitmqCluster)
+}

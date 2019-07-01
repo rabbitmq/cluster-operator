@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 func MustHaveEnv(name string) string {
@@ -25,6 +26,21 @@ func MustHaveEnv(name string) string {
 }
 
 func createClientSet() (*kubernetes.Clientset, error) {
+	config, err := createRestConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// create the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatalf("[error] %s \n", err)
+	}
+
+	return clientset, err
+}
+
+func createRestConfig() (*rest.Config, error) {
 	var config *rest.Config
 	var err error
 	var kubeconfig string
@@ -38,14 +54,7 @@ func createClientSet() (*kubernetes.Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatalf("[error] %s \n", err)
-	}
-
-	return clientset, err
+	return config, nil
 }
 
 func kubectlExec(namespace, podname, cmd string, args ...string) error {

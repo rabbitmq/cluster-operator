@@ -66,6 +66,10 @@ func generateRabbitmqClusterObject() *RabbitmqCluster {
 		},
 		Spec: RabbitmqClusterSpec{
 			Plan: "single",
+			Image: RabbitmqClusterImageSpec{
+				Repository: "my-private-repo",
+			},
+			ImagePullSecret: "some-secret-name",
 		},
 	}
 }

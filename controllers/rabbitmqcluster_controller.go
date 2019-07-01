@@ -62,13 +62,11 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	instance := &rabbitmqv1beta1.RabbitmqCluster{}
 	err := r.Get(context.TODO(), req.NamespacedName, instance)
+
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Object not found, return.  Created objects are automatically garbage collected.
-			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
 		logger.Error(err, "failed getting Rabbitmq cluster object")
 		return reconcile.Result{}, err
 	}
