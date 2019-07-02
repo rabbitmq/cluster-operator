@@ -162,7 +162,13 @@ var _ = Describe("System tests", func() {
 			sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("p-%s", "rabbitmq-one"), metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(Equal("eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq:3.8-rc-management"))
-			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(Equal("gcr-viewer"))
+			Expect(sts.Spec.Template.Spec.ImagePullSecrets[0].Name).To(Equal("gcr-viewer"))
+
+			Eventually(func() string {
+				pod, err := clientSet.CoreV1().Pods(namespace).Get("p-rabbitmq-one-0", metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				return fmt.Sprintf("%v", pod.Status.Conditions)
+			}, 60, 5).Should(ContainSubstring("ContainersReady True"))
 		})
 	})
 })
