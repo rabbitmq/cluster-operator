@@ -3,7 +3,7 @@
 CONTROLLER_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
 CONTROLLER_IMAGE_LOCAL=cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
 CI_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
-CI_CLUSTER=dev-bunny
+CI_CLUSTER=dev-bunny-1
 GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
 RABBITMQ_USERNAME=guest
 RABBITMQ_PASSWORD=guest

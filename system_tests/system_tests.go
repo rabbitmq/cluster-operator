@@ -3,6 +3,7 @@ package system_tests
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,6 +17,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const podCreationTimeout time.Duration  = 120 * time.Second
 
 var _ = Describe("System tests", func() {
 	var namespace, instanceName, statefulSetName, podname string
@@ -105,7 +108,7 @@ var _ = Describe("System tests", func() {
 					return ""
 				}
 				return response.Status
-			}, 120, 5).Should(Equal("ok"))
+			}, podCreationTimeout, 5).Should(Equal("ok"))
 		})
 	})
 
@@ -150,7 +153,7 @@ var _ = Describe("System tests", func() {
 				pod, err := clientSet.CoreV1().Pods(namespace).Get("p-rabbitmq-one-0", metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return fmt.Sprintf("%v", pod.Status.Conditions)
-			}, 60, 5).Should(ContainSubstring("ContainersReady True"))
+			}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
 		})
 	})
 })
