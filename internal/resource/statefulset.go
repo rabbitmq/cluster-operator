@@ -8,10 +8,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const RabbitmqManagementImage string = "rabbitmq:3.8-rc-management"
+
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
 	single := int32(1)
 	f := false
-	image := "rabbitmq:3.8-rc-management"
+	image := RabbitmqManagementImage
 
 	if instance.Spec.Image.Repository != "" {
 		image = fmt.Sprintf("%s/%s", instance.Spec.Image.Repository, image)

@@ -18,12 +18,11 @@ package controllers_test
 
 import (
 	"context"
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"time"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -31,9 +30,11 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 )
 
+const timeout = time.Second
+
 var _ = Describe("RabbitmqclusterController", func() {
+
 	Context("when Reconcile is called", func() {
-		const timeout = time.Millisecond * 700
 		var (
 			rabbitmqClusterOne    *rabbitmqv1beta1.RabbitmqCluster
 			expectedRequestForOne reconcile.Request
@@ -100,7 +101,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(secret.Name).To(Equal(secretName))
 		})
 
-		Context("Using a second RabbitmqCluster", func() {
+		Context("using a second RabbitmqCluster", func() {
 
 			var (
 				rabbitmqClusterTwo    *rabbitmqv1beta1.RabbitmqCluster
@@ -153,4 +154,63 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 		})
 	})
+
+	Context("using a private container image", func() {
+		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
+		var err error
+		var expectedRequest reconcile.Request
+		var clientSet *kubernetes.Clientset
+		var namespace, instanceName, stsName, rabbitmqManagementImage string
+
+		BeforeEach(func() {
+			instanceName = "rabbitmq"
+			stsName = "p-" + instanceName
+			namespace = "default"
+			rabbitmqManagementImage = "rabbitmq:3.8-rc-management"
+
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instanceName,
+					Namespace: namespace,
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Plan: "single",
+					Image: rabbitmqv1beta1.RabbitmqClusterImageSpec{
+						Repository: "my-private-repo",
+					},
+					ImagePullSecret: "my-best-secret",
+				},
+			}
+
+			expectedRequest = reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: "rabbitmq", Namespace: "default",
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			clientSet, err = kubernetes.NewForConfig(cfg)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+		})
+
+		It("templates the Stateful Set with the specified ImagePullSecrets", func() {
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+			sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sts.Spec.Template.Spec.ImagePullSecrets[0].Name).To(Equal("my-best-secret"))
+		})
+
+		It("templates the Stateful Set with the specified private repository", func() {
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+			sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(Equal("my-private-repo/" + rabbitmqManagementImage))
+		})
+
+	})
+
 })

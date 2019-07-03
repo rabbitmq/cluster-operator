@@ -124,6 +124,7 @@ var _ = Describe("StatefulSet", func() {
 	})
 
 	Context("Image and ImagePullSecrets", func() {
+
 		Context("when configuring a private image repository", func() {
 			It("templates the image string and the imagePullSecrets correctly", func() {
 				instance.Spec.Image.Repository = "my-private-repo"
@@ -131,7 +132,7 @@ var _ = Describe("StatefulSet", func() {
 
 				statefulSet := resource.GenerateStatefulSet(instance)
 				container := extractContainer(statefulSet, "rabbitmq")
-				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:3.8-rc-management"))
+				Expect(container.Image).To(Equal("my-private-repo/" + resource.RabbitmqManagementImage))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 			})
 		})
@@ -139,7 +140,7 @@ var _ = Describe("StatefulSet", func() {
 		Context("when not configuring a private image repository", func() {
 			It("templates the image string and the imagePullSecrets with default values", func() {
 				container := extractContainer(sts, "rabbitmq")
-				Expect(container.Image).To(Equal("rabbitmq:3.8-rc-management"))
+				Expect(container.Image).To(Equal(resource.RabbitmqManagementImage))
 				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 			})
 		})

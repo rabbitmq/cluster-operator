@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -112,10 +111,8 @@ var _ = Describe("System tests", func() {
 
 	Context("when using our gcr repository for our Rabbitmq management image", func() {
 		var (
-			client             client.Client
-			serviceAccountName string
-			serviceAccount     *corev1.ServiceAccount
-			rabbitmqCluster    *rabbitmqv1beta1.RabbitmqCluster
+			client          client.Client
+			rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		)
 
 		BeforeEach(func() {
@@ -129,21 +126,11 @@ var _ = Describe("System tests", func() {
 			mgr, err := ctrl.NewManager(config, ctrl.Options{Scheme: scheme})
 			Expect(err).NotTo(HaveOccurred())
 			client = mgr.GetClient()
-
-			// we are relying on the `make destroy/destroy-ci` to cleanup the state
-			// so that we have a chance to debug if it failed locally and in the ci
-			serviceAccountName = "system-test-gcr-repo"
-			serviceAccount = &corev1.ServiceAccount{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      serviceAccountName,
-					Namespace: namespace,
-				},
-			}
-
-			Expect(client.Create(context.TODO(), serviceAccount)).NotTo(HaveOccurred())
 		})
 
-		It("successfully creates pods using image from gcr", func() {
+		It("successfully creates pods using private image and configured repository", func() {
+			// we are relying on the `make destroy/destroy-ci` to cleanup the state
+			// so that we have a chance to debug if it failed locally and in the ci
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-one",
@@ -158,11 +145,6 @@ var _ = Describe("System tests", func() {
 				},
 			}
 			Expect(createRabbitmqCluster(client, rabbitmqCluster)).NotTo(HaveOccurred())
-
-			sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("p-%s", "rabbitmq-one"), metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(Equal("eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq:3.8-rc-management"))
-			Expect(sts.Spec.Template.Spec.ImagePullSecrets[0].Name).To(Equal("gcr-viewer"))
 
 			Eventually(func() string {
 				pod, err := clientSet.CoreV1().Pods(namespace).Get("p-rabbitmq-one-0", metav1.GetOptions{})
