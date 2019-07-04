@@ -3,3 +3,4 @@ cover.out
 **/*.yaml-e
 bin/
 .idea/
+tags
