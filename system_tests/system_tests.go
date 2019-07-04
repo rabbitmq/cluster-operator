@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const podCreationTimeout time.Duration  = 120 * time.Second
+const podCreationTimeout time.Duration = 120 * time.Second
 
 var _ = Describe("System tests", func() {
 	var namespace, instanceName, statefulSetName, podname string
