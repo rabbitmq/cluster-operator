@@ -1,4 +1,5 @@
-# This patch disable manager from emitting metics.
+# This patch stop manager from emitting any metrics
+# For more context, refer to story #167092237
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8,7 +9,7 @@ spec:
   template:
     spec:
       containers:
-      # Expose metrics emitting by setting metrics-addr to 0
+      # Stop metrics emitting by setting metrics-addr to 0
       - name: manager
         args:
         - "--metrics-addr=0"
