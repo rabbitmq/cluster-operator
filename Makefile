@@ -114,11 +114,15 @@ system-tests: fetch-service-ip
 system-tests-ci: fetch-service-ip-ci
 	SERVICE_HOST=$(SERVICE_HOST_CI) NAMESPACE="pivotal-rabbitmq-system-ci" ginkgo -r system_tests/
 
-GCR_VIEWER_KEY=$(shell lpass show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --notes | jq -c)
+check-gcr-viewer-exists:
+ifndef GCR_VIEWER_KEY
+	GCR_VIEWER_KEY=$(shell $(LPASS_CLI) show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --notes | jq -c)
+endif
+
 GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
 GCR_VIEWER_ACCOUNT_NAME='gcr-viewer'
 K8S_OPERATOR_NAMESPACE='pivotal-rabbitmq-system'
-gcr-viewer:
+gcr-viewer: check-gcr-viewer-exists
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY)' || true
 	kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
 
