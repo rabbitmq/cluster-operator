@@ -119,10 +119,14 @@ ifndef GCR_VIEWER_KEY
 	GCR_VIEWER_KEY=$(shell $(LPASS_CLI) show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --notes | jq -c)
 endif
 
+set-namespace:
+ifndef K8S_OPERATOR_NAMESPACE
+	K8S_OPERATOR_NAMESPACE='pivotal-rabbitmq-system'
+endif
+
 GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
 GCR_VIEWER_ACCOUNT_NAME='gcr-viewer'
-K8S_OPERATOR_NAMESPACE='pivotal-rabbitmq-system'
-gcr-viewer: check-gcr-viewer-exists
+gcr-viewer: check-gcr-viewer-exists set-namespace
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY)' || true
 	kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
 
