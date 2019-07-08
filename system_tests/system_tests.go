@@ -98,7 +98,7 @@ var _ = Describe("System tests", func() {
 		})
 	})
 
-	Context("when the RabbitmqCluster StatefulSet is delete", func() {
+	Context("when the RabbitmqCluster StatefulSet is deleted", func() {
 		It("reconciles the state, and the cluster is working again", func() {
 			err := kubectlDelete(namespace, "statefulset", statefulSetName)
 			Expect(err).NotTo(HaveOccurred())
@@ -131,6 +131,17 @@ var _ = Describe("System tests", func() {
 			client = mgr.GetClient()
 		})
 
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Eventually(func() string {
+				_, err := clientSet.CoreV1().Pods(namespace).Get("p-rabbitmq-one-0", metav1.GetOptions{})
+				if err != nil {
+					return err.Error()
+				}
+				return ""
+			}, podCreationTimeout, 5).Should(ContainSubstring(`pods "p-rabbitmq-one-0" not found`))
+		})
+
 		It("successfully creates pods using private image and configured repository", func() {
 			// we are relying on the `make destroy/destroy-ci` to cleanup the state
 			// so that we have a chance to debug if it failed locally and in the ci
@@ -151,7 +162,11 @@ var _ = Describe("System tests", func() {
 
 			Eventually(func() string {
 				pod, err := clientSet.CoreV1().Pods(namespace).Get("p-rabbitmq-one-0", metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
+				if err != nil {
+					Expect(err).To(MatchError(`pods "p-rabbitmq-one-0" not found`))
+					return ""
+				}
+
 				return fmt.Sprintf("%v", pod.Status.Conditions)
 			}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
 		})
