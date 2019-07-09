@@ -115,7 +115,7 @@ jobs:
           tag: latest
           repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
           username: _json_key
-          password: ((gcr-push-service-account-key))
+          password: ((gcr-pull-service-account-key))
       inputs:
       - name: *repo
         path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
@@ -125,6 +125,8 @@ jobs:
         TERM: xterm-256color
         KUBECTL_SECRET_TOKEN: ((rmq-k8s-ci-kubectl-service-account-key))
         KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
+        GCR_VIEWER_KEY_CI: ((gcr-pull-service-account-key))
+        K8S_OPERATOR_NAMESPACE_CI: pivotal-rabbitmq-system-ci
       run:
         path: bash
         args:
