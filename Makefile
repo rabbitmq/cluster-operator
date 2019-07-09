@@ -70,7 +70,7 @@ deploy-namespace-ci:
 deploy: manifests deploy-namespace gcr-viewer deploy-manager deploy-sample
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer deploy-manager-ci deploy-sample-ci
+deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer-ci deploy-manager-ci deploy-sample-ci
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
@@ -114,22 +114,17 @@ system-tests: fetch-service-ip
 system-tests-ci: fetch-service-ip-ci
 	SERVICE_HOST=$(SERVICE_HOST_CI) NAMESPACE="pivotal-rabbitmq-system-ci" ginkgo -r system_tests/
 
-check-gcr-viewer-exists:
-ifndef GCR_VIEWER_KEY
-	GCR_VIEWER_KEY=$(shell $(LPASS_CLI) show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --notes | jq -c)
-endif
-
-set-namespace:
-ifndef K8S_OPERATOR_NAMESPACE
-	K8S_OPERATOR_NAMESPACE='pivotal-rabbitmq-system'
-endif
-
-GCR_VIEWER_ACCOUNT_EMAIL='gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com'
-GCR_VIEWER_ACCOUNT_NAME='gcr-viewer'
-gcr-viewer: check-gcr-viewer-exists set-namespace
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY)' || true
+GCR_VIEWER_ACCOUNT_EMAIL=gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com
+GCR_VIEWER_ACCOUNT_NAME=gcr-viewer
+GCR_VIEWER_KEY=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --notes | jq -c)
+K8S_OPERATOR_NAMESPACE=pivotal-rabbitmq-system
+gcr-viewer:
+	kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY)' || true
 	kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
 
+gcr-viewer-ci:
+	kubectl -n $(K8S_OPERATOR_NAMESPACE_CI) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY_CI)' || true
+	kubectl -n $(K8S_OPERATOR_NAMESPACE_CI) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
 
 # find or download controller-gen
 # download controller-gen if necessary
