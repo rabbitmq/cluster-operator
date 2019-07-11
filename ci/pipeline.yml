@@ -1,4 +1,11 @@
 ---
+resource_types:
+- name: pivnet
+  type: docker-image
+  source:
+    repository: pivotalcf/pivnet-resource
+    tag: latest-final
+
 resources:
 # https://github.com/concourse/git-resource
 - name: &repo rabbitmq-for-kubernetes
@@ -23,6 +30,31 @@ resources:
     days:
     - Friday
     location: Europe/London
+- name: rabbitmq-for-kubernetes-pivnet
+  type: pivnet
+  source:
+    api_token: ((pivnet-api-token))
+    product_slug: p-rabbitmq-for-kubernetes
+    access_key_id: ((pivnet-aws-access-key-id))
+    secret_access_key: ((pivnet-aws-secret-access-key))
+
+- name: product-release
+  type: s3
+  source:
+    bucket: rabbitmq-for-kubernetes
+    regexp: (.*).tar
+    region_name: eu-west-1
+    access_key_id: ((pivnet-aws-access-key-id))
+    secret_access_key: ((pivnet-aws-secret-access-key))
+
+- name: product-metadata
+  type: s3
+  source:
+    bucket: rabbitmq-for-kubernetes
+    regexp: (.*).yml
+    region_name: eu-west-1
+    access_key_id: ((pivnet-aws-access-key-id))
+    secret_access_key: ((pivnet-aws-secret-access-key))
 
 jobs:
 - name: integration-tests
@@ -168,3 +200,14 @@ jobs:
         - |
           echo "curling https://environments.toolsmiths.cf-app.com/custom_gcp_environments/20/renew"
           curl -H "Authorization: OAuth ${TOKEN}" https://environments.toolsmiths.cf-app.com/custom_gcp_environments/20/renew
+
+- name: upload-pivnet
+  serial: true
+  plan:
+  - get: product-release
+  - get: product-metadata
+  - put: rabbitmq-for-kubernetes-pivnet
+    params:
+      s3_filepath_prefix: rabbitmq-for-kubernetes
+      file_glob: product-release/rabbitmq-for-kubernetes-*.tar
+      metadata_file: product-metadata/metadata.yml
