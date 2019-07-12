@@ -1,7 +1,7 @@
-
 # Image URL to use all building/pushing image targets
-CONTROLLER_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
-CONTROLLER_IMAGE_LOCAL=cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
+CONTROLLER_IMAGE_NAME=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
+CONTROLLER_IMAGE=$(CONTROLLER_IMAGE_NAME):latest
+CONTROLLER_IMAGE_LOCAL=cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller:latest
 CI_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
 CI_CLUSTER=dev-bunny-1
 GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
@@ -10,6 +10,10 @@ RABBITMQ_PASSWORD=guest
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
+CONTROLLER_IMAGE_DIGEST:=""
+# @sha256:$(CONTROLLER_IMAGE_DIGEST)
+controller-image-digest:
+	$(eval CONTROLLER_IMAGE_DIGEST := $(shell docker inspect --format='{{index .RepoDigests 0}}' ${CONTROLLER_IMAGE_NAME} | awk -F ':' '{print $$2}'))
 
 # Run unit tests
 unit-tests: generate fmt vet manifests
@@ -24,7 +28,10 @@ manager: generate fmt vet
 	go build -o bin/manager main.go
 
 # Deploy manager
-deploy-manager:
+deploy-manager: controller-image-digest
+	$(eval CONTROLLER_IMAGE_WITH_DIGEST:=$(CONTROLLER_IMAGE_NAME):latest\@sha256:$(CONTROLLER_IMAGE_DIGEST))
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_WITH_DIGEST}"'@' ./config/default/base/manager_image_patch.yaml
 	kubectl apply -k config/default/base
 
 # Deploy manager in CI
@@ -91,8 +98,6 @@ generate: controller-gen
 # Build the docker image
 docker-build:
 	docker build . -t ${CONTROLLER_IMAGE}
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/base/manager_image_patch.yaml
 
 docker-build-local:
 	docker build . -t ${CONTROLLER_IMAGE_LOCAL}
@@ -119,12 +124,14 @@ GCR_VIEWER_ACCOUNT_NAME=gcr-viewer
 GCR_VIEWER_KEY=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --notes | jq -c)
 K8S_OPERATOR_NAMESPACE=pivotal-rabbitmq-system
 gcr-viewer:
-	kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY)' || true
-	kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
+	echo "creating gcr-viewer secret and patching default service account"
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY)' || true
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
 
 gcr-viewer-ci:
-	kubectl -n $(K8S_OPERATOR_NAMESPACE_CI) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY_CI)' || true
-	kubectl -n $(K8S_OPERATOR_NAMESPACE_CI) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
+	echo "creating gcr-viewer secret and patching default service account"
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE_CI) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY_CI)' || true
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE_CI) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
 
 # find or download controller-gen
 # download controller-gen if necessary
