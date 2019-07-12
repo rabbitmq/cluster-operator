@@ -36,6 +36,9 @@ deploy-manager: controller-image-digest
 
 # Deploy manager in CI
 deploy-manager-ci:
+	$(eval CONTROLLER_IMAGE_WITH_DIGEST:=$(CONTROLLER_IMAGE_NAME):latest\@sha256:$(CONTROLLER_IMAGE_DIGEST))
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_WITH_DIGEST}"'@' ./config/default/base/manager_image_patch.yaml
 	kubectl apply -k config/default/overlays/ci
 
 # Deploy local rabbitmqcluster
