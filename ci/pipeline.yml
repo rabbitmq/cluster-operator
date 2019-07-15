@@ -203,7 +203,7 @@ jobs:
       - name: *operator-image
         path: /operator-image
       outputs:
-      - name: updated-repo-with-controller-image-digest
+      - name: *repo
       run:
         path: bash
         args:
@@ -213,10 +213,9 @@ jobs:
           pushd rabbitmq-for-kubernetes
           make patch-controller-image-digest
           popd
-          cp -r rabbitmq-for-kubernetes updated-repo-with-controller-image-digest
   - put: *repo
     params:
-      repository: updated-repo-with-controller-image-digest
+      repository: *repo
 
 - name: renew-env
   serial: true
