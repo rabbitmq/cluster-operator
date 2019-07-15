@@ -187,7 +187,6 @@ jobs:
   - get: *repo
   - get: *operator-image
     passed: [system-tests]
-    trigger: true
   - task: update-controller-image-digest
     config:
       platform: linux
