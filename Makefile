@@ -13,7 +13,6 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 # @sha256:$(CONTROLLER_IMAGE_DIGEST)
 controller-image-digest:
 ifeq (, $(CONTROLLER_IMAGE_DIGEST))
-	echo "making digest"
 	$(eval CONTROLLER_IMAGE_DIGEST := $(shell docker inspect --format='{{index .RepoDigests 0}}' ${CONTROLLER_IMAGE_NAME} | awk -F ':' '{print $$2}'))
 endif
 
