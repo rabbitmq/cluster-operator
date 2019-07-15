@@ -28,18 +28,17 @@ integration-tests: generate fmt vet manifests
 manager: generate fmt vet
 	go build -o bin/manager main.go
 
-# Deploy manager
-deploy-manager: controller-image-digest
+patch-controller-image-digest:
 	$(eval CONTROLLER_IMAGE_WITH_DIGEST:=$(CONTROLLER_IMAGE_NAME):latest\@$(CONTROLLER_IMAGE_DIGEST))
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_WITH_DIGEST}"'@' ./config/default/base/manager_image_patch.yaml
+
+# Deploy manager
+deploy-manager: controller-image-digest patch-controller-image-digest
 	kubectl apply -k config/default/base
 
 # Deploy manager in CI
-deploy-manager-ci:
-	$(eval CONTROLLER_IMAGE_WITH_DIGEST:=$(CONTROLLER_IMAGE_NAME):latest\@$(CONTROLLER_IMAGE_DIGEST))
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_WITH_DIGEST}"'@' ./config/default/base/manager_image_patch.yaml
+deploy-manager-ci: patch-controller-image-digest
 	kubectl apply -k config/default/overlays/ci
 
 # Deploy local rabbitmqcluster

@@ -181,6 +181,43 @@ jobs:
           echo "Testing single node cluster..."
           make system-tests-ci
 
+- name: update-controller-image-digest
+  serial: true
+  plan:
+  - get: *repo
+  - get: *operator-image
+    passed: [system-tests]
+    trigger: true
+  - task: update-controller-image-digest
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          tag: latest
+          repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
+          username: _json_key
+          password: ((gcr-push-service-account-key))
+      inputs:
+      - name: *repo
+      - name: *operator-image
+        path: /operator-image
+      outputs:
+      - name: updated-repo-with-controller-image-digest
+      run:
+        path: bash
+        args:
+        - -ec
+        - |
+          export CONTROLLER_IMAGE_DIGEST=$(cat operator-image/digest)
+          pushd rabbitmq-for-kubernetes
+          make patch-controller-image-digest
+          popd
+          cp -r rabbitmq-for-kubernetes updated-repo-with-controller-image-digest
+  - put: *repo
+    params:
+      repository: updated-repo-with-controller-image-digest
+
 - name: renew-env
   serial: true
   plan:
