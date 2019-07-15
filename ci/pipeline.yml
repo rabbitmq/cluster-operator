@@ -15,13 +15,16 @@ resources:
     branch: master
     private_key: |
       ((git-ssh-key))
+
 # https://github.com/concourse/docker-image-resource
 - name: &operator-image rabbitmq-k8s-operator
-  type: docker-image
+  type: registry-image
   source:
     repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
+    tag: latest
     username: _json_key
     password: ((gcr-push-service-account-key))
+
 - name: every-friday
   type: time
   source:
@@ -151,6 +154,8 @@ jobs:
       inputs:
       - name: *repo
         path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+      - name: *operator-image
+        path: /operator-image
       params:
         # To use the right value for TERM, check what terms are available in the image: find /lib/terminfo -type f
         # To double-check that a specific term is available, run: infocmp xterm-256color
@@ -168,6 +173,7 @@ jobs:
           echo "Outputting kubectl token to a file"
           echo -n $KUBECTL_SECRET_TOKEN > $KUBECTL_SECRET_TOKEN_PATH
           set -x
+          export CONTROLLER_IMAGE_DIGEST=$(cat operator-image/digest)
           export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
           echo "Deploying ci environment"
