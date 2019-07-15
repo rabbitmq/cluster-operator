@@ -10,10 +10,12 @@ RABBITMQ_PASSWORD=guest
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
-CONTROLLER_IMAGE_DIGEST:=""
 # @sha256:$(CONTROLLER_IMAGE_DIGEST)
 controller-image-digest:
+ifeq (, $(CONTROLLER_IMAGE_DIGEST))
+	echo "making digest"
 	$(eval CONTROLLER_IMAGE_DIGEST := $(shell docker inspect --format='{{index .RepoDigests 0}}' ${CONTROLLER_IMAGE_NAME} | awk -F ':' '{print $$2}'))
+endif
 
 # Run unit tests
 unit-tests: generate fmt vet manifests
