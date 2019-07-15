@@ -18,7 +18,7 @@ resources:
 
 # https://github.com/concourse/docker-image-resource
 - name: &operator-image rabbitmq-k8s-operator
-  type: registry-image
+  type: docker-image
   source:
     repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
     tag: latest
