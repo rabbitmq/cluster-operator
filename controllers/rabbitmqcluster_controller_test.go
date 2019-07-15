@@ -18,11 +18,12 @@ package controllers_test
 
 import (
 	"context"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"time"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -166,7 +167,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			instanceName = "rabbitmq"
 			stsName = "p-" + instanceName
 			namespace = "default"
-			rabbitmqManagementImage = "rabbitmq:3.8-rc-management"
+			rabbitmqManagementImage = "rabbitmq:3.8-rc-management@sha256:2a7a888fab5c080ea551d027326923f9ed9b84255bf4c0b7636f156844c99f26"
 
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
