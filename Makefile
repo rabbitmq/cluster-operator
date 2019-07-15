@@ -10,10 +10,10 @@ RABBITMQ_PASSWORD=guest
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
-# @sha256:$(CONTROLLER_IMAGE_DIGEST)
 controller-image-digest:
 ifeq (, $(CONTROLLER_IMAGE_DIGEST))
-	$(eval CONTROLLER_IMAGE_DIGEST := $(shell docker inspect --format='{{index .RepoDigests 0}}' ${CONTROLLER_IMAGE_NAME} | awk -F ':' '{print $$2}'))
+	$(eval CONTROLLER_IMAGE_DIGEST := "sha256:$(shell docker inspect --format='{{index .RepoDigests 0}}' ${CONTROLLER_IMAGE_NAME} | awk -F ':' '{print $$2}')" )
+	@echo $(CONTROLLER_IMAGE_DIGEST)
 endif
 
 # Run unit tests
@@ -30,14 +30,14 @@ manager: generate fmt vet
 
 # Deploy manager
 deploy-manager: controller-image-digest
-	$(eval CONTROLLER_IMAGE_WITH_DIGEST:=$(CONTROLLER_IMAGE_NAME):latest\@sha256:$(CONTROLLER_IMAGE_DIGEST))
+	$(eval CONTROLLER_IMAGE_WITH_DIGEST:=$(CONTROLLER_IMAGE_NAME):latest\@$(CONTROLLER_IMAGE_DIGEST))
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_WITH_DIGEST}"'@' ./config/default/base/manager_image_patch.yaml
 	kubectl apply -k config/default/base
 
 # Deploy manager in CI
 deploy-manager-ci:
-	$(eval CONTROLLER_IMAGE_WITH_DIGEST:=$(CONTROLLER_IMAGE_NAME):latest\@sha256:$(CONTROLLER_IMAGE_DIGEST))
+	$(eval CONTROLLER_IMAGE_WITH_DIGEST:=$(CONTROLLER_IMAGE_NAME):latest\@$(CONTROLLER_IMAGE_DIGEST))
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_WITH_DIGEST}"'@' ./config/default/base/manager_image_patch.yaml
 	kubectl apply -k config/default/overlays/ci
