@@ -18,11 +18,11 @@ endif
 
 # Run unit tests
 unit-tests: generate fmt vet manifests
-	ginkgo -r api/ internal/
+	ginkgo -r internal/
 
 # Run integration tests
 integration-tests: generate fmt vet manifests
-	ginkgo -r controllers/
+	ginkgo -r api/ controllers/
 
 # Build manager binary
 manager: generate fmt vet

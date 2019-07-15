@@ -2,13 +2,14 @@ package resource
 
 import (
 	"fmt"
+
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const RabbitmqManagementImage string = "rabbitmq:3.8-rc-management"
+const RabbitmqManagementImage string = "rabbitmq:3.8-rc-management@sha256:2a7a888fab5c080ea551d027326923f9ed9b84255bf4c0b7636f156844c99f26"
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
 	single := int32(1)
