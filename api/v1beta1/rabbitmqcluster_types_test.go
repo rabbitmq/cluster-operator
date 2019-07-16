@@ -54,6 +54,12 @@ var _ = Describe("RabbitmqCluster", func() {
 				invalidPlan.Spec.Plan = "idontcareaboutplan"
 				Expect(k8sClient.Create(context.TODO(), invalidPlan)).To(MatchError(ContainSubstring("validation failure list:\nspec.plan in body should be one of [single]")))
 			})
+
+			By("validating the provided service type", func() {
+				invalidService := generateRabbitmqClusterObject()
+				invalidService.Spec.Service.Type = "ihateservices"
+				Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("validation failure list:\nspec.service.type in body should be one of [ClusterIP LoadBalancer]")))
+			})
 		})
 	})
 })
@@ -70,6 +76,9 @@ func generateRabbitmqClusterObject() *RabbitmqCluster {
 				Repository: "my-private-repo",
 			},
 			ImagePullSecret: "some-secret-name",
+			Service: RabbitmqClusterServiceSpec{
+				Type: "LoadBalancer",
+			},
 		},
 	}
 }

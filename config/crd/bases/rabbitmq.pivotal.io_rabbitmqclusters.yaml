@@ -398,6 +398,14 @@ spec:
               enum:
               - single
               type: string
+            service:
+              properties:
+                type:
+                  enum:
+                  - ClusterIP
+                  - LoadBalancer
+                  type: string
+              type: object
           required:
           - plan
           type: object

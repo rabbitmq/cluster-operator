@@ -6,6 +6,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Service", func() {
@@ -51,6 +52,22 @@ var _ = Describe("Service", func() {
 				Protocol: corev1.ProtocolTCP,
 			}
 			Expect(service.Spec.Ports).Should(ConsistOf(amqpPort, httpPort))
+		})
+
+		It("creates a LoadBalancer type service when specified", func() {
+			loadBalancerInstance := rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "name",
+					Namespace: "mynamespace",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+						Type: "LoadBalancer",
+					},
+				},
+			}
+			loadBalancerService := resource.GenerateService(loadBalancerInstance)
+			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 		})
 	})
 })

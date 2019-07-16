@@ -23,13 +23,19 @@ import (
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
 type RabbitmqClusterSpec struct {
 	// +kubebuilder:validation:Enum=single
-	Plan            string                   `json:"plan"`
-	Image           RabbitmqClusterImageSpec `json:"image,omitempty"`
-	ImagePullSecret string                   `json:"imagePullSecret,omitempty"`
+	Plan            string                     `json:"plan"`
+	Image           RabbitmqClusterImageSpec   `json:"image,omitempty"`
+	ImagePullSecret string                     `json:"imagePullSecret,omitempty"`
+	Service         RabbitmqClusterServiceSpec `json:"service,omitempty"`
 }
 
 type RabbitmqClusterImageSpec struct {
 	Repository string `json:"repository"`
+}
+
+type RabbitmqClusterServiceSpec struct {
+	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer
+	Type string `json:"type,omitempty"`
 }
 
 // RabbitmqClusterStatus defines the observed state of RabbitmqCluster

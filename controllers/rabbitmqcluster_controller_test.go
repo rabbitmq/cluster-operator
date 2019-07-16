@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -103,7 +104,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(secret.Name).To(Equal(secretName))
 		})
 
-		It("creates a rabbitmq service object", func() {
+		It("creates a rabbitmq ClusterIP service object", func() {
 			Eventually(requests, timeout).Should(Receive(Equal(expectedRequestForOne)))
 
 			service, err := clientSetOne.CoreV1().Services("default").Get(serviceName, metav1.GetOptions{})
@@ -162,6 +163,54 @@ var _ = Describe("RabbitmqclusterController", func() {
 				_, err = clientSetForTwo.CoreV1().ConfigMaps("default").Get(configMapNameTwo, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 			})
+		})
+	})
+
+	Context("using a LoadBalancer type service", func() {
+		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
+		var err error
+		var expectedRequest reconcile.Request
+		var clientSet *kubernetes.Clientset
+		var namespace, instanceName, serviceName string
+
+		BeforeEach(func() {
+			instanceName = "rabbitmq-lb"
+			namespace = "default"
+			serviceName = "p-" + instanceName
+
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instanceName,
+					Namespace: namespace,
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Plan: "single",
+					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+						Type: "LoadBalancer",
+					},
+				},
+			}
+
+			expectedRequest = reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: "rabbitmq-lb", Namespace: "default",
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			clientSet, err = kubernetes.NewForConfig(cfg)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+		})
+
+		It("creates the Service as type LoadBalancer", func() {
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+			service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 		})
 	})
 

@@ -7,6 +7,14 @@ import (
 )
 
 func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.Service {
+	serviceType := corev1.ServiceTypeClusterIP
+	if instance.Spec.Service.Type != "" {
+		switch specifiedService := instance.Spec.Service.Type; specifiedService {
+		case "LoadBalancer":
+			serviceType = corev1.ServiceTypeLoadBalancer
+		}
+	}
+
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "p-" + instance.Name,
@@ -16,7 +24,7 @@ func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.Service {
 			},
 		},
 		Spec: corev1.ServiceSpec{
-			Type: corev1.ServiceTypeClusterIP,
+			Type: serviceType,
 			Selector: map[string]string{
 				"app": instance.Name,
 			},
