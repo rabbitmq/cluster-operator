@@ -202,7 +202,7 @@ jobs:
       - name: *operator-image
         path: /operator-image
       outputs:
-      - name: *repo
+      - name: updated-repo-with-digest
       run:
         path: bash
         args:
@@ -211,10 +211,16 @@ jobs:
           export CONTROLLER_IMAGE_DIGEST=$(cat operator-image/digest)
           pushd rabbitmq-for-kubernetes
           make patch-controller-image-digest
+          git add .
+          git config --global user.name "rmq4k8s Concourse"
+          git config --global user.email "rabbitmq-for-k8s@pivotal.io"
+          git commit -m "Update controller image digest [ci]"
           popd
+          cp -r rabbitmq-for-kubernetes/. updated-repo-with-digest
   - put: *repo
     params:
-      repository: *repo
+      repository: updated-repo-with-digest
+      rebase: true
 
 - name: renew-env
   serial: true
