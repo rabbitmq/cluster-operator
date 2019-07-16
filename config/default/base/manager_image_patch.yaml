@@ -8,5 +8,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller:latest@sha256:d253fbd04a5e8d31ab215713795e268ff9a8ea87f213e150eea59cfaf95476df
+      - image: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller:latest@sha256:e157984d9fedeaa8d244ac468e66a52c989b9a177f5594a729417d2fc7f940d3
         name: manager
