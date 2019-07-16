@@ -25,6 +25,10 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("when creating a working StatefulSet with minimum requirements", func() {
 
+		It("adds the correct labels", func() {
+			Expect(sts.Labels["app"]).To(Equal(instance.Name))
+		})
+
 		It("specifies required Container Ports", func() {
 
 			requiredContainerPorts := []int32{5672, 15672}

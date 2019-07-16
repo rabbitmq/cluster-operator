@@ -44,6 +44,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			configMapBaseName     = "rabbitmq-default-plugins"
 			configMapName         string
 			secretName            = "rabbitmq-one-rabbitmq-secret"
+			serviceName           = "p-rabbitmq-one"
 		)
 
 		BeforeEach(func() {
@@ -100,6 +101,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 			secret, err := clientSetOne.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(secret.Name).To(Equal(secretName))
+		})
+
+		It("creates a rabbitmq service object", func() {
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequestForOne)))
+
+			service, err := clientSetOne.CoreV1().Services("default").Get(serviceName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(service.Name).To(Equal(serviceName))
 		})
 
 		Context("using a second RabbitmqCluster", func() {

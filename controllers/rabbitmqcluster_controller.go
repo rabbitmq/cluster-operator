@@ -79,6 +79,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	resources := []runtime.Object{
 		resource.GenerateStatefulSet(*instance),
 		resource.GenerateConfigMap(*instance),
+		resource.GenerateService(*instance),
 		rabbitmqSecret,
 	}
 
