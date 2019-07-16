@@ -149,10 +149,10 @@ endif
 # TODO - We have temporarily hard coded the ci suffix until we modularize our labels [https://www.pivotaltracker.com/story/show/166494390]
 fetch-service-ip:
 ifeq ($(SERVICE_HOST),)
-SERVICE_HOST=$(shell kubectl -n pivotal-rabbitmq-system get svc -l app=rabbitmqcluster-sample -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+SERVICE_HOST=$(shell kubectl -n pivotal-rabbitmq-system get svc rabbitmqcluster-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 endif
 
 fetch-service-ip-ci:
 ifeq ($(SERVICE_HOST_CI),)
-SERVICE_HOST_CI=$(shell kubectl -n pivotal-rabbitmq-system-ci get svc -l app=rabbitmqcluster-sample-ci -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+SERVICE_HOST_CI=$(shell kubectl -n pivotal-rabbitmq-system-ci get svc rabbitmqcluster-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 endif

@@ -48,6 +48,9 @@ type RabbitmqClusterReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// the rbac rule requires an empty row at the end to render
+// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=services/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
@@ -56,6 +59,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
+
 func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	logger := r.Log.WithValues("rabbitmqcluster", req.NamespacedName)
