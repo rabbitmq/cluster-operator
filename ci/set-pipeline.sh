@@ -3,7 +3,8 @@
 set -e
 
 fly -t rmq set-pipeline -p operator -c pipeline.yml \
-  -v git-ssh-key="$(lpassd show "Shared-RabbitMQ for Kubernetes/rmq-k8s-ci-git-ssh-key" --note)" \
+  -v operator-git-ssh-key="$(lpassd show "Shared-RabbitMQ for Kubernetes/rmq-k8s-ci-operator-git-ssh-key" --note | jq -r .private_key)" \
+  -v broker-git-ssh-key="$(lpassd show "Shared-RabbitMQ for Kubernetes/rmq-k8s-ci-broker-git-ssh-key" --note | jq -r .private_key)" \
   -v gcr-push-service-account-key="$(lpassd show "Shared-RabbitMQ for Kubernetes/ci-gcr-access" --note | jq -c .)" \
   -v gcr-pull-service-account-key="$(lpassd show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --note | jq -c .)" \
   -v rmq-k8s-ci-kubectl-service-account-key="$(lpassd show "Shared-RabbitMQ for Kubernetes/rmq-k8s-ci-kubectl-service-account-key" --note | jq -c .)" \

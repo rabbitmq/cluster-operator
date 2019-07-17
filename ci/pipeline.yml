@@ -14,7 +14,15 @@ resources:
     uri: git@github.com:pivotal/rabbitmq-for-kubernetes
     branch: master
     private_key: |
-      ((git-ssh-key))
+      ((operator-git-ssh-key))
+
+- name: rabbitmq-for-kubernetes-broker
+  type: git
+  source:
+    uri: git@github.com:pivotal/rabbitmq-for-kubernetes-broker
+    branch: master
+    private_key: |
+      ((broker-git-ssh-key))
 
 # https://github.com/concourse/docker-image-resource
 - name: &operator-image rabbitmq-k8s-operator
@@ -33,6 +41,7 @@ resources:
     days:
     - Friday
     location: Europe/London
+
 - name: rabbitmq-for-kubernetes-pivnet
   type: pivnet
   source:
@@ -101,7 +110,7 @@ jobs:
       tag_file: rabbitmq-for-kubernetes/.git/short_ref
       tag_as_latest: true
 
-- name: system-tests
+- name: operator-system-tests
   serial: true
   plan:
   - get: *repo
@@ -109,6 +118,53 @@ jobs:
     passed: [build-operator]
     trigger: true
   - task: run-system-tests
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          tag: latest
+          repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
+          username: _json_key
+          password: ((gcr-pull-service-account-key))
+      inputs:
+      - name: *repo
+        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+      - name: *operator-image
+        path: /operator-image
+      params:
+        # To use the right value for TERM, check what terms are available in the image: find /lib/terminfo -type f
+        # To double-check that a specific term is available, run: infocmp xterm-256color
+        TERM: xterm-256color
+        KUBECTL_SECRET_TOKEN: ((rmq-k8s-ci-kubectl-service-account-key))
+        KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
+        GCR_VIEWER_KEY_CI: ((gcr-pull-service-account-key))
+        K8S_OPERATOR_NAMESPACE_CI: pivotal-rabbitmq-system-ci
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          set +x
+          echo "Outputting kubectl token to a file"
+          echo -n $KUBECTL_SECRET_TOKEN > $KUBECTL_SECRET_TOKEN_PATH
+          set -x
+          export CONTROLLER_IMAGE_DIGEST=$(cat operator-image/digest)
+          export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
+          cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
+          echo "Deploying ci environment"
+          make deploy-ci
+          echo "Testing single node cluster..."
+          make system-tests-ci
+
+- name: broker-system-tests
+  serial: true
+  plan:
+  - get: rabbitmq-for-kubernetes-broker
+  - get: *repo
+    passed: [operator-system-tests]
+    trigger: true
+  - task: run-broker-system-tests
     on_success:
       task: destroy-ci
       config:
@@ -152,41 +208,42 @@ jobs:
           username: _json_key
           password: ((gcr-pull-service-account-key))
       inputs:
-      - name: *repo
-        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
-      - name: *operator-image
-        path: /operator-image
+      - name: rabbitmq-for-kubernetes-broker
+        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
       params:
-        # To use the right value for TERM, check what terms are available in the image: find /lib/terminfo -type f
-        # To double-check that a specific term is available, run: infocmp xterm-256color
         TERM: xterm-256color
+        OPERATOR_PRIVATE_KEY: ((operator-git-ssh-key))
         KUBECTL_SECRET_TOKEN: ((rmq-k8s-ci-kubectl-service-account-key))
         KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
-        GCR_VIEWER_KEY_CI: ((gcr-pull-service-account-key))
-        K8S_OPERATOR_NAMESPACE_CI: pivotal-rabbitmq-system-ci
+        CI_CLUSTER: dev-bunny-1
+        GCP_PROJECT: cf-rabbitmq-for-k8s-bunny
       run:
         path: bash
         args:
         - -exc
         - |
+          # for accessing private repos
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          # for trusting github.com without prompt
+          mkdir -p ${HOME}/.ssh
           set +x
+          echo "${OPERATOR_PRIVATE_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
           echo "Outputting kubectl token to a file"
           echo -n $KUBECTL_SECRET_TOKEN > $KUBECTL_SECRET_TOKEN_PATH
           set -x
-          export CONTROLLER_IMAGE_DIGEST=$(cat operator-image/digest)
-          export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
-          cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
-          echo "Deploying ci environment"
-          make deploy-ci
-          echo "Testing single node cluster..."
-          make system-tests-ci
+          gcloud auth activate-service-account --key-file=${KUBECTL_SECRET_TOKEN_PATH}
+          gcloud container clusters get-credentials ${CI_CLUSTER} --region europe-west1-b --project ${GCP_PROJECT}
+          ssh-keyscan -H github.com > ~/.ssh/known_hosts
+          cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
+          ginkgo -r system_tests/
 
 - name: update-controller-image-digest
   serial: true
   plan:
   - get: *repo
   - get: *operator-image
-    passed: [system-tests]
+    passed: [operator-system-tests]
   - task: update-controller-image-digest
     config:
       platform: linux
