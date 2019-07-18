@@ -89,6 +89,16 @@ func kubectlDelete(namespace, object, objectName string) error {
 	return err
 }
 
+func getExternalIP(clientSet *kubernetes.Clientset, namespace, serviceName string) (string, error) {
+	service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, v1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	ip := service.Status.LoadBalancer.Ingress[0].IP
+	return ip, nil
+}
+
 func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName string) int {
 	endpoints, err := clientSet.CoreV1().Endpoints(namespace).Get(endpointName, v1.GetOptions{})
 

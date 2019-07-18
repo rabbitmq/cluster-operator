@@ -21,7 +21,7 @@ import (
 const podCreationTimeout time.Duration = 120 * time.Second
 
 var _ = Describe("System tests", func() {
-	var namespace, instanceName, statefulSetName, podname string
+	var namespace, instanceName, statefulSetName, serviceName, podName string
 	var clientSet *kubernetes.Clientset
 	var rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string
 
@@ -30,17 +30,26 @@ var _ = Describe("System tests", func() {
 		namespace = MustHaveEnv("NAMESPACE")
 		instanceName = "rabbitmqcluster-sample"
 		statefulSetName = "p-" + instanceName
-		podname = "p-rabbitmqcluster-sample-0"
+		serviceName = "p-" + instanceName
+		podName = "p-rabbitmqcluster-sample-0"
 
 		clientSet, err = createClientSet()
 		Expect(err).NotTo(HaveOccurred())
 
-		rabbitmqHostName = MustHaveEnv("SERVICE_HOST")
 
 		rabbitmqUsername, err = getRabbitmqUsernameOrPassword(clientSet, namespace, instanceName, "rabbitmq-username")
 		Expect(err).NotTo(HaveOccurred())
 
 		rabbitmqPassword, err = getRabbitmqUsernameOrPassword(clientSet, namespace, instanceName, "rabbitmq-password")
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(func() string {
+			rabbitmqHostName, err = getExternalIP(clientSet, namespace, serviceName)
+			if err != nil {
+				return ""
+			}
+			return rabbitmqHostName
+		}, 60, 5).Should(Not(Equal("")))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -54,7 +63,7 @@ var _ = Describe("System tests", func() {
 		It("has required plugins enabled", func() {
 
 			err := kubectlExec(namespace,
-				podname,
+				podName,
 				"rabbitmq-plugins",
 				"is_enabled",
 				"rabbitmq_federation",
@@ -76,22 +85,22 @@ var _ = Describe("System tests", func() {
 			By("not publishing addresses after stopping Rabbitmq app", func() {
 
 				// Run kubectl exec rabbitmqctl stop_app
-				err := kubectlExec(namespace, podname, "rabbitmqctl", "stop_app")
+				err := kubectlExec(namespace, podName, "rabbitmqctl", "stop_app")
 				Expect(err).NotTo(HaveOccurred())
 
 				// Check endpoints and expect addresses are not ready
 				Eventually(func() int {
-					return endpointPoller(clientSet, namespace, "rabbitmqcluster-service")
+					return endpointPoller(clientSet, namespace, serviceName)
 				}, 35, 3).Should(Equal(0))
 			})
 
 			By("publishing addresses after starting the Rabbitmq app", func() {
-				err := kubectlExec(namespace, podname, "rabbitmqctl", "start_app")
+				err := kubectlExec(namespace, podName, "rabbitmqctl", "start_app")
 				Expect(err).ToNot(HaveOccurred())
 
 				// Check endpoints and expect addresses are ready
 				Eventually(func() int {
-					return endpointPoller(clientSet, namespace, "rabbitmqcluster-service")
+					return endpointPoller(clientSet, namespace, serviceName)
 				}, 35, 3).Should(BeNumerically(">", 0))
 			})
 

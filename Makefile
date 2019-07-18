@@ -116,11 +116,11 @@ docker-build-ci-image:
 docker-push:
 	docker push ${CONTROLLER_IMAGE}
 
-system-tests: fetch-service-ip
-	SERVICE_HOST=$(SERVICE_HOST) NAMESPACE="pivotal-rabbitmq-system" ginkgo -r system_tests/
+system-tests:
+	NAMESPACE="pivotal-rabbitmq-system" ginkgo -r system_tests/
 
-system-tests-ci: fetch-service-ip-ci
-	SERVICE_HOST=$(SERVICE_HOST_CI) NAMESPACE="pivotal-rabbitmq-system-ci" ginkgo -r system_tests/
+system-tests-ci:
+	NAMESPACE="pivotal-rabbitmq-system-ci" ginkgo -r system_tests/
 
 GCR_VIEWER_ACCOUNT_EMAIL=gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com
 GCR_VIEWER_ACCOUNT_NAME=gcr-viewer
@@ -144,15 +144,4 @@ ifeq (, $(shell which controller-gen))
 CONTROLLER_GEN=$(shell go env GOPATH)/bin/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
-endif
-
-# TODO - We have temporarily hard coded the ci suffix until we modularize our labels [https://www.pivotaltracker.com/story/show/166494390]
-fetch-service-ip:
-ifeq ($(SERVICE_HOST),)
-SERVICE_HOST=$(shell kubectl -n pivotal-rabbitmq-system get svc rabbitmqcluster-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-endif
-
-fetch-service-ip-ci:
-ifeq ($(SERVICE_HOST_CI),)
-SERVICE_HOST_CI=$(shell kubectl -n pivotal-rabbitmq-system-ci get svc rabbitmqcluster-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 endif

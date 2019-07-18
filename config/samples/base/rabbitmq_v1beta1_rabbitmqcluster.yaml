@@ -4,3 +4,5 @@ metadata:
   name: rabbitmqcluster-sample
 spec:
   plan: single
+  service:
+    type: LoadBalancer
