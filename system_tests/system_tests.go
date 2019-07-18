@@ -36,7 +36,6 @@ var _ = Describe("System tests", func() {
 		clientSet, err = createClientSet()
 		Expect(err).NotTo(HaveOccurred())
 
-
 		rabbitmqUsername, err = getRabbitmqUsernameOrPassword(clientSet, namespace, instanceName, "rabbitmq-username")
 		Expect(err).NotTo(HaveOccurred())
 

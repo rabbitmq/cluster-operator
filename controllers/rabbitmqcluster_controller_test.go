@@ -18,6 +18,9 @@ package controllers_test
 
 import (
 	"context"
+	"fmt"
+	"math/big"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -30,6 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+
+	"crypto/rand"
 )
 
 const timeout = time.Second
@@ -166,54 +171,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 
-	Context("using a LoadBalancer type service", func() {
-		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		var err error
-		var expectedRequest reconcile.Request
-		var clientSet *kubernetes.Clientset
-		var namespace, instanceName, serviceName string
-
-		BeforeEach(func() {
-			instanceName = "rabbitmq-lb"
-			namespace = "default"
-			serviceName = "p-" + instanceName
-
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      instanceName,
-					Namespace: namespace,
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Plan: "single",
-					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type: "LoadBalancer",
-					},
-				},
-			}
-
-			expectedRequest = reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: "rabbitmq-lb", Namespace: "default",
-				},
-			}
-
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			clientSet, err = kubernetes.NewForConfig(cfg)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-		})
-
-		It("creates the Service as type LoadBalancer", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-			service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
-		})
-	})
-
 	Context("using a private container image", func() {
 		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		var err error
@@ -272,4 +229,63 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	})
 
+	Context("Service type tests", func() {
+		testServiceType("LoadBalancer", corev1.ServiceTypeLoadBalancer)
+		testServiceType("ClusterIP", corev1.ServiceTypeClusterIP)
+		testServiceType("NodePort", corev1.ServiceTypeNodePort)
+	})
 })
+
+func testServiceType(serviceTypeName string, serviceType corev1.ServiceType) {
+	Context(fmt.Sprintf("using a %s type service", serviceTypeName), func() {
+		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
+		var expectedRequest reconcile.Request
+		var clientSet *kubernetes.Clientset
+		var namespace, instanceName, serviceName string
+
+		BeforeEach(func() {
+			nBig, err := rand.Int(rand.Reader, big.NewInt(10000))
+			if err != nil {
+				panic(err)
+			}
+			n := nBig.Int64()
+			instanceName = "rabbitmq-" + strconv.Itoa(int(n))
+			namespace = "default"
+			serviceName = "p-" + instanceName
+
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instanceName,
+					Namespace: namespace,
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Plan: "single",
+					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+						Type: serviceTypeName,
+					},
+				},
+			}
+
+			expectedRequest = reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: instanceName, Namespace: "default",
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			clientSet, err = kubernetes.NewForConfig(cfg)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+		})
+
+		It(fmt.Sprintf("creates the Service as type %s", serviceTypeName), func() {
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+			service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(service.Spec.Type).To(Equal(serviceType))
+		})
+	})
+}

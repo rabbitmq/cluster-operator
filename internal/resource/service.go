@@ -7,12 +7,9 @@ import (
 )
 
 func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.Service {
-	serviceType := corev1.ServiceTypeClusterIP
+	serviceType := "ClusterIP"
 	if instance.Spec.Service.Type != "" {
-		switch specifiedService := instance.Spec.Service.Type; specifiedService {
-		case "LoadBalancer":
-			serviceType = corev1.ServiceTypeLoadBalancer
-		}
+		serviceType = instance.Spec.Service.Type
 	}
 
 	return &corev1.Service{
@@ -24,7 +21,7 @@ func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.Service {
 			},
 		},
 		Spec: corev1.ServiceSpec{
-			Type: serviceType,
+			Type: corev1.ServiceType(serviceType),
 			Selector: map[string]string{
 				"app": instance.Name,
 			},

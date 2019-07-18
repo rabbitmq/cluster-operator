@@ -58,7 +58,7 @@ var _ = Describe("RabbitmqCluster", func() {
 			By("validating the provided service type", func() {
 				invalidService := generateRabbitmqClusterObject()
 				invalidService.Spec.Service.Type = "ihateservices"
-				Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("validation failure list:\nspec.service.type in body should be one of [ClusterIP LoadBalancer]")))
+				Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("validation failure list:\nspec.service.type in body should be one of [ClusterIP LoadBalancer NodePort]")))
 			})
 		})
 	})

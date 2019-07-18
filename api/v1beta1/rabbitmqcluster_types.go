@@ -34,7 +34,7 @@ type RabbitmqClusterImageSpec struct {
 }
 
 type RabbitmqClusterServiceSpec struct {
-	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer
+	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
 	Type string `json:"type,omitempty"`
 }
 
