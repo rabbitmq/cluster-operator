@@ -11,7 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -90,9 +91,13 @@ func kubectlDelete(namespace, object, objectName string) error {
 }
 
 func getExternalIP(clientSet *kubernetes.Clientset, namespace, serviceName string) (string, error) {
-	service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, v1.GetOptions{})
+	service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
+	}
+
+	if len(service.Status.LoadBalancer.Ingress) == 0 {
+		return "", nil
 	}
 
 	ip := service.Status.LoadBalancer.Ingress[0].IP
@@ -100,7 +105,7 @@ func getExternalIP(clientSet *kubernetes.Clientset, namespace, serviceName strin
 }
 
 func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName string) int {
-	endpoints, err := clientSet.CoreV1().Endpoints(namespace).Get(endpointName, v1.GetOptions{})
+	endpoints, err := clientSet.CoreV1().Endpoints(namespace).Get(endpointName, metav1.GetOptions{})
 
 	if err != nil {
 		fmt.Printf("Failed to Get endpoint %s: %v", endpointName, err)
@@ -155,15 +160,42 @@ type HealthcheckResponse struct {
 	Status string `json:"status"`
 }
 
-func getRabbitmqUsernameOrPassword(clientset *kubernetes.Clientset, namespace, instanceName, keyName string) (string, error) {
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("%s-rabbitmq-secret", instanceName), v1.GetOptions{})
+func getRabbitmqUsernameAndPassword(clientset *kubernetes.Clientset, namespace, instanceName, keyName string) (string, string, error) {
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("%s-rabbitmq-secret", instanceName), metav1.GetOptions{})
+	if err != nil {
+		return "", "", err
+	}
+
+	username, ok := secret.Data["rabbitmq-username"]
+	if !ok {
+		return "", "", fmt.Errorf("cannot find 'rabbitmq-username' in rabbitmq-secret")
+	}
+
+	password, ok := secret.Data["rabbitmq-password"]
+	if !ok {
+		return "", "", fmt.Errorf("cannot find 'rabbitmq-password' in rabbitmq-secret")
+	}
+	return string(username), string(password), nil
+}
+
+func checkPodStatus(clientSet *kubernetes.Clientset, namespace, podName string) (string, error) {
+	pod, err := clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 
-	value, ok := secret.Data[keyName]
-	if !ok {
-		return "", fmt.Errorf(fmt.Sprintf("cannot find %s in rabbitmq-secret", keyName))
+	return fmt.Sprintf("%v", pod.Status.Conditions), nil
+}
+
+func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
+	return &rabbitmqv1beta1.RabbitmqCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instanceName,
+			Namespace: namespace,
+		},
+		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+			Plan: "single",
+		},
 	}
-	return string(value), nil
+
 }

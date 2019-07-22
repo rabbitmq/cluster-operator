@@ -77,10 +77,10 @@ deploy-namespace-ci:
 	kubectl apply -k config/namespace/overlays/ci
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests deploy-namespace gcr-viewer deploy-manager deploy-sample
+deploy: manifests deploy-namespace gcr-viewer deploy-manager
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer-ci deploy-manager-ci deploy-sample-ci
+deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer-ci deploy-manager-ci
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
