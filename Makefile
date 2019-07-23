@@ -10,11 +10,6 @@ RABBITMQ_PASSWORD=guest
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
-controller-image-digest:
-ifeq (, $(CONTROLLER_IMAGE_DIGEST))
-	$(eval CONTROLLER_IMAGE_DIGEST := "sha256:$(shell docker inspect --format='{{index .RepoDigests 0}}' ${CONTROLLER_IMAGE_NAME} | awk -F ':' '{print $$2}')" )
-	@echo $(CONTROLLER_IMAGE_DIGEST)
-endif
 
 # Run unit tests
 unit-tests: generate fmt vet manifests
@@ -44,26 +39,21 @@ generate: controller-gen
 manager: generate fmt vet
 	go build -o bin/manager main.go
 
-patch-controller-image-digest:
-	$(eval CONTROLLER_IMAGE_WITH_DIGEST:=$(CONTROLLER_IMAGE_NAME):latest\@$(CONTROLLER_IMAGE_DIGEST))
+patch-controller-image:
+	$(eval CONTROLLER_IMAGE:=$(CONTROLLER_IMAGE_NAME):latest)
+ifneq (, $(CONTROLLER_IMAGE_DIGEST))
+	$(eval CONTROLLER_IMAGE:=$(CONTROLLER_IMAGE_NAME):latest\@$(CONTROLLER_IMAGE_DIGEST))
+endif
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_WITH_DIGEST}"'@' ./config/default/base/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/base/manager_image_patch.yaml
 
 # Deploy manager
-deploy-manager: controller-image-digest patch-controller-image-digest
+deploy-manager:
 	kubectl apply -k config/default/base
-
-# Deploy manager in CI
-deploy-manager-ci: patch-controller-image-digest
-	kubectl apply -k config/default/overlays/ci
 
 # Deploy local rabbitmqcluster
 deploy-sample:
 	kubectl apply -k config/samples/base
-
-# Deploy CI rabbitmqcluster
-deploy-sample-ci:
-	kustomize build config/samples/overlays/ci | kapp deploy -y -a rabbitmqcluster -f -
 
 configure-kubectl-ci:
 	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
@@ -98,8 +88,15 @@ deploy-master: install deploy-namespace gcr-viewer
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests deploy-namespace gcr-viewer deploy-manager
 
+# Deploy the controller image with the latest tag, we patch the controller image to remove the SHA
+# that has been committed.
+deploy-latest: manifests deploy-namespace gcr-viewer patch-controller-image deploy-manager
+
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer-ci deploy-manager-ci
+# This target needs to deploy the latest controller image WITH image digest so that we avoid clashing
+# with locally pushed images.
+deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer-ci patch-controller-image
+	kubectl apply -k config/default/overlays/ci
 
 # Build the docker image
 docker-build:

@@ -149,6 +149,7 @@ jobs:
           echo "Outputting kubectl token to a file"
           echo -n $KUBECTL_SECRET_TOKEN > $KUBECTL_SECRET_TOKEN_PATH
           set -x
+          # pin controller image so we don't clash with development pushed images
           export CONTROLLER_IMAGE_DIGEST=$(cat operator-image/digest)
           export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
@@ -267,7 +268,7 @@ jobs:
         - |
           export CONTROLLER_IMAGE_DIGEST=$(cat operator-image/digest)
           pushd rabbitmq-for-kubernetes
-          make patch-controller-image-digest
+          make patch-controller-image
           git add .
           git config --global user.name "rmq4k8s Concourse"
           git config --global user.email "rabbitmq-for-k8s@pivotal.io"
