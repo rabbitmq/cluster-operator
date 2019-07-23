@@ -120,10 +120,10 @@ docker-push:
 	docker push ${CONTROLLER_IMAGE}
 
 system-tests:
-	NAMESPACE="pivotal-rabbitmq-system" ginkgo -r system_tests/
+	NAMESPACE="pivotal-rabbitmq-system" ginkgo -p --randomizeAllSpecs -r system_tests/
 
 system-tests-ci:
-	NAMESPACE="pivotal-rabbitmq-system-ci" ginkgo -r system_tests/
+	NAMESPACE="pivotal-rabbitmq-system-ci" ginkgo -p --randomizeAllSpecs -r system_tests/
 
 GCR_VIEWER_ACCOUNT_EMAIL=gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com
 GCR_VIEWER_ACCOUNT_NAME=gcr-viewer
