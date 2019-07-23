@@ -24,6 +24,22 @@ unit-tests: generate fmt vet manifests
 integration-tests: generate fmt vet manifests
 	ginkgo -r api/ controllers/
 
+# Generate manifests e.g. CRD, RBAC etc.
+manifests: controller-gen
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
+
+# Run go fmt against code
+fmt:
+	go fmt ./...
+
+# Run go vet against code
+vet:
+	go vet ./...
+
+# Generate code
+generate: controller-gen
+	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./api/...
+
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager main.go
@@ -76,27 +92,14 @@ deploy-namespace:
 deploy-namespace-ci:
 	kubectl apply -k config/namespace/overlays/ci
 
+deploy-master: install deploy-namespace gcr-viewer
+	kubectl apply -k config/default/base
+
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests deploy-namespace gcr-viewer deploy-manager
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer-ci deploy-manager-ci
-
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
-
-# Run go fmt against code
-fmt:
-	go fmt ./...
-
-# Run go vet against code
-vet:
-	go vet ./...
-
-# Generate code
-generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./api/...
 
 # Build the docker image
 docker-build:
