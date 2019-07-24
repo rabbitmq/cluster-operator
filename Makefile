@@ -51,6 +51,10 @@ endif
 deploy-manager:
 	kubectl apply -k config/default/base
 
+# Deploy manager in CI
+deploy-manager-ci:
+	kubectl apply -k config/default/overlays/ci
+
 # Deploy local rabbitmqcluster
 deploy-sample:
 	kubectl apply -k config/samples/base
@@ -95,8 +99,7 @@ deploy-latest: manifests deploy-namespace gcr-viewer patch-controller-image depl
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 # This target needs to deploy the latest controller image WITH image digest so that we avoid clashing
 # with locally pushed images.
-deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer-ci patch-controller-image
-	kubectl apply -k config/default/overlays/ci
+deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer-ci patch-controller-image deploy-manager-ci
 
 # Build the docker image
 docker-build:
