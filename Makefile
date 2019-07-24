@@ -45,7 +45,7 @@ ifneq (, $(CONTROLLER_IMAGE_DIGEST))
 	$(eval CONTROLLER_IMAGE:=$(CONTROLLER_IMAGE_NAME):latest\@$(CONTROLLER_IMAGE_DIGEST))
 endif
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/base/manager_image_patch.yaml
+	sed -i '' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/base/manager_image_patch.yaml
 
 # Deploy manager
 deploy-manager:
@@ -108,8 +108,8 @@ docker-build:
 docker-build-local:
 	docker build . -t ${CONTROLLER_IMAGE_LOCAL}
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_LOCAL}"'@' ./config/default/base/manager_image_patch.yaml
-	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: IfNotPresent@' ./config/manager/manager.yaml
+	sed -i '' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_LOCAL}"'@' ./config/default/base/manager_image_patch.yaml
+	sed -i '' -e 's@imagePullPolicy: .*@imagePullPolicy: IfNotPresent@' ./config/manager/manager.yaml
 
 docker-build-ci-image:
 	docker build ci/ -t ${CI_IMAGE}
