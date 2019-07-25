@@ -237,7 +237,7 @@ jobs:
           gcloud container clusters get-credentials ${CI_CLUSTER} --region europe-west1-b --project ${GCP_PROJECT}
           ssh-keyscan -H github.com > ~/.ssh/known_hosts
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
-          ginkgo -r system_tests/
+          ginkgo -r integration_tests/
 
 - name: update-controller-image-digest
   serial: true
@@ -258,7 +258,7 @@ jobs:
       inputs:
       - name: *repo
       - name: *operator-image
-        path: /operator-image
+        path: operator-image
       outputs:
       - name: updated-repo-with-digest
       run:
