@@ -136,7 +136,7 @@ var _ = Describe("StatefulSet", func() {
 
 				statefulSet := resource.GenerateStatefulSet(instance)
 				container := extractContainer(statefulSet, "rabbitmq")
-				Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management@sha256:5d49702395e2c0cf9fa77a46d8fcae5f2107dc9a6dcd87a2c27e0599eba20d18"))
+				Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management@sha256:e4251e0a479653491e8b46e3f0677347e66fa6f0089ef72c5c35390b08bc2bf7"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 			})
 		})
