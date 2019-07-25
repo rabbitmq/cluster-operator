@@ -16,7 +16,7 @@ COPY go.sum go.sum
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
 
 # Changed base image to ubuntu for OSL compliance
-FROM ubuntu:bionic
+FROM ubuntu:18.04
 WORKDIR /
 COPY --from=builder /workspace/manager .
 ENTRYPOINT ["/manager"]
