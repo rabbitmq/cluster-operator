@@ -61,7 +61,7 @@ deploy-sample:
 
 configure-kubectl-ci:
 	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
-	gcloud container clusters get-credentials $(CI_CLUSTER) --region europe-west1-b --project $(GCP_PROJECT)
+	gcloud container clusters get-credentials $(CI_CLUSTER) --region europe-west1 --project $(GCP_PROJECT)
 
 # Cleanup all controller artefacts
 destroy:
