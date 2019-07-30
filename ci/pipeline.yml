@@ -216,7 +216,7 @@ jobs:
         OPERATOR_PRIVATE_KEY: ((operator-git-ssh-key))
         KUBECTL_SECRET_TOKEN: ((rmq-k8s-ci-kubectl-service-account-key))
         KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
-        CI_CLUSTER: dev-bunny-1
+        CI_CLUSTER: dev-bunny
         GCP_PROJECT: cf-rabbitmq-for-k8s-bunny
       run:
         path: bash
@@ -234,7 +234,7 @@ jobs:
           echo -n $KUBECTL_SECRET_TOKEN > $KUBECTL_SECRET_TOKEN_PATH
           set -x
           gcloud auth activate-service-account --key-file=${KUBECTL_SECRET_TOKEN_PATH}
-          gcloud container clusters get-credentials ${CI_CLUSTER} --region europe-west1-b --project ${GCP_PROJECT}
+          gcloud container clusters get-credentials ${CI_CLUSTER} --region europe-west1 --project ${GCP_PROJECT}
           ssh-keyscan -H github.com > ~/.ssh/known_hosts
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
           ginkgo -r integration_tests/
