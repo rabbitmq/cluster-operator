@@ -55,10 +55,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	serviceType := os.Getenv("SERVICE_TYPE")
+
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
-		Scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		Log:         ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
+		Scheme:      mgr.GetScheme(),
+		ServiceType: serviceType,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")

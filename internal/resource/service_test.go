@@ -24,7 +24,7 @@ var _ = Describe("Service", func() {
 	Context("succeeds", func() {
 
 		BeforeEach(func() {
-			service = resource.GenerateService(instance)
+			service = resource.GenerateService(instance, "")
 		})
 
 		It("creates a service object with the correct name and labels", func() {
@@ -32,7 +32,7 @@ var _ = Describe("Service", func() {
 			Expect(service.ObjectMeta.Labels["app"]).To(Equal(instance.Name))
 		})
 
-		It("creates a ClusterIP type service", func() {
+		It("creates a ClusterIP type service by default", func() {
 			Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 		})
 
@@ -54,7 +54,7 @@ var _ = Describe("Service", func() {
 			Expect(service.Spec.Ports).Should(ConsistOf(amqpPort, httpPort))
 		})
 
-		It("creates a LoadBalancer type service when specified", func() {
+		It("creates a LoadBalancer type service when specified in the RabbitmqCluster spec", func() {
 			loadBalancerInstance := rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "name",
@@ -66,11 +66,11 @@ var _ = Describe("Service", func() {
 					},
 				},
 			}
-			loadBalancerService := resource.GenerateService(loadBalancerInstance)
+			loadBalancerService := resource.GenerateService(loadBalancerInstance, "")
 			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 		})
 
-		It("creates a ClusterIP type service when specified", func() {
+		It("creates a ClusterIP type service when specified in the RabbitmqCluster spec", func() {
 			clusterIPInstance := rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "name",
@@ -82,11 +82,11 @@ var _ = Describe("Service", func() {
 					},
 				},
 			}
-			clusterIPService := resource.GenerateService(clusterIPInstance)
+			clusterIPService := resource.GenerateService(clusterIPInstance, "")
 			Expect(clusterIPService.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 		})
 
-		It("creates a NodePort type service when specified", func() {
+		It("creates a NodePort type service when specified in the RabbitmqCluster spec", func() {
 			nodePortInstance := rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "name",
@@ -98,8 +98,38 @@ var _ = Describe("Service", func() {
 					},
 				},
 			}
-			nodePortService := resource.GenerateService(nodePortInstance)
+			nodePortService := resource.GenerateService(nodePortInstance, "")
 			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
+		})
+
+		Context("when service type is specified through the function param", func() {
+			It("creates the service type as specified", func() {
+				instance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+				}
+				nodePortService := resource.GenerateService(instance, "NodePort")
+				Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
+
+			})
+
+			It("creates the service type specified in the RabbitmqCluster spec when both are present", func() {
+				loadBalancerInstance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+							Type: "LoadBalancer",
+						},
+					},
+				}
+				loadBalancerService := resource.GenerateService(loadBalancerInstance, "ClusterIP")
+				Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
+			})
 		})
 	})
 })

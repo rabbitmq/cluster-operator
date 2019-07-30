@@ -6,10 +6,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.Service {
-	serviceType := "ClusterIP"
+func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType string) *corev1.Service {
 	if instance.Spec.Service.Type != "" {
 		serviceType = instance.Spec.Service.Type
+	} else if serviceType == "" {
+		serviceType = "ClusterIP"
 	}
 
 	return &corev1.Service{

@@ -17,6 +17,7 @@ import (
 )
 
 const podCreationTimeout time.Duration = 180 * time.Second
+const serviceCreationTimeout time.Duration = 10 * time.Second
 
 var _ = Describe("System tests", func() {
 	var namespace, instanceName, statefulSetName, serviceName, podName string
@@ -222,6 +223,33 @@ var _ = Describe("System tests", func() {
 				}
 				return podStatus
 			}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+		})
+	})
+
+	Context("when NodePort service type is specified in the manager configMap", func() {
+		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
+		BeforeEach(func() {
+			instanceName = "nodeport-rabbit"
+			serviceName = "p-" + instanceName
+
+			rabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
+			Expect(createRabbitmqCluster(k8sClient, rabbitmqCluster)).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			Expect(k8sClient.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+		})
+
+		It("creates a NodePort service", func() {
+			Eventually(func() string {
+				svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
+				if err != nil {
+					Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
+					return ""
+				}
+
+				return string(svc.Spec.Type)
+			}, serviceCreationTimeout).Should(Equal("NodePort"))
 		})
 	})
 })

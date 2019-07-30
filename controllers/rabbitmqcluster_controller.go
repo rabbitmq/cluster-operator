@@ -18,6 +18,8 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"github.com/prometheus/common/log"
 	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
@@ -44,8 +46,9 @@ var (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log         logr.Logger
+	Scheme      *runtime.Scheme
+	ServiceType string
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -80,10 +83,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return reconcile.Result{}, err
 	}
 
+	log.Info(fmt.Sprintf("Configured with ServiceType: %s", r.ServiceType))
+
 	resources := []runtime.Object{
 		resource.GenerateStatefulSet(*instance),
 		resource.GenerateConfigMap(*instance),
-		resource.GenerateService(*instance),
+		resource.GenerateService(*instance, r.ServiceType),
 		rabbitmqSecret,
 	}
 
