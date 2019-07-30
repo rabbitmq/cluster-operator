@@ -11,17 +11,22 @@ import (
 
 const RabbitmqManagementImage string = "rabbitmq:3.8-rc-management@sha256:5d49702395e2c0cf9fa77a46d8fcae5f2107dc9a6dcd87a2c27e0599eba20d18"
 
-func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
+func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret string) *appsv1.StatefulSet {
 	single := int32(1)
 	f := false
 	image := RabbitmqManagementImage
 
 	if instance.Spec.Image.Repository != "" {
 		image = fmt.Sprintf("%s/%s", instance.Spec.Image.Repository, image)
+	} else if imageRepository != "" {
+		image = fmt.Sprintf("%s/%s", imageRepository, image)
 	}
+
 	imagePullSecrets := []corev1.LocalObjectReference{}
 	if instance.Spec.ImagePullSecret != "" {
 		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: instance.Spec.ImagePullSecret})
+	} else if imagePullSecret != "" {
+		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: imagePullSecret})
 	}
 
 	return &appsv1.StatefulSet{

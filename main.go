@@ -56,12 +56,16 @@ func main() {
 	}
 
 	serviceType := os.Getenv("SERVICE_TYPE")
+	imageRepository := os.Getenv("IMAGE_REPOSITORY")
+	imagePullSecret := os.Getenv("IMAGE_PULL_SECRET")
 
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client:      mgr.GetClient(),
 		Log:         ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
 		Scheme:      mgr.GetScheme(),
 		ServiceType: serviceType,
+		ImageRepository: imageRepository,
+		ImagePullSecret: imagePullSecret,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")

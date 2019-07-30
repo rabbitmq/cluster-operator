@@ -6,3 +6,5 @@ metadata:
   namespace: system
 data:
   SERVICE_TYPE: NodePort
+  IMAGE_REPOSITORY: eu.gcr.io/cf-rabbitmq-for-k8s-bunny
+  IMAGE_PULL_SECRET: gcr-viewer

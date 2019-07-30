@@ -49,6 +49,8 @@ type RabbitmqClusterReconciler struct {
 	Log         logr.Logger
 	Scheme      *runtime.Scheme
 	ServiceType string
+	ImageRepository string
+	ImagePullSecret string
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -86,7 +88,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	log.Info(fmt.Sprintf("Configured with ServiceType: %s", r.ServiceType))
 
 	resources := []runtime.Object{
-		resource.GenerateStatefulSet(*instance),
+		resource.GenerateStatefulSet(*instance, r.ImageRepository, r.ImagePullSecret),
 		resource.GenerateConfigMap(*instance),
 		resource.GenerateService(*instance, r.ServiceType),
 		rabbitmqSecret,
