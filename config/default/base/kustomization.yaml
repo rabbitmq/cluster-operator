@@ -13,7 +13,6 @@ namePrefix: pivotal-rabbitmq-
 #  someName: someValue
 
 bases:
-- ../../crd
 - ../../rbac
 - ../../manager
 # [WEBHOOK] Uncomment all the sections with [WEBHOOK] prefix to enable webhook.

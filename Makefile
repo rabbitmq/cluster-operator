@@ -38,10 +38,12 @@ manager: generate fmt vet
 
 # Deploy manager
 deploy-manager:
+	kubectl apply -k config/crd
 	kubectl apply -k config/default/base
 
 # Deploy manager in CI
 deploy-manager-ci:
+	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/ci
 
 # Deploy local rabbitmqcluster
@@ -83,6 +85,11 @@ deploy: manifests deploy-namespace gcr-viewer deploy-manager
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace-ci gcr-viewer-ci deploy-manager-ci
+
+generate-installation-manifests:
+	kustomize build config/namespace/base/ > installation/namespace.yaml
+	kustomize build config/crd/ > installation/crd.yaml
+	kustomize build config/installation > installation/operator.yaml
 
 # Build the docker image
 docker-build:

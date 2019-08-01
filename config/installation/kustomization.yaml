@@ -1,0 +1,5 @@
+bases:
+- ../default/base
+
+patches:
+- manager_image_repository_secret_patch.yaml
