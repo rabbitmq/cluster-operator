@@ -60,10 +60,10 @@ func main() {
 	imagePullSecret := os.Getenv("IMAGE_PULL_SECRET")
 
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client:      mgr.GetClient(),
-		Log:         ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
-		Scheme:      mgr.GetScheme(),
-		ServiceType: serviceType,
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
+		Scheme:          mgr.GetScheme(),
+		ServiceType:     serviceType,
 		ImageRepository: imageRepository,
 		ImagePullSecret: imagePullSecret,
 	}).SetupWithManager(mgr)

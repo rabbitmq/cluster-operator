@@ -46,9 +46,9 @@ var (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
-	Log         logr.Logger
-	Scheme      *runtime.Scheme
-	ServiceType string
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	ServiceType     string
 	ImageRepository string
 	ImagePullSecret string
 }

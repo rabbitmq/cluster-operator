@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const RabbitmqManagementImage string = "rabbitmq:3.8-rc-management@sha256:5d49702395e2c0cf9fa77a46d8fcae5f2107dc9a6dcd87a2c27e0599eba20d18"
+const RabbitmqManagementImage string = "rabbitmq:3.8-rc-management"
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret string) *appsv1.StatefulSet {
 	single := int32(1)

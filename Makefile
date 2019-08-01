@@ -1,7 +1,5 @@
 # Image URL to use all building/pushing image targets
-CONTROLLER_IMAGE_NAME=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
-CONTROLLER_IMAGE=$(CONTROLLER_IMAGE_NAME):latest
-CONTROLLER_IMAGE_LOCAL=cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller:latest
+CONTROLLER_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
 CI_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
 CI_CLUSTER=dev-bunny
 GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
@@ -38,14 +36,6 @@ generate: controller-gen
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager main.go
-
-patch-controller-image:
-	$(eval CONTROLLER_IMAGE:=$(CONTROLLER_IMAGE_NAME):latest)
-ifneq (, $(CONTROLLER_IMAGE_DIGEST))
-	$(eval CONTROLLER_IMAGE:=$(CONTROLLER_IMAGE_NAME):latest\@$(CONTROLLER_IMAGE_DIGEST))
-endif
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE}"'@' ./config/default/base/manager_image_patch.yaml
 
 # Deploy manager
 deploy-manager:
@@ -92,24 +82,12 @@ deploy-master: install deploy-namespace gcr-viewer
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests deploy-namespace gcr-viewer deploy-manager
 
-# Deploy the controller image with the latest tag, we patch the controller image to remove the SHA
-# that has been committed.
-deploy-latest: manifests deploy-namespace gcr-viewer patch-controller-image deploy-manager
-
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-# This target needs to deploy the latest controller image WITH image digest so that we avoid clashing
-# with locally pushed images.
-deploy-ci: configure-kubectl-ci manifests deploy-namespace-ci gcr-viewer-ci patch-controller-image deploy-manager-ci
+deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace-ci gcr-viewer-ci deploy-manager-ci
 
 # Build the docker image
 docker-build:
-	docker build . -t ${CONTROLLER_IMAGE}
-
-docker-build-local:
-	docker build . -t ${CONTROLLER_IMAGE_LOCAL}
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMAGE_LOCAL}"'@' ./config/default/base/manager_image_patch.yaml
-	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: IfNotPresent@' ./config/manager/manager.yaml
+	docker build . -t $(CONTROLLER_IMAGE)
 
 docker-build-ci-image:
 	docker build ci/ -t ${CI_IMAGE}
@@ -117,7 +95,11 @@ docker-build-ci-image:
 
 # Push the docker image
 docker-push:
-	docker push ${CONTROLLER_IMAGE}
+	docker push $(CONTROLLER_IMAGE)
+
+docker-image-release: controller-image-tag
+	docker build . -t $(CONTROLLER_IMAGE):$(CONTROLLER_IMAGE_TAG)
+	docker push $(CONTROLLER_IMAGE):$(CONTROLLER_IMAGE_TAG)
 
 system-tests:
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -p --randomizeAllSpecs -r system_tests/
@@ -147,4 +129,13 @@ ifeq (, $(shell which controller-gen))
 CONTROLLER_GEN=$(shell go env GOPATH)/bin/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
+endif
+
+patch-controller-image: controller-image-tag
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(CONTROLLER_IMAGE_TAG)"'@' ./config/default/base/manager_image_patch.yaml
+
+controller-image-tag:
+ifeq (, $(CONTROLLER_IMAGE_TAG))
+CONTROLLER_IMAGE_TAG=0.1.0
 endif
