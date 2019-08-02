@@ -110,16 +110,15 @@ system-tests-ci:
 GCR_VIEWER_ACCOUNT_EMAIL=gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com
 GCR_VIEWER_ACCOUNT_NAME=gcr-viewer
 GCR_VIEWER_KEY=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/ci-gcr-pull" --notes | jq -c)
-K8S_OPERATOR_NAMESPACE=pivotal-rabbitmq-system
-gcr-viewer:
+gcr-viewer: operator-namespace
 	echo "creating gcr-viewer secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY)' || true
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
 
-gcr-viewer-ci:
+gcr-viewer-ci: operator-namespace
 	echo "creating gcr-viewer secret and patching default service account"
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE_CI) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY_CI)' || true
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE_CI) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(GCR_VIEWER_ACCOUNT_NAME) --docker-server=https://eu.gcr.io --docker-username=_json_key --docker-email=$(GCR_VIEWER_ACCOUNT_EMAIL) --docker-password='$(GCR_VIEWER_KEY_CI)' || true
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(GCR_VIEWER_ACCOUNT_NAME)"}]}'
 
 # find or download controller-gen
 # download controller-gen if necessary
@@ -134,6 +133,11 @@ endif
 patch-controller-image: controller-image-tag
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(CONTROLLER_IMAGE_TAG)"'@' ./config/default/base/manager_image_patch.yaml
+
+operator-namespace:
+ifeq (, $(K8S_OPERATOR_NAMESPACE))
+K8S_OPERATOR_NAMESPACE=pivotal-rabbitmq-system
+endif
 
 controller-image-tag:
 ifeq (, $(CONTROLLER_IMAGE_TAG))

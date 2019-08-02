@@ -138,7 +138,7 @@ jobs:
         KUBECTL_SECRET_TOKEN: ((rmq-k8s-ci-kubectl-service-account-key))
         KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
         GCR_VIEWER_KEY_CI: ((gcr-pull-service-account-key))
-        K8S_OPERATOR_NAMESPACE_CI: pivotal-rabbitmq-system-ci
+        K8S_OPERATOR_NAMESPACE: pivotal-rabbitmq-system-ci
       run:
         path: bash
         args:
