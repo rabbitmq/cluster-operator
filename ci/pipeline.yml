@@ -212,8 +212,11 @@ jobs:
         path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
       params:
         TERM: xterm-256color
+        GCR_VIEWER_KEY_CI: ((gcr-pull-service-account-key))
         OPERATOR_PRIVATE_KEY: ((operator-git-ssh-key))
         KUBECTL_SECRET_TOKEN: ((rmq-k8s-ci-kubectl-service-account-key))
+        K8S_BROKER_NAMESPACE: pivotal-rabbitmq-servicebroker-system-ci
+        K8S_OPERATOR_NAMESPACE: pivotal-rabbitmq-system-ci
         KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
         CI_CLUSTER: dev-bunny
         GCP_PROJECT: cf-rabbitmq-for-k8s-bunny
@@ -236,6 +239,9 @@ jobs:
           gcloud container clusters get-credentials ${CI_CLUSTER} --region europe-west1 --project ${GCP_PROJECT}
           ssh-keyscan -H github.com > ~/.ssh/known_hosts
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
+          make deploy-ci
+          kubectl -n pivotal-rabbitmq-servicebroker-system-ci wait pod -l app=servicebroker --for=condition=Ready --timeout=2m
+          kubectl -n pivotal-rabbitmq-servicebroker-system-ci port-forward --pod-running-timeout=1m service/p-rmq-servicebroker-ci 8080:8080 > /dev/null &
           ginkgo -r integration_tests/
 
 - name: renew-env
