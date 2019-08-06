@@ -196,7 +196,10 @@ jobs:
             set -x
             export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
             cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
-            echo "Destroying ci environment"
+            echo "Destroying operator ci environment"
+            make destroy-ci
+            cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
+            echo "Destroying broker ci environment"
             make destroy-ci
     config:
       platform: linux
