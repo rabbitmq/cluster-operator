@@ -394,7 +394,7 @@ spec:
               type: object
             imagePullSecret:
               type: string
-            plan:
+            replicas:
               enum:
               - single
               type: string
@@ -408,7 +408,7 @@ spec:
                   type: string
               type: object
           required:
-          - plan
+          - replicas
           type: object
         status:
           type: object

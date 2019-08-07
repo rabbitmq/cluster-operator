@@ -49,10 +49,10 @@ var _ = Describe("RabbitmqCluster", func() {
 				Expect(k8sClient.Get(context.TODO(), key, created)).ToNot(Succeed())
 			})
 
-			By("validating the provided plan", func() {
-				invalidPlan := generateRabbitmqClusterObject()
-				invalidPlan.Spec.Plan = "idontcareaboutplan"
-				Expect(k8sClient.Create(context.TODO(), invalidPlan)).To(MatchError(ContainSubstring("validation failure list:\nspec.plan in body should be one of [single]")))
+			By("validating the provided replicas", func() {
+				invalidReplica := generateRabbitmqClusterObject()
+				invalidReplica.Spec.Replicas = "idontcareaboutreplicas"
+				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("validation failure list:\nspec.replicas in body should be one of [single]")))
 			})
 
 			By("validating the provided service type", func() {
@@ -71,7 +71,7 @@ func generateRabbitmqClusterObject() *RabbitmqCluster {
 			Namespace: "default",
 		},
 		Spec: RabbitmqClusterSpec{
-			Plan: "single",
+			Replicas: "single",
 			Image: RabbitmqClusterImageSpec{
 				Repository: "my-private-repo",
 			},

@@ -66,7 +66,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Plan: "single",
+					Replicas: "single",
 				},
 			}
 
@@ -139,7 +139,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 						Namespace: "default",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Plan: "single",
+						Replicas: "single",
 					},
 				}
 
@@ -190,7 +190,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: namespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Plan: "single",
+					Replicas: "single",
 					Image: rabbitmqv1beta1.RabbitmqClusterImageSpec{
 						Repository: "my-private-repo",
 					},
@@ -259,7 +259,7 @@ func testServiceType(serviceTypeName string, serviceType corev1.ServiceType) {
 					Namespace: namespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Plan: "single",
+					Replicas: "single",
 					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 						Type: serviceTypeName,
 					},
