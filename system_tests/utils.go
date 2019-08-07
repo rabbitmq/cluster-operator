@@ -194,7 +194,7 @@ func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Ra
 			Namespace: namespace,
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas: "single",
+			Replicas: 1,
 		},
 	}
 

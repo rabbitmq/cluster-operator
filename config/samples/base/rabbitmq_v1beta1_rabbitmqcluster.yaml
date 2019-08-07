@@ -3,6 +3,6 @@ kind: RabbitmqCluster
 metadata:
   name: rabbitmqcluster-sample
 spec:
-  plan: single
+  replicas: 1
   service:
     type: LoadBalancer

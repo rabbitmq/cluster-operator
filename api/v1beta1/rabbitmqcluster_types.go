@@ -22,8 +22,8 @@ import (
 
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
 type RabbitmqClusterSpec struct {
-	// +kubebuilder:validation:Enum=single
-	Replicas        string                     `json:"replicas"`
+	// +kubebuilder:validation:Enum=1
+	Replicas        int                        `json:"replicas"`
 	Image           RabbitmqClusterImageSpec   `json:"image,omitempty"`
 	ImagePullSecret string                     `json:"imagePullSecret,omitempty"`
 	Service         RabbitmqClusterServiceSpec `json:"service,omitempty"`

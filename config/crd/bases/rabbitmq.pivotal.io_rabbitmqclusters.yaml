@@ -396,8 +396,8 @@ spec:
               type: string
             replicas:
               enum:
-              - single
-              type: string
+              - 1
+              type: integer
             service:
               properties:
                 type:
