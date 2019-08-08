@@ -4,3 +4,5 @@ bases:
 nameSuffix: -ci
 namespace: pivotal-rabbitmq-system-ci
 
+patches:
+- manager_config_map.yaml

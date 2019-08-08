@@ -9,20 +9,7 @@ spec:
     spec:
       containers:
         - name: manager
-          env:
-            - name: SERVICE_TYPE
-              valueFrom:
-                configMapKeyRef:
-                  name: manager-config
-                  key: SERVICE_TYPE
-            - name: IMAGE_REPOSITORY
-              valueFrom:
-                configMapKeyRef:
-                  name: manager-config
-                  key: IMAGE_REPOSITORY
-            - name: IMAGE_PULL_SECRET
-              valueFrom:
-                configMapKeyRef:
-                  name: manager-config
-                  key: IMAGE_PULL_SECRET
+          envFrom:
+            - configMapRef:
+                name: manager-config
 
