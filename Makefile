@@ -1,7 +1,6 @@
 # Image URL to use all building/pushing image targets
 CONTROLLER_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
 CI_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
-CI_CLUSTER=dev-bunny
 GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
 RABBITMQ_USERNAME=guest
 RABBITMQ_PASSWORD=guest
@@ -49,7 +48,7 @@ deploy-manager-ci:
 deploy-sample:
 	kubectl apply -k config/samples/base
 
-configure-kubectl-ci:
+configure-kubectl-ci: ci-cluster
 	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
 	gcloud container clusters get-credentials $(CI_CLUSTER) --region europe-west1 --project $(GCP_PROJECT)
 
@@ -137,6 +136,11 @@ patch-controller-image: controller-image-tag
 operator-namespace:
 ifeq (, $(K8S_OPERATOR_NAMESPACE))
 K8S_OPERATOR_NAMESPACE=pivotal-rabbitmq-system
+endif
+
+ci-cluster:
+ifeq (, $(CI_CLUSTER))
+CI_CLUSTER=ci-bunny
 endif
 
 controller-image-tag:
