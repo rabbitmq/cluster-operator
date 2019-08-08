@@ -37,6 +37,11 @@ func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType strin
 					Port:     15672,
 					Name:     "http",
 				},
+				{
+					Protocol: corev1.ProtocolTCP,
+					Port:     15692,
+					Name:     "prometheus",
+				},
 			},
 		},
 	}

@@ -75,6 +75,10 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 									Name:          "http",
 									ContainerPort: 15672,
 								},
+								{
+									Name:          "prometheus",
+									ContainerPort: 15692,
+								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{

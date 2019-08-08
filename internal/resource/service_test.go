@@ -40,7 +40,7 @@ var _ = Describe("Service", func() {
 			Expect(service.Spec.Selector["app"]).To(Equal(instance.Name))
 		})
 
-		It("exposes the amqp and http ports", func() {
+		It("exposes the amqp, http, and prometheus ports", func() {
 			amqpPort := corev1.ServicePort{
 				Name:     "amqp",
 				Port:     5672,
@@ -51,7 +51,12 @@ var _ = Describe("Service", func() {
 				Port:     15672,
 				Protocol: corev1.ProtocolTCP,
 			}
-			Expect(service.Spec.Ports).Should(ConsistOf(amqpPort, httpPort))
+			prometheusPort := corev1.ServicePort{
+				Name:     "prometheus",
+				Port:     15692,
+				Protocol: corev1.ProtocolTCP,
+			}
+			Expect(service.Spec.Ports).Should(ConsistOf(amqpPort, httpPort, prometheusPort))
 		})
 
 		It("creates a LoadBalancer type service when specified in the RabbitmqCluster spec", func() {
