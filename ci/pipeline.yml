@@ -187,7 +187,7 @@ jobs:
           TERM: xterm-256color
           KUBECTL_SECRET_TOKEN: ((rmq-k8s-ci-kubectl-service-account-key))
           KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
-          CI_CLUSTER: dev-bunny
+          CI_CLUSTER: ci-bunny
           GCP_PROJECT: cf-rabbitmq-for-k8s-bunny
         run:
           path: bash
@@ -226,7 +226,7 @@ jobs:
         K8S_BROKER_NAMESPACE: pivotal-rabbitmq-servicebroker-system-ci
         K8S_OPERATOR_NAMESPACE: pivotal-rabbitmq-system-ci
         KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
-        CI_CLUSTER: dev-bunny
+        CI_CLUSTER: ci-bunny
         GCP_PROJECT: cf-rabbitmq-for-k8s-bunny
       run:
         path: bash
