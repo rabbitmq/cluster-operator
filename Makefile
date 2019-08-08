@@ -87,7 +87,7 @@ deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespac
 
 # Build the docker image
 docker-build:
-	docker build . -t $(CONTROLLER_IMAGE)
+	docker build . -t $(CONTROLLER_IMAGE):latest
 
 docker-build-ci-image:
 	docker build ci/ -t ${CI_IMAGE}
@@ -95,7 +95,7 @@ docker-build-ci-image:
 
 # Push the docker image
 docker-push:
-	docker push $(CONTROLLER_IMAGE)
+	docker push $(CONTROLLER_IMAGE):latest
 
 docker-image-release: controller-image-tag
 	docker build . -t $(CONTROLLER_IMAGE):$(CONTROLLER_IMAGE_TAG)

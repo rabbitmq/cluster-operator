@@ -179,12 +179,16 @@ jobs:
         inputs:
         - name: *repo
           path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
+        - name: rabbitmq-for-kubernetes-broker
+          path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
         params:
           # To use the right value for TERM, check what terms are available in the image: find /lib/terminfo -type f
           # To double-check that a specific term is available, run: infocmp xterm-256color
           TERM: xterm-256color
           KUBECTL_SECRET_TOKEN: ((rmq-k8s-ci-kubectl-service-account-key))
           KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
+          CI_CLUSTER: dev-bunny
+          GCP_PROJECT: cf-rabbitmq-for-k8s-bunny
         run:
           path: bash
           args:
@@ -195,10 +199,11 @@ jobs:
             echo -n $KUBECTL_SECRET_TOKEN > $KUBECTL_SECRET_TOKEN_PATH
             set -x
             export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
-            cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
+            pushd go/src/github.com/pivotal/rabbitmq-for-kubernetes
             echo "Destroying operator ci environment"
             make destroy-ci
-            cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
+            popd
+            pushd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
             echo "Destroying broker ci environment"
             make destroy-ci
     config:
@@ -241,11 +246,13 @@ jobs:
           gcloud auth activate-service-account --key-file=${KUBECTL_SECRET_TOKEN_PATH}
           gcloud container clusters get-credentials ${CI_CLUSTER} --region europe-west1 --project ${GCP_PROJECT}
           ssh-keyscan -H github.com > ~/.ssh/known_hosts
+          # export CONTROLLER_IMAGE_TAG=$(cat .git/short_ref)
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
           make deploy-ci
           kubectl -n pivotal-rabbitmq-servicebroker-system-ci wait pod -l app=servicebroker --for=condition=Ready --timeout=2m
-          kubectl -n pivotal-rabbitmq-servicebroker-system-ci port-forward --pod-running-timeout=1m service/p-rmq-servicebroker-ci 8080:8080 > /dev/null &
+          kubectl -n pivotal-rabbitmq-servicebroker-system-ci port-forward service/p-rmq-servicebroker-ci 8080:8080 > /dev/null &
           ginkgo -r integration_tests/
+          kill %1
 
 - name: renew-env
   serial: true

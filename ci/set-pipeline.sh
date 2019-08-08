@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-
 set -e
+
+. ~/source/functions
+
+interactively_ensure_we_are_logged_in
 
 fly -t rmq set-pipeline -p operator -c pipeline.yml \
   -v operator-git-ssh-key="$(lpassd show "Shared-RabbitMQ for Kubernetes/rmq-k8s-ci-operator-git-ssh-key" --note | jq -r .private_key)" \
