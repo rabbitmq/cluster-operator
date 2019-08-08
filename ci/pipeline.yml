@@ -25,13 +25,14 @@ resources:
       ((broker-git-ssh-key))
 
 # https://github.com/concourse/docker-image-resource
-- name: &operator-image rabbitmq-k8s-operator
+- name: &operator-image-rc rabbitmq-k8s-operator-rc
   type: docker-image
   source:
     repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
-    tag: latest
+    tag: rc
     username: _json_key
     password: ((gcr-push-service-account-key))
+
 
 - name: every-friday
   type: time
@@ -98,22 +99,40 @@ jobs:
           echo "Running integration tests"
           make integration-tests
 
+- name: build-operator-final
+  serial: true
+  serial_groups: [build-operator]
+  plan:
+  - get: *operator-image-rc
+    params:
+      save: true
+  - get: *repo
+    passed: [broker-system-tests]
+    trigger: true
+  - put: *operator-image-rc
+    params:
+      load: *operator-image-rc
+      tag_file: rabbitmq-for-kubernetes/.version
+      tag_as_latest: true
+
 - name: build-operator
   serial: true
+  serial_groups: [build-operator]
   plan:
   - get: *repo
     passed: [integration-tests]
     trigger: true
-  - put: *operator-image
+  - put: *operator-image-rc
     params:
       build: *repo
-      tag_file: rabbitmq-for-kubernetes/.git/short_ref
+      tag_file: rabbitmq-for-kubernetes/.rc_version
+      additional_tags: rabbitmq-for-kubernetes/.git/short_ref
 
 - name: operator-system-tests
   serial: true
+  serial_groups: [build-operator]
   plan:
   - get: *repo
-  - get: *operator-image
     passed: [build-operator]
     trigger: true
   - task: run-system-tests
@@ -129,8 +148,6 @@ jobs:
       inputs:
       - name: *repo
         path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
-      - name: *operator-image
-        path: operator-image
       params:
         # To use the right value for TERM, check what terms are available in the image: find /lib/terminfo -type f
         # To double-check that a specific term is available, run: infocmp xterm-256color
@@ -159,6 +176,7 @@ jobs:
 
 - name: broker-system-tests
   serial: true
+  serial_groups: [build-operator]
   plan:
   - get: rabbitmq-for-kubernetes-broker
   - get: *repo
