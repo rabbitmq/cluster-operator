@@ -246,7 +246,6 @@ jobs:
           gcloud auth activate-service-account --key-file=${KUBECTL_SECRET_TOKEN_PATH}
           gcloud container clusters get-credentials ${CI_CLUSTER} --region europe-west1 --project ${GCP_PROJECT}
           ssh-keyscan -H github.com > ~/.ssh/known_hosts
-          # export CONTROLLER_IMAGE_TAG=$(cat .git/short_ref)
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
           make deploy-ci
           kubectl -n pivotal-rabbitmq-servicebroker-system-ci wait pod -l app=servicebroker --for=condition=Ready --timeout=2m
