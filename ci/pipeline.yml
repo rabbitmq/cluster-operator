@@ -241,6 +241,8 @@ jobs:
       inputs:
       - name: rabbitmq-for-kubernetes-broker
         path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
+      - name: *repo
+        path: /go/src/github.com/pivotal/rabbitmq-for-kubernetes
       params:
         TERM: xterm-256color
         GCR_VIEWER_KEY_CI: ((gcr-pull-service-account-key))
@@ -271,8 +273,20 @@ jobs:
           gcloud auth activate-service-account --key-file=${KUBECTL_SECRET_TOKEN_PATH}
           gcloud container clusters get-credentials ${CI_CLUSTER} --region europe-west1 --project ${GCP_PROJECT}
           ssh-keyscan -H github.com > ~/.ssh/known_hosts
-          cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
+
+          pushd go/src/github.com/pivotal/rabbitmq-for-kubernetes
+          export CONTROLLER_IMAGE_TAG=$(cat .git/short_ref)
+          echo "Clearing existing operator resources"
           make destroy-ci
+          echo "Deploying operator"
+          make deploy-ci
+          popd
+
+          pushd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
+          echo "Clearing any existing broker resources"
+          make destroy-ci
+
+          echo "Deploying broker"
           make deploy-ci
           kubectl -n pivotal-rabbitmq-servicebroker-system-ci wait pod -l app=servicebroker --for=condition=Ready --timeout=2m
           kubectl -n pivotal-rabbitmq-servicebroker-system-ci port-forward service/p-rmq-servicebroker-ci 8080:8080 > /dev/null &
