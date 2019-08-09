@@ -59,7 +59,7 @@ destroy:
 
 destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/default/overlays/ci --ignore-not-found=true
-	kubectl delete -k config/namespace/overlays/ci
+	kubectl delete -k config/namespace/overlays/ci --ignore-not-found=true
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate manifests fmt vet install deploy-namespace
