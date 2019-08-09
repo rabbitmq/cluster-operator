@@ -75,11 +75,25 @@ Replace all references of "REPLACE-WITH-IMAGE-REPOSITORY-HOST" with your image r
 Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL `<your-repository>/rabbitmq-for-kubernetes-operator:0.1.0`
 Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker image URL `<your-repository>/rabbitmq-for-kubernetes-broker:0.1.0`
 
-Install RabbitmqCluster Custom Resource Definition and Operator
+Install RabbitmqCluster Custom Resource Definition, Operator and Broker.
 ```
 kubectl apply -f installation/
 ```
 
-## Deploy broker
-
 ## Register broker with your CF
+
+In order to register the service broker, run the following CF command:
+
+```
+cf create-service-broker <service-broker-name> <broker-username> <broker-password> http://<service-broker-ip>:8080
+```
+
+The `<service-broker-name>` can be any arbitrary name. The `<service-broker-ip>` is the external IP assigned to the `LoadBalancer` service named `p-rmq-servicebroker`.
+// TODO: add guidance on how to fetch the broker username and password
+// This will be implemented in #167564232
+
+Once the service broker is registered, run the following command to enable access in the marketplace:
+
+```
+cf enable-service-access p-rabbitmq-k8s -b <service-broker-name>
+```
