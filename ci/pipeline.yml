@@ -127,6 +127,7 @@ jobs:
       build: *repo
       tag_file: rabbitmq-for-kubernetes/.rc_version
       additional_tags: rabbitmq-for-kubernetes/.git/short_ref
+      tag_as_latest: true
 
 - name: operator-system-tests
   serial: true
@@ -156,6 +157,8 @@ jobs:
         KUBECTL_SECRET_TOKEN_PATH: kubectl-secret-token.json
         GCR_VIEWER_KEY_CI: ((gcr-pull-service-account-key))
         K8S_OPERATOR_NAMESPACE: pivotal-rabbitmq-system-ci
+        CI_CLUSTER: ci-bunny
+        GCP_PROJECT: cf-rabbitmq-for-k8s-bunny
       run:
         path: bash
         args:
@@ -169,6 +172,8 @@ jobs:
           export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes
           export CONTROLLER_IMAGE_TAG=$(cat .git/short_ref)
+          echo "Clearing old environment"
+          make destroy-ci
           echo "Deploying ci environment"
           make deploy-ci
           echo "Testing single node cluster..."
@@ -261,10 +266,13 @@ jobs:
           echo "Outputting kubectl token to a file"
           echo -n $KUBECTL_SECRET_TOKEN > $KUBECTL_SECRET_TOKEN_PATH
           set -x
+
+          export KUBECTL_SECRET_TOKEN_PATH=$PWD/$KUBECTL_SECRET_TOKEN_PATH
           gcloud auth activate-service-account --key-file=${KUBECTL_SECRET_TOKEN_PATH}
           gcloud container clusters get-credentials ${CI_CLUSTER} --region europe-west1 --project ${GCP_PROJECT}
           ssh-keyscan -H github.com > ~/.ssh/known_hosts
           cd go/src/github.com/pivotal/rabbitmq-for-kubernetes-broker
+          make destroy-ci
           make deploy-ci
           kubectl -n pivotal-rabbitmq-servicebroker-system-ci wait pod -l app=servicebroker --for=condition=Ready --timeout=2m
           kubectl -n pivotal-rabbitmq-servicebroker-system-ci port-forward service/p-rmq-servicebroker-ci 8080:8080 > /dev/null &
