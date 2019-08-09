@@ -9,10 +9,10 @@
 6. Any assumptions and restrictions for this alpha (e.g. missing functionality, unsupported upgrades to later versions, rabbitmq management image cannot be private ...)
 
 ## Pre-requisite
-1. [docker](https://docs.docker.com/v17.12/docker-cloud/installing-cli/)
+1. [docker](https://docs.docker.com/install/)
 2. [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
-## Download artefacts
+## Download artifacts
 The artefacts for RabbitMQ for Kubernetes can be downloaded from [Pivotal Network](https://network.pivotal.io/products/p-rabbitmq-for-kubernetes/). The artifact contains
 three docker images and deployment manifests for the operator and the broker. The three images are:
 
@@ -20,8 +20,12 @@ three docker images and deployment manifests for the operator and the broker. Th
 2. Service Broker
 3. RabbitMQ binaries
 
-## Relocate images
+## Images
+We have all of our images hosted in our gcr registry, and public available. You can either use the saved images from our artifact and push them to your own registry, or you can use our public images. You public available images are hosted in `us.gcr.io/cf-rabbitmq-for-k8s-bunny`. Skip the Relocate images step if you want to use our public images.
+
+## Relocate images (optional)
 // TODO: update image names after creating pivnet artifact
+This step is only required if you want to use your own image registry. If you do not have a local image registry, skip this step.
 
 Uncompress the image to local docker
 
@@ -59,11 +63,17 @@ Create a secret that authorises access to private images, in the `pivotal-rabbit
 
 
 ## Deploy operator
+// TODO: update image names/urls after creating pivnet artifact and pushing public images
 
-Provide your repository url in our operator manifest
-Replace all references of "REPLACE-WITH-IMAGE-REPOSITORY-HOST" with your image repository host, e.g. `eu.gcr.io`
-Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL, e.g. `eu.gcr.io/my-project-name/rabbitmq-for-kubernetes-operator:0.1.0-alpha.1`
-Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker image URL, e.g. `eu.gcr.io/my-project-name/rabbitmq-for-kubernetes-broker:0.1.0-alpha.1`
+If you want to use our public images, provide our images url in our operator manifest
+Replace all references of "REPLACE-WITH-IMAGE-REPOSITORY-HOST" with your image repository host, `us.gcr.io/cf-rabbitmq-for-k8s-bunny`
+Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL,  `us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller:0.1.0`
+Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker image URL, `us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-servicebroker:0.1.0`
+
+If you want to use your own image registry, provide your repository url in our operator manifest
+Replace all references of "REPLACE-WITH-IMAGE-REPOSITORY-HOST" with your image repository host `<your-repository>`
+Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL `<your-repository>/rabbitmq-for-kubernetes-operator:0.1.0`
+Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker image URL `<your-repository>/rabbitmq-for-kubernetes-broker:0.1.0`
 
 Install RabbitmqCluster Custom Resource Definition and Operator
 ```
