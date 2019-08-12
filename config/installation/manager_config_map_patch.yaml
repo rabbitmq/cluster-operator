@@ -5,7 +5,8 @@ metadata:
   name: manager-config
   namespace: system
 data:
-  SERVICE_TYPE: ""
+  # Change the value to your desired service type: ClusterIP, NodePort, LoadBalancer. ExternalName is not supported
+  SERVICE_TYPE: "ClusterIP"
   IMAGE_REPOSITORY: "REPLACE-WITH-IMAGE-REPOSITORY-HOST"
   IMAGE_PULL_SECRET: ""
 ---
