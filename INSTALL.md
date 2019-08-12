@@ -1,6 +1,6 @@
 # RabbitMQ for Kubernetes
 
-## Combatibility and Upgrades
+## Compatibility and Upgrades
 Features delivered in alpha are not guaranteed to be present in GA. As of now, there are no plans for upgrade or migration path from alpha.
 
 ## Pre-requisite
@@ -16,7 +16,7 @@ three docker images and deployment manifests for the operator and the broker. Th
 3. Service Broker
 
 ## Images
-We have all of our images hosted in our gcr registry, and publically available. You can either use the saved images from our artifact and push them to your own registry, or you can use our public images. Our public images are hosted in `us.gcr.io/cf-rabbitmq-for-k8s-bunny`. Skip the relocate images step if you want to use our public images.
+We have all of our images hosted in our gcr registry, and publicly available. You can either use the saved images from our artifact and push them to your own registry, or you can use our public images. Our public images are hosted in `us.gcr.io/cf-rabbitmq-for-k8s-bunny`. Skip the relocate images step if you want to use our public images.
 
 ## Relocate Images (optional)
 // TODO: update image names after creating pivnet artifact
