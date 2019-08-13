@@ -122,12 +122,34 @@ jobs:
   - get: *repo
     passed: [integration-tests]
     trigger: true
+  - task: build-labels
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          tag: latest
+          repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
+          username: _json_key
+          password: ((gcr-push-service-account-key))
+      inputs:
+        - name: *repo
+      outputs:
+        - name: labels
+      run:
+        path: bash
+        args:
+        - -ec
+        - |
+          export COMMIT_SHA=$(cat rabbitmq-for-kubernetes/.git/short_ref)
+          echo "{\"commit\": \"$COMMIT_SHA\"}" > ./labels/labels
   - put: *operator-image-rc
     params:
       build: *repo
       tag_file: rabbitmq-for-kubernetes/.rc_version
       additional_tags: rabbitmq-for-kubernetes/.git/short_ref
       tag_as_latest: true
+      labels_file: labels/labels
 
 - name: operator-system-tests
   serial: true
