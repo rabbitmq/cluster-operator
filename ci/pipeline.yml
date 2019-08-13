@@ -6,6 +6,11 @@ resource_types:
     repository: pivotalcf/pivnet-resource
     tag: latest-final
 
+- name: gcs-resource
+  type: docker-image
+  source:
+    repository: frodenas/gcs-resource
+
 resources:
 # https://github.com/concourse/git-resource
 - name: &repo rabbitmq-for-kubernetes
@@ -33,6 +38,28 @@ resources:
     username: _json_key
     password: ((gcr-push-service-account-key))
 
+- name: &operator-image-release rabbitmq-k8s-operator-release
+  type: docker-image
+  source:
+    repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
+    tag: 0.1.0
+    username: _json_key
+    password: ((gcr-push-service-account-key))
+
+- name: &broker-image-release rabbitmq-k8s-broker-release
+  type: docker-image
+  source:
+    repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-servicebroker
+    tag: 0.1.0
+    username: _json_key
+    password: ((gcr-push-service-account-key))
+
+- name: &rabbitmq-release rabbitmq-release
+  type: docker-image
+  source:
+    repository: rabbitmq
+    tag: 3.8-rc-management
+  version: {digest: "sha256:5d49702395e2c0cf9fa77a46d8fcae5f2107dc9a6dcd87a2c27e0599eba20d18"}
 
 - name: every-friday
   type: time
@@ -51,23 +78,12 @@ resources:
     access_key_id: ((pivnet-aws-access-key-id))
     secret_access_key: ((pivnet-aws-secret-access-key))
 
-- name: product-release
-  type: s3
-  source:
-    bucket: rabbitmq-for-kubernetes
-    regexp: (.*).tar
-    region_name: eu-west-1
-    access_key_id: ((pivnet-aws-access-key-id))
-    secret_access_key: ((pivnet-aws-secret-access-key))
-
 - name: product-metadata
-  type: s3
+  type: gcs-resource
   source:
-    bucket: rabbitmq-for-kubernetes
-    regexp: (.*).yml
-    region_name: eu-west-1
-    access_key_id: ((pivnet-aws-access-key-id))
-    secret_access_key: ((pivnet-aws-secret-access-key))
+    bucket: rabbitmq-on-k8s-pivnet-metadata
+    regexp: metadata-(.*).yml
+    json_key: ((gcr-push-service-account-key))
 
 jobs:
 - name: integration-tests
@@ -344,10 +360,67 @@ jobs:
 - name: upload-pivnet
   serial: true
   plan:
-  - get: product-release
+  - get: *repo
+  - get: rabbitmq-for-kubernetes-broker
+  - get: *operator-image-release
+    params:
+      save: true
+      rootfs: true
+  - get: *broker-image-release
+    params:
+      save: true
+      rootfs: true
+  - get: *rabbitmq-release
+    params:
+      save: true
+      rootfs: true
   - get: product-metadata
+  - task: create-tarball
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          tag: latest
+          repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
+          username: _json_key
+          password: ((gcr-pull-service-account-key))
+      inputs:
+      - name: *operator-image-release
+      - name: *repo
+      - name: rabbitmq-for-kubernetes-broker
+      - name: *rabbitmq-release
+      - name: *broker-image-release
+      outputs:
+      - name: product-release
+      run:
+        path: bash
+        args:
+        - -ec
+        - |
+          echo "creating tarball"
+          mkdir images manifests
+          mv rabbitmq-k8s-operator-release/image images/rabbitmq-for-kubernetes-controller-0.1.0
+          mv rabbitmq-k8s-broker-release/image images/rabbitmq-for-kubernetes-servicebroker-0.1.0
+          mv rabbitmq-release/image images/rabbitmq-3.8-rc-management
+
+          controller_short_ref=$(jq -r '.[0].Config.Labels["commit"]' rabbitmq-k8s-operator-release/docker_inspect.json)
+          pushd rabbitmq-for-kubernetes/
+          git checkout $controller_short_ref
+          make generate-installation-manifests
+          mv installation/* ../manifests/
+          popd
+
+          broker_short_ref=$(jq -r '.[0].Config.Labels["commit"]' rabbitmq-k8s-broker-release/docker_inspect.json)
+          pushd rabbitmq-for-kubernetes-broker/
+          git checkout $broker_short_ref
+          make generate-installation-manifests
+          mv installation/* ../manifests/
+          popd
+
+          tar -czf rabbitmq-for-kubernetes-0.1.0.tar images manifests
+          mv rabbitmq-for-kubernetes-0.1.0.tar product-release/
   - put: rabbitmq-for-kubernetes-pivnet
     params:
-      s3_filepath_prefix: rabbitmq-for-kubernetes
       file_glob: product-release/rabbitmq-for-kubernetes-*.tar
-      metadata_file: product-metadata/metadata.yml
+      metadata_file: product-metadata/metadata-0.1.0.yml
