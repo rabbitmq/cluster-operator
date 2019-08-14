@@ -106,7 +106,7 @@ cf enable-service-access p-rabbitmq-k8s -b <service-broker-name>
 ## Limitations
 
 ### Updating the RabbitMQ Cluster
-For now, there is no capability to update the RabbitMQ cluster and any of its child objects (stateful set, config map, and secrets) after creation i.e. if you update any of the configurations, they will not take any effect. In case you deleted the child config map and/or secret objects, they will not be recreated (stateful set and service objects will be recreated). You will have to delete the cluster and recreate it again.
+For now, there is no capability to update the RabbitMQ cluster and any of its child objects (stateful set, config map, service and secrets) after creation i.e. if you update any of the configurations, they will not take any effect. In case you deleted the child config map, service and/or secret objects, they will not be recreated (stateful set objects will be recreated). You will have to delete the cluster and recreate it again.
 
 ### RabbitMQ Image
 At the moment, we do not support pulling the RabbitMQ image from a repository that requires authentication.
