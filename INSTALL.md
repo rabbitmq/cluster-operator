@@ -7,6 +7,8 @@ Features delivered in alpha are not guaranteed to be present in GA. As of now, t
 1. [docker](https://docs.docker.com/install/)
 2. [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
+This installation guide is written with the assumption that you are using a private image registry. If you don't have access to an image registry yourself, please contact the team on Pivotal slack (#rabbitmq-for-k8s)
+
 ## Download Artifacts
 The artifacts for RabbitMQ for Kubernetes can be downloaded from [Pivotal Network](https://network.pivotal.io/products/p-rabbitmq-for-kubernetes/). The artifact contains
 three docker images and deployment manifests for the operator and the broker. The three images are:
@@ -15,12 +17,8 @@ three docker images and deployment manifests for the operator and the broker. Th
 2. RabbitMQ Operator
 3. Service Broker
 
-## Images
-We have all of our images hosted in our gcr registry, and publicly available. You can either use the saved images from our artifact and push them to your own registry, or you can use our public images. Our public images are hosted in `us.gcr.io/cf-rabbitmq-for-k8s-bunny`. Skip the relocate images step if you want to use our public images.
-
-## Relocate Images (optional)
+## Relocate Images
 // TODO: update image names after creating pivnet artifact
-This step is only required if you want to use your own image registry. If you don't use a local image registry, skip this step.
 
 Uncompress the image to local docker
 
@@ -61,14 +59,7 @@ Create a secret that authorises access to private images, in the `pivotal-rabbit
 
 // TODO: update image names/urls after creating pivnet artifact and pushing public images
 
-If you want to use our public images, provide our images url in our operator manifest (installation/operator.yaml)
-Replace all references of "REPLACE-WITH-IMAGE-REPOSITORY-HOST" with your image repository host, `us.gcr.io/cf-rabbitmq-for-k8s-bunny`
-Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL,  `us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller:0.1.0`
-
-Provide our images url in the service broker manifest (installation/service-broker.yaml)
-Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker image URL, `us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-servicebroker:0.1.0`
-
-If you want to use your own image registry, provide your repository url in our operator manifest (installation/operator.yaml)
+Provide your repository url in our operator manifest (installation/operator.yaml)
 Replace all references of "REPLACE-WITH-IMAGE-REPOSITORY-HOST" with your image repository host `<your-repository>`
 Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL `<your-repository>/rabbitmq-for-kubernetes-operator:0.1.0`
 
@@ -115,7 +106,7 @@ cf enable-service-access p-rabbitmq-k8s -b <service-broker-name>
 ## Limitations
 
 ### Updating the RabbitMQ Cluster
-For now, there is no capability to update the RabbitMQ cluster and any of its child objects (stateful set, config map, and secrets) after creation i.e. if you update any of the configurations, they will not take any effect. In case you deleted any of the child objects (stateful set, config map, and secrets), they will not be recreated. You will have to delete the cluster and recreate it again.
+For now, there is no capability to update the RabbitMQ cluster and any of its child objects (stateful set, config map, and secrets) after creation i.e. if you update any of the configurations, they will not take any effect. In case you deleted the child config map and/or secret objects, they will not be recreated (stateful set and service objects will be recreated). You will have to delete the cluster and recreate it again.
 
 ### RabbitMQ Image
 At the moment, we do not support pulling the RabbitMQ image from a repository that requires authentication.
