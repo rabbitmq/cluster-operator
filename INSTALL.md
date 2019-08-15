@@ -24,17 +24,17 @@ Uncompress the image to local docker
 
 ```
 tar xvf path/to/rabbitmq-for-kubernetes-artifact.tar
-docker load -i operator-image
-docker load -i rabbitmq-image
-docker load -i servicebroker-image
+docker load -i rabbitmq-for-kubernetes-controller
+docker load -i rabbitmq-3.8-rc-management
+docker load -i rabbitmq-for-kubernetes-servicebroker
 ```
 
 Tag the image to point to your own image repository
 
 ```
-docker tag rabbitmq-image <your-repository>/rabbitmq:3.8-rc-management
-docker tag operator-image <your-repository>/rabbitmq-for-kubernetes-operator:<version>
-docker tag servicebroker-image <your-repository>/rabbitmq-for-kubernetes-broker:<version>
+docker tag rabbitmq-3.8-rc-management <your-repository>/rabbitmq:3.8-rc-management
+docker tag rabbitmq-for-kubernetes-controller <your-repository>/rabbitmq-for-kubernetes-operator:<version>
+docker tag rabbitmq-for-kubernetes-servicebroker <your-repository>/rabbitmq-for-kubernetes-broker:<version>
 ```
 
 Upload the image to your own image repository

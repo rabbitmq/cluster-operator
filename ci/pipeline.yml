@@ -400,8 +400,8 @@ jobs:
         - |
           echo "creating tarball"
           mkdir images manifests
-          mv rabbitmq-k8s-operator-release/image images/rabbitmq-for-kubernetes-controller-0.1.0
-          mv rabbitmq-k8s-broker-release/image images/rabbitmq-for-kubernetes-servicebroker-0.1.0
+          mv rabbitmq-k8s-operator-release/image images/rabbitmq-for-kubernetes-controller
+          mv rabbitmq-k8s-broker-release/image images/rabbitmq-for-kubernetes-servicebroker
           mv rabbitmq-release/image images/rabbitmq-3.8-rc-management
 
           controller_short_ref=$(jq -r '.[0].Config.Labels["commit"]' rabbitmq-k8s-operator-release/docker_inspect.json)
