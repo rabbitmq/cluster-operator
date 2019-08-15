@@ -33,7 +33,7 @@ resources:
 - name: &operator-image-rc rabbitmq-k8s-operator-rc
   type: docker-image
   source:
-    repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
+    repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-operator
     tag: rc
     username: _json_key
     password: ((gcr-push-service-account-key))
@@ -41,7 +41,7 @@ resources:
 - name: &operator-image-release rabbitmq-k8s-operator-release
   type: docker-image
   source:
-    repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-controller
+    repository: eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-operator
     tag: 0.1.0
     username: _json_key
     password: ((gcr-push-service-account-key))
@@ -400,7 +400,7 @@ jobs:
         - |
           echo "creating tarball"
           mkdir images manifests
-          mv rabbitmq-k8s-operator-release/image images/rabbitmq-for-kubernetes-controller
+          mv rabbitmq-k8s-operator-release/image images/rabbitmq-for-kubernetes-operator
           mv rabbitmq-k8s-broker-release/image images/rabbitmq-for-kubernetes-servicebroker
           mv rabbitmq-release/image images/rabbitmq-3.8-rc-management
 
