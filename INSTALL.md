@@ -31,10 +31,13 @@ docker load -i rabbitmq-for-kubernetes-servicebroker
 
 Tag the image to point to your own image repository
 
-```
-docker tag rabbitmq-3.8-rc-management <your-repository>/rabbitmq:3.8-rc-management
-docker tag rabbitmq-for-kubernetes-operator <your-repository>/rabbitmq-for-kubernetes-operator:<version>
-docker tag rabbitmq-for-kubernetes-servicebroker <your-repository>/rabbitmq-for-kubernetes-servicebroker:<version>
+```bash
+~$ docker tag rabbitmq-3.8-rc-management \
+>  <your-repository>/rabbitmq:3.8-rc-management
+~$ docker tag rabbitmq-for-kubernetes-operator \
+>  <your-repository>/rabbitmq-for-kubernetes-operator:<version>
+~$ docker tag rabbitmq-for-kubernetes-servicebroker \
+>  <your-repository>/rabbitmq-for-kubernetes-servicebroker:<version>
 ```
 
 Push the image to your own image repository
@@ -57,14 +60,16 @@ In your cluster, create a Kubernetes secret that authorises access to private im
 
 ### Configure Image Repository
 
-// TODO: update image names/urls after creating pivnet artifact and pushing public images
-
 Provide your repository url in our operator manifest (`installation/operator.yaml`)
 Replace all references of "REPLACE-WITH-IMAGE-REPOSITORY-HOST" with your image repository host `<your-repository>`
-Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL `<your-repository>/rabbitmq-for-kubernetes-operator:<version>`
+Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL:
+
+`<your-repository>/rabbitmq-for-kubernetes-operator:<version>`
 
 Provide your repository url in the service broker manifest (`installation/service-broker.yaml`)
-Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker image URL `<your-repository>/rabbitmq-for-kubernetes-servicebroker:<version>`
+Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker image URL:
+
+`<your-repository>/rabbitmq-for-kubernetes-servicebroker:<version> `
 
 ## Configuring Service Type (Optional)
 
@@ -86,7 +91,8 @@ kubectl apply -f installation/
 In order to register the service broker, run the following `cf` CLI command:
 
 ```
-cf create-service-broker <service-broker-name> <broker-username> <broker-password> http://<service-broker-ip>:8080
+~$ cf create-service-broker <service-broker-name> <broker-username> <broker-password> \
+>  http://<service-broker-ip>:8080
 ```
 
 The `<service-broker-name>` can be any arbitrary name. The `<service-broker-ip>` is the external IP assigned to the `LoadBalancer` service named `p-rmq-servicebroker`, which is deployed in the service broker namespace `pivotal-rabbitmq-servicebroker-system`.
