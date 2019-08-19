@@ -52,7 +52,7 @@ docker push <your-repository>/rabbitmq-for-kubernetes-servicebroker:<version>
 We highly encourage you to keep the operator and service-broker images private if your repository is publicly accessible.
 
 ```
-kubectl apply -f installation/namespace.yaml
+kubectl apply -f manifests/namespace.yaml
 ```
 
 In your cluster, create a Kubernetes secret that authorises access to private images, in the `pivotal-rabbitmq-system` namespace that we just created. Repeat this task for the `pivotal-rabbitmq-servicebroker-system` namespace. Instructions and more details [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
@@ -60,13 +60,13 @@ In your cluster, create a Kubernetes secret that authorises access to private im
 
 ### Configure Image Repository
 
-Provide your repository url in our operator manifest (`installation/operator.yaml`)
+Provide your repository url in our operator manifest (`manifests/operator.yaml`)
 Replace all references of "REPLACE-WITH-IMAGE-REPOSITORY-HOST" with your image repository host `<your-repository>`
 Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL:
 
 `<your-repository>/rabbitmq-for-kubernetes-operator:<version>`
 
-Provide your repository url in the service broker manifest (`installation/service-broker.yaml`)
+Provide your repository url in the service broker manifest (`manifests/service-broker.yaml`)
 Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker image URL:
 
 `<your-repository>/rabbitmq-for-kubernetes-servicebroker:<version> `
@@ -75,7 +75,7 @@ Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker i
 
 Our operator allows you to specify what kind of Kubernetes Service is provisioned for your RabbitMQ cluster. The default type is ClusterIP.
 You can find the detailed explanation of different Kubernetes Service types [here](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
-If you wish to change the Service type, you can change it in our operator manifest (`installation/operator.yaml`):
+If you wish to change the Service type, you can change it in our operator manifest (`manifests/operator.yaml`):
 
 Replace the value of `SERVICE_TYPE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently not supported.
 
@@ -83,7 +83,7 @@ Replace the value of `SERVICE_TYPE` from `ClusterIP` to either `NodePort` or `Lo
 
 To deploy the operator and broker, and to install the `RabbitmqCluster` Custom Resource Definition:
 ```
-kubectl apply -f installation/
+kubectl apply -f manifests/
 ```
 
 ## Register Broker with Cloud Foundry
