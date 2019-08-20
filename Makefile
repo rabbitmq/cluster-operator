@@ -61,7 +61,7 @@ destroy:
 
 destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/default/overlays/ci --ignore-not-found=true
-	kubectl delete -k config/namespace/overlays/ci --ignore-not-found=true
+	kubectl delete -k config/namespace/base --ignore-not-found=true
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate manifests fmt vet install deploy-namespace
@@ -74,9 +74,6 @@ install: manifests
 deploy-namespace:
 	kubectl apply -k config/namespace/base
 
-deploy-namespace-ci:
-	kubectl apply -k config/namespace/overlays/ci
-
 deploy-master: install deploy-namespace gcr-viewer
 	kubectl apply -k config/default/base
 
@@ -84,7 +81,7 @@ deploy-master: install deploy-namespace gcr-viewer
 deploy: manifests deploy-namespace gcr-viewer deploy-manager
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace-ci gcr-viewer-ci deploy-manager-ci
+deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace gcr-viewer-ci deploy-manager-ci
 
 generate-installation-manifests:
 	mkdir -p installation
@@ -110,9 +107,6 @@ docker-image-release: controller-image-tag
 
 system-tests:
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -p --randomizeAllSpecs -r system_tests/
-
-system-tests-ci:
-	NAMESPACE="pivotal-rabbitmq-system-ci" ginkgo -p --randomizeAllSpecs -r system_tests/
 
 GCR_VIEWER_ACCOUNT_EMAIL=gcr-viewer@cf-rabbitmq-for-k8s-bunny.iam.gserviceaccount.com
 GCR_VIEWER_ACCOUNT_NAME=gcr-viewer
