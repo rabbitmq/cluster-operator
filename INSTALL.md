@@ -79,6 +79,17 @@ If you wish to change the Service type, you can change it in our operator manife
 
 Replace the value of `SERVICE_TYPE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently not supported.
 
+## Create Broker Credentials
+
+The service broker looks for its username and password in a Kubernetes secret called `broker-credentials` in the `pivotal-rabbitmq-system` namespace. To create a secret follow the steps below:
+
+`echo -n <broker-username> > ./username`
+`echo -n <broker-password> > ./password`
+`kubectl create secret generic broker-credentials -n pivotal-rabbitmq-system --from-file=./username --from-file=./password`
+
+There are several ways to create a secret, you can refer to the [official documentation](https://kubernetes.io/docs/concepts/configuration/secret) for more details.
+Keep in mind that the secret name should be `broker-credetails` and should be in the `pivotal-rabbitmq-system` namespace with username and password as part of data, otherwise the service broker will fail to deploy.
+
 ## Deploy Operator and Broker
 
 To deploy the operator and broker, and to install the `RabbitmqCluster` Custom Resource Definition:
@@ -97,7 +108,7 @@ In order to register the service broker, run the following `cf` CLI command:
 
 The `<service-broker-name>` can be any arbitrary name. The `<service-broker-ip>` is the external IP assigned to the `LoadBalancer` service named `p-rmq-servicebroker`, which is deployed in the service broker namespace `pivotal-rabbitmq-servicebroker-system`.
 
-Our service broker username and password is hard-coded. Username is `p1-rabbit`, and password is `p1-rabbit-testpwd`.
+The broker-username and broker-password is the credentials you've used to create the kubernetes secrets in previous step "Create Broker Credentials".
 
 Once the service broker is registered, run the following command to enable access in the marketplace:
 
