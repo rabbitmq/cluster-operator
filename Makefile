@@ -101,10 +101,6 @@ docker-build-ci-image:
 docker-push:
 	docker push $(CONTROLLER_IMAGE):latest
 
-docker-image-release: controller-image-tag
-	docker build . -t $(CONTROLLER_IMAGE):$(CONTROLLER_IMAGE_TAG)
-	docker push $(CONTROLLER_IMAGE):$(CONTROLLER_IMAGE_TAG)
-
 system-tests:
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -p --randomizeAllSpecs -r system_tests/
 
@@ -131,9 +127,14 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
-patch-controller-image: controller-image-tag
+patch-controller-image:
+	$(eval CONTROLER_IMAGE_NAME:=$(CONTROLLER_IMAGE):latest)
+ifneq (, $(CONTROLLER_IMAGE_DIGEST))
+	$(eval CONTROLER_IMAGE_NAME:=$(CONTROLLER_IMAGE):latest\@$(CONTROLLER_IMAGE_DIGEST))
+endif
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(CONTROLLER_IMAGE_TAG)"'@' ./config/default/base/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${CONTROLER_IMAGE_NAME}"'@' ./config/default/base/manager_image_patch.yaml
+
 
 operator-namespace:
 ifeq (, $(K8S_OPERATOR_NAMESPACE))
@@ -145,7 +146,3 @@ ifeq (, $(CI_CLUSTER))
 CI_CLUSTER=ci-bunny
 endif
 
-controller-image-tag:
-ifeq (, $(CONTROLLER_IMAGE_TAG))
-CONTROLLER_IMAGE_TAG=0.1.0
-endif
