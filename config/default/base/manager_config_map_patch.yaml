@@ -9,7 +9,14 @@ spec:
     spec:
       containers:
         - name: manager
+          volumeMounts:
+          - name: manager-config
+            mountPath: /etc/manager-config
           envFrom:
             - configMapRef:
-                name: manager-config
+                name: pivotal-rabbitmq-manager-config
+      volumes:
+        - name: manager-config
+          configMap:
+            name: pivotal-rabbitmq-manager-config
 

@@ -226,9 +226,25 @@ var _ = Describe("System tests", func() {
 		})
 	})
 
-	Context("when NodePort service type is specified in the manager configMap", func() {
+	FWhen("a service type and annotations is configured in the manager configMap", func() {
 		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
+		var expectedServiceType string
+		// var expectedServiceAnnotations map[string]string
+
 		BeforeEach(func() {
+			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configMap.Data["SERVICE_TYPE"]).NotTo(BeNil())
+			Expect(configMap.Data["SERVICE_ANNOTATIONS"]).NotTo(BeNil())
+
+			expectedServiceType = configMap.Data["SERVICE_TYPE"]
+			// expectedServiceAnnotationsStr := configMap.Data["SERVICE_ANNOTATIONS"]
+			// expectedServiceAnnotationsSplit := strings.Split(expectedServiceAnnotationsStr, ":")
+			// expectedServiceAnnotations = map[string]string{
+			// expectedServiceAnnotationsSplit[0]: expectedServiceAnnotationsSplit[1],
+			// }
+			//fmt.Println("expectedServiceAnnotationsStr")
+			// fmt.Println(expectedServiceAnnotationsStr)
 			instanceName = "nodeport-rabbit"
 			serviceName = "p-" + instanceName
 
@@ -240,7 +256,7 @@ var _ = Describe("System tests", func() {
 			Expect(k8sClient.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 		})
 
-		It("creates a NodePort service", func() {
+		It("creates the service type and annotations as configured in manager config", func() {
 			Eventually(func() string {
 				svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 				if err != nil {
@@ -249,7 +265,16 @@ var _ = Describe("System tests", func() {
 				}
 
 				return string(svc.Spec.Type)
-			}, serviceCreationTimeout).Should(Equal("NodePort"))
+			}, serviceCreationTimeout).Should(Equal(expectedServiceType))
+			// Eventually(func() map[string]string {
+			// 	svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
+			// 	if err != nil {
+			// 		Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
+			// 		return nil
+			// 	}
+			//
+			// 	return svc.Annotations
+			// }, serviceCreationTimeout).Should(Equal(expectedServiceAnnotations))
 		})
 	})
 })

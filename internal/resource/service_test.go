@@ -9,7 +9,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Service", func() {
+var _ = FDescribe("Service", func() {
 	var instance rabbitmqv1beta1.RabbitmqCluster
 	var service *corev1.Service
 	var serviceName string
@@ -156,7 +156,41 @@ var _ = Describe("Service", func() {
 			})
 		})
 
-		When("service annotations is not specified in RabbitmqCluster spec", func() {
+		When("service annotations are passed in while generating the service and in RabbitmqCluster spec", func() {
+			It("creates the service annotations as specified in the RabbitmqCluster spec", func() {
+				expectedAnnotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
+				ignoredAnnotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
+				instance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+							Annotations: expectedAnnotations,
+						},
+					},
+				}
+				nodePortService := resource.GenerateService(instance, "NodePort", ignoredAnnotations)
+				Expect(nodePortService.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
+			})
+		})
+
+		When("service annotations are passed in while generating the service", func() {
+			It("creates the service annotations as specified", func() {
+				instance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+				}
+				annotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
+				nodePortService := resource.GenerateService(instance, "NodePort", annotations)
+				Expect(nodePortService.ObjectMeta.Annotations).To(Equal(annotations))
+			})
+		})
+
+		When("service annotations is not specified in RabbitmqCluster spec or not passed in", func() {
 			It("creates the service without any annotation", func() {
 				instance := rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: v1.ObjectMeta{

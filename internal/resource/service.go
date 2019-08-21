@@ -13,6 +13,10 @@ func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType strin
 		serviceType = "ClusterIP"
 	}
 
+	if instance.Spec.Service.Annotations != nil {
+		serviceAnnotations = instance.Spec.Service.Annotations
+	}
+
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "p-" + instance.Name,
@@ -20,7 +24,7 @@ func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType strin
 			Labels: map[string]string{
 				"app": instance.Name,
 			},
-			Annotations: instance.Spec.Service.Annotations,
+			Annotations: serviceAnnotations,
 		},
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceType(serviceType),

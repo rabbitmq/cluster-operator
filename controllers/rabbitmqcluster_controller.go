@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	"github.com/prometheus/common/log"
 	appsv1 "k8s.io/api/apps/v1"
 
@@ -91,7 +92,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	resources := []runtime.Object{
 		resource.GenerateStatefulSet(*instance, r.ImageRepository, r.ImagePullSecret),
 		resource.GenerateConfigMap(*instance),
-		resource.GenerateService(*instance, r.ServiceType, nil),
+		resource.GenerateService(*instance, r.ServiceType, r.ServiceAnnotations),
 		rabbitmqSecret,
 	}
 
