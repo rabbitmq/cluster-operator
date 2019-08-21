@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType string) *corev1.Service {
+func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType string, serviceAnnotations map[string]string) *corev1.Service {
 	if instance.Spec.Service.Type != "" {
 		serviceType = instance.Spec.Service.Type
 	} else if serviceType == "" {
@@ -20,6 +20,7 @@ func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType strin
 			Labels: map[string]string{
 				"app": instance.Name,
 			},
+			Annotations: instance.Spec.Service.Annotations,
 		},
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceType(serviceType),

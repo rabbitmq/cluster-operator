@@ -400,6 +400,10 @@ spec:
               type: integer
             service:
               properties:
+                annotations:
+                  additionalProperties:
+                    type: string
+                  type: object
                 type:
                   enum:
                   - ClusterIP

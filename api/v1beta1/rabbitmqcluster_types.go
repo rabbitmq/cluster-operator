@@ -35,7 +35,8 @@ type RabbitmqClusterImageSpec struct {
 
 type RabbitmqClusterServiceSpec struct {
 	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
-	Type string `json:"type,omitempty"`
+	Type        string            `json:"type,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // RabbitmqClusterStatus defines the observed state of RabbitmqCluster

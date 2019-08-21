@@ -230,14 +230,18 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 
 	Context("Service type tests", func() {
-		testServiceType("LoadBalancer", corev1.ServiceTypeLoadBalancer)
-		testServiceType("ClusterIP", corev1.ServiceTypeClusterIP)
-		testServiceType("NodePort", corev1.ServiceTypeNodePort)
+		testServiceSpec(corev1.ServiceTypeLoadBalancer, nil)
+		testServiceSpec(corev1.ServiceTypeClusterIP, nil)
+		testServiceSpec(corev1.ServiceTypeNodePort, nil)
+	})
+
+	Context("Service annotation specified in RabbitmqCluster spec", func() {
+		testServiceSpec(corev1.ServiceTypeNodePort, map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}, )
 	})
 })
 
-func testServiceType(serviceTypeName string, serviceType corev1.ServiceType) {
-	Context(fmt.Sprintf("using a %s type service", serviceTypeName), func() {
+func testServiceSpec(serviceType corev1.ServiceType, serviceAnnotation map[string]string) {
+	Context(fmt.Sprintf("using a %s type service and setting annotations to: %v", serviceType, serviceAnnotation), func() {
 		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		var expectedRequest reconcile.Request
 		var clientSet *kubernetes.Clientset
@@ -261,7 +265,8 @@ func testServiceType(serviceTypeName string, serviceType corev1.ServiceType) {
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: 1,
 					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type: serviceTypeName,
+						Type:        string(serviceType),
+						Annotations: serviceAnnotation,
 					},
 				},
 			}
@@ -281,11 +286,12 @@ func testServiceType(serviceTypeName string, serviceType corev1.ServiceType) {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 		})
 
-		It(fmt.Sprintf("creates the Service as type %s", serviceTypeName), func() {
+		It(fmt.Sprintf("creates the Service as type %s, and adds annotations as: %v", serviceType, serviceAnnotation), func() {
 			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 			service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(service.Spec.Type).To(Equal(serviceType))
+			Expect(service.ObjectMeta.Annotations).To(Equal(serviceAnnotation))
 		})
 	})
 }

@@ -46,11 +46,12 @@ var (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	ServiceType     string
-	ImageRepository string
-	ImagePullSecret string
+	Log                logr.Logger
+	Scheme             *runtime.Scheme
+	ServiceType        string
+	ServiceAnnotations map[string]string
+	ImageRepository    string
+	ImagePullSecret    string
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -90,7 +91,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	resources := []runtime.Object{
 		resource.GenerateStatefulSet(*instance, r.ImageRepository, r.ImagePullSecret),
 		resource.GenerateConfigMap(*instance),
-		resource.GenerateService(*instance, r.ServiceType),
+		resource.GenerateService(*instance, r.ServiceType, nil),
 		rabbitmqSecret,
 	}
 

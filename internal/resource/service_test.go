@@ -24,7 +24,7 @@ var _ = Describe("Service", func() {
 	Context("succeeds", func() {
 
 		BeforeEach(func() {
-			service = resource.GenerateService(instance, "")
+			service = resource.GenerateService(instance, "", nil)
 		})
 
 		It("creates a service object with the correct name and labels", func() {
@@ -71,7 +71,7 @@ var _ = Describe("Service", func() {
 					},
 				},
 			}
-			loadBalancerService := resource.GenerateService(loadBalancerInstance, "")
+			loadBalancerService := resource.GenerateService(loadBalancerInstance, "", nil)
 			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 		})
 
@@ -87,7 +87,7 @@ var _ = Describe("Service", func() {
 					},
 				},
 			}
-			clusterIPService := resource.GenerateService(clusterIPInstance, "")
+			clusterIPService := resource.GenerateService(clusterIPInstance, "", nil)
 			Expect(clusterIPService.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 		})
 
@@ -103,7 +103,7 @@ var _ = Describe("Service", func() {
 					},
 				},
 			}
-			nodePortService := resource.GenerateService(nodePortInstance, "")
+			nodePortService := resource.GenerateService(nodePortInstance, "", nil)
 			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 		})
 
@@ -115,7 +115,7 @@ var _ = Describe("Service", func() {
 						Namespace: "mynamespace",
 					},
 				}
-				nodePortService := resource.GenerateService(instance, "NodePort")
+				nodePortService := resource.GenerateService(instance, "NodePort", nil)
 				Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 
 			})
@@ -132,8 +132,75 @@ var _ = Describe("Service", func() {
 						},
 					},
 				}
-				loadBalancerService := resource.GenerateService(loadBalancerInstance, "ClusterIP")
+				loadBalancerService := resource.GenerateService(loadBalancerInstance, "ClusterIP", nil)
 				Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
+			})
+		})
+
+		When("service annotations is specified in RabbitmqCluster spec", func() {
+			It("creates the service annotations as specified", func() {
+				annotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
+				instance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+							Annotations: annotations,
+						},
+					},
+				}
+				service := resource.GenerateService(instance, "", nil)
+				Expect(service.ObjectMeta.Annotations).To(Equal(annotations))
+			})
+		})
+
+		When("service annotations is not specified in RabbitmqCluster spec", func() {
+			It("creates the service without any annotation", func() {
+				instance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+				}
+				service := resource.GenerateService(instance, "", nil)
+				Expect(service.ObjectMeta.Annotations).To(BeNil())
+			})
+		})
+
+		XWhen("service annotations are not empty", func() {
+			It("creates the service annotations as specified", func() {
+				instance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+				}
+				annotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
+				nodePortService := resource.GenerateService(
+					instance,
+					"NodePort",
+					annotations,
+				)
+				Expect(nodePortService.ObjectMeta.Annotations).To(Equal(annotations))
+			})
+		})
+
+		XWhen("service annotations is empty", func() {
+			It("leaves the service annotations empty", func() {
+				instance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+				}
+				nodePortService := resource.GenerateService(
+					instance,
+					"NodePort",
+					nil,
+				)
+				Expect(nodePortService.ObjectMeta.Annotations).To(BeNil())
 			})
 		})
 	})
