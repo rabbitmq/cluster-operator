@@ -83,9 +83,11 @@ Replace the value of `SERVICE_TYPE` from `ClusterIP` to either `NodePort` or `Lo
 
 The service broker looks for its username and password in a Kubernetes secret called `broker-credentials` in the `pivotal-rabbitmq-system` namespace. To create a secret follow the steps below:
 
-`echo -n <broker-username> > ./username`
-`echo -n <broker-password> > ./password`
-`kubectl create secret generic broker-credentials -n pivotal-rabbitmq-system --from-file=./username --from-file=./password`
+```bash
+echo -n <broker-username> > ./username
+echo -n <broker-password> > ./password
+kubectl create secret generic broker-credentials -n pivotal-rabbitmq-system --from-file=./username --from-file=./password
+```
 
 There are several ways to create a secret, you can refer to the [official documentation](https://kubernetes.io/docs/concepts/configuration/secret) for more details.
 Keep in mind that the secret name should be `broker-credetails` and should be in the `pivotal-rabbitmq-system` namespace with username and password as part of data, otherwise the service broker will fail to deploy.
