@@ -3,5 +3,3 @@ bases:
 
 namespace: pivotal-rabbitmq-system
 
-patches:
-- manager_config_map.yaml
