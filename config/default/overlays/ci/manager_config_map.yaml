@@ -5,5 +5,4 @@ metadata:
   name: manager-config
   namespace: system
 data:
-  IMAGE_REPOSITORY: eu.gcr.io/cf-rabbitmq-for-k8s-bunny
-  IMAGE_PULL_SECRET: gcr-viewer
+  SERVICE_TYPE: ClusterIP
