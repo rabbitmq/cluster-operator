@@ -9,7 +9,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = FDescribe("Service", func() {
+var _ = Describe("Service", func() {
 	var instance rabbitmqv1beta1.RabbitmqCluster
 	var service *corev1.Service
 	var serviceName string

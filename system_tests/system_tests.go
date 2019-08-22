@@ -3,6 +3,7 @@ package system_tests
 import (
 	"context"
 	"fmt"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 	"net/http"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const podCreationTimeout time.Duration = 180 * time.Second
@@ -226,25 +226,16 @@ var _ = Describe("System tests", func() {
 		})
 	})
 
-	FWhen("a service type and annotations is configured in the manager configMap", func() {
+	When("a service type and annotations is configured in the manager configMap", func() {
 		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		var expectedServiceType string
-		// var expectedServiceAnnotations map[string]string
+		var expectedServiceConfigurations *config.ServiceConfig
 
 		BeforeEach(func() {
 			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(configMap.Data["SERVICE_TYPE"]).NotTo(BeNil())
-			Expect(configMap.Data["SERVICE_ANNOTATIONS"]).NotTo(BeNil())
+			Expect(configMap.Data["SERVICE"]).NotTo(BeNil())
 
-			expectedServiceType = configMap.Data["SERVICE_TYPE"]
-			// expectedServiceAnnotationsStr := configMap.Data["SERVICE_ANNOTATIONS"]
-			// expectedServiceAnnotationsSplit := strings.Split(expectedServiceAnnotationsStr, ":")
-			// expectedServiceAnnotations = map[string]string{
-			// expectedServiceAnnotationsSplit[0]: expectedServiceAnnotationsSplit[1],
-			// }
-			//fmt.Println("expectedServiceAnnotationsStr")
-			// fmt.Println(expectedServiceAnnotationsStr)
+			expectedServiceConfigurations, err = config.NewServiceConfig([]byte(configMap.Data["SERVICE"]))
 			instanceName = "nodeport-rabbit"
 			serviceName = "p-" + instanceName
 
@@ -265,20 +256,16 @@ var _ = Describe("System tests", func() {
 				}
 
 				return string(svc.Spec.Type)
-			}, serviceCreationTimeout).Should(Equal(expectedServiceType))
-			// Eventually(func() map[string]string {
-			// 	svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
-			// 	if err != nil {
-			// 		Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
-			// 		return nil
-			// 	}
-			//
-			// 	return svc.Annotations
-			// }, serviceCreationTimeout).Should(Equal(expectedServiceAnnotations))
+			}, serviceCreationTimeout).Should(Equal(expectedServiceConfigurations.Type))
+			Eventually(func() map[string]string {
+				svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
+				if err != nil {
+					Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
+					return nil
+				}
+
+				return svc.Annotations
+			}, serviceCreationTimeout).Should(Equal(expectedServiceConfigurations.Annotations))
 		})
 	})
 })
-
-func createRabbitmqCluster(client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	return client.Create(context.TODO(), rabbitmqCluster)
-}

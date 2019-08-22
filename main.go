@@ -18,6 +18,8 @@ package main
 
 import (
 	"flag"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
+	"io/ioutil"
 	"os"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -55,17 +57,34 @@ func main() {
 		os.Exit(1)
 	}
 
-	serviceType := os.Getenv("SERVICE_TYPE")
 	imageRepository := os.Getenv("IMAGE_REPOSITORY")
 	imagePullSecret := os.Getenv("IMAGE_PULL_SECRET")
 
+	serviceConfigPath := os.Getenv("SERVICE_CONFIG_FILEPATH")
+	if serviceConfigPath == "" {
+		setupLog.Error(err, "unable to find service config file")
+		os.Exit(1)
+	}
+	rawServiceConfig, err := ioutil.ReadFile(serviceConfigPath)
+	if err != nil {
+		setupLog.Error(err, "unable to read service config file")
+		os.Exit(1)
+	}
+
+	serviceConfig, err := config.NewServiceConfig(rawServiceConfig)
+	if err != nil {
+		setupLog.Error(err, "unable to parse service config")
+		os.Exit(1)
+	}
+
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client:          mgr.GetClient(),
-		Log:             ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
-		Scheme:          mgr.GetScheme(),
-		ServiceType:     serviceType,
-		ImageRepository: imageRepository,
-		ImagePullSecret: imagePullSecret,
+		Client:             mgr.GetClient(),
+		Log:                ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
+		Scheme:             mgr.GetScheme(),
+		ServiceType:        serviceConfig.Type,
+		ServiceAnnotations: serviceConfig.Annotations,
+		ImageRepository:    imageRepository,
+		ImagePullSecret:    imagePullSecret,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")

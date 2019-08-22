@@ -5,7 +5,7 @@ metadata:
   name: manager-config
   namespace: system
 data:
-  SERVICE_TYPE: NodePort
-  SERVICE_ANNOTATIONS: |
-    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
-
+  SERVICE: |
+    TYPE: NodePort
+    ANNOTATIONS:
+      SERVICE_ANNOTATION: 0.0.0.0/0
