@@ -168,40 +168,5 @@ var _ = Describe("Service", func() {
 				Expect(service.ObjectMeta.Annotations).To(BeNil())
 			})
 		})
-
-		XWhen("service annotations are not empty", func() {
-			It("creates the service annotations as specified", func() {
-				instance := rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "name",
-						Namespace: "mynamespace",
-					},
-				}
-				annotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
-				nodePortService := resource.GenerateService(
-					instance,
-					"NodePort",
-					annotations,
-				)
-				Expect(nodePortService.ObjectMeta.Annotations).To(Equal(annotations))
-			})
-		})
-
-		XWhen("service annotations is empty", func() {
-			It("leaves the service annotations empty", func() {
-				instance := rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "name",
-						Namespace: "mynamespace",
-					},
-				}
-				nodePortService := resource.GenerateService(
-					instance,
-					"NodePort",
-					nil,
-				)
-				Expect(nodePortService.ObjectMeta.Annotations).To(BeNil())
-			})
-		})
 	})
 })

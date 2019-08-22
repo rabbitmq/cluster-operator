@@ -236,7 +236,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 
 	Context("Service annotation specified in RabbitmqCluster spec", func() {
-		testServiceSpec(corev1.ServiceTypeNodePort, map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}, )
+		testServiceSpec(corev1.ServiceTypeNodePort, map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"})
 	})
 })
 
