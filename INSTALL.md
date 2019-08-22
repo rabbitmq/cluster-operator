@@ -29,7 +29,10 @@ docker load -i rabbitmq-3.8-rc-management
 docker load -i rabbitmq-for-kubernetes-servicebroker
 ```
 
-Tag the image to point to your own image repository
+Tag the image to point to your own image repository:
+
+<your-repository> would be <image-repository-host>:<image-repository-port>/<image-subpath>
+without the schema (e.g. http:// or https://)
 
 ```bash
 ~$ docker tag rabbitmq-3.8-rc-management \
@@ -40,7 +43,7 @@ Tag the image to point to your own image repository
 >  <your-repository>/rabbitmq-for-kubernetes-servicebroker:<version>
 ```
 
-Push the image to your own image repository
+Push the image to your own image repository:
 
 ```
 docker push <your-repository>/rabbitmq:3.8-rc-management
