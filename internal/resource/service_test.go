@@ -139,7 +139,7 @@ var _ = Describe("Service", func() {
 
 		When("service annotations is specified in RabbitmqCluster spec", func() {
 			It("creates the service annotations as specified", func() {
-				annotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
+				annotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
 				instance := rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "name",
@@ -158,8 +158,8 @@ var _ = Describe("Service", func() {
 
 		When("service annotations are passed in while generating the service and in RabbitmqCluster spec", func() {
 			It("creates the service annotations as specified in the RabbitmqCluster spec", func() {
-				expectedAnnotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
-				ignoredAnnotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
+				expectedAnnotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
+				ignoredAnnotations := map[string]string{"service_annotation_b": "0.0.0.0/1"}
 				instance := rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "name",
@@ -184,7 +184,7 @@ var _ = Describe("Service", func() {
 						Namespace: "mynamespace",
 					},
 				}
-				annotations := map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"}
+				annotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
 				nodePortService := resource.GenerateService(instance, "NodePort", annotations)
 				Expect(nodePortService.ObjectMeta.Annotations).To(Equal(annotations))
 			})
