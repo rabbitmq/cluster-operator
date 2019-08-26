@@ -80,7 +80,24 @@ Our operator allows you to specify what kind of Kubernetes Service is provisione
 You can find the detailed explanation of different Kubernetes Service types [here](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
 If you wish to change the Service type, you can change it in our operator manifest (`manifests/operator.yaml`):
 
-Replace the value of `SERVICE_TYPE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently not supported.
+Replace the value of `SERVICE:TYPE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently not supported.
+
+### Configure Service Annotations (Optional)
+
+It is possible to configure custom annotations to the Service deployed for the RabbitMQ cluster. By default there are not annotations configured.
+
+If you wish to configure annotations, you can change it in our operator manifest (`manifests/operator.yaml`):
+
+Add list of key-value pairs to `ANNOTATIONS` under the `SERVICE` object, e.g.
+
+```yaml
+data:
+  SERVICE: |
+    TYPE: NodePort
+    ANNOTATIONS:
+      service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+```
+
 
 ## Create Broker Credentials
 
