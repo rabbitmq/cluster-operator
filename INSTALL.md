@@ -106,7 +106,8 @@ The service broker looks for its username and password in a Kubernetes secret ca
 ```bash
 echo -n <broker-username> > ./username
 echo -n <broker-password> > ./password
-kubectl create secret generic broker-credentials -n pivotal-rabbitmq-system --from-file=./username --from-file=./password
+kubectl create secret generic broker-credentials -n pivotal-rabbitmq-system \
+  --from-file=./username --from-file=./password
 ```
 
 There are several ways to create a secret, you can refer to the [official documentation](https://kubernetes.io/docs/concepts/configuration/secret) for more details.
