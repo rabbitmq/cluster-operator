@@ -22,6 +22,9 @@ import (
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -58,6 +61,8 @@ type RabbitmqClusterReconciler struct {
 // the rbac rule requires an empty row at the end to render
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
@@ -68,6 +73,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
 
 func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	var pvcBaseName string
 	_ = context.Background()
 	logger := r.Log
 
@@ -113,6 +119,11 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	logger.V(1).Info(fmt.Sprintf("Rabbitmq service \"%s\" has Spec: %v", service.ObjectMeta.Name, string(serviceSpec)))
 
 	for _, re := range resources {
+		switch sts := re.(type) {
+		case *appsv1.StatefulSet:
+			pvcBaseName = sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Name
+		}
+
 		if err := controllerutil.SetControllerReference(instance, re.(metav1.Object), r.Scheme); err != nil {
 			logger.Error(err, "Failed setting controller reference")
 			return reconcile.Result{}, err
@@ -127,6 +138,41 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		if err != nil {
 			logger.Error(err, "failed to CreateOrUpdate")
 			return reconcile.Result{}, err
+		}
+	}
+
+	for i := 0; i < instance.Spec.Replicas; i++ {
+		pvcObjectKey := metav1.ObjectMeta{
+			Namespace: instance.Namespace,
+			Name:      fmt.Sprintf("%s-p-%s-%d", pvcBaseName, instance.Name, i),
+		}
+		patchedPvc := &corev1.PersistentVolumeClaim{
+			ObjectMeta: pvcObjectKey,
+		}
+		if err := controllerutil.SetControllerReference(instance, patchedPvc, r.Scheme); err != nil {
+			logger.Error(err, "Failed setting controller reference")
+			return reconcile.Result{}, err
+		}
+
+		originalPvc := &corev1.PersistentVolumeClaim{
+			ObjectMeta: pvcObjectKey,
+		}
+
+		mergeFromPatch := client.MergeFrom(originalPvc)
+		patch, err := mergeFromPatch.Data(patchedPvc)
+		if err != nil {
+			logger.Error(err, "failed to generate Patch object")
+			return reconcile.Result{}, err
+		}
+
+		err = r.Patch(context.TODO(), originalPvc, client.ConstantPatch(types.StrategicMergePatchType, patch))
+		if err != nil && !apierrors.IsNotFound(err) {
+			logger.Error(err, "Failed to patch PVC")
+			return reconcile.Result{}, err
+		} else if apierrors.IsNotFound(err) {
+			logger.Info(fmt.Sprintf("PVC \"%s\" not found", pvcObjectKey.Name))
+		} else {
+			logger.Info(fmt.Sprintf("Successfully patched PVC \"%s\"", pvcObjectKey.Name))
 		}
 	}
 

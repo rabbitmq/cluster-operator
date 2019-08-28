@@ -26,8 +26,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -91,6 +93,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			sts, err := clientSetOne.AppsV1().StatefulSets("default").Get(stsName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sts.Name).To(Equal(stsName))
+
 		})
 
 		It("creates the configmap", func() {
@@ -237,6 +240,37 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	Context("Service annotation specified in RabbitmqCluster spec", func() {
 		testServiceSpec(corev1.ServiceTypeNodePort, map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"})
+	})
+
+	Context("RabbitmqCluster Resource is deleted", func() {
+		var rabbitmqClusterToBeDeleted *rabbitmqv1beta1.RabbitmqCluster
+		BeforeEach(func() {
+			rabbitmqClusterToBeDeleted = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-will-be-deleted",
+					Namespace: "default",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas: 1,
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqClusterToBeDeleted)).NotTo(HaveOccurred())
+		})
+
+		It("deletes the cluster and PersistentVolume is also deleted", func() {
+			Expect(client.Delete(context.TODO(), rabbitmqClusterToBeDeleted)).NotTo(HaveOccurred())
+
+			pvcName := "persistence-p-rabbitmq-will-be-deleted-0"
+			actualPvc := corev1.PersistentVolumeClaim{}
+			var err error
+			Eventually(func() error {
+				err = client.Get(context.TODO(), k8sclient.ObjectKey{Name: pvcName, Namespace: "default"}, &actualPvc)
+				return err
+			}, 10).Should(HaveOccurred())
+
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
 	})
 })
 

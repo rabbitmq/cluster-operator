@@ -7,6 +7,8 @@ import (
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("StatefulSet", func() {
@@ -42,7 +44,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(actualContainerPorts).Should(ConsistOf(requiredContainerPorts))
 		})
 
-		It("uses required plugins and secrets Environment Variables", func() {
+		It("uses required Environment Variables", func() {
 
 			requiredEnvVariables := []corev1.EnvVar{
 
@@ -58,13 +60,17 @@ var _ = Describe("StatefulSet", func() {
 					Name:  "RABBITMQ_DEFAULT_USER_FILE",
 					Value: "/opt/rabbitmq-secret/rabbitmq-username",
 				},
+				{
+					Name:  "RABBITMQ_MNESIA_BASE",
+					Value: "/opt/rabbitmq-persistence",
+				},
 			}
 
 			container := extractContainer(sts, "rabbitmq")
 			Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
 		})
 
-		It("creates required Config Map and Secret Volume Mounts", func() {
+		It("creates required Volume Mounts", func() {
 
 			configMapVolumeMount := corev1.VolumeMount{
 				Name:      "rabbitmq-default-plugins",
@@ -74,9 +80,13 @@ var _ = Describe("StatefulSet", func() {
 				Name:      "rabbitmq-secret",
 				MountPath: "/opt/rabbitmq-secret/",
 			}
+			persistenceVolumeMount := corev1.VolumeMount{
+				Name:      "persistence",
+				MountPath: "/opt/rabbitmq-persistence/",
+			}
 
 			container := extractContainer(sts, "rabbitmq")
-			Expect(container.VolumeMounts).Should(ConsistOf(configMapVolumeMount, secretVolumeMount))
+			Expect(container.VolumeMounts).Should(ConsistOf(configMapVolumeMount, secretVolumeMount, persistenceVolumeMount))
 		})
 
 		It("uses required Config Map and Secret Volumes", func() {
@@ -115,6 +125,39 @@ var _ = Describe("StatefulSet", func() {
 
 		It("does not mount the default service account in its pods", func() {
 			Expect(*sts.Spec.Template.Spec.AutomountServiceAccountToken).To(BeFalse())
+		})
+
+		It("creates the required PersistenVolumeClaim", func() {
+			expectedPersistentVolumeClaim := corev1.PersistentVolumeClaim{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "persistence",
+					Labels: map[string]string{
+						"app": "pivotal-rabbitmq-for-kubernetes",
+					},
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					Resources: corev1.ResourceRequirements{
+						Requests: map[corev1.ResourceName]k8sresource.Quantity{
+							corev1.ResourceStorage: *k8sresource.NewQuantity(10*1024*1024*1024, k8sresource.BinarySI),
+						},
+					},
+					StorageClassName: nil,
+				},
+			}
+
+			actualPersistentVolumeClaim := sts.Spec.VolumeClaimTemplates[0]
+			Expect(actualPersistentVolumeClaim).To(Equal(expectedPersistentVolumeClaim))
+		})
+
+		It("creates the required SecurityContext", func() {
+			rmqGid := int64(999)
+			expectedPodSecurityContext := &corev1.PodSecurityContext{
+				FSGroup: &rmqGid,
+			}
+
+			actualPodSecurityContext := sts.Spec.Template.Spec.SecurityContext
+			Expect(actualPodSecurityContext).To(Equal(expectedPodSecurityContext))
 		})
 	})
 

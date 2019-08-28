@@ -6,15 +6,20 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const RabbitmqManagementImage string = "rabbitmq:3.8-rc-management"
+const (
+	RabbitmqManagementImage    string = "rabbitmq:3.8-rc-management"
+	defaultPersistenceCapacity int64  = 10 * 1024 * 1024 * 1024
+)
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret string) *appsv1.StatefulSet {
 	single := int32(1)
 	f := false
 	image := RabbitmqManagementImage
+	rabbitmqGID := int64(999)
 
 	if instance.Spec.Image.Repository != "" {
 		image = fmt.Sprintf("%s/%s", instance.Spec.Image.Repository, image)
@@ -43,9 +48,31 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": instance.Name},
 			},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "persistence",
+						Labels: map[string]string{
+							"app": "pivotal-rabbitmq-for-kubernetes",
+						},
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceStorage: *k8sresource.NewQuantity(defaultPersistenceCapacity, k8sresource.BinarySI),
+							},
+						},
+						StorageClassName: nil,
+						AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					},
+				},
+			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": instance.Name}},
 				Spec: corev1.PodSpec{
+					SecurityContext: &corev1.PodSecurityContext{
+						FSGroup: &rabbitmqGID,
+					},
 					AutomountServiceAccountToken: &f,
 					ImagePullSecrets:             imagePullSecrets,
 					Containers: []corev1.Container{
@@ -64,6 +91,10 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 								{
 									Name:  "RABBITMQ_DEFAULT_USER_FILE",
 									Value: "/opt/rabbitmq-secret/rabbitmq-username",
+								},
+								{
+									Name:  "RABBITMQ_MNESIA_BASE",
+									Value: "/opt/rabbitmq-persistence",
 								},
 							},
 							Ports: []corev1.ContainerPort{
@@ -88,6 +119,10 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 								{
 									Name:      "rabbitmq-secret",
 									MountPath: "/opt/rabbitmq-secret/",
+								},
+								{
+									Name:      "persistence",
+									MountPath: "/opt/rabbitmq-persistence/",
 								},
 							},
 							ReadinessProbe: &corev1.Probe{

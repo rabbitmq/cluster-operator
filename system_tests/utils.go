@@ -1,6 +1,7 @@
 package system_tests
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,8 +11,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -122,6 +124,97 @@ func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName str
 	return ret
 }
 
+func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, body []byte) (responseBody []byte, err error) {
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, _ := http.NewRequest(httpMethod, url, bytes.NewReader(body))
+	req.SetBasicAuth(rabbitmqUsername, rabbitmqPassword)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Failed to run cluster aliveness test: %+v \n", err)
+		return responseBody, fmt.Errorf("failed aliveness check: %v with api endpoint: %s", err, url)
+	}
+	defer resp.Body.Close()
+	responseBody, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return responseBody, err
+	}
+
+	if resp.StatusCode >= 400 {
+		return responseBody, fmt.Errorf("Make request failed with api endpoint: %s and statusCode: %d", url, resp.StatusCode)
+	}
+
+	return
+}
+
+func rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) (*Message, error) {
+	getQueuesUrl := fmt.Sprintf("http://%s:15672/api/queues/%%2F/test-queue/get", rabbitmqHostName)
+	data := map[string]interface{}{
+		"vhost":    "/",
+		"name":     "test-queue",
+		"encoding": "auto",
+		"ackmode":  "ack_requeue_false",
+		"truncate": "50000",
+		"count":    "1",
+	}
+
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	response, err := makeRequest(getQueuesUrl, http.MethodPost, rabbitmqUsername, rabbitmqPassword, dataJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	messages := []Message{}
+	json.Unmarshal(response, &messages)
+
+	return &messages[0], err
+}
+
+type Message struct {
+	Payload      string `json:"payload"`
+	MessageCount int    `json:"message_count"`
+}
+
+func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) error {
+	url := fmt.Sprintf("http://%s:15672/api/queues/%%2F/test-queue", rabbitmqHostName)
+	_, err := makeRequest(url, http.MethodPut, rabbitmqUsername, rabbitmqPassword, []byte("{\"durable\": true}"))
+
+	if err != nil {
+		return err
+	}
+
+	url = fmt.Sprintf("http://%s:15672/api/exchanges/%%2F/amq.default/publish", rabbitmqHostName)
+	data := map[string]interface{}{
+		"vhost": "/",
+		"name":  "amq.default",
+		"properties": map[string]interface{}{
+			"delivery_mode": 2,
+			"headers":       map[string]interface{}{},
+		},
+		"routing_key":      "test-queue",
+		"delivery_mode":    "2",
+		"payload":          "hello",
+		"headers":          map[string]interface{}{},
+		"props":            map[string]interface{}{},
+		"payload_encoding": "string",
+	}
+
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	_, err = makeRequest(url, http.MethodPost, rabbitmqUsername, rabbitmqPassword, dataJSON)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("http://%s:15672/api/aliveness-test/%%2F", rabbitmqHostName)

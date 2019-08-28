@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 
 	. "github.com/onsi/ginkgo"
@@ -109,6 +111,15 @@ var _ = Describe("System tests", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
+
+		// It("has a persistence volume attached", func() {
+		// 	// get pvc that was created by the controller
+		// 	// assert its created , get name of pvc
+		// 	// call /api/nodes
+		// 	// returns an array of nodes and the first node should have :
+		// 	// db_dir: "/opt/rabbitmq-persistence/rabbit@p-rabbitmqcluster-sample-0"
+		// 	// match db_dir with  /opt/ + pvc-name + /rabbit + pod-name + pod-index
+		// })
 	})
 
 	Context("ReadinessProbe tests", func() {
@@ -267,6 +278,86 @@ var _ = Describe("System tests", func() {
 
 				return svc.Annotations
 			}, serviceCreationTimeout).Should(Equal(expectedServiceConfigurations.Annotations))
+		})
+	})
+
+	Context("persistence", func() {
+		var persistentRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
+		var pvcName string
+		BeforeEach(func() {
+			instanceName = "persistence-rabbit"
+			serviceName = "p-" + instanceName
+			podName = "p-" + instanceName + "-0"
+			pvcName = "persistence-" + podName
+
+			persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
+			persistentRabbitmqCluster.Spec.Service.Type = "LoadBalancer"
+			Expect(createRabbitmqCluster(k8sClient, persistentRabbitmqCluster)).NotTo(HaveOccurred())
+
+			Eventually(func() string {
+				podStatus, err := checkPodStatus(clientSet, namespace, podName)
+				if err != nil {
+					Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
+				}
+				return podStatus
+			}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+
+			Eventually(func() bool {
+				rabbitmqUsername, rabbitmqPassword, err = getRabbitmqUsernameAndPassword(clientSet, namespace, instanceName, "rabbitmq-username")
+				if err != nil {
+					return false
+				}
+				return true
+			}, 120, 5).Should(BeTrue())
+
+			Eventually(func() string {
+				rabbitmqHostName, err = getExternalIP(clientSet, namespace, serviceName)
+				if err != nil {
+					return ""
+				}
+				return rabbitmqHostName
+			}, 300, 5).Should(Not(Equal("")))
+
+			Expect(err).NotTo(HaveOccurred())
+
+			err = rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			err := k8sClient.Delete(context.TODO(), persistentRabbitmqCluster)
+			if !apierrors.IsNotFound(err) {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+
+		It("works as expected", func() {
+			By("reconciling the state, and the cluster is working again", func() {
+				err := kubectlDelete(namespace, "pod", podName)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(func() string {
+					pod, err := clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
+					if err != nil {
+						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
+						return ""
+					}
+
+					return fmt.Sprintf("%v", pod.Status.Conditions)
+				}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+				message, err := rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(message.Payload).To(Equal("hello"))
+			})
+
+			By("deleting the persistent volume and claim when CRD is deleted", func() {
+				Expect(k8sClient.Delete(context.TODO(), persistentRabbitmqCluster)).To(Succeed())
+				Eventually(func() error {
+					_, err = clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(pvcName, metav1.GetOptions{})
+					return err
+				}, 20).Should(HaveOccurred())
+
+				Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			})
 		})
 	})
 })
