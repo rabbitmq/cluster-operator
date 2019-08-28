@@ -3,9 +3,10 @@ package system_tests
 import (
 	"context"
 	"fmt"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 	"net/http"
 	"time"
+
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

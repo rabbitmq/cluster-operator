@@ -90,6 +90,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")
 		os.Exit(1)
 	}
+	setupLog.Info("Started controller with ServiceType %s and ServiceAnnotation %s", serviceConfig.Type, serviceConfig.Annotations)
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

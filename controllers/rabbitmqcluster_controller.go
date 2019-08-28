@@ -18,9 +18,9 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
-	"github.com/prometheus/common/log"
 	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
@@ -69,7 +69,7 @@ type RabbitmqClusterReconciler struct {
 
 func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
-	logger := r.Log.WithValues("rabbitmqcluster", req.NamespacedName)
+	logger := r.Log
 
 	instance := &rabbitmqv1beta1.RabbitmqCluster{}
 	err := r.Get(context.TODO(), req.NamespacedName, instance)
@@ -84,17 +84,33 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	rabbitmqSecret, err := resource.GenerateSecret(*instance)
 
 	if err != nil {
+		logger.Error(err, "failed to generate secret")
 		return reconcile.Result{}, err
 	}
 
-	log.Info(fmt.Sprintf("Configured with ServiceType: %s", r.ServiceType))
+	instanceSpec, err := json.Marshal(instance.Spec)
+	if err != nil {
+		logger.Error(err, "failed to marshal cluster spec")
+	}
 
+	logger.Info(fmt.Sprintf("Start reconciling RabbitmqCluster \"%s\" in namespace \"%s\" with Spec: %+v",
+		instance.Name,
+		instance.Namespace,
+		string(instanceSpec)))
+
+	service := resource.GenerateService(*instance, r.ServiceType, r.ServiceAnnotations)
 	resources := []runtime.Object{
 		resource.GenerateStatefulSet(*instance, r.ImageRepository, r.ImagePullSecret),
 		resource.GenerateConfigMap(*instance),
-		resource.GenerateService(*instance, r.ServiceType, r.ServiceAnnotations),
+		service,
 		rabbitmqSecret,
 	}
+
+	serviceSpec, err := json.Marshal(service.Spec)
+	if err != nil {
+		logger.Error(err, "failed to marshal service spec")
+	}
+	logger.V(1).Info(fmt.Sprintf("Rabbitmq service \"%s\" has Spec: %v", service.ObjectMeta.Name, string(serviceSpec)))
 
 	for _, re := range resources {
 		if err := controllerutil.SetControllerReference(instance, re.(metav1.Object), r.Scheme); err != nil {
@@ -102,12 +118,19 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return reconcile.Result{}, err
 		}
 
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), r, re, func() error { return nil })
+		operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, re, func() error { return nil })
+		logger.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type %T",
+			operationResult,
+			re.(metav1.Object).GetName(),
+			re.(metav1.Object)))
 
 		if err != nil {
+			logger.Error(err, "failed to CreateOrUpdate")
 			return reconcile.Result{}, err
 		}
 	}
+
+	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", instance.Name, instance.Namespace))
 
 	return reconcile.Result{}, err
 }
