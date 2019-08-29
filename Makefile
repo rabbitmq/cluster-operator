@@ -50,6 +50,8 @@ deploy-manager-ci:
 deploy-sample:
 	kubectl apply -k config/samples/base
 
+deploy-local: docker-build docker-push deploy
+
 configure-kubectl-ci: ci-cluster
 	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
 	gcloud container clusters get-credentials $(CI_CLUSTER) --region europe-west1 --project $(GCP_PROJECT)
