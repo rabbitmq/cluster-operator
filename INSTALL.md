@@ -58,7 +58,7 @@ We highly encourage you to keep the operator and service-broker images private i
 kubectl apply -f manifests/namespace.yaml
 ```
 
-In your cluster, create a Kubernetes secret that authorises access to private images, in the `pivotal-rabbitmq-system` namespace that we just created. Repeat this task for the `pivotal-rabbitmq-servicebroker-system` namespace. Instructions and more details [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
+In your cluster, create a Kubernetes secret that authorises access to private images, in the `pivotal-rabbitmq-system` namespace that we just created. Instructions and more details [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
 
 
 ### Configure Image Repository
