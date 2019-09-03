@@ -103,6 +103,16 @@ docker-build-ci-image:
 docker-push:
 	docker push $(CONTROLLER_IMAGE):latest
 
+docker-build-dev:
+	docker build . -t $(CONTROLLER_IMAGE):$(shell git rev-parse --short HEAD)
+	docker push $(CONTROLLER_IMAGE):$(shell git rev-parse --short HEAD)
+
+patch-dev:
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(shell git rev-parse --short HEAD)"'@' ./config/default/base/manager_image_patch.yaml
+
+deploy-dev: docker-build-dev patch-dev deploy
+
 system-tests:
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -p --randomizeAllSpecs -r system_tests/
 
