@@ -76,11 +76,21 @@ Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker i
 
 ## Configuring Service Type (Optional)
 
-Our operator allows you to specify what kind of Kubernetes Service is provisioned for your RabbitMQ cluster. The default type is ClusterIP.
-You can find the detailed explanation of different Kubernetes Service types [here](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
-If you wish to change the Service type, you can change it in our operator manifest (`manifests/operator.yaml`):
+Since both the Rabbitmq Operator and Service Broker are deployed in Kubernetes, you can take advantage of the configurability of the Kubernetes Service objects that expose these components. The default type is ClusterIP, but you can find out how to configure other Kubernetes Service types [here](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
 
-Replace the value of `SERVICE:TYPE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently not supported.
+
+To change Service type, specify the service type you want for the following:
+
+### Operator
+In the Operator manifest (`manifests/operator.yaml`):
+- locate the ConfigMap object in the manifest
+- locate the `SERVICE` key within the `data` section of the ConfigMap
+- replace the value of `TYPE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently **NOT** supported.
+
+### Service Broker
+In the ServiceBroker manifest (`manifests/servicebroker.yaml`):
+- locate the Service object in the manifest
+- replace the value of `spec.type` from `LoadBalancer` to either `NodePort` or `ClusterIP`. Please note, ExternalName is currently **NOT** supported.
 
 ### Configure Service Annotations (Optional)
 
