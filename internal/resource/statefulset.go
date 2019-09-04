@@ -181,9 +181,20 @@ func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, sch
 					corev1.ResourceStorage: *k8sresource.NewQuantity(defaultPersistenceCapacity, k8sresource.BinarySI),
 				},
 			},
-			StorageClassName: nil,
-			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 		},
+	}
+
+	var err error
+	if instance.Spec.Persistence.Storage != "" {
+		pvc.Spec.Resources.Requests["storage"], err = k8sresource.ParseQuantity(instance.Spec.Persistence.Storage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if instance.Spec.Persistence.StorageClassName != "" {
+		pvc.Spec.StorageClassName = &instance.Spec.Persistence.StorageClassName
 	}
 
 	if err := controllerutil.SetControllerReference(&instance, pvc, scheme); err != nil {

@@ -79,6 +79,10 @@ func generateRabbitmqClusterObject() *RabbitmqCluster {
 			Service: RabbitmqClusterServiceSpec{
 				Type: "LoadBalancer",
 			},
+			Persistence: RabbitmqClusterPersistenceSpec{
+				Storage:          "some-storage",
+				StorageClassName: "some-storage-class-name",
+			},
 		},
 	}
 }

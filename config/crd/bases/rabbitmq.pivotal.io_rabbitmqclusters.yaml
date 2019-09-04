@@ -394,6 +394,13 @@ spec:
               type: object
             imagePullSecret:
               type: string
+            persistence:
+              properties:
+                storage:
+                  type: string
+                storageClassName:
+                  type: string
+              type: object
             replicas:
               enum:
               - 1

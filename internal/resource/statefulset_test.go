@@ -133,7 +133,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(*sts.Spec.Template.Spec.AutomountServiceAccountToken).To(BeFalse())
 		})
 
-		It("creates the required PersistenVolumeClaim", func() {
+		It("creates the required PersistentVolumeClaim", func() {
 			truth := true
 			expectedPersistentVolumeClaim := corev1.PersistentVolumeClaim{
 				ObjectMeta: v1.ObjectMeta{
@@ -159,7 +159,6 @@ var _ = Describe("StatefulSet", func() {
 							corev1.ResourceStorage: *k8sresource.NewQuantity(10*1024*1024*1024, k8sresource.BinarySI),
 						},
 					},
-					StorageClassName: nil,
 				},
 			}
 
@@ -184,6 +183,18 @@ var _ = Describe("StatefulSet", func() {
 			container := extractContainer(sts, "rabbitmq")
 			actualProbeCommand := container.ReadinessProbe.Handler.Exec.Command
 			Expect(actualProbeCommand).To(Equal([]string{"rabbitmq-diagnostics", "check_running"}))
+		})
+	})
+
+	Context("when storage class name and capacity is specified", func() {
+		It("creates the PersistentVolume template with the specified storage class name and capacity", func() {
+			instance.Spec.Persistence.StorageClassName = "my-storage-class"
+			instance.Spec.Persistence.Storage = "1Gi"
+
+			statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", scheme)
+			q, _ := k8sresource.ParseQuantity("1Gi")
+			Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
+			Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 		})
 	})
 

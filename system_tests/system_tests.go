@@ -3,6 +3,7 @@ package system_tests
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/storage/v1"
 	"net/http"
 	"time"
 
@@ -112,14 +113,6 @@ var _ = Describe("System tests", func() {
 			})
 		})
 
-		// It("has a persistence volume attached", func() {
-		// 	// get pvc that was created by the controller
-		// 	// assert its created , get name of pvc
-		// 	// call /api/nodes
-		// 	// returns an array of nodes and the first node should have :
-		// 	// db_dir: "/opt/rabbitmq-persistence/rabbit@p-rabbitmqcluster-sample-0"
-		// 	// match db_dir with  /opt/ + pvc-name + /rabbit + pod-name + pod-index
-		// })
 	})
 
 	Context("ReadinessProbe tests", func() {
@@ -283,46 +276,7 @@ var _ = Describe("System tests", func() {
 
 	Context("persistence", func() {
 		var persistentRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		var pvcName string
-		BeforeEach(func() {
-			instanceName = "persistence-rabbit"
-			serviceName = "p-" + instanceName
-			podName = "p-" + instanceName + "-0"
-			pvcName = "persistence-" + podName
-
-			persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
-			persistentRabbitmqCluster.Spec.Service.Type = "LoadBalancer"
-			Expect(createRabbitmqCluster(k8sClient, persistentRabbitmqCluster)).NotTo(HaveOccurred())
-
-			Eventually(func() string {
-				podStatus, err := checkPodStatus(clientSet, namespace, podName)
-				if err != nil {
-					Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-				}
-				return podStatus
-			}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
-
-			Eventually(func() bool {
-				rabbitmqUsername, rabbitmqPassword, err = getRabbitmqUsernameAndPassword(clientSet, namespace, instanceName, "rabbitmq-username")
-				if err != nil {
-					return false
-				}
-				return true
-			}, 120, 5).Should(BeTrue())
-
-			Eventually(func() string {
-				rabbitmqHostName, err = getExternalIP(clientSet, namespace, serviceName)
-				if err != nil {
-					return ""
-				}
-				return rabbitmqHostName
-			}, 300, 5).Should(Not(Equal("")))
-
-			Expect(err).NotTo(HaveOccurred())
-
-			err = rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
-			Expect(err).NotTo(HaveOccurred())
-		})
+		var pvcName, specifiedStorageClassName, specifiedStorageCapacity string
 
 		AfterEach(func() {
 			err := k8sClient.Delete(context.TODO(), persistentRabbitmqCluster)
@@ -331,33 +285,134 @@ var _ = Describe("System tests", func() {
 			}
 		})
 
-		It("works as expected", func() {
-			By("reconciling the state, and the cluster is working again", func() {
-				err := kubectlDelete(namespace, "pod", podName)
-				Expect(err).NotTo(HaveOccurred())
+		When("storage class name and storage is specified in the RabbitmqCluster Spec", func() {
+			BeforeEach(func() {
+				instanceName = "persistence-storageclass-rabbit"
+				podName = "p-" + instanceName + "-0"
+				pvcName = "persistence-" + podName
+				specifiedStorageClassName = "persistent-test"
+				specifiedStorageCapacity = "1Gi"
+
+				storageClass := &v1.StorageClass{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: specifiedStorageClassName,
+					},
+					Provisioner: "kubernetes.io/gce-pd",
+				}
+				err = k8sClient.Create(context.TODO(), storageClass)
+				if !apierrors.IsAlreadyExists(err) {
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
+				persistentRabbitmqCluster.Spec.Persistence.StorageClassName = specifiedStorageClassName
+				persistentRabbitmqCluster.Spec.Persistence.Storage = specifiedStorageCapacity
+				Expect(createRabbitmqCluster(k8sClient, persistentRabbitmqCluster)).NotTo(HaveOccurred())
+
 				Eventually(func() string {
-					pod, err := clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
+					podStatus, err := checkPodStatus(clientSet, namespace, podName)
 					if err != nil {
 						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-						return ""
 					}
-
-					return fmt.Sprintf("%v", pod.Status.Conditions)
+					return podStatus
 				}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
-				message, err := rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(message.Payload).To(Equal("hello"))
 			})
 
-			By("deleting the persistent volume and claim when CRD is deleted", func() {
-				Expect(k8sClient.Delete(context.TODO(), persistentRabbitmqCluster)).To(Succeed())
-				Eventually(func() error {
-					_, err = clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(pvcName, metav1.GetOptions{})
-					return err
-				}, 20).Should(HaveOccurred())
-
-				Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			It("creates the RabbitmqCluster with the specified storage", func() {
+				pvList, err := clientSet.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				for _, pv := range pvList.Items {
+					if pv.Spec.ClaimRef.Name == pvcName {
+						storageCap := pv.Spec.Capacity["storage"]
+						storageCapPointer := &storageCap
+						Expect(pv.Spec.StorageClassName).To(Equal(specifiedStorageClassName))
+						Expect(storageCapPointer.String()).To(Equal(specifiedStorageCapacity))
+					}
+				}
 			})
 		})
+
+		When("storage class is not specified in the RabbitmqCluster spec", func() {
+			BeforeEach(func() {
+				instanceName = "persistence-rabbit"
+				serviceName = "p-" + instanceName
+				podName = "p-" + instanceName + "-0"
+				pvcName = "persistence-" + podName
+
+				persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
+				persistentRabbitmqCluster.Spec.Service.Type = "LoadBalancer"
+				Expect(createRabbitmqCluster(k8sClient, persistentRabbitmqCluster)).NotTo(HaveOccurred())
+
+				Eventually(func() string {
+					podStatus, err := checkPodStatus(clientSet, namespace, podName)
+					if err != nil {
+						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
+					}
+					return podStatus
+				}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+
+				Eventually(func() bool {
+					rabbitmqUsername, rabbitmqPassword, err = getRabbitmqUsernameAndPassword(clientSet, namespace, instanceName, "rabbitmq-username")
+					if err != nil {
+						return false
+					}
+					return true
+				}, 120, 5).Should(BeTrue())
+
+				Eventually(func() string {
+					rabbitmqHostName, err = getExternalIP(clientSet, namespace, serviceName)
+					if err != nil {
+						return ""
+					}
+					return rabbitmqHostName
+				}, 300, 5).Should(Not(Equal("")))
+
+				Expect(err).NotTo(HaveOccurred())
+
+				err = rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("works as expected", func() {
+				By("creating the persistent volume using the default storage class", func() {
+					pvList, err := clientSet.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					for _, pv := range pvList.Items {
+						if pv.Spec.ClaimRef.Name == pvcName {
+							// standard is the default storage class in GKE; default storage class could be different for different IAASs
+							Expect(pv.Spec.StorageClassName).To(Equal("standard"))
+						}
+					}
+				})
+
+				By("successfully perserving messages after recreating a pod ", func() {
+					err := kubectlDelete(namespace, "pod", podName)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(func() string {
+						pod, err := clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
+						if err != nil {
+							Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
+							return ""
+						}
+
+						return fmt.Sprintf("%v", pod.Status.Conditions)
+					}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+					message, err := rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(message.Payload).To(Equal("hello"))
+				})
+
+				By("deleting the persistent volume and claim when CRD is deleted", func() {
+					Expect(k8sClient.Delete(context.TODO(), persistentRabbitmqCluster)).To(Succeed())
+					Eventually(func() error {
+						_, err = clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(pvcName, metav1.GetOptions{})
+						return err
+					}, 20).Should(HaveOccurred())
+
+					Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				})
+			})
+		})
+
 	})
 })

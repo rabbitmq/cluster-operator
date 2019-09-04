@@ -23,14 +23,20 @@ import (
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
 type RabbitmqClusterSpec struct {
 	// +kubebuilder:validation:Enum=1
-	Replicas        int                        `json:"replicas"`
-	Image           RabbitmqClusterImageSpec   `json:"image,omitempty"`
-	ImagePullSecret string                     `json:"imagePullSecret,omitempty"`
-	Service         RabbitmqClusterServiceSpec `json:"service,omitempty"`
+	Replicas        int                            `json:"replicas"`
+	Image           RabbitmqClusterImageSpec       `json:"image,omitempty"`
+	ImagePullSecret string                         `json:"imagePullSecret,omitempty"`
+	Service         RabbitmqClusterServiceSpec     `json:"service,omitempty"`
+	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
 }
 
 type RabbitmqClusterImageSpec struct {
 	Repository string `json:"repository"`
+}
+
+type RabbitmqClusterPersistenceSpec struct {
+	StorageClassName string `json:"storageClassName,omitempty"`
+	Storage          string `json:"storage,omitempty"`
 }
 
 type RabbitmqClusterServiceSpec struct {
