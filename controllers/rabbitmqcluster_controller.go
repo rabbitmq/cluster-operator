@@ -23,7 +23,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
@@ -77,8 +76,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	_ = context.Background()
 	logger := r.Log
 
-	instance := &rabbitmqv1beta1.RabbitmqCluster{}
-	err := r.Get(context.TODO(), req.NamespacedName, instance)
+	rabbitmqClusterInstance, err := r.getRabbitmqClusterInstance(req.NamespacedName)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -87,29 +85,21 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		logger.Error(err, "failed getting Rabbitmq cluster object")
 		return reconcile.Result{}, err
 	}
-	rabbitmqSecret, err := resource.GenerateSecret(*instance)
 
-	if err != nil {
-		logger.Error(err, "failed to generate secret")
-		return reconcile.Result{}, err
-	}
-
-	instanceSpec, err := json.Marshal(instance.Spec)
+	instanceSpec, err := json.Marshal(rabbitmqClusterInstance.Spec)
 	if err != nil {
 		logger.Error(err, "failed to marshal cluster spec")
 	}
 
 	logger.Info(fmt.Sprintf("Start reconciling RabbitmqCluster \"%s\" in namespace \"%s\" with Spec: %+v",
-		instance.Name,
-		instance.Namespace,
+		rabbitmqClusterInstance.Name,
+		rabbitmqClusterInstance.Namespace,
 		string(instanceSpec)))
 
-	service := resource.GenerateService(*instance, r.ServiceType, r.ServiceAnnotations)
-	resources := []runtime.Object{
-		resource.GenerateStatefulSet(*instance, r.ImageRepository, r.ImagePullSecret),
-		resource.GenerateConfigMap(*instance),
-		service,
-		rabbitmqSecret,
+	resources, service, err := r.getResources(rabbitmqClusterInstance)
+	if err != nil {
+		logger.Error(err, "failed to generate resources")
+		return reconcile.Result{}, err
 	}
 
 	serviceSpec, err := json.Marshal(service.Spec)
@@ -124,7 +114,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			pvcBaseName = sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Name
 		}
 
-		if err := controllerutil.SetControllerReference(instance, re.(metav1.Object), r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(rabbitmqClusterInstance, re.(metav1.Object), r.Scheme); err != nil {
 			logger.Error(err, "Failed setting controller reference")
 			return reconcile.Result{}, err
 		}
@@ -141,44 +131,80 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
-	for i := 0; i < instance.Spec.Replicas; i++ {
-		pvcObjectKey := metav1.ObjectMeta{
-			Namespace: instance.Namespace,
-			Name:      fmt.Sprintf("%s-p-%s-%d", pvcBaseName, instance.Name, i),
-		}
-		patchedPvc := &corev1.PersistentVolumeClaim{
-			ObjectMeta: pvcObjectKey,
-		}
-		if err := controllerutil.SetControllerReference(instance, patchedPvc, r.Scheme); err != nil {
-			logger.Error(err, "Failed setting controller reference")
-			return reconcile.Result{}, err
-		}
-
-		originalPvc := &corev1.PersistentVolumeClaim{
-			ObjectMeta: pvcObjectKey,
-		}
-
-		mergeFromPatch := client.MergeFrom(originalPvc)
-		patch, err := mergeFromPatch.Data(patchedPvc)
-		if err != nil {
-			logger.Error(err, "failed to generate Patch object")
-			return reconcile.Result{}, err
-		}
-
-		err = r.Patch(context.TODO(), originalPvc, client.ConstantPatch(types.StrategicMergePatchType, patch))
-		if err != nil && !apierrors.IsNotFound(err) {
-			logger.Error(err, "Failed to patch PVC")
-			return reconcile.Result{}, err
-		} else if apierrors.IsNotFound(err) {
-			logger.Info(fmt.Sprintf("PVC \"%s\" not found", pvcObjectKey.Name))
-		} else {
-			logger.Info(fmt.Sprintf("Successfully patched PVC \"%s\"", pvcObjectKey.Name))
-		}
+	err = r.addOwnerReferenceToPersistentVolumeClaims(rabbitmqClusterInstance, pvcBaseName)
+	if err != nil {
+		logger.Error(err, "failed to add RabbitMQCluster owner reference to all PVCs")
+		return reconcile.Result{}, err
 	}
 
-	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", instance.Name, instance.Namespace))
+	logger.Info(fmt.Sprintf("Successfully patched all PVCs"))
+	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqClusterInstance.Name, rabbitmqClusterInstance.Namespace))
 
 	return reconcile.Result{}, err
+}
+
+func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, *corev1.Service, error) {
+	rabbitmqSecret, err := resource.GenerateSecret(*rabbitmqClusterInstance)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to generate secret: %v ", err)
+	}
+
+	service := resource.GenerateService(*rabbitmqClusterInstance, r.ServiceType, r.ServiceAnnotations)
+	resources := []runtime.Object{
+		resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.ImageRepository, r.ImagePullSecret),
+		resource.GenerateConfigMap(*rabbitmqClusterInstance),
+		service,
+		rabbitmqSecret,
+	}
+
+	return resources, service, nil
+
+}
+
+func (r *RabbitmqClusterReconciler) getRabbitmqClusterInstance(NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
+	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
+	err := r.Get(context.TODO(), NamespacedName, rabbitmqClusterInstance)
+	return rabbitmqClusterInstance, err
+}
+
+func (r *RabbitmqClusterReconciler) createPatchForPvcOwnerReference(original *corev1.PersistentVolumeClaim, rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) (client.Patch, error) {
+	patched := original.DeepCopy()
+
+	if err := controllerutil.SetControllerReference(rabbitmqClusterInstance, patched, r.Scheme); err != nil {
+		return nil, fmt.Errorf("failed setting controller reference: %v", err)
+	}
+
+	mergeFromPatch := client.MergeFrom(original)
+	bytes, err := mergeFromPatch.Data(patched)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.ConstantPatch(types.StrategicMergePatchType, bytes), nil
+}
+
+func (r *RabbitmqClusterReconciler) addOwnerReferenceToPersistentVolumeClaims(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster, pvcBaseName string) error {
+	for i := 0; i < rabbitmqClusterInstance.Spec.Replicas; i++ {
+		originalPvc := &corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: rabbitmqClusterInstance.Namespace,
+				Name:      fmt.Sprintf("%s-p-%s-%d", pvcBaseName, rabbitmqClusterInstance.Name, i),
+			},
+		}
+
+		patch, err := r.createPatchForPvcOwnerReference(originalPvc, rabbitmqClusterInstance)
+		if err != nil {
+
+			return fmt.Errorf("failed to generate Patch object: %v", err)
+		}
+
+		err = r.Patch(context.TODO(), originalPvc, patch)
+		if err != nil {
+			return fmt.Errorf("failed to patch PVC: %v", err)
+		}
+	}
+	return nil
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
