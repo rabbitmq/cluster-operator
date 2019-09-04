@@ -72,7 +72,6 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
 
 func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	var pvcBaseName string
 	_ = context.Background()
 	logger := r.Log
 
@@ -109,11 +108,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	logger.V(1).Info(fmt.Sprintf("Rabbitmq service \"%s\" has Spec: %v", service.ObjectMeta.Name, string(serviceSpec)))
 
 	for _, re := range resources {
-		switch sts := re.(type) {
-		case *appsv1.StatefulSet:
-			pvcBaseName = sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Name
-		}
-
 		if err := controllerutil.SetControllerReference(rabbitmqClusterInstance, re.(metav1.Object), r.Scheme); err != nil {
 			logger.Error(err, "Failed setting controller reference")
 			return reconcile.Result{}, err
@@ -131,13 +125,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
-	err = r.addOwnerReferenceToPersistentVolumeClaims(rabbitmqClusterInstance, pvcBaseName)
-	if err != nil {
-		logger.Error(err, "failed to add RabbitMQCluster owner reference to all PVCs")
-		return reconcile.Result{}, err
-	}
-
-	logger.Info(fmt.Sprintf("Successfully patched all PVCs"))
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqClusterInstance.Name, rabbitmqClusterInstance.Namespace))
 
 	return reconcile.Result{}, err
@@ -145,14 +132,18 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, *corev1.Service, error) {
 	rabbitmqSecret, err := resource.GenerateSecret(*rabbitmqClusterInstance)
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to generate secret: %v ", err)
 	}
 
+	statefulSet, err := resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.ImageRepository, r.ImagePullSecret, r.Scheme)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
+	}
+
 	service := resource.GenerateService(*rabbitmqClusterInstance, r.ServiceType, r.ServiceAnnotations)
 	resources := []runtime.Object{
-		resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.ImageRepository, r.ImagePullSecret),
+		statefulSet,
 		resource.GenerateConfigMap(*rabbitmqClusterInstance),
 		service,
 		rabbitmqSecret,
@@ -166,45 +157,6 @@ func (r *RabbitmqClusterReconciler) getRabbitmqClusterInstance(NamespacedName ty
 	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
 	err := r.Get(context.TODO(), NamespacedName, rabbitmqClusterInstance)
 	return rabbitmqClusterInstance, err
-}
-
-func (r *RabbitmqClusterReconciler) createPatchForPvcOwnerReference(original *corev1.PersistentVolumeClaim, rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) (client.Patch, error) {
-	patched := original.DeepCopy()
-
-	if err := controllerutil.SetControllerReference(rabbitmqClusterInstance, patched, r.Scheme); err != nil {
-		return nil, fmt.Errorf("failed setting controller reference: %v", err)
-	}
-
-	mergeFromPatch := client.MergeFrom(original)
-	bytes, err := mergeFromPatch.Data(patched)
-	if err != nil {
-		return nil, err
-	}
-
-	return client.ConstantPatch(types.StrategicMergePatchType, bytes), nil
-}
-
-func (r *RabbitmqClusterReconciler) addOwnerReferenceToPersistentVolumeClaims(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster, pvcBaseName string) error {
-	for i := 0; i < rabbitmqClusterInstance.Spec.Replicas; i++ {
-		originalPvc := &corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: rabbitmqClusterInstance.Namespace,
-				Name:      fmt.Sprintf("%s-p-%s-%d", pvcBaseName, rabbitmqClusterInstance.Name, i),
-			},
-		}
-
-		patch, err := r.createPatchForPvcOwnerReference(originalPvc, rabbitmqClusterInstance)
-		if err != nil {
-
-			return fmt.Errorf("failed to generate Patch object: %v", err)
-		}
-
-		err = r.Patch(context.TODO(), originalPvc, patch)
-		if err != nil {
-			return fmt.Errorf("failed to patch PVC: %v", err)
-		}
-	}
-	return nil
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {

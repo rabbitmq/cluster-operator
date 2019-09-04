@@ -9,12 +9,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var _ = Describe("StatefulSet", func() {
 	var instance rabbitmqv1beta1.RabbitmqCluster
 	var sts *appsv1.StatefulSet
 	var secretName, configMapName string
+	var scheme *runtime.Scheme
 
 	BeforeEach(func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
@@ -22,7 +25,10 @@ var _ = Describe("StatefulSet", func() {
 		instance.Name = "foo"
 		secretName = instance.Name + "-rabbitmq-secret"
 		configMapName = instance.Name + "-rabbitmq-default-plugins"
-		sts = resource.GenerateStatefulSet(instance, "", "")
+		scheme = runtime.NewScheme()
+		rabbitmqv1beta1.AddToScheme(scheme)
+		defaultscheme.AddToScheme(scheme)
+		sts, _ = resource.GenerateStatefulSet(instance, "", "", scheme)
 	})
 
 	Context("when creating a working StatefulSet with minimum requirements", func() {
@@ -128,11 +134,22 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("creates the required PersistenVolumeClaim", func() {
+			truth := true
 			expectedPersistentVolumeClaim := corev1.PersistentVolumeClaim{
 				ObjectMeta: v1.ObjectMeta{
 					Name: "persistence",
 					Labels: map[string]string{
-						"app": "pivotal-rabbitmq-for-kubernetes",
+						"app": "foo",
+					},
+					OwnerReferences: []v1.OwnerReference{
+						{
+							APIVersion:         "rabbitmq.pivotal.io/v1beta1",
+							Kind:               "RabbitmqCluster",
+							Name:               "foo",
+							UID:                "",
+							Controller:         &truth,
+							BlockOwnerDeletion: &truth,
+						},
 					},
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -177,7 +194,7 @@ var _ = Describe("StatefulSet", func() {
 				instance.Spec.Image.Repository = "my-private-repo"
 				instance.Spec.ImagePullSecret = "my-great-secret"
 
-				statefulSet := resource.GenerateStatefulSet(instance, "", "")
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", scheme)
 				container := extractContainer(statefulSet, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
@@ -195,7 +212,7 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("when image repository and ImagePullSecret is provided through function params", func() {
 		It("uses the provide repository and secret if not specified in RabbitmqCluster spec", func() {
-			statefulSet := resource.GenerateStatefulSet(instance, "best-repository", "my-secret")
+			statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", scheme)
 			container := extractContainer(statefulSet, "rabbitmq")
 			Expect(container.Image).To(Equal("best-repository/" + "rabbitmq:3.8-rc-management"))
 			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-secret"}))
@@ -204,7 +221,7 @@ var _ = Describe("StatefulSet", func() {
 		It("uses the RabbitmqCluster spec if it is provided", func() {
 			instance.Spec.Image.Repository = "my-private-repo"
 			instance.Spec.ImagePullSecret = "my-great-secret"
-			statefulSet := resource.GenerateStatefulSet(instance, "best-repository", "my-secret")
+			statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", scheme)
 			container := extractContainer(statefulSet, "rabbitmq")
 			Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management"))
 			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
