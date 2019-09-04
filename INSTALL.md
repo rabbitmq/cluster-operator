@@ -39,24 +39,26 @@ Tag the image to point to your own image repository:
 without the schema (e.g. http:// or https://)
 
 ```bash
-~$ docker tag rabbitmq-3.8-rc-management \
->  <your-repository>/rabbitmq:3.8-rc-management
-~$ docker tag rabbitmq-for-kubernetes-operator \
+~$ docker tag rabbitmq:<version> \
+>  <your-repository>/rabbitmq:<version>
+~$ docker tag rabbitmq-for-kubernetes-operator:<version> \
 >  <your-repository>/rabbitmq-for-kubernetes-operator:<version>
-~$ docker tag rabbitmq-for-kubernetes-servicebroker \
+~$ docker tag rabbitmq-for-kubernetes-servicebroker:<version> \
 >  <your-repository>/rabbitmq-for-kubernetes-servicebroker:<version>
 ```
 
 Push the image to your own image repository:
 
 ```
-docker push <your-repository>/rabbitmq:3.8-rc-management
+docker push <your-repository>/rabbitmq:<version>
 docker push <your-repository>/rabbitmq-for-kubernetes-operator:<version>
 docker push <your-repository>/rabbitmq-for-kubernetes-servicebroker:<version>
 ```
 
 ### Configure Kubernetes cluster access to private images (optional)
 We highly encourage you to keep the operator and service-broker images private if your repository is publicly accessible.
+
+Use the following command to create `pivotal-rabbitmq-system` namespace:
 
 ```
 kubectl apply -f manifests/namespace.yaml
