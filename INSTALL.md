@@ -10,6 +10,10 @@ Features delivered in alpha are not guaranteed to be present in GA. As of now, t
 
 This installation guide is written with the assumption that you are using a private image registry. If you don't have access to an image registry yourself, please contact the team on Pivotal slack (#rabbitmq-for-k8s)
 
+## Configure Kubernetes cluster for persistence
+
+The RabbitMQ Cluster is deployed with Persistent Volumes in order to properly recover from a cluster shutdown.
+
 ## Download Artifacts
 The artefact for RabbitMQ for Kubernetes can be downloaded from [Pivotal Network](https://network.pivotal.io/products/p-rabbitmq-for-kubernetes/). The artefact contains
 three docker images and deployment manifests for the operator and the broker. The three images are:
