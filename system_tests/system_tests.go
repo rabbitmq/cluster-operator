@@ -3,9 +3,10 @@ package system_tests
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/api/storage/v1"
 	"net/http"
 	"time"
+
+	v1 "k8s.io/api/storage/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -40,8 +41,8 @@ var _ = Describe("System tests", func() {
 
 		BeforeEach(func() {
 			instanceName = "basic-rabbit"
-			serviceName = "p-" + instanceName
-			podName = "p-" + instanceName + "-0"
+			serviceName = instanceName + "-rabbitmq-ingress"
+			podName = instanceName + "-rabbitmq-server-0"
 
 			basicRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			basicRabbitmqCluster.Spec.Service.Type = "LoadBalancer"
@@ -119,8 +120,8 @@ var _ = Describe("System tests", func() {
 		var readinessRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		BeforeEach(func() {
 			instanceName = "readiness-rabbit"
-			serviceName = "p-" + instanceName
-			podName = "p-" + instanceName + "-0"
+			serviceName = instanceName + "-rabbitmq-ingress"
+			podName = instanceName + "-rabbitmq-server-0"
 
 			readinessRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			Expect(createRabbitmqCluster(k8sClient, readinessRabbitmqCluster)).NotTo(HaveOccurred())
@@ -168,9 +169,9 @@ var _ = Describe("System tests", func() {
 		var statefulsetRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		BeforeEach(func() {
 			instanceName = "statefulset-rabbit"
-			serviceName = "p-" + instanceName
-			statefulSetName = "p-" + instanceName
-			podName = "p-" + instanceName + "-0"
+			serviceName = instanceName + "-rabbitmq-ingress"
+			statefulSetName = instanceName + "-rabbitmq-server"
+			podName = instanceName + "-rabbitmq-server-0"
 
 			statefulsetRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			Expect(createRabbitmqCluster(k8sClient, statefulsetRabbitmqCluster)).NotTo(HaveOccurred())
@@ -208,7 +209,7 @@ var _ = Describe("System tests", func() {
 
 		BeforeEach(func() {
 			instanceName = "image-rabbit"
-			podName = "p-" + instanceName + "-0"
+			podName = instanceName + "-rabbitmq-server-0"
 
 			imageRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			imageRabbitmqCluster.Spec.Image.Repository = "eu.gcr.io/cf-rabbitmq-for-k8s-bunny"
@@ -242,7 +243,7 @@ var _ = Describe("System tests", func() {
 
 			expectedServiceConfigurations, err = config.NewServiceConfig([]byte(configMap.Data["SERVICE"]))
 			instanceName = "nodeport-rabbit"
-			serviceName = "p-" + instanceName
+			serviceName = instanceName + "-rabbitmq-ingress"
 
 			rabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			Expect(createRabbitmqCluster(k8sClient, rabbitmqCluster)).NotTo(HaveOccurred())

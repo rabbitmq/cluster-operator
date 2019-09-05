@@ -256,19 +256,19 @@ type HealthcheckResponse struct {
 }
 
 func getRabbitmqUsernameAndPassword(clientset *kubernetes.Clientset, namespace, instanceName, keyName string) (string, string, error) {
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("%s-rabbitmq-secret", instanceName), metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("%s-rabbitmq-admin", instanceName), metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
 	}
 
 	username, ok := secret.Data["rabbitmq-username"]
 	if !ok {
-		return "", "", fmt.Errorf("cannot find 'rabbitmq-username' in rabbitmq-secret")
+		return "", "", fmt.Errorf("cannot find 'rabbitmq-username' in %s-rabbitmq-admin", instanceName)
 	}
 
 	password, ok := secret.Data["rabbitmq-password"]
 	if !ok {
-		return "", "", fmt.Errorf("cannot find 'rabbitmq-password' in rabbitmq-secret")
+		return "", "", fmt.Errorf("cannot find 'rabbitmq-password' in %s-rabbitmq-admin", instanceName)
 	}
 	return string(username), string(password), nil
 }

@@ -23,8 +23,8 @@ var _ = Describe("StatefulSet", func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
-		secretName = instance.Name + "-rabbitmq-secret"
-		configMapName = instance.Name + "-rabbitmq-default-plugins"
+		secretName = instance.Name + "-rabbitmq-admin"
+		configMapName = instance.Name + "-rabbitmq-plugins"
 		scheme = runtime.NewScheme()
 		rabbitmqv1beta1.AddToScheme(scheme)
 		defaultscheme.AddToScheme(scheme)
@@ -85,11 +85,11 @@ var _ = Describe("StatefulSet", func() {
 		It("creates required Volume Mounts", func() {
 
 			configMapVolumeMount := corev1.VolumeMount{
-				Name:      "rabbitmq-default-plugins",
+				Name:      "rabbitmq-plugins",
 				MountPath: "/opt/rabbitmq-configmap/",
 			}
 			secretVolumeMount := corev1.VolumeMount{
-				Name:      "rabbitmq-secret",
+				Name:      "rabbitmq-admin",
 				MountPath: "/opt/rabbitmq-secret/",
 			}
 			persistenceVolumeMount := corev1.VolumeMount{
@@ -103,7 +103,7 @@ var _ = Describe("StatefulSet", func() {
 
 		It("uses required Config Map and Secret Volumes", func() {
 			configMapVolume := corev1.Volume{
-				Name: "rabbitmq-default-plugins",
+				Name: "rabbitmq-plugins",
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -114,7 +114,7 @@ var _ = Describe("StatefulSet", func() {
 			}
 
 			secretVolume := corev1.Volume{
-				Name: "rabbitmq-secret",
+				Name: "rabbitmq-admin",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
 						SecretName: secretName,

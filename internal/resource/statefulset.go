@@ -106,11 +106,11 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "rabbitmq-default-plugins",
+									Name:      "rabbitmq-plugins",
 									MountPath: "/opt/rabbitmq-configmap/",
 								},
 								{
-									Name:      "rabbitmq-secret",
+									Name:      "rabbitmq-admin",
 									MountPath: "/opt/rabbitmq-secret/",
 								},
 								{
@@ -134,20 +134,20 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "rabbitmq-default-plugins",
+							Name: "rabbitmq-plugins",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: instance.Name + "-rabbitmq-default-plugins",
+										Name: instance.Name + "-rabbitmq-plugins",
 									},
 								},
 							},
 						},
 						{
-							Name: "rabbitmq-secret",
+							Name: "rabbitmq-admin",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: instance.Name + "-rabbitmq-secret",
+									SecretName: instance.Name + "-rabbitmq-admin",
 									Items: []corev1.KeyToPath{
 										{
 											Key:  "rabbitmq-username",
