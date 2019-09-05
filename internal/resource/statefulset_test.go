@@ -34,7 +34,13 @@ var _ = Describe("StatefulSet", func() {
 	Context("when creating a working StatefulSet with minimum requirements", func() {
 
 		It("adds the correct labels", func() {
-			Expect(sts.Labels["app"]).To(Equal(instance.Name))
+			Expect(sts.Labels["app"]).To(Equal("pivotal-rabbitmq"))
+			Expect(sts.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
+		})
+
+		It("adds the correct name with naming conventions", func() {
+			expectedName := instance.Name + "-rabbitmq-server"
+			Expect(sts.Name).To(Equal(expectedName))
 		})
 
 		It("specifies required Container Ports", func() {

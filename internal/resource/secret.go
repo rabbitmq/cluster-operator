@@ -3,6 +3,7 @@ package resource
 import (
 	"crypto/rand"
 	"encoding/base64"
+
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,8 +22,12 @@ func GenerateSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, e
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + "-rabbitmq-secret",
+			Name:      instance.Name + "-rabbitmq-admin",
 			Namespace: instance.Namespace,
+			Labels: map[string]string{
+				"app":             "pivotal-rabbitmq",
+				"RabbitmqCluster": instance.Name,
+			},
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{

@@ -19,7 +19,7 @@ func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType strin
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "p-" + instance.Name,
+			Name:      instance.Name + "-rabbitmq-ingress",
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app": instance.Name,

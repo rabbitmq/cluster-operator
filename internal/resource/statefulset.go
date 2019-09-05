@@ -44,10 +44,11 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "p-" + instance.Name,
+			Name:      instance.Name + "-rabbitmq-server",
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
-				"app": instance.Name,
+				"app":             "pivotal-rabbitmq",
+				"RabbitmqCluster": instance.Name,
 			},
 		},
 		Spec: appsv1.StatefulSetSpec{

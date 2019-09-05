@@ -27,6 +27,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -46,6 +47,7 @@ var (
 	cfg        *rest.Config
 	testEnv    *envtest.Environment
 	client     runtimeClient.Client
+	clientSet  *kubernetes.Clientset
 	requests   chan reconcile.Request
 	stopMgr    chan struct{}
 	mgrStopped *sync.WaitGroup
@@ -108,6 +110,8 @@ var _ = BeforeSuite(func() {
 		Expect(mgr.Start(stopMgr)).NotTo(HaveOccurred())
 	}()
 
+	clientSet, err = kubernetes.NewForConfig(cfg)
+	Expect(err).NotTo(HaveOccurred())
 	// +kubebuilder:scaffold:scheme
 })
 

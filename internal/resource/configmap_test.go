@@ -20,6 +20,15 @@ var _ = Describe("ConfigMap", func() {
 	})
 
 	Context("Creates a ConfigMap with minimum requirements", func() {
+		It("with name that follows conventions", func() {
+			expectedName := instance.Name + "-rabbitmq-plugins"
+			Expect(confMap.Name).To(Equal(expectedName))
+		})
+
+		It("with required labels", func() {
+			Expect(confMap.Labels["app"]).To(Equal("pivotal-rabbitmq"))
+			Expect(confMap.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
+		})
 
 		It("with required object fields", func() {
 

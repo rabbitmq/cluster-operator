@@ -12,13 +12,11 @@ import (
 var _ = Describe("Service", func() {
 	var instance rabbitmqv1beta1.RabbitmqCluster
 	var service *corev1.Service
-	var serviceName string
 
 	BeforeEach(func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
-		serviceName = "p-" + instance.Name
 	})
 
 	Context("succeeds", func() {
@@ -28,7 +26,8 @@ var _ = Describe("Service", func() {
 		})
 
 		It("creates a service object with the correct name and labels", func() {
-			Expect(service.Name).To(Equal(serviceName))
+			expectedName := instance.Name + "-rabbitmq-ingress"
+			Expect(service.Name).To(Equal(expectedName))
 			Expect(service.ObjectMeta.Labels["app"]).To(Equal(instance.Name))
 		})
 

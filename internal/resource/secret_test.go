@@ -2,6 +2,7 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -12,25 +13,28 @@ import (
 var _ = Describe("Secret", func() {
 	var instance rabbitmqv1beta1.RabbitmqCluster
 	var secret *corev1.Secret
-	var secretName string
 	var err error
 
 	BeforeEach(func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
-		secretName = instance.Name + "-rabbitmq-secret"
 	})
 
 	Context("when succeeds", func() {
 		BeforeEach(func() {
 			secret, err = resource.GenerateSecret(instance)
 			Expect(err).NotTo(HaveOccurred())
-
 		})
 
 		It("creates the secret 'rabbitmq-secret'", func() {
-			Expect(secret.Name).To(Equal(secretName))
+			expectedName := instance.Name + "-rabbitmq-admin"
+			Expect(secret.Name).To(Equal(expectedName))
+		})
+
+		It("creates the required labels", func() {
+			Expect(secret.Labels["app"]).To(Equal("pivotal-rabbitmq"))
+			Expect(secret.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
 		})
 
 		It("creates a 'opaque' secret ", func() {
