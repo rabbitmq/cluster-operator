@@ -116,12 +116,12 @@ func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName str
 		return -1
 	}
 
-	ret := 0
+	ready := 0
 	for _, endpointSubset := range endpoints.Subsets {
-		ret = ret + len(endpointSubset.Addresses)
+		ready = ready + len(endpointSubset.Addresses)
 	}
 
-	return ret
+	return ready
 }
 
 func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, body []byte) (responseBody []byte, err error) {

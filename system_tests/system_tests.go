@@ -344,21 +344,12 @@ var _ = Describe("System tests", func() {
 				persistentRabbitmqCluster.Spec.Service.Type = "LoadBalancer"
 				Expect(createRabbitmqCluster(k8sClient, persistentRabbitmqCluster)).NotTo(HaveOccurred())
 
-				Eventually(func() string {
-					podStatus, err := checkPodStatus(clientSet, namespace, podName)
-					if err != nil {
-						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-					}
-					return podStatus
-				}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+				Eventually(func() int {
+					return endpointPoller(clientSet, namespace, serviceName)
+				}, podCreationTimeout, 5).Should(BeNumerically(">", 0))
 
-				Eventually(func() bool {
-					rabbitmqUsername, rabbitmqPassword, err = getRabbitmqUsernameAndPassword(clientSet, namespace, instanceName, "rabbitmq-username")
-					if err != nil {
-						return false
-					}
-					return true
-				}, 120, 5).Should(BeTrue())
+				rabbitmqUsername, rabbitmqPassword, err = getRabbitmqUsernameAndPassword(clientSet, namespace, instanceName, "rabbitmq-username")
+				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(func() string {
 					rabbitmqHostName, err = getExternalIP(clientSet, namespace, serviceName)
