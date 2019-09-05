@@ -18,7 +18,7 @@ const (
 	defaultPersistenceCapacity int64  = 10 * 1024 * 1024 * 1024
 )
 
-func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
+func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
 	single := int32(1)
 	f := false
 	image := RabbitmqManagementImage
@@ -37,7 +37,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: imagePullSecret})
 	}
 
-	pvc, err := generatePersistentVolumeClaim(instance, scheme)
+	pvc, err := generatePersistentVolumeClaim(instance, persistenceStorageClassName, persistenceStorage, scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 	}, nil
 }
 
-func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) (*corev1.PersistentVolumeClaim, error) {
+func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*corev1.PersistentVolumeClaim, error) {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "persistence",
@@ -192,10 +192,17 @@ func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, sch
 		if err != nil {
 			return nil, err
 		}
+	} else if persistenceStorage != "" {
+		pvc.Spec.Resources.Requests["storage"], err = k8sresource.ParseQuantity(persistenceStorage)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if instance.Spec.Persistence.StorageClassName != "" {
 		pvc.Spec.StorageClassName = &instance.Spec.Persistence.StorageClassName
+	} else if persistenceStorageClassName != "" {
+		pvc.Spec.StorageClassName = &persistenceStorageClassName
 	}
 
 	if err := controllerutil.SetControllerReference(&instance, pvc, scheme); err != nil {

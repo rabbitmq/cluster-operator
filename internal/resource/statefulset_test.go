@@ -28,7 +28,7 @@ var _ = Describe("StatefulSet", func() {
 		scheme = runtime.NewScheme()
 		rabbitmqv1beta1.AddToScheme(scheme)
 		defaultscheme.AddToScheme(scheme)
-		sts, _ = resource.GenerateStatefulSet(instance, "", "", scheme)
+		sts, _ = resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
 	})
 
 	Context("when creating a working StatefulSet with minimum requirements", func() {
@@ -192,15 +192,26 @@ var _ = Describe("StatefulSet", func() {
 		})
 	})
 
-	Context("when storage class name and capacity is specified", func() {
-		It("creates the PersistentVolume template with the specified storage class name and capacity", func() {
-			instance.Spec.Persistence.StorageClassName = "my-storage-class"
-			instance.Spec.Persistence.Storage = "1Gi"
+	Context("storage class name and capacity", func() {
+		When("storage class name and capacity is specified in both as parameters and in RabbitmqCluster instance", func() {
+			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
+				instance.Spec.Persistence.StorageClassName = "my-storage-class"
+				instance.Spec.Persistence.Storage = "1Gi"
 
-			statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", scheme)
-			q, _ := k8sresource.ParseQuantity("1Gi")
-			Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
-			Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
+				q, _ := k8sresource.ParseQuantity("1Gi")
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
+				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
+			})
+		})
+
+		When("storage class name and capacity is specified only as parameters and not in RabbitmqCluster instance", func() {
+			It("creates the PersistentVolume template according to the parameters", func() {
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "a-storage-class-name", "100Gi", scheme)
+				q, _ := k8sresource.ParseQuantity("100Gi")
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
+				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("a-storage-class-name"))
+			})
 		})
 	})
 
@@ -211,7 +222,7 @@ var _ = Describe("StatefulSet", func() {
 				instance.Spec.Image.Repository = "my-private-repo"
 				instance.Spec.ImagePullSecret = "my-great-secret"
 
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
 				container := extractContainer(statefulSet, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
@@ -229,7 +240,7 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("when image repository and ImagePullSecret is provided through function params", func() {
 		It("uses the provide repository and secret if not specified in RabbitmqCluster spec", func() {
-			statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", scheme)
+			statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", "", "", scheme)
 			container := extractContainer(statefulSet, "rabbitmq")
 			Expect(container.Image).To(Equal("best-repository/" + "rabbitmq:3.8-rc-management"))
 			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-secret"}))
@@ -238,7 +249,7 @@ var _ = Describe("StatefulSet", func() {
 		It("uses the RabbitmqCluster spec if it is provided", func() {
 			instance.Spec.Image.Repository = "my-private-repo"
 			instance.Spec.ImagePullSecret = "my-great-secret"
-			statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", scheme)
+			statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", "", "", scheme)
 			container := extractContainer(statefulSet, "rabbitmq")
 			Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management"))
 			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))

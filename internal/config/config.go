@@ -10,10 +10,16 @@ type serviceConfig struct {
 	Annotations map[string]string `yaml:"ANNOTATIONS"`
 }
 
+type persistenceConfig struct {
+	StorageClassName string `yaml:"STORAGE_CLASS_NAME"`
+	Storage          string `yaml:"STORAGE"`
+}
+
 type Config struct {
-	Service         serviceConfig `yaml:"SERVICE"`
-	ImagePullSecret string        `yaml:"IMAGE_PULL_SECRET"`
-	ImageRepository string        `yaml:"IMAGE_REPOSITORY"`
+	Service         serviceConfig     `yaml:"SERVICE"`
+	Persistence     persistenceConfig `yaml:"PERSISTENCE"`
+	ImagePullSecret string            `yaml:"IMAGE_PULL_SECRET"`
+	ImageRepository string            `yaml:"IMAGE_REPOSITORY"`
 }
 
 func NewConfig(configRaw []byte) (*Config, error) {

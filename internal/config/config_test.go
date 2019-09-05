@@ -15,6 +15,9 @@ SERVICE:
     some-key: some-annotation
 IMAGE_PULL_SECRET: thought-leader
 IMAGE_REPOSITORY: some-great-repo
+PERSISTENCE:
+  STORAGE: 1Gi
+  STORAGE_CLASS_NAME: storage-class-name
 `
 		config, err := config.NewConfig([]byte(rawConfig))
 		Expect(err).NotTo(HaveOccurred())
@@ -22,6 +25,8 @@ IMAGE_REPOSITORY: some-great-repo
 		Expect(config.Service.Annotations["some-key"]).To(Equal("some-annotation"))
 		Expect(config.ImagePullSecret).To(Equal("thought-leader"))
 		Expect(config.ImageRepository).To(Equal("some-great-repo"))
+		Expect(config.Persistence.Storage).To(Equal("1Gi"))
+		Expect(config.Persistence.StorageClassName).To(Equal("storage-class-name"))
 	})
 
 	It("should return an error if it fails to unmarshal", func() {

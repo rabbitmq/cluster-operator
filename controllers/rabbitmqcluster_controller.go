@@ -49,12 +49,14 @@ var (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
-	Log                logr.Logger
-	Scheme             *runtime.Scheme
-	ServiceType        string
-	ServiceAnnotations map[string]string
-	ImageRepository    string
-	ImagePullSecret    string
+	Log                         logr.Logger
+	Scheme                      *runtime.Scheme
+	ServiceType                 string
+	ServiceAnnotations          map[string]string
+	ImageRepository             string
+	ImagePullSecret             string
+	PersistenceStorageClassName string
+	PersistenceStorage          string
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -136,7 +138,7 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		return nil, nil, fmt.Errorf("failed to generate secret: %v ", err)
 	}
 
-	statefulSet, err := resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.ImageRepository, r.ImagePullSecret, r.Scheme)
+	statefulSet, err := resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.ImageRepository, r.ImagePullSecret, r.PersistenceStorageClassName, r.PersistenceStorage, r.Scheme)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
 	}

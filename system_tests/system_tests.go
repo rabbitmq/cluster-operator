@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	v1 "k8s.io/api/storage/v1"
+	storagev1 "k8s.io/api/storage/v1"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -17,8 +19,6 @@ import (
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/client-go/kubernetes"
 )
 
 const podCreationTimeout time.Duration = 180 * time.Second
@@ -27,6 +27,8 @@ const serviceCreationTimeout time.Duration = 10 * time.Second
 var _ = Describe("System tests", func() {
 	var namespace, instanceName, statefulSetName, serviceName, podName string
 	var clientSet *kubernetes.Clientset
+	var k8sClient client.Client
+
 	var rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string
 	var err error
 
@@ -34,6 +36,7 @@ var _ = Describe("System tests", func() {
 		namespace = MustHaveEnv("NAMESPACE")
 		clientSet, err = createClientSet()
 		Expect(err).NotTo(HaveOccurred())
+		k8sClient = mgr.GetClient()
 	})
 
 	Context("Initial RabbitmqCluster setup", func() {
@@ -234,14 +237,14 @@ var _ = Describe("System tests", func() {
 
 	When("a service type and annotations is configured in the manager configMap", func() {
 		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		var expectedServiceConfigurations *config.Config
+		var expectedConfigurations *config.Config
 
 		BeforeEach(func() {
 			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configMap.Data["SERVICE"]).NotTo(BeNil())
 
-			expectedServiceConfigurations, err = config.NewConfig([]byte(configMap.Data["CONFIG"]))
+			expectedConfigurations, err = config.NewConfig([]byte(configMap.Data["CONFIG"]))
 			instanceName = "nodeport-rabbit"
 			serviceName = instanceName + "-rabbitmq-ingress"
 
@@ -262,7 +265,7 @@ var _ = Describe("System tests", func() {
 				}
 
 				return string(svc.Spec.Type)
-			}, serviceCreationTimeout).Should(Equal(expectedServiceConfigurations.Service.Type))
+			}, serviceCreationTimeout).Should(Equal(expectedConfigurations.Service.Type))
 			Eventually(func() map[string]string {
 				svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 				if err != nil {
@@ -271,7 +274,7 @@ var _ = Describe("System tests", func() {
 				}
 
 				return svc.Annotations
-			}, serviceCreationTimeout).Should(Equal(expectedServiceConfigurations.Service.Annotations))
+			}, serviceCreationTimeout).Should(Equal(expectedConfigurations.Service.Annotations))
 		})
 	})
 
@@ -294,7 +297,7 @@ var _ = Describe("System tests", func() {
 				specifiedStorageClassName = "persistent-test"
 				specifiedStorageCapacity = "1Gi"
 
-				storageClass := &v1.StorageClass{
+				storageClass := &storagev1.StorageClass{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: specifiedStorageClassName,
 					},
@@ -333,7 +336,9 @@ var _ = Describe("System tests", func() {
 			})
 		})
 
-		When("storage class is not specified in the RabbitmqCluster spec", func() {
+		When("storage configuration is only specified in the operator configMap", func() {
+			var storageClass *storagev1.StorageClass
+
 			BeforeEach(func() {
 				instanceName = "persistence-rabbit"
 				serviceName = "p-" + instanceName
@@ -363,6 +368,9 @@ var _ = Describe("System tests", func() {
 
 				err = rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
 				Expect(err).NotTo(HaveOccurred())
+
+				storageClass, err = clientSet.StorageV1().StorageClasses().Get(operatorConMapStorageClassName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("works as expected", func() {
@@ -372,7 +380,7 @@ var _ = Describe("System tests", func() {
 					for _, pv := range pvList.Items {
 						if pv.Spec.ClaimRef.Name == pvcName {
 							// standard is the default storage class in GKE; default storage class could be different for different IAASs
-							Expect(pv.Spec.StorageClassName).To(Equal("standard"))
+							Expect(pv.Spec.StorageClassName).To(Equal(storageClass.Name))
 						}
 					}
 				})
