@@ -57,23 +57,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	imageRepository := os.Getenv("IMAGE_REPOSITORY")
-	imagePullSecret := os.Getenv("IMAGE_PULL_SECRET")
-
-	serviceConfigPath := os.Getenv("SERVICE_CONFIG_FILEPATH")
-	if serviceConfigPath == "" {
-		setupLog.Error(err, "unable to find service config file")
+	configPath := os.Getenv("CONFIG_FILEPATH")
+	if configPath == "" {
+		setupLog.Error(err, "unable to find config file")
 		os.Exit(1)
 	}
-	rawServiceConfig, err := ioutil.ReadFile(serviceConfigPath)
+	rawConfig, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		setupLog.Error(err, "unable to read service config file")
+		setupLog.Error(err, "unable to read config file")
 		os.Exit(1)
 	}
 
-	serviceConfig, err := config.NewServiceConfig(rawServiceConfig)
+	config, err := config.NewConfig(rawConfig)
 	if err != nil {
-		setupLog.Error(err, "unable to parse service config")
+		setupLog.Error(err, "unable to parse config")
 		os.Exit(1)
 	}
 
@@ -81,16 +78,16 @@ func main() {
 		Client:             mgr.GetClient(),
 		Log:                ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
 		Scheme:             mgr.GetScheme(),
-		ServiceType:        serviceConfig.Type,
-		ServiceAnnotations: serviceConfig.Annotations,
-		ImageRepository:    imageRepository,
-		ImagePullSecret:    imagePullSecret,
+		ServiceType:        config.Service.Type,
+		ServiceAnnotations: config.Service.Annotations,
+		ImageRepository:    config.ImageRepository,
+		ImagePullSecret:    config.ImagePullSecret,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")
 		os.Exit(1)
 	}
-	setupLog.Info("Started controller with ServiceType %s and ServiceAnnotation %s", serviceConfig.Type, serviceConfig.Annotations)
+	setupLog.Info("Started controller with ServiceType %s and ServiceAnnotation %s", config.Service.Type, config.Service.Annotations)
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

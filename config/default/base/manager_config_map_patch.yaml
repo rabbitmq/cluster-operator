@@ -13,11 +13,8 @@ spec:
           - name: manager-config
             mountPath: /etc/manager-config
           env:
-            - name: SERVICE_CONFIG_FILEPATH
-              value: /etc/manager-config/SERVICE
-          envFrom:
-            - configMapRef:
-                name: pivotal-rabbitmq-manager-config
+            - name: CONFIG_FILEPATH
+              value: /etc/manager-config/CONFIG
       volumes:
         - name: manager-config
           configMap:

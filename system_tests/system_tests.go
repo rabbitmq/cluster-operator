@@ -234,14 +234,14 @@ var _ = Describe("System tests", func() {
 
 	When("a service type and annotations is configured in the manager configMap", func() {
 		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		var expectedServiceConfigurations *config.ServiceConfig
+		var expectedServiceConfigurations *config.Config
 
 		BeforeEach(func() {
 			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configMap.Data["SERVICE"]).NotTo(BeNil())
 
-			expectedServiceConfigurations, err = config.NewServiceConfig([]byte(configMap.Data["SERVICE"]))
+			expectedServiceConfigurations, err = config.NewConfig([]byte(configMap.Data["CONFIG"]))
 			instanceName = "nodeport-rabbit"
 			serviceName = instanceName + "-rabbitmq-ingress"
 
@@ -262,7 +262,7 @@ var _ = Describe("System tests", func() {
 				}
 
 				return string(svc.Spec.Type)
-			}, serviceCreationTimeout).Should(Equal(expectedServiceConfigurations.Type))
+			}, serviceCreationTimeout).Should(Equal(expectedServiceConfigurations.Service.Type))
 			Eventually(func() map[string]string {
 				svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 				if err != nil {
@@ -271,7 +271,7 @@ var _ = Describe("System tests", func() {
 				}
 
 				return svc.Annotations
-			}, serviceCreationTimeout).Should(Equal(expectedServiceConfigurations.Annotations))
+			}, serviceCreationTimeout).Should(Equal(expectedServiceConfigurations.Service.Annotations))
 		})
 	})
 

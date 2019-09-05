@@ -5,13 +5,19 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type ServiceConfig struct {
+type serviceConfig struct {
 	Type        string            `yaml:"TYPE"`
 	Annotations map[string]string `yaml:"ANNOTATIONS"`
 }
 
-func NewServiceConfig(configRaw []byte) (*ServiceConfig, error) {
-	config := &ServiceConfig{}
+type Config struct {
+	Service         serviceConfig `yaml:"SERVICE"`
+	ImagePullSecret string        `yaml:"IMAGE_PULL_SECRET"`
+	ImageRepository string        `yaml:"IMAGE_REPOSITORY"`
+}
+
+func NewConfig(configRaw []byte) (*Config, error) {
+	config := &Config{}
 	var err error
 
 	err = yaml.Unmarshal(configRaw, config)

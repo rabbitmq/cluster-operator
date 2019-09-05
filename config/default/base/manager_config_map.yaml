@@ -5,7 +5,8 @@ metadata:
   name: manager-config
   namespace: system
 data:
-  SERVICE: |
-    TYPE: NodePort
-    ANNOTATIONS:
-      SERVICE_ANNOTATION: 0.0.0.0/0
+  CONFIG: |
+    SERVICE:
+      TYPE: NodePort
+      ANNOTATIONS:
+        SERVICE_ANNOTATION: 0.0.0.0/0
