@@ -13,9 +13,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -296,4 +299,13 @@ func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Ra
 
 func createRabbitmqCluster(client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	return client.Create(context.TODO(), rabbitmqCluster)
+}
+
+func toYamlBytes(c *config.Config) ([]byte, error) {
+	configBytes, err := yaml.Marshal(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return configBytes, nil
 }

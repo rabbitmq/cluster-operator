@@ -10,6 +10,3 @@ data:
       TYPE: NodePort
       ANNOTATIONS:
         SERVICE_ANNOTATION: 0.0.0.0/0
-    PERSISTENCE:
-      STORAGE_CLASS_NAME: system-test-storage-class
-      STORAGE: 9Gi

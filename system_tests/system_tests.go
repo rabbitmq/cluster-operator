@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const podCreationTimeout time.Duration = 180 * time.Second
+const podCreationTimeout time.Duration = 300 * time.Second
 const serviceCreationTimeout time.Duration = 10 * time.Second
 
 var _ = Describe("System tests", func() {
@@ -345,6 +347,62 @@ var _ = Describe("System tests", func() {
 				podName = instanceName + "-rabbitmq-server-0"
 				pvcName = "persistence-" + podName
 
+				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				operatorConMap, err := config.NewConfig([]byte(configMap.Data["CONFIG"]))
+				Expect(err).NotTo(HaveOccurred())
+
+				// Patch/update configMap
+				operatorConMapStorageClassName = "rabbitmq-system-tests-persistence"
+				operatorConMap.Persistence.StorageClassName = operatorConMapStorageClassName
+				operatorConMap.Persistence.Storage = "1Gi"
+				configBytes, err := toYamlBytes(operatorConMap)
+				Expect(err).NotTo(HaveOccurred())
+				configMap.Data["CONFIG"] = string(configBytes)
+
+				_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Create Storage Class
+				storageClass = &storagev1.StorageClass{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: operatorConMapStorageClassName,
+					},
+					Provisioner: "kubernetes.io/gce-pd",
+				}
+
+				err = k8sClient.Create(context.TODO(), storageClass)
+				if !apierrors.IsAlreadyExists(err) {
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				// Delete Operator pod
+				var operatorPod *corev1.Pod
+				pods, err := clientSet.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				for _, pod := range pods.Items {
+					if strings.Contains(pod.Name, "controller-manager") {
+						operatorPod = &pod
+					}
+				}
+				if operatorPod == nil {
+					Fail("Operator pod cannot be found")
+				}
+
+				Expect(clientSet.CoreV1().Pods(namespace).Delete(operatorPod.Name, &metav1.DeleteOptions{})).To(Succeed())
+
+				Eventually(func() string {
+					pod, err := clientSet.CoreV1().Pods(namespace).Get(operatorPod.Name, metav1.GetOptions{})
+					if err != nil {
+						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
+						return ""
+					}
+
+					return fmt.Sprintf("%v", pod.Status.Conditions)
+				}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+
+				// Generate RabbitmqCluster
 				persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 				persistentRabbitmqCluster.Spec.Service.Type = "LoadBalancer"
 				Expect(createRabbitmqCluster(k8sClient, persistentRabbitmqCluster)).NotTo(HaveOccurred())
