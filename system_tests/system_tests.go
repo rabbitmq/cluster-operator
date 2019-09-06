@@ -292,7 +292,7 @@ var _ = Describe("System tests", func() {
 		When("storage class name and storage is specified in the RabbitmqCluster Spec", func() {
 			BeforeEach(func() {
 				instanceName = "persistence-storageclass-rabbit"
-				podName = "p-" + instanceName + "-0"
+				podName = instanceName + "-rabbitmq-server-0"
 				pvcName = "persistence-" + podName
 				specifiedStorageClassName = "persistent-test"
 				specifiedStorageCapacity = "1Gi"
@@ -341,8 +341,8 @@ var _ = Describe("System tests", func() {
 
 			BeforeEach(func() {
 				instanceName = "persistence-rabbit"
-				serviceName = "p-" + instanceName
-				podName = "p-" + instanceName + "-0"
+				serviceName = instanceName + "-rabbitmq-ingress"
+				podName = instanceName + "-rabbitmq-server-0"
 				pvcName = "persistence-" + podName
 
 				persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
