@@ -21,10 +21,17 @@ func TestSystemTests(t *testing.T) {
 	RunSpecs(t, "SystemTests Suite")
 }
 
-var k8sClient client.Client
-var clientSet *kubernetes.Clientset
-var namespace, operatorConMapStorageClassName string
-var mgr manager.Manager
+var (
+	k8sClient                      client.Client
+	clientSet                      *kubernetes.Clientset
+	namespace                      string
+	operatorConMapStorageClassName string
+	mgr                            manager.Manager
+)
+
+const (
+	k8sResourcePrefix = "p-rmq-"
+)
 
 var _ = BeforeSuite(func() {
 	scheme := runtime.NewScheme()

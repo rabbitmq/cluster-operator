@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: operator
   namespace: system
   labels:
     control-plane: controller-manager
@@ -21,7 +21,7 @@ spec:
         - /manager
         image: controller:latest
         imagePullPolicy: Always
-        name: manager
+        name: operator
         resources:
           limits:
             cpu: 100m

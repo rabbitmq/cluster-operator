@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: operator
   namespace: system
 spec:
   template:
     spec:
       containers:
-        - name: manager
+        - name: operator
           volumeMounts:
-          - name: manager-config
-            mountPath: /etc/manager-config
+          - name: operator-config
+            mountPath: /etc/operator-config
           env:
             - name: CONFIG_FILEPATH
-              value: /etc/manager-config/CONFIG
+              value: /etc/operator-config/CONFIG
       volumes:
-        - name: manager-config
+        - name: operator-config
           configMap:
-            name: pivotal-rabbitmq-manager-config
+            name: p-rmq-operator-config
 

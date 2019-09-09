@@ -242,7 +242,8 @@ var _ = Describe("System tests", func() {
 		var expectedConfigurations *config.Config
 
 		BeforeEach(func() {
-			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
+			operatorConfigMapName := k8sResourcePrefix + "operator-config"
+			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configMap.Data["SERVICE"]).NotTo(BeNil())
 
@@ -379,9 +380,10 @@ var _ = Describe("System tests", func() {
 				serviceName = instanceName + "-rabbitmq-ingress"
 				podName = instanceName + "-rabbitmq-server-0"
 				pvcName = "persistence-" + podName
+				operatorConfigMapName := k8sResourcePrefix + "operator-config"
 
 				// Patch/update configMap
-				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
+				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 
 				operatorConMap, err := config.NewConfig([]byte(configMap.Data["CONFIG"]))
@@ -402,7 +404,7 @@ var _ = Describe("System tests", func() {
 				pods, err := clientSet.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				for _, pod := range pods.Items {
-					if strings.Contains(pod.Name, "controller-manager") {
+					if strings.Contains(pod.Name, "operator") {
 						operatorPod = &pod
 					}
 				}

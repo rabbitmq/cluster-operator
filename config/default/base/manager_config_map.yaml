@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: manager-config
+  name: operator-config
   namespace: system
 data:
   CONFIG: |

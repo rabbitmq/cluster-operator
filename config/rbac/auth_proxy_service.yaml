@@ -7,7 +7,7 @@ metadata:
     prometheus.io/scrape: "true"
   labels:
     control-plane: controller-manager
-  name: controller-manager-metrics-service
+  name: operator-metrics-service
   namespace: system
 spec:
   ports:

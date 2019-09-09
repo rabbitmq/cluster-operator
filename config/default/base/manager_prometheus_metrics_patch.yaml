@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: operator
   namespace: system
 spec:
   template:
@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
       # Expose the prometheus metrics on default port
-      - name: manager
+      - name: operator
         ports:
         - containerPort: 8080
           name: metrics

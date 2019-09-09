@@ -3,13 +3,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: operator
   namespace: system
 spec:
   template:
     spec:
       containers:
       # Stop metrics emitting by setting metrics-addr to 0
-      - name: manager
+      - name: operator
         args:
         - "--metrics-addr=0"
