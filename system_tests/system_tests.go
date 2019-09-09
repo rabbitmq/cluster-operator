@@ -284,8 +284,54 @@ var _ = Describe("System tests", func() {
 		var persistentRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		var pvcName, specifiedStorageClassName, specifiedStorageCapacity string
 
+		BeforeEach(func() {
+			specifiedStorageClassName = "persistent-test"
+			specifiedStorageCapacity = "1Gi"
+			storageClass := &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: specifiedStorageClassName,
+				},
+				Provisioner: "kubernetes.io/gce-pd",
+			}
+			err = k8sClient.Create(context.TODO(), storageClass)
+			if !apierrors.IsAlreadyExists(err) {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+
 		AfterEach(func() {
-			err := k8sClient.Delete(context.TODO(), persistentRabbitmqCluster)
+			//Delete storage Class
+			specifiedStorageClassName = "persistent-test"
+			specifiedStorageCapacity = "1Gi"
+			storageClass := &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: specifiedStorageClassName,
+				},
+				Provisioner: "kubernetes.io/gce-pd",
+			}
+			err = k8sClient.Delete(context.TODO(), storageClass)
+			if !apierrors.IsNotFound(err) {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			// Restore ConfigMap to default
+			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			operatorConMap, err := config.NewConfig([]byte(configMap.Data["CONFIG"]))
+			Expect(err).NotTo(HaveOccurred())
+			operatorConMapStorageClassName = ""
+			operatorConMap.Persistence.StorageClassName = operatorConMapStorageClassName
+			operatorConMap.Persistence.Storage = ""
+			configBytes, err := toYamlBytes(operatorConMap)
+			Expect(err).NotTo(HaveOccurred())
+			configMap.Data["CONFIG"] = string(configBytes)
+
+			_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Delete RabbitmqCluster
+			err = k8sClient.Delete(context.TODO(), persistentRabbitmqCluster)
 			if !apierrors.IsNotFound(err) {
 				Expect(err).NotTo(HaveOccurred())
 			}
@@ -296,19 +342,6 @@ var _ = Describe("System tests", func() {
 				instanceName = "persistence-storageclass-rabbit"
 				podName = instanceName + "-rabbitmq-server-0"
 				pvcName = "persistence-" + podName
-				specifiedStorageClassName = "persistent-test"
-				specifiedStorageCapacity = "1Gi"
-
-				storageClass := &storagev1.StorageClass{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: specifiedStorageClassName,
-					},
-					Provisioner: "kubernetes.io/gce-pd",
-				}
-				err = k8sClient.Create(context.TODO(), storageClass)
-				if !apierrors.IsAlreadyExists(err) {
-					Expect(err).NotTo(HaveOccurred())
-				}
 
 				persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 				persistentRabbitmqCluster.Spec.Persistence.StorageClassName = specifiedStorageClassName
@@ -347,13 +380,13 @@ var _ = Describe("System tests", func() {
 				podName = instanceName + "-rabbitmq-server-0"
 				pvcName = "persistence-" + podName
 
+				// Patch/update configMap
 				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 
 				operatorConMap, err := config.NewConfig([]byte(configMap.Data["CONFIG"]))
 				Expect(err).NotTo(HaveOccurred())
 
-				// Patch/update configMap
 				operatorConMapStorageClassName = "rabbitmq-system-tests-persistence"
 				operatorConMap.Persistence.StorageClassName = operatorConMapStorageClassName
 				operatorConMap.Persistence.Storage = "1Gi"
@@ -363,19 +396,6 @@ var _ = Describe("System tests", func() {
 
 				_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
 				Expect(err).NotTo(HaveOccurred())
-
-				// Create Storage Class
-				storageClass = &storagev1.StorageClass{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: operatorConMapStorageClassName,
-					},
-					Provisioner: "kubernetes.io/gce-pd",
-				}
-
-				err = k8sClient.Create(context.TODO(), storageClass)
-				if !apierrors.IsAlreadyExists(err) {
-					Expect(err).NotTo(HaveOccurred())
-				}
 
 				// Delete Operator pod
 				var operatorPod *corev1.Pod
