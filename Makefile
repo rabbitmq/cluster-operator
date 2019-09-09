@@ -87,7 +87,7 @@ deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespac
 
 generate-installation-manifests:
 	mkdir -p installation
-	kustomize build config/namespace/base/ > installation/operator-namespace.yaml
+	kustomize build config/namespace/base/ > installation/namespace.yaml
 	kustomize build config/crd/ > installation/crd.yaml
 	kustomize build config/installation > installation/operator.yaml
 
