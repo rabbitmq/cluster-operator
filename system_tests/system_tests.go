@@ -4,11 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -283,54 +280,9 @@ var _ = Describe("System tests", func() {
 
 	Context("persistence", func() {
 		var persistentRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		var pvcName, specifiedStorageClassName, specifiedStorageCapacity string
-
-		BeforeEach(func() {
-			specifiedStorageClassName = "persistent-test"
-			specifiedStorageCapacity = "1Gi"
-			storageClass := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: specifiedStorageClassName,
-				},
-				Provisioner: "kubernetes.io/gce-pd",
-			}
-			err = k8sClient.Create(context.TODO(), storageClass)
-			if !apierrors.IsAlreadyExists(err) {
-				Expect(err).NotTo(HaveOccurred())
-			}
-		})
+		var pvcName string
 
 		AfterEach(func() {
-			//Delete storage Class
-			specifiedStorageClassName = "persistent-test"
-			specifiedStorageCapacity = "1Gi"
-			storageClass := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: specifiedStorageClassName,
-				},
-				Provisioner: "kubernetes.io/gce-pd",
-			}
-			err = k8sClient.Delete(context.TODO(), storageClass)
-			if !apierrors.IsNotFound(err) {
-				Expect(err).NotTo(HaveOccurred())
-			}
-
-			// Restore ConfigMap to default
-			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get("pivotal-rabbitmq-manager-config", metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			operatorConMap, err := config.NewConfig([]byte(configMap.Data["CONFIG"]))
-			Expect(err).NotTo(HaveOccurred())
-			operatorConMapStorageClassName = ""
-			operatorConMap.Persistence.StorageClassName = operatorConMapStorageClassName
-			operatorConMap.Persistence.Storage = ""
-			configBytes, err := toYamlBytes(operatorConMap)
-			Expect(err).NotTo(HaveOccurred())
-			configMap.Data["CONFIG"] = string(configBytes)
-
-			_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
-			Expect(err).NotTo(HaveOccurred())
-
 			// Delete RabbitmqCluster
 			err = k8sClient.Delete(context.TODO(), persistentRabbitmqCluster)
 			if !apierrors.IsNotFound(err) {
@@ -373,56 +325,12 @@ var _ = Describe("System tests", func() {
 		})
 
 		When("storage configuration is only specified in the operator configMap", func() {
-			var storageClass *storagev1.StorageClass
 
 			BeforeEach(func() {
 				instanceName = "persistence-rabbit"
 				serviceName = instanceName + serviceSuffix
 				podName = instanceName + statefulSetSuffix + "-0"
 				pvcName = "persistence-" + podName
-				operatorConfigMapName := k8sResourcePrefix + "operator-config"
-
-				// Patch/update configMap
-				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-
-				operatorConMap, err := config.NewConfig([]byte(configMap.Data["CONFIG"]))
-				Expect(err).NotTo(HaveOccurred())
-
-				operatorConMapStorageClassName = "rabbitmq-system-tests-persistence"
-				operatorConMap.Persistence.StorageClassName = operatorConMapStorageClassName
-				operatorConMap.Persistence.Storage = "1Gi"
-				configBytes, err := toYamlBytes(operatorConMap)
-				Expect(err).NotTo(HaveOccurred())
-				configMap.Data["CONFIG"] = string(configBytes)
-
-				_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
-				Expect(err).NotTo(HaveOccurred())
-
-				// Delete Operator pod
-				var operatorPod *corev1.Pod
-				pods, err := clientSet.CoreV1().Pods(namespace).List(metav1.ListOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				for _, pod := range pods.Items {
-					if strings.Contains(pod.Name, "operator") {
-						operatorPod = &pod
-					}
-				}
-				if operatorPod == nil {
-					Fail("Operator pod cannot be found")
-				}
-
-				Expect(clientSet.CoreV1().Pods(namespace).Delete(operatorPod.Name, &metav1.DeleteOptions{})).To(Succeed())
-
-				Eventually(func() string {
-					pod, err := clientSet.CoreV1().Pods(namespace).Get(operatorPod.Name, metav1.GetOptions{})
-					if err != nil {
-						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", operatorPod.Name)))
-						return ""
-					}
-
-					return fmt.Sprintf("%v", pod.Status.Conditions)
-				}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
 
 				// Generate RabbitmqCluster
 				persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
@@ -441,7 +349,7 @@ var _ = Describe("System tests", func() {
 
 				Eventually(func() int {
 					return endpointPoller(clientSet, namespace, serviceName)
-				}, podCreationTimeout, 5).Should(BeNumerically(">", 0))
+				}, podCreationTimeout, 5).Should(Equal(1))
 
 				rabbitmqUsername, rabbitmqPassword, err = getRabbitmqUsernameAndPassword(clientSet, namespace, instanceName, "rabbitmq-username")
 				Expect(err).NotTo(HaveOccurred())
@@ -456,26 +364,41 @@ var _ = Describe("System tests", func() {
 
 				Expect(err).NotTo(HaveOccurred())
 
-				err = rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
-				Expect(err).NotTo(HaveOccurred())
+				Eventually(func() int {
+					client := &http.Client{Timeout: 5 * time.Second}
+					url := fmt.Sprintf("http://%s:15672", rabbitmqHostName)
 
-				storageClass, err = clientSet.StorageV1().StorageClasses().Get(operatorConMapStorageClassName, metav1.GetOptions{})
+					req, _ := http.NewRequest(http.MethodGet, url, nil)
+
+					resp, err := client.Do(req)
+					if err != nil {
+						return 0
+					}
+					defer resp.Body.Close()
+
+					return resp.StatusCode
+				}, podCreationTimeout, 5).Should(Equal(200))
+
+				response, err := rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(response.Status).To(Equal("ok"))
 			})
 
 			It("works as expected", func() {
-				By("creating the persistent volume using the default storage class", func() {
+				By("creating the persistent volume using the configured storage class", func() {
 					pvList, err := clientSet.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					for _, pv := range pvList.Items {
 						if pv.Spec.ClaimRef.Name == pvcName {
-							// standard is the default storage class in GKE; default storage class could be different for different IAASs
-							Expect(pv.Spec.StorageClassName).To(Equal(storageClass.Name))
+							Expect(pv.Spec.StorageClassName).To(Equal("persistent-test"))
 						}
 					}
 				})
 
 				By("successfully perserving messages after recreating a pod ", func() {
+					err = rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
+					Expect(err).NotTo(HaveOccurred())
+
 					err := kubectlDelete(namespace, "pod", podName)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(func() string {
@@ -487,6 +410,20 @@ var _ = Describe("System tests", func() {
 
 						return fmt.Sprintf("%v", pod.Status.Conditions)
 					}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+					Eventually(func() int {
+						client := &http.Client{Timeout: 5 * time.Second}
+						url := fmt.Sprintf("http://%s:15672", rabbitmqHostName)
+
+						req, _ := http.NewRequest(http.MethodGet, url, nil)
+
+						resp, err := client.Do(req)
+						if err != nil {
+							return 0
+						}
+						defer resp.Body.Close()
+
+						return resp.StatusCode
+					}, podCreationTimeout, 5).Should(Equal(200))
 					message, err := rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(message.Payload).To(Equal("hello"))

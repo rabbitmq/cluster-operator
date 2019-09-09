@@ -122,12 +122,12 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{
-										Command: []string{"rabbitmq-diagnostics", "check_running"},
+										Command: []string{"/bin/sh", "-c", "rabbitmq-diagnostics check_running && rabbitmq-diagnostics check_port_connectivity"},
 									},
 								},
 								InitialDelaySeconds: 10,
 								TimeoutSeconds:      5,
-								PeriodSeconds:       10,
+								PeriodSeconds:       30,
 								SuccessThreshold:    1,
 								FailureThreshold:    3,
 							},
