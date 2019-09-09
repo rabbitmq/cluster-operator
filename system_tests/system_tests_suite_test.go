@@ -31,6 +31,8 @@ var (
 
 const (
 	k8sResourcePrefix = "p-rmq-"
+	serviceSuffix     = "-rabbitmq-ingress"
+	statefulSetSuffix = "-rabbitmq-server"
 )
 
 var _ = BeforeSuite(func() {

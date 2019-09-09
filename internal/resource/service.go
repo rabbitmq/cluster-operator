@@ -6,6 +6,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ServiceSuffix string = "-rabbitmq-ingress"
+)
+
 func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType string, serviceAnnotations map[string]string) *corev1.Service {
 	if instance.Spec.Service.Type != "" {
 		serviceType = instance.Spec.Service.Type
@@ -19,7 +23,7 @@ func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType strin
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + "-rabbitmq-ingress",
+			Name:      instance.Name + ServiceSuffix,
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app": instance.Name,

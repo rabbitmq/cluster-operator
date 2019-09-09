@@ -28,7 +28,7 @@ var _ = Describe("Secret", func() {
 		})
 
 		It("creates the secret 'rabbitmq-secret'", func() {
-			expectedName := instance.Name + "-rabbitmq-admin"
+			expectedName := instance.Name + SecretSuffix
 			Expect(secret.Name).To(Equal(expectedName))
 		})
 

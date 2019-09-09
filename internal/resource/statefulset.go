@@ -16,6 +16,7 @@ import (
 const (
 	RabbitmqManagementImage    string = "rabbitmq:3.8-rc-management"
 	defaultPersistenceCapacity int64  = 10 * 1024 * 1024 * 1024
+	StatefulSetSuffix          string = "-rabbitmq-server"
 )
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
@@ -44,7 +45,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + "-rabbitmq-server",
+			Name:      instance.Name + StatefulSetSuffix,
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app":             "pivotal-rabbitmq",

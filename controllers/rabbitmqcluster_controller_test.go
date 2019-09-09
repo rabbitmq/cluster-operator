@@ -45,10 +45,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 			expectedRequest reconcile.Request
 			instanceName    = "rabbitmq-one"
-			stsName         = instanceName + "-rabbitmq-server"
-			configMapName   = instanceName + "-rabbitmq-plugins"
-			secretName      = instanceName + "-rabbitmq-admin"
-			serviceName     = instanceName + "-rabbitmq-ingress"
+			stsName         = instanceName + StatefulSetSuffix
+			configMapName   = instanceName + ConfigMapSuffix
+			secretName      = instanceName + SecretSuffix
+			serviceName     = instanceName + ServiceSuffix
 		)
 
 		BeforeEach(func() {

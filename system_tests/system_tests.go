@@ -46,8 +46,8 @@ var _ = Describe("System tests", func() {
 
 		BeforeEach(func() {
 			instanceName = "basic-rabbit"
-			serviceName = instanceName + "-rabbitmq-ingress"
-			podName = instanceName + "-rabbitmq-server-0"
+			serviceName = instanceName + serviceSuffix
+			podName = instanceName + statefulSetSuffix + "-0"
 
 			basicRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			basicRabbitmqCluster.Spec.Service.Type = "LoadBalancer"
@@ -125,8 +125,8 @@ var _ = Describe("System tests", func() {
 		var readinessRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		BeforeEach(func() {
 			instanceName = "readiness-rabbit"
-			serviceName = instanceName + "-rabbitmq-ingress"
-			podName = instanceName + "-rabbitmq-server-0"
+			serviceName = instanceName + serviceSuffix
+			podName = instanceName + statefulSetSuffix + "-0"
 
 			readinessRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			Expect(createRabbitmqCluster(k8sClient, readinessRabbitmqCluster)).NotTo(HaveOccurred())
@@ -174,9 +174,9 @@ var _ = Describe("System tests", func() {
 		var statefulsetRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		BeforeEach(func() {
 			instanceName = "statefulset-rabbit"
-			serviceName = instanceName + "-rabbitmq-ingress"
-			statefulSetName = instanceName + "-rabbitmq-server"
-			podName = instanceName + "-rabbitmq-server-0"
+			serviceName = instanceName + serviceSuffix
+			statefulSetName = instanceName + statefulSetSuffix
+			podName = instanceName + statefulSetSuffix + "-0"
 
 			statefulsetRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			Expect(createRabbitmqCluster(k8sClient, statefulsetRabbitmqCluster)).NotTo(HaveOccurred())
@@ -214,7 +214,7 @@ var _ = Describe("System tests", func() {
 
 		BeforeEach(func() {
 			instanceName = "image-rabbit"
-			podName = instanceName + "-rabbitmq-server-0"
+			podName = instanceName + statefulSetSuffix + "-0"
 
 			imageRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			imageRabbitmqCluster.Spec.Image.Repository = "eu.gcr.io/cf-rabbitmq-for-k8s-bunny"
@@ -249,7 +249,7 @@ var _ = Describe("System tests", func() {
 
 			expectedConfigurations, err = config.NewConfig([]byte(configMap.Data["CONFIG"]))
 			instanceName = "nodeport-rabbit"
-			serviceName = instanceName + "-rabbitmq-ingress"
+			serviceName = instanceName + serviceSuffix
 
 			rabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
 			Expect(createRabbitmqCluster(k8sClient, rabbitmqCluster)).NotTo(HaveOccurred())
@@ -341,7 +341,7 @@ var _ = Describe("System tests", func() {
 		When("storage class name and storage is specified in the RabbitmqCluster Spec", func() {
 			BeforeEach(func() {
 				instanceName = "persistence-storageclass-rabbit"
-				podName = instanceName + "-rabbitmq-server-0"
+				podName = instanceName + statefulSetSuffix + "-0"
 				pvcName = "persistence-" + podName
 
 				persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
@@ -377,8 +377,8 @@ var _ = Describe("System tests", func() {
 
 			BeforeEach(func() {
 				instanceName = "persistence-rabbit"
-				serviceName = instanceName + "-rabbitmq-ingress"
-				podName = instanceName + "-rabbitmq-server-0"
+				serviceName = instanceName + serviceSuffix
+				podName = instanceName + statefulSetSuffix + "-0"
 				pvcName = "persistence-" + podName
 				operatorConfigMapName := k8sResourcePrefix + "operator-config"
 

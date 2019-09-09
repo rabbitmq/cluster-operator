@@ -61,6 +61,13 @@ func TestControllers(t *testing.T) {
 		[]Reporter{envtest.NewlineReporter{}})
 }
 
+const (
+	StatefulSetSuffix string = "-rabbitmq-server"
+	SecretSuffix      string = "-rabbitmq-admin"
+	ServiceSuffix     string = "-rabbitmq-ingress"
+	ConfigMapSuffix   string = "-rabbitmq-plugins"
+)
+
 var _ = BeforeSuite(func() {
 	var err error
 	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))

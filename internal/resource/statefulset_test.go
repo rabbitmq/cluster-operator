@@ -39,7 +39,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("adds the correct name with naming conventions", func() {
-			expectedName := instance.Name + "-rabbitmq-server"
+			expectedName := instance.Name + StatefulSetSuffix
 			Expect(sts.Name).To(Equal(expectedName))
 		})
 

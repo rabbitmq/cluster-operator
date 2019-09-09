@@ -26,7 +26,7 @@ var _ = Describe("Service", func() {
 		})
 
 		It("creates a service object with the correct name and labels", func() {
-			expectedName := instance.Name + "-rabbitmq-ingress"
+			expectedName := instance.Name + ServiceSuffix
 			Expect(service.Name).To(Equal(expectedName))
 			Expect(service.ObjectMeta.Labels["app"]).To(Equal(instance.Name))
 		})
