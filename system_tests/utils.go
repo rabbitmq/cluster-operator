@@ -135,8 +135,8 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("Failed to run cluster aliveness test: %+v \n", err)
-		return responseBody, fmt.Errorf("failed aliveness check: %v with api endpoint: %s", err, url)
+		fmt.Printf("Failed to make api request to url %s with err: %+v \n", url, err)
+		return responseBody, fmt.Errorf("failed with err: %v to api endpoint: %s", err, url)
 	}
 	defer resp.Body.Close()
 	responseBody, err = ioutil.ReadAll(resp.Body)

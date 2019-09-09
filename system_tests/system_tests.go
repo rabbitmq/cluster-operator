@@ -427,6 +427,16 @@ var _ = Describe("System tests", func() {
 				persistentRabbitmqCluster.Spec.Service.Type = "LoadBalancer"
 				Expect(createRabbitmqCluster(k8sClient, persistentRabbitmqCluster)).NotTo(HaveOccurred())
 
+				Eventually(func() string {
+					pod, err := clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
+					if err != nil {
+						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
+						return ""
+					}
+
+					return fmt.Sprintf("%v", pod.Status.Conditions)
+				}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+
 				Eventually(func() int {
 					return endpointPoller(clientSet, namespace, serviceName)
 				}, podCreationTimeout, 5).Should(BeNumerically(">", 0))
