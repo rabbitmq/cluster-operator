@@ -88,7 +88,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 								},
 								{
 									Name:  "RABBITMQ_MNESIA_BASE",
-									Value: "/opt/rabbitmq-persistence",
+									Value: "/var/lib/rabbitmq/db",
 								},
 							},
 							Ports: []corev1.ContainerPort{
@@ -116,7 +116,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 								},
 								{
 									Name:      "persistence",
-									MountPath: "/opt/rabbitmq-persistence/",
+									MountPath: "/var/lib/rabbitmq/db/",
 								},
 							},
 							ReadinessProbe: &corev1.Probe{

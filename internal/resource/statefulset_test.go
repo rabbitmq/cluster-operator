@@ -74,7 +74,7 @@ var _ = Describe("StatefulSet", func() {
 				},
 				{
 					Name:  "RABBITMQ_MNESIA_BASE",
-					Value: "/opt/rabbitmq-persistence",
+					Value: "/var/lib/rabbitmq/db",
 				},
 			}
 
@@ -94,7 +94,7 @@ var _ = Describe("StatefulSet", func() {
 			}
 			persistenceVolumeMount := corev1.VolumeMount{
 				Name:      "persistence",
-				MountPath: "/opt/rabbitmq-persistence/",
+				MountPath: "/var/lib/rabbitmq/db/",
 			}
 
 			container := extractContainer(sts, "rabbitmq")
