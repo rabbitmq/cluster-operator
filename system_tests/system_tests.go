@@ -395,7 +395,7 @@ var _ = Describe("System tests", func() {
 				Eventually(func() string {
 					pod, err := clientSet.CoreV1().Pods(namespace).Get(operatorPod.Name, metav1.GetOptions{})
 					if err != nil {
-						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
+						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", operatorPod.Name)))
 						return ""
 					}
 
