@@ -86,12 +86,12 @@ To change Service type, specify the service type you want for the following:
 ### Operator
 In the Operator manifest (`manifests/operator.yaml`):
 - locate the ConfigMap object in the manifest
-- replace the value of `TYPE` under `CONFIG.SERVICE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently **NOT** supported.
+- replace the value of `TYPE` as part of the service configuration from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently **NOT** supported.
 
 ```yaml
 data:
-  CONFIG:
-    SERVICE: |
+  CONFIG: |
+    SERVICE:
       TYPE: NodePort
 ```
 
@@ -106,12 +106,12 @@ It is possible to configure custom annotations to the Service deployed for the R
 
 If you wish to configure annotations, you can change it in our operator manifest (`manifests/operator.yaml`):
 
-Add list of key-value pairs to `ANNOTATIONS` under the `CONFIG.SERVICE` object, e.g.
+Add list of key-value pairs to `ANNOTATIONS` as part of the service configuration, e.g.
 
 ```yaml
 data:
-  CONFIG:
-    SERVICE: |
+  CONFIG: |
+    SERVICE:
       TYPE: NodePort
       ANNOTATIONS:
         service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
@@ -128,8 +128,8 @@ If you wish to configure persistence, you can change it in our operator manifest
 
 ```yaml
 data:
-  CONFIG:
-    PERSISTENCE: |
+  CONFIG: |
+    PERSISTENCE:
       STORAGE_CLASS_NAME: azurefile
       STORAGE: 20Gi
 ```

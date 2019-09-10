@@ -5,8 +5,8 @@ metadata:
   name: operator-config
   namespace: system
 data:
-  CONFIG:
-    SERVICE: |
+  CONFIG: |
+    SERVICE:
       TYPE: "ClusterIP"
     IMAGE_REPOSITORY: "REPLACE-WITH-IMAGE-REPOSITORY-HOST"
     IMAGE_PULL_SECRET: ""
