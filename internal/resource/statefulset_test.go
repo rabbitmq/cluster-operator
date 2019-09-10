@@ -14,24 +14,33 @@ import (
 )
 
 var _ = Describe("StatefulSet", func() {
-	var instance rabbitmqv1beta1.RabbitmqCluster
-	var sts *appsv1.StatefulSet
-	var secretName, configMapName string
-	var scheme *runtime.Scheme
+	var (
+		instance rabbitmqv1beta1.RabbitmqCluster
+		scheme   *runtime.Scheme
+	)
 
-	BeforeEach(func() {
-		instance = rabbitmqv1beta1.RabbitmqCluster{}
-		instance.Namespace = "foo"
-		instance.Name = "foo"
-		secretName = instance.Name + "-rabbitmq-admin"
-		configMapName = instance.Name + "-rabbitmq-plugins"
-		scheme = runtime.NewScheme()
-		rabbitmqv1beta1.AddToScheme(scheme)
-		defaultscheme.AddToScheme(scheme)
-		sts, _ = resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
-	})
+	Context("when creating a working StatefulSet with default settings", func() {
+		var (
+			sts           *appsv1.StatefulSet
+			secretName    string
+			configMapName string
+		)
 
-	Context("when creating a working StatefulSet with minimum requirements", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance.Namespace = "foo"
+			instance.Name = "foo"
+			secretName = instance.Name + "-rabbitmq-admin"
+			configMapName = instance.Name + "-rabbitmq-plugins"
+			scheme = runtime.NewScheme()
+			rabbitmqv1beta1.AddToScheme(scheme)
+			defaultscheme.AddToScheme(scheme)
+			sts, _ = resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
+		})
+
+		It("sets replicas to be '1' by default", func() {
+			Expect(*sts.Spec.Replicas).To(Equal(int32(1)))
+		})
 
 		It("adds the correct labels", func() {
 			Expect(sts.Labels["app"]).To(Equal("pivotal-rabbitmq"))
@@ -183,19 +192,31 @@ var _ = Describe("StatefulSet", func() {
 			actualPodSecurityContext := sts.Spec.Template.Spec.SecurityContext
 			Expect(actualPodSecurityContext).To(Equal(expectedPodSecurityContext))
 		})
-	})
 
-	Context("when creating a strongly recommended StatefulSet", func() {
 		It("defines a Readiness Probe", func() {
-
 			container := extractContainer(sts, "rabbitmq")
 			actualProbeCommand := container.ReadinessProbe.Handler.Exec.Command
 			Expect(actualProbeCommand).To(Equal([]string{"/bin/sh", "-c", "rabbitmq-diagnostics check_running && rabbitmq-diagnostics check_port_connectivity"}))
 		})
+
+		It("templates the image string and the imagePullSecrets with default values", func() {
+			container := extractContainer(sts, "rabbitmq")
+			Expect(container.Image).To(Equal(resource.RabbitmqManagementImage))
+			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
+		})
 	})
 
-	Context("storage class name", func() {
-		When("storage class name is specified in both as parameters and in RabbitmqCluster instance", func() {
+	Context("when creating a working StatefulSet with non-default settings", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance.Namespace = "foo"
+			instance.Name = "foo"
+			scheme = runtime.NewScheme()
+			rabbitmqv1beta1.AddToScheme(scheme)
+			defaultscheme.AddToScheme(scheme)
+		})
+
+		When("storage class name and capacity is specified in both as parameters and in RabbitmqCluster instance", func() {
 			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
 				instance.Spec.Persistence.StorageClassName = "my-storage-class"
 
@@ -253,11 +274,8 @@ var _ = Describe("StatefulSet", func() {
 				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
 			})
 		})
-	})
 
-	Context("Image and ImagePullSecrets", func() {
-
-		Context("when configuring a private image repository", func() {
+		When("configuring a private image repository", func() {
 			It("templates the image string and the imagePullSecrets correctly", func() {
 				instance.Spec.Image.Repository = "my-private-repo"
 				instance.Spec.ImagePullSecret = "my-great-secret"
@@ -269,30 +287,30 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
-		Context("when not configuring a private image repository", func() {
-			It("templates the image string and the imagePullSecrets with default values", func() {
-				container := extractContainer(sts, "rabbitmq")
-				Expect(container.Image).To(Equal(resource.RabbitmqManagementImage))
-				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
+		When("image repository and ImagePullSecret are provided through function params", func() {
+			It("uses the provide repository and secret if not specified in RabbitmqCluster spec", func() {
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", "", "", scheme)
+				container := extractContainer(statefulSet, "rabbitmq")
+				Expect(container.Image).To(Equal("best-repository/" + "rabbitmq:3.8-rc-management"))
+				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-secret"}))
+			})
+
+			It("uses the RabbitmqCluster spec if it is provided", func() {
+				instance.Spec.Image.Repository = "my-private-repo"
+				instance.Spec.ImagePullSecret = "my-great-secret"
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", "", "", scheme)
+				container := extractContainer(statefulSet, "rabbitmq")
+				Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management"))
+				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 			})
 		})
-	})
 
-	Context("when image repository and ImagePullSecret is provided through function params", func() {
-		It("uses the provide repository and secret if not specified in RabbitmqCluster spec", func() {
-			statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", "", "", scheme)
-			container := extractContainer(statefulSet, "rabbitmq")
-			Expect(container.Image).To(Equal("best-repository/" + "rabbitmq:3.8-rc-management"))
-			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-secret"}))
-		})
-
-		It("uses the RabbitmqCluster spec if it is provided", func() {
-			instance.Spec.Image.Repository = "my-private-repo"
-			instance.Spec.ImagePullSecret = "my-great-secret"
-			statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", "", "", scheme)
-			container := extractContainer(statefulSet, "rabbitmq")
-			Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management"))
-			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
+		When("replica count is specified in the RabbitmqCluster spec", func() {
+			It("sets the replica count of the StatefulSet to the provided value", func() {
+				instance.Spec.Replicas = 3
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
+				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))
+			})
 		})
 	})
 })

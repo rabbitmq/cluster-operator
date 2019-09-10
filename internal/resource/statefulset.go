@@ -20,10 +20,14 @@ const (
 )
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
-	single := int32(1)
 	f := false
 	image := RabbitmqManagementImage
 	rabbitmqGID := int64(999)
+
+	replicas := int32(instance.Spec.Replicas)
+	if replicas == 0 {
+		replicas = int32(1)
+	}
 
 	if instance.Spec.Image.Repository != "" {
 		image = fmt.Sprintf("%s/%s", instance.Spec.Image.Repository, image)
@@ -54,7 +58,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 		},
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: instance.Name,
-			Replicas:    &single,
+			Replicas:    &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": instance.Name},
 			},
