@@ -22,7 +22,6 @@ import (
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
@@ -97,17 +96,11 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		rabbitmqClusterInstance.Namespace,
 		string(instanceSpec)))
 
-	resources, service, err := r.getResources(rabbitmqClusterInstance)
+	resources, err := r.getResources(rabbitmqClusterInstance)
 	if err != nil {
 		logger.Error(err, "failed to generate resources")
 		return reconcile.Result{}, err
 	}
-
-	serviceSpec, err := json.Marshal(service.Spec)
-	if err != nil {
-		logger.Error(err, "failed to marshal service spec")
-	}
-	logger.V(1).Info(fmt.Sprintf("Rabbitmq service \"%s\" has Spec: %v", service.ObjectMeta.Name, string(serviceSpec)))
 
 	for _, re := range resources {
 		if err := controllerutil.SetControllerReference(rabbitmqClusterInstance, re.(metav1.Object), r.Scheme); err != nil {
@@ -132,27 +125,26 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	return reconcile.Result{}, err
 }
 
-func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, *corev1.Service, error) {
+func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
 	rabbitmqSecret, err := resource.GenerateSecret(*rabbitmqClusterInstance)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to generate secret: %v ", err)
+		return nil, fmt.Errorf("failed to generate secret: %v ", err)
 	}
 
 	statefulSet, err := resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.ImageRepository, r.ImagePullSecret, r.PersistenceStorageClassName, r.PersistenceStorage, r.Scheme)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
+		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
 	}
 
-	service := resource.GenerateService(*rabbitmqClusterInstance, r.ServiceType, r.ServiceAnnotations)
 	resources := []runtime.Object{
 		statefulSet,
 		resource.GenerateConfigMap(*rabbitmqClusterInstance),
-		service,
+		resource.GenerateIngressService(*rabbitmqClusterInstance, r.ServiceType, r.ServiceAnnotations),
+		resource.GenerateHeadlessService(*rabbitmqClusterInstance),
 		rabbitmqSecret,
 	}
 
-	return resources, service, nil
-
+	return resources, nil
 }
 
 func (r *RabbitmqClusterReconciler) getRabbitmqClusterInstance(NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {

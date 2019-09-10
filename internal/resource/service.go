@@ -6,11 +6,32 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	ServiceSuffix string = "-rabbitmq-ingress"
-)
+func GenerateHeadlessService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.Service {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instance.ChildResourceName("rabbitmq-headless"),
+			Namespace: instance.Namespace,
+			Labels: map[string]string{
+				"app": instance.Name,
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: "None",
+			Selector: map[string]string{
+				"app": instance.Name,
+			},
+			Ports: []corev1.ServicePort{
+				{
+					Protocol: corev1.ProtocolTCP,
+					Port:     4369,
+					Name:     "epmd",
+				},
+			},
+		},
+	}
+}
 
-func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType string, serviceAnnotations map[string]string) *corev1.Service {
+func GenerateIngressService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType string, serviceAnnotations map[string]string) *corev1.Service {
 	if instance.Spec.Service.Type != "" {
 		serviceType = instance.Spec.Service.Type
 	} else if serviceType == "" {
@@ -23,7 +44,7 @@ func GenerateService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType strin
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + ServiceSuffix,
+			Name:      instance.ChildResourceName("rabbitmq-ingress"),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app": instance.Name,

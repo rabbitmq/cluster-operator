@@ -9,9 +9,11 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Service", func() {
-	var instance rabbitmqv1beta1.RabbitmqCluster
-	var service *corev1.Service
+var _ = Context("Services", func() {
+	var (
+		instance rabbitmqv1beta1.RabbitmqCluster
+		service  *corev1.Service
+	)
 
 	BeforeEach(func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
@@ -19,107 +21,56 @@ var _ = Describe("Service", func() {
 		instance.Name = "foo"
 	})
 
-	Context("succeeds", func() {
-
-		BeforeEach(func() {
-			service = resource.GenerateService(instance, "", nil)
-		})
-
-		It("creates a service object with the correct name and labels", func() {
-			expectedName := instance.Name + ServiceSuffix
-			Expect(service.Name).To(Equal(expectedName))
-			Expect(service.ObjectMeta.Labels["app"]).To(Equal(instance.Name))
-		})
-
-		It("creates a ClusterIP type service by default", func() {
-			Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
-		})
-
-		It("creates a service object with the correct selector", func() {
-			Expect(service.Spec.Selector["app"]).To(Equal(instance.Name))
-		})
-
-		It("exposes the amqp, http, and prometheus ports", func() {
-			amqpPort := corev1.ServicePort{
-				Name:     "amqp",
-				Port:     5672,
-				Protocol: corev1.ProtocolTCP,
-			}
-			httpPort := corev1.ServicePort{
-				Name:     "http",
-				Port:     15672,
-				Protocol: corev1.ProtocolTCP,
-			}
-			prometheusPort := corev1.ServicePort{
-				Name:     "prometheus",
-				Port:     15692,
-				Protocol: corev1.ProtocolTCP,
-			}
-			Expect(service.Spec.Ports).Should(ConsistOf(amqpPort, httpPort, prometheusPort))
-		})
-
-		It("creates a LoadBalancer type service when specified in the RabbitmqCluster spec", func() {
-			loadBalancerInstance := rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "name",
-					Namespace: "mynamespace",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type: "LoadBalancer",
-					},
-				},
-			}
-			loadBalancerService := resource.GenerateService(loadBalancerInstance, "", nil)
-			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
-		})
-
-		It("creates a ClusterIP type service when specified in the RabbitmqCluster spec", func() {
-			clusterIPInstance := rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "name",
-					Namespace: "mynamespace",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type: "ClusterIP",
-					},
-				},
-			}
-			clusterIPService := resource.GenerateService(clusterIPInstance, "", nil)
-			Expect(clusterIPService.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
-		})
-
-		It("creates a NodePort type service when specified in the RabbitmqCluster spec", func() {
-			nodePortInstance := rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "name",
-					Namespace: "mynamespace",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type: "NodePort",
-					},
-				},
-			}
-			nodePortService := resource.GenerateService(nodePortInstance, "", nil)
-			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
-		})
-
-		Context("when service type is specified through the function param", func() {
-			It("creates the service type as specified", func() {
-				instance := rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "name",
-						Namespace: "mynamespace",
-					},
-				}
-				nodePortService := resource.GenerateService(instance, "NodePort", nil)
-				Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
-
+	Describe("GenerateIngressService", func() {
+		When("using generating Ingress Service with defaults", func() {
+			BeforeEach(func() {
+				service = resource.GenerateIngressService(instance, "", nil)
 			})
 
-			It("creates the service type specified in the RabbitmqCluster spec when both are present", func() {
+			It("generates a service object with the correct name and labels", func() {
+				expectedName := instance.ChildResourceName("rabbitmq-ingress")
+				Expect(service.Name).To(Equal(expectedName))
+				Expect(service.ObjectMeta.Labels["app"]).To(Equal(instance.Name))
+			})
+
+			It("generates a service object with the correct namespace", func() {
+				Expect(service.Namespace).To(Equal(instance.Namespace))
+			})
+
+			It("generates a ClusterIP type service by default", func() {
+				Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
+			})
+
+			It("generates a service object with the correct selector", func() {
+				Expect(service.Spec.Selector["app"]).To(Equal(instance.Name))
+			})
+
+			It("generates a service object with the correct ports exposed", func() {
+				amqpPort := corev1.ServicePort{
+					Name:     "amqp",
+					Port:     5672,
+					Protocol: corev1.ProtocolTCP,
+				}
+				httpPort := corev1.ServicePort{
+					Name:     "http",
+					Port:     15672,
+					Protocol: corev1.ProtocolTCP,
+				}
+				prometheusPort := corev1.ServicePort{
+					Name:     "prometheus",
+					Port:     15692,
+					Protocol: corev1.ProtocolTCP,
+				}
+				Expect(service.Spec.Ports).Should(ConsistOf(amqpPort, httpPort, prometheusPort))
+			})
+
+			It("generates the service without any annotation", func() {
+				Expect(service.ObjectMeta.Annotations).To(BeNil())
+			})
+		})
+
+		When("service type is specified in the RabbitmqCluster spec", func() {
+			It("generates a service object of type LoadBalancer", func() {
 				loadBalancerInstance := rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "name",
@@ -131,13 +82,75 @@ var _ = Describe("Service", func() {
 						},
 					},
 				}
-				loadBalancerService := resource.GenerateService(loadBalancerInstance, "ClusterIP", nil)
+				loadBalancerService := resource.GenerateIngressService(loadBalancerInstance, "", nil)
+				Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
+			})
+
+			It("generates a service object of type ClusterIP", func() {
+				clusterIPInstance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+							Type: "ClusterIP",
+						},
+					},
+				}
+				clusterIPService := resource.GenerateIngressService(clusterIPInstance, "", nil)
+				Expect(clusterIPService.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
+			})
+
+			It("generates a service object of type NodePort", func() {
+				nodePortInstance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+							Type: "NodePort",
+						},
+					},
+				}
+				nodePortService := resource.GenerateIngressService(nodePortInstance, "", nil)
+				Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
+			})
+		})
+
+		When("service type is specified through the function param", func() {
+			It("generates the service type as specified", func() {
+				instance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+				}
+				nodePortService := resource.GenerateIngressService(instance, "NodePort", nil)
+				Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
+
+			})
+
+			It("generates the service type specified in the RabbitmqCluster spec", func() {
+				loadBalancerInstance := rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "name",
+						Namespace: "mynamespace",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+							Type: "LoadBalancer",
+						},
+					},
+				}
+				loadBalancerService := resource.GenerateIngressService(loadBalancerInstance, "ClusterIP", nil)
 				Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 			})
 		})
 
 		When("service annotations is specified in RabbitmqCluster spec", func() {
-			It("creates the service annotations as specified", func() {
+			It("generates a service object with the annotations as specified", func() {
 				annotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
 				instance := rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: v1.ObjectMeta{
@@ -150,13 +163,13 @@ var _ = Describe("Service", func() {
 						},
 					},
 				}
-				service := resource.GenerateService(instance, "", nil)
+				service := resource.GenerateIngressService(instance, "", nil)
 				Expect(service.ObjectMeta.Annotations).To(Equal(annotations))
 			})
 		})
 
-		When("service annotations are passed in while generating the service and in RabbitmqCluster spec", func() {
-			It("creates the service annotations as specified in the RabbitmqCluster spec", func() {
+		When("service annotations are passed in as a function param and in RabbitmqCluster spec", func() {
+			It("generates the service annotations as specified in the RabbitmqCluster spec", func() {
 				expectedAnnotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
 				ignoredAnnotations := map[string]string{"service_annotation_b": "0.0.0.0/1"}
 				instance := rabbitmqv1beta1.RabbitmqCluster{
@@ -170,13 +183,13 @@ var _ = Describe("Service", func() {
 						},
 					},
 				}
-				nodePortService := resource.GenerateService(instance, "NodePort", ignoredAnnotations)
+				nodePortService := resource.GenerateIngressService(instance, "NodePort", ignoredAnnotations)
 				Expect(nodePortService.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 			})
 		})
 
-		When("service annotations are passed in while generating the service", func() {
-			It("creates the service annotations as specified", func() {
+		When("service annotations are passed in when generating the service", func() {
+			It("generates the service annotations as specified", func() {
 				instance := rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "name",
@@ -184,22 +197,44 @@ var _ = Describe("Service", func() {
 					},
 				}
 				annotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
-				nodePortService := resource.GenerateService(instance, "NodePort", annotations)
+				nodePortService := resource.GenerateIngressService(instance, "NodePort", annotations)
 				Expect(nodePortService.ObjectMeta.Annotations).To(Equal(annotations))
 			})
 		})
+	})
 
-		When("service annotations is not specified in RabbitmqCluster spec or not passed in", func() {
-			It("creates the service without any annotation", func() {
-				instance := rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: v1.ObjectMeta{
-						Name:      "name",
-						Namespace: "mynamespace",
-					},
-				}
-				service := resource.GenerateService(instance, "", nil)
-				Expect(service.ObjectMeta.Annotations).To(BeNil())
-			})
+	Describe("GenerateHeadlessService", func() {
+		BeforeEach(func() {
+			service = resource.GenerateHeadlessService(instance)
+		})
+
+		It("generates a service object with the correct name", func() {
+			Expect(service.Name).To(Equal(instance.ChildResourceName("rabbitmq-headless")))
+		})
+
+		It("generates a service object with the correct namespace", func() {
+			Expect(service.Namespace).To(Equal(instance.Namespace))
+		})
+
+		It("generates a service object with the correct label", func() {
+			Expect(service.ObjectMeta.Labels["app"]).To(Equal(instance.Name))
+		})
+
+		It("generates a service object with the correct selector", func() {
+			Expect(service.Spec.Selector["app"]).To(Equal(instance.Name))
+		})
+
+		It("generates a headless service object", func() {
+			Expect(service.Spec.ClusterIP).To(Equal("None"))
+		})
+
+		It("generates a service object with the right ports exposed", func() {
+			epmdPort := corev1.ServicePort{
+				Name:     "epmd",
+				Port:     4369,
+				Protocol: corev1.ProtocolTCP,
+			}
+			Expect(service.Spec.Ports).Should(ConsistOf(epmdPort))
 		})
 	})
 })

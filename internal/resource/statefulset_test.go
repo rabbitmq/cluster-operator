@@ -65,9 +65,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("uses required Environment Variables", func() {
-
 			requiredEnvVariables := []corev1.EnvVar{
-
 				{
 					Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
 					Value: "/opt/rabbitmq-configmap/enabled_plugins",

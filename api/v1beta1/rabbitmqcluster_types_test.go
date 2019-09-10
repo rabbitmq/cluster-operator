@@ -68,6 +68,13 @@ var _ = Describe("RabbitmqCluster spec", func() {
 			Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("validation failure list:\nspec.service.type in body should be one of [ClusterIP LoadBalancer NodePort]")))
 		})
 	})
+
+	Describe("ChildResourceName", func() {
+		It("prefixes the passed string with the name of the RabbitmqCluster name", func() {
+			resource := generateRabbitmqClusterObject("iam", 1)
+			Expect(resource.ChildResourceName("great")).To(Equal("iam-great"))
+		})
+	})
 })
 
 func getKey(cluster *RabbitmqCluster) types.NamespacedName {

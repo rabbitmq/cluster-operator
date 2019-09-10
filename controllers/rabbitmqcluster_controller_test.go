@@ -18,22 +18,16 @@ package controllers_test
 
 import (
 	"context"
-	"fmt"
-	"math/big"
-	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-
-	"crypto/rand"
 )
 
 const timeout = time.Second
@@ -42,22 +36,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	Context("when Reconcile is called", func() {
 		var (
-			rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-			expectedRequest reconcile.Request
-			instanceName    = "rabbitmq-one"
-			stsName         = instanceName + StatefulSetSuffix
-			configMapName   = instanceName + ConfigMapSuffix
-			secretName      = instanceName + SecretSuffix
-			serviceName     = instanceName + ServiceSuffix
-		)
-
-		BeforeEach(func() {
-			expectedRequest = reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: "rabbitmq-one", Namespace: "default",
-				},
-			}
-
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-one",
@@ -68,226 +46,57 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			err := client.Delete(context.TODO(), rabbitmqCluster)
-			if err != nil {
-				Expect(err.Error()).To(ContainSubstring("not found"))
+			expectedRequest = reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: "rabbitmq-one", Namespace: "default",
+				},
 			}
-		})
-
-		It("creates the StatefulSet", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-
-			sts, err := clientSet.AppsV1().StatefulSets("default").Get(stsName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(sts.Name).To(Equal(stsName))
-
-		})
-
-		It("creates the configmap", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-
-			configMap, err := clientSet.CoreV1().ConfigMaps("default").Get(configMapName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(configMap.Name).To(Equal(configMapName))
-		})
-
-		It("creates a rabbitmq secret object", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-
-			secret, err := clientSet.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(secret.Name).To(Equal(secretName))
-		})
-
-		It("creates a rabbitmq ClusterIP service object", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-
-			service, err := clientSet.CoreV1().Services("default").Get(serviceName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(service.Name).To(Equal(serviceName))
-		})
-	})
-
-	Context("using a second RabbitmqCluster", func() {
-
-		var (
-			previousInstanceName    = "rabbitmq-previous"
-			previousRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-
-			currentInstanceName    = "rabbitmq-current"
-			currentRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-			currentConfigMapName   = currentInstanceName + "-rabbitmq-plugins"
-
-			expectedRequest reconcile.Request
 		)
 
 		BeforeEach(func() {
-			expectedRequest = reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: currentInstanceName, Namespace: "default",
-				},
-			}
-
-			previousRabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      previousInstanceName,
-					Namespace: "default",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
-				},
-			}
-
-			currentRabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      currentInstanceName,
-					Namespace: "default",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
-				},
-			}
-
-			Expect(client.Create(context.TODO(), previousRabbitmqCluster)).NotTo(HaveOccurred())
-			Expect(client.Create(context.TODO(), currentRabbitmqCluster)).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), currentRabbitmqCluster)).NotTo(HaveOccurred())
-		})
-
-		It("deletes rabbitmqCluster and finds configMap for rabbitmqClusterTwo", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-
-			_, err := clientSet.CoreV1().ConfigMaps("default").Get(currentConfigMapName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			err = client.Delete(context.TODO(), previousRabbitmqCluster)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = clientSet.CoreV1().ConfigMaps("default").Get(currentConfigMapName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-		})
-	})
-
-	Context("using a private container image", func() {
-		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		var expectedRequest reconcile.Request
-		var namespace, instanceName, stsName, rabbitmqManagementImage string
-
-		BeforeEach(func() {
-			instanceName = "rabbitmq"
-			stsName = instanceName + "-rabbitmq-server"
-			namespace = "default"
-			rabbitmqManagementImage = "rabbitmq:3.8-rc-management"
-
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      instanceName,
-					Namespace: namespace,
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
-					Image: rabbitmqv1beta1.RabbitmqClusterImageSpec{
-						Repository: "my-private-repo",
-					},
-					ImagePullSecret: "my-best-secret",
-				},
-			}
-
-			expectedRequest = reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: "rabbitmq", Namespace: "default",
-				},
-			}
-
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 		})
 
-		It("templates the Stateful Set with the specified ImagePullSecrets", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-			sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(sts.Spec.Template.Spec.ImagePullSecrets[0].Name).To(Equal("my-best-secret"))
+		It("works", func() {
+			By("creating the StatefulSet", func() {
+				stsName := rabbitmqCluster.ChildResourceName("rabbitmq-server")
+				sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(sts.Name).To(Equal(stsName))
+			})
+
+			By("creating the configmap", func() {
+				configMapName := rabbitmqCluster.ChildResourceName("rabbitmq-plugins")
+				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(configMap.Name).To(Equal(configMapName))
+			})
+
+			By("creating a rabbitmq secret object", func() {
+				secretName := rabbitmqCluster.ChildResourceName("rabbitmq-admin")
+				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(secret.Name).To(Equal(secretName))
+			})
+
+			By("creating a rabbitmq ingress service object", func() {
+				ingressServiceName := rabbitmqCluster.ChildResourceName("rabbitmq-ingress")
+				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(service.Name).To(Equal(ingressServiceName))
+			})
+
+			By("creating a rabbitmq headless service object", func() {
+				headlessServiceName := rabbitmqCluster.ChildResourceName("rabbitmq-headless")
+				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(headlessServiceName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(service.Name).To(Equal(headlessServiceName))
+			})
 		})
-
-		It("templates the Stateful Set with the specified private repository", func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-			sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(Equal("my-private-repo/" + rabbitmqManagementImage))
-		})
-
-	})
-
-	Context("Service type tests", func() {
-		testServiceSpec(corev1.ServiceTypeLoadBalancer, nil)
-		testServiceSpec(corev1.ServiceTypeClusterIP, nil)
-		testServiceSpec(corev1.ServiceTypeNodePort, nil)
-	})
-
-	Context("Service annotation specified in RabbitmqCluster spec", func() {
-		testServiceSpec(corev1.ServiceTypeNodePort, map[string]string{"service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"})
 	})
 })
-
-func testServiceSpec(serviceType corev1.ServiceType, serviceAnnotation map[string]string) {
-	Context(fmt.Sprintf("using a %s type service and setting annotations to: %v", serviceType, serviceAnnotation), func() {
-		var rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		var expectedRequest reconcile.Request
-		var namespace, instanceName, serviceName string
-
-		BeforeEach(func() {
-			nBig, err := rand.Int(rand.Reader, big.NewInt(10000))
-			if err != nil {
-				panic(err)
-			}
-			n := nBig.Int64()
-			instanceName = "rabbitmq-" + strconv.Itoa(int(n))
-			namespace = "default"
-			serviceName = instanceName + "-rabbitmq-ingress"
-
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      instanceName,
-					Namespace: namespace,
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
-					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type:        string(serviceType),
-						Annotations: serviceAnnotation,
-					},
-				},
-			}
-
-			expectedRequest = reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: instanceName, Namespace: "default",
-				},
-			}
-
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-		})
-
-		It(fmt.Sprintf("creates the Service as type %s, and adds annotations as: %v", serviceType, serviceAnnotation), func() {
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-			service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(service.Spec.Type).To(Equal(serviceType))
-			Expect(service.ObjectMeta.Annotations).To(Equal(serviceAnnotation))
-		})
-	})
-}

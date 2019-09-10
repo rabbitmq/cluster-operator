@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
@@ -67,6 +68,10 @@ type RabbitmqClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []RabbitmqCluster `json:"items"`
+}
+
+func (r RabbitmqCluster) ChildResourceName(name string) string {
+	return strings.Join([]string{r.Name, name}, "-")
 }
 
 func init() {
