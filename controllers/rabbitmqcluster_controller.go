@@ -162,10 +162,23 @@ func (r *RabbitmqClusterReconciler) getRabbitmqClusterInstance(NamespacedName ty
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	for _, resource := range []runtime.Object{&appsv1.StatefulSet{}, &corev1.ConfigMap{}} {
+		if err := mgr.GetFieldIndexer().IndexField(resource, ownerKey, addResourceToIndex); err != nil {
+			return err
+		}
+	}
 
-	if err := mgr.GetFieldIndexer().IndexField(&appsv1.StatefulSet{}, ownerKey, func(rawObj runtime.Object) []string {
-		statefulSet := rawObj.(*appsv1.StatefulSet)
-		owner := metav1.GetControllerOf(statefulSet)
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&rabbitmqv1beta1.RabbitmqCluster{}).
+		Owns(&appsv1.StatefulSet{}).
+		Owns(&corev1.ConfigMap{}).
+		Complete(r)
+}
+
+func addResourceToIndex(rawObj runtime.Object) []string {
+	switch resourceObject := rawObj.(type) {
+	case *appsv1.StatefulSet:
+		owner := metav1.GetControllerOf(resourceObject)
 		if owner == nil {
 			return nil
 		}
@@ -173,12 +186,16 @@ func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return nil
 		}
 		return []string{owner.Name}
-	}); err != nil {
-		return err
+	case *corev1.ConfigMap:
+		owner := metav1.GetControllerOf(resourceObject)
+		if owner == nil {
+			return nil
+		}
+		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
+			return nil
+		}
+		return []string{owner.Name}
+	default:
+		return nil
 	}
-
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&rabbitmqv1beta1.RabbitmqCluster{}).
-		Owns(&appsv1.StatefulSet{}).
-		Complete(r)
 }

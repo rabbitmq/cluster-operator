@@ -42,6 +42,8 @@ const (
 	k8sResourcePrefix = "p-rmq-"
 	serviceSuffix     = "-rabbitmq-ingress"
 	statefulSetSuffix = "-rabbitmq-server"
+	secretSuffix      = "-rabbitmq-admin"
+	configMapSuffix   = "-rabbitmq-plugins"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {

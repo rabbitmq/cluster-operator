@@ -206,6 +206,100 @@ var _ = Describe("System tests", func() {
 		})
 	})
 
+	Context("reconciles", func() {
+
+		When("a ConfigMap resource is deleted", func() {
+			var (
+				rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
+				instanceName    = "delete-my-resources"
+				configMapName   = instanceName + configMapSuffix
+			)
+
+			BeforeEach(func() {
+				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      instanceName,
+						Namespace: namespace,
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas: 1,
+					},
+				}
+
+				Expect(k8sClient.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				err := k8sClient.Delete(context.TODO(), rabbitmqCluster)
+				if err != nil {
+					Expect(err.Error()).To(ContainSubstring("not found"))
+				}
+			})
+
+			BeforeEach(func() {
+				Eventually(func() error {
+					err := clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})
+					return err
+				}, 10, 2).ShouldNot(HaveOccurred())
+			})
+
+			It("recreates the resource", func() {
+				Eventually(func() error {
+					_, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+					if err != nil {
+						Expect(err.Error()).To(ContainSubstring("not found"))
+					}
+					return err
+				}, 5).ShouldNot(HaveOccurred())
+			})
+		})
+
+		When("a ConfigMap resource is updated directly", func() {
+			var (
+				rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
+				instanceName    = "update-my-resources"
+				configMapName   = instanceName + configMapSuffix
+			)
+
+			BeforeEach(func() {
+				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      instanceName,
+						Namespace: namespace,
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas: 1,
+					},
+				}
+
+				Expect(k8sClient.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				err := k8sClient.Delete(context.TODO(), rabbitmqCluster)
+				if err != nil {
+					Expect(err.Error()).To(ContainSubstring("not found"))
+				}
+			})
+
+			JustBeforeEach(func() {
+
+				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				configMap.Data["enabled_plugins"] = "[rabbitmq_management]."
+
+				_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("does not reconcile the resource", func() {
+				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(configMap.Data["enabled_plugins"]).To(Equal("[rabbitmq_management]."))
+			})
+		})
+	})
+
 	Context("when using our gcr repository for our Rabbitmq management image", func() {
 		var imageRabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 
