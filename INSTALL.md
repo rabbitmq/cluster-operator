@@ -10,10 +10,6 @@ Features delivered in alpha are not guaranteed to be present in GA. As of now, t
 
 This installation guide is written with the assumption that you are using a private image registry. If you don't have access to an image registry yourself, please contact the team on Pivotal slack (#rabbitmq-for-k8s)
 
-## Configure Kubernetes cluster for persistence
-
-The RabbitMQ Cluster is deployed with Persistent Volumes in order to properly recover from a cluster shutdown.
-
 ## Download Artifacts
 The artefact for RabbitMQ for Kubernetes can be downloaded from [Pivotal Network](https://network.pivotal.io/products/p-rabbitmq-for-kubernetes/). The artefact contains
 three docker images and deployment manifests for the operator and the broker. The three images are:
@@ -90,8 +86,14 @@ To change Service type, specify the service type you want for the following:
 ### Operator
 In the Operator manifest (`manifests/operator.yaml`):
 - locate the ConfigMap object in the manifest
-- locate the `SERVICE` key within the `data` section of the ConfigMap
-- replace the value of `TYPE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently **NOT** supported.
+- replace the value of `TYPE` under `CONFIG.SERVICE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently **NOT** supported.
+
+```yaml
+data:
+  CONFIG:
+    SERVICE: |
+      TYPE: NodePort
+```
 
 ### Service Broker
 In the ServiceBroker manifest (`manifests/broker.yaml`):
@@ -104,16 +106,36 @@ It is possible to configure custom annotations to the Service deployed for the R
 
 If you wish to configure annotations, you can change it in our operator manifest (`manifests/operator.yaml`):
 
-Add list of key-value pairs to `ANNOTATIONS` under the `SERVICE` object, e.g.
+Add list of key-value pairs to `ANNOTATIONS` under the `CONFIG.SERVICE` object, e.g.
 
 ```yaml
 data:
-  SERVICE: |
-    TYPE: NodePort
-    ANNOTATIONS:
-      service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+  CONFIG:
+    SERVICE: |
+      TYPE: NodePort
+      ANNOTATIONS:
+        service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
 ```
 
+
+## Configure Persistence (Optional)
+
+The RabbitMQ Cluster is deployed with Persistent Volumes in order to properly recover from a cluster shutdown.
+By default, the operator uses the `default` Kubernetes [`StorageClass`](https://kubernetes.io/docs/concepts/storage/storage-classes/) configured for the cluster to create a 10Gi `PersistentVolume`. It is possible to configure custom `StorageClass` and/or Storage capacity for the RabbitMQ cluster.
+
+If you wish to configure persistence, you can change it in our operator manifest (`manifests/operator.yaml`):
+
+
+```yaml
+data:
+  CONFIG:
+    PERSISTENCE: |
+      STORAGE_CLASS_NAME: azurefile
+      STORAGE: 20Gi
+```
+Note:
+
+When the `RabbitMQCluster` is deleted, `PersistentVolumes` mounted to the Cluster pods will be deleted if the `reclaimPolicy` configured for the `StorageClass` is set to `Delete` (this is the default). If the `StorageClass` `reclaimPolicy` is `Retain`, `PersistentVolumes` will not be deleted. More information can be found [here](https://kubernetes.io/docs/concepts/storage/storage-classes/#reclaim-policy).
 
 ## Create Broker Credentials
 

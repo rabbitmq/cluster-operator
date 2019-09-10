@@ -5,11 +5,11 @@ metadata:
   name: operator-config
   namespace: system
 data:
-  # Change the value to your desired service type: ClusterIP, NodePort, LoadBalancer. ExternalName is not supported
-  SERVICE: |
-    TYPE: "ClusterIP"
-  IMAGE_REPOSITORY: "REPLACE-WITH-IMAGE-REPOSITORY-HOST"
-  IMAGE_PULL_SECRET: ""
+  CONFIG:
+    SERVICE: |
+      TYPE: "ClusterIP"
+    IMAGE_REPOSITORY: "REPLACE-WITH-IMAGE-REPOSITORY-HOST"
+    IMAGE_PULL_SECRET: ""
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -20,6 +20,5 @@ spec:
   template:
     spec:
       containers:
-      # Change the value of image field below to your controller image URL
       - image: "REPLACE-WITH-OPERATOR-IMAGE-URL"
         name: manager
