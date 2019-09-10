@@ -9,10 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	SecretSuffix string = "-rabbitmq-admin"
-)
-
 func GenerateSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, error) {
 	username, err := randomEncodedString(24)
 	if err != nil {
@@ -26,7 +22,7 @@ func GenerateSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, e
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + SecretSuffix,
+			Name:      instance.ChildResourceName("rabbitmq-admin"),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app":             "pivotal-rabbitmq",

@@ -21,7 +21,7 @@ var _ = Describe("ConfigMap", func() {
 
 	Context("Creates a ConfigMap with minimum requirements", func() {
 		It("with name that follows conventions", func() {
-			expectedName := instance.Name + ConfigMapSuffix
+			expectedName := instance.ChildResourceName("rabbitmq-plugins")
 			Expect(confMap.Name).To(Equal(expectedName))
 		})
 

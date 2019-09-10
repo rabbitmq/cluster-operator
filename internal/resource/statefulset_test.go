@@ -30,8 +30,8 @@ var _ = Describe("StatefulSet", func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{}
 			instance.Namespace = "foo"
 			instance.Name = "foo"
-			secretName = instance.Name + "-rabbitmq-admin"
-			configMapName = instance.Name + "-rabbitmq-plugins"
+			secretName = instance.ChildResourceName("rabbitmq-admin")
+			configMapName = instance.ChildResourceName("rabbitmq-plugins")
 			scheme = runtime.NewScheme()
 			rabbitmqv1beta1.AddToScheme(scheme)
 			defaultscheme.AddToScheme(scheme)
@@ -48,7 +48,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("adds the correct name with naming conventions", func() {
-			expectedName := instance.Name + StatefulSetSuffix
+			expectedName := instance.ChildResourceName("rabbitmq-server")
 			Expect(sts.Name).To(Equal(expectedName))
 		})
 

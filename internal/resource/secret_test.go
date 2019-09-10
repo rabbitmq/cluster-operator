@@ -27,8 +27,8 @@ var _ = Describe("Secret", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("creates the secret 'rabbitmq-secret'", func() {
-			expectedName := instance.Name + SecretSuffix
+		It("creates the admin secret", func() {
+			expectedName := instance.ChildResourceName("rabbitmq-admin")
 			Expect(secret.Name).To(Equal(expectedName))
 		})
 
