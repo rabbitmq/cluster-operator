@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: manager-config
+  name: operator-config
   namespace: system
 data:
   # Change the value to your desired service type: ClusterIP, NodePort, LoadBalancer. ExternalName is not supported
