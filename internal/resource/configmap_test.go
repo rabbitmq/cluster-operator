@@ -31,7 +31,6 @@ var _ = Describe("ConfigMap", func() {
 		})
 
 		It("with required object fields", func() {
-
 			expectedEnabledPlugins := "[" +
 				"rabbitmq_management," +
 				"rabbitmq_peer_discovery_k8s," +
@@ -44,7 +43,6 @@ var _ = Describe("ConfigMap", func() {
 			plugins, ok := confMap.Data["enabled_plugins"]
 			Expect(ok).To(BeTrue())
 			Expect(plugins).To(Equal(expectedEnabledPlugins))
-
 		})
 	})
 })

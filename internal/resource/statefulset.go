@@ -19,7 +19,7 @@ const (
 )
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
-	f := false
+	t := true
 	image := RabbitmqManagementImage
 	rabbitmqGID := int64(999)
 
@@ -70,7 +70,8 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 					SecurityContext: &corev1.PodSecurityContext{
 						FSGroup: &rabbitmqGID,
 					},
-					AutomountServiceAccountToken: &f,
+					ServiceAccountName:           instance.ChildResourceName("rabbitmq-server"),
+					AutomountServiceAccountToken: &t,
 					ImagePullSecrets:             imagePullSecrets,
 					Containers: []corev1.Container{
 						{

@@ -7,7 +7,6 @@ import (
 )
 
 func GenerateConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ConfigMap {
-
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.ChildResourceName("rabbitmq-plugins"),

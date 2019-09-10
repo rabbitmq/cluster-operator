@@ -97,6 +97,27 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(service.Name).To(Equal(headlessServiceName))
 			})
+
+			By("creating a service account", func() {
+				name := rabbitmqCluster.ChildResourceName("rabbitmq-server")
+				serviceAccount, err := clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(serviceAccount.Name).To(Equal(name))
+			})
+
+			By("creating a role", func() {
+				name := rabbitmqCluster.ChildResourceName("rabbitmq-endpoint-discovery")
+				serviceAccount, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(serviceAccount.Name).To(Equal(name))
+			})
+
+			By("creating a role binding", func() {
+				name := rabbitmqCluster.ChildResourceName("rabbitmq-server")
+				serviceAccount, err := clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(serviceAccount.Name).To(Equal(name))
+			})
 		})
 	})
 })

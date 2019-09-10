@@ -89,7 +89,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("creates required Volume Mounts", func() {
-
 			configMapVolumeMount := corev1.VolumeMount{
 				Name:      "rabbitmq-plugins",
 				MountPath: "/opt/rabbitmq-configmap/",
@@ -141,8 +140,12 @@ var _ = Describe("StatefulSet", func() {
 			Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(configMapVolume, secretVolume))
 		})
 
-		It("does not mount the default service account in its pods", func() {
-			Expect(*sts.Spec.Template.Spec.AutomountServiceAccountToken).To(BeFalse())
+		It("uses the correct service account", func() {
+			Expect(sts.Spec.Template.Spec.ServiceAccountName).To(Equal(instance.ChildResourceName("rabbitmq-server")))
+		})
+
+		It("does mount the service account in its pods", func() {
+			Expect(*sts.Spec.Template.Spec.AutomountServiceAccountToken).To(BeTrue())
 		})
 
 		It("creates the required PersistentVolumeClaim", func() {

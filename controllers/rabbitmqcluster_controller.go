@@ -71,6 +71,9 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="rbac",resources=roles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="rbac",resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
@@ -142,6 +145,9 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		resource.GenerateIngressService(*rabbitmqClusterInstance, r.ServiceType, r.ServiceAnnotations),
 		resource.GenerateHeadlessService(*rabbitmqClusterInstance),
 		rabbitmqSecret,
+		resource.GenerateServiceAccount(*rabbitmqClusterInstance),
+		resource.GenerateRole(*rabbitmqClusterInstance),
+		resource.GenerateRoleBinding(*rabbitmqClusterInstance),
 	}
 
 	return resources, nil
