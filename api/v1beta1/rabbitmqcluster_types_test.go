@@ -25,53 +25,66 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("RabbitmqCluster", func() {
+var _ = Describe("RabbitmqCluster spec", func() {
 
-	Context("Create API", func() {
+	It("can be created with a single replica", func() {
+		created := generateRabbitmqClusterObject("rabbit1", 1)
 
-		It("should create an object successfully", func() {
-			key := types.NamespacedName{
-				Name:      "cluster",
-				Namespace: "default",
-			}
+		Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
-			created := generateRabbitmqClusterObject()
-			By("creating an API obj", func() {
-				Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+		fetched := &RabbitmqCluster{}
+		Expect(k8sClient.Get(context.TODO(), getKey(created), fetched)).To(Succeed())
+		Expect(fetched).To(Equal(created))
+	})
 
-				fetched := &RabbitmqCluster{}
-				Expect(k8sClient.Get(context.TODO(), key, fetched)).To(Succeed())
-				Expect(fetched).To(Equal(created))
-			})
+	It("can be created with three replicas", func() {
+		created := generateRabbitmqClusterObject("rabbit2", 3)
 
-			By("deleting the created object", func() {
-				Expect(k8sClient.Delete(context.TODO(), created)).To(Succeed())
-				Expect(k8sClient.Get(context.TODO(), key, created)).ToNot(Succeed())
-			})
+		Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
-			By("validating the provided replicas", func() {
-				invalidReplica := generateRabbitmqClusterObject()
-				invalidReplica.Spec.Replicas = 5
-				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("validation failure list:\nspec.replicas in body should be one of [1]")))
-			})
+		fetched := &RabbitmqCluster{}
+		Expect(k8sClient.Get(context.TODO(), getKey(created), fetched)).To(Succeed())
+		Expect(fetched).To(Equal(created))
+	})
 
-			By("validating the provided service type", func() {
-				invalidService := generateRabbitmqClusterObject()
-				invalidService.Spec.Service.Type = "ihateservices"
-				Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("validation failure list:\nspec.service.type in body should be one of [ClusterIP LoadBalancer NodePort]")))
-			})
+	It("can be deleted", func() {
+		created := generateRabbitmqClusterObject("rabbit3", 1)
+		Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+
+		Expect(k8sClient.Delete(context.TODO(), created)).To(Succeed())
+		Expect(k8sClient.Get(context.TODO(), getKey(created), created)).ToNot(Succeed())
+	})
+
+	It("is validated", func() {
+		By("checking the replica count", func() {
+			invalidReplica := generateRabbitmqClusterObject("rabbit4", 1)
+			invalidReplica.Spec.Replicas = 5
+			Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("validation failure list:\nspec.replicas in body should be one of [1 3]")))
+		})
+
+		By("checking the service type", func() {
+			invalidService := generateRabbitmqClusterObject("rabbit5", 1)
+			invalidService.Spec.Service.Type = "ihateservices"
+			Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("validation failure list:\nspec.service.type in body should be one of [ClusterIP LoadBalancer NodePort]")))
 		})
 	})
 })
 
-func generateRabbitmqClusterObject() *RabbitmqCluster {
+func getKey(cluster *RabbitmqCluster) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      cluster.Name,
+		Namespace: cluster.Namespace,
+	}
+}
+
+func generateRabbitmqClusterObject(clusterName string, numReplicas int) *RabbitmqCluster {
 	return &RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster",
+			Name:      clusterName,
 			Namespace: "default",
 		},
 		Spec: RabbitmqClusterSpec{
-			Replicas: 1,
+			Replicas: numReplicas,
 			Image: RabbitmqClusterImageSpec{
 				Repository: "my-private-repo",
 			},

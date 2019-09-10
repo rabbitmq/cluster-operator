@@ -404,6 +404,7 @@ spec:
             replicas:
               enum:
               - 1
+              - 3
               type: integer
             service:
               properties:
