@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	RabbitmqManagementImage    string = "rabbitmq:3.8-rc-management"
+	RabbitmqManagementImage    string = "rabbitmq:3.8.0-beta.7"
 	defaultPersistenceCapacity string = "10Gi"
 	StatefulSetSuffix          string = "-rabbitmq-server"
 )

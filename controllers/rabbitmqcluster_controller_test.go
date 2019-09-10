@@ -183,7 +183,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			instanceName = "rabbitmq"
 			stsName = instanceName + "-rabbitmq-server"
 			namespace = "default"
-			rabbitmqManagementImage = "rabbitmq:3.8-rc-management"
+			rabbitmqManagementImage = "rabbitmq:3.8.0-beta.7"
 
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
