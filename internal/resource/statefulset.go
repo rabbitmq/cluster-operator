@@ -97,6 +97,10 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 							},
 							Ports: []corev1.ContainerPort{
 								{
+									Name:          "epmd",
+									ContainerPort: 4369,
+								},
+								{
 									Name:          "amqp",
 									ContainerPort: 5672,
 								},

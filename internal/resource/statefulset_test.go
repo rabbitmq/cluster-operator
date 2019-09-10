@@ -53,8 +53,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("specifies required Container Ports", func() {
-
-			requiredContainerPorts := []int32{5672, 15672, 15692}
+			requiredContainerPorts := []int32{4369, 5672, 15672, 15692}
 			var actualContainerPorts []int32
 
 			container := extractContainer(sts, "rabbitmq")
