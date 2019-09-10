@@ -75,7 +75,7 @@ Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operat
 
 `<your-repository>/rabbitmq-for-kubernetes-operator:<version>`
 
-Provide your repository url in the service broker manifest (`manifests/service-broker.yaml`)
+Provide your repository url in the service broker manifest (`manifests/broker.yaml`)
 Replace all references of "REPLACE-WITH-BROKER-IMAGE-URL" with the full broker image URL:
 
 `<your-repository>/rabbitmq-for-kubernetes-servicebroker:<version> `
@@ -94,7 +94,7 @@ In the Operator manifest (`manifests/operator.yaml`):
 - replace the value of `TYPE` from `ClusterIP` to either `NodePort` or `LoadBalancer`. Please note, ExternalName is currently **NOT** supported.
 
 ### Service Broker
-In the ServiceBroker manifest (`manifests/servicebroker.yaml`):
+In the ServiceBroker manifest (`manifests/broker.yaml`):
 - locate the Service object in the manifest
 - replace the value of `spec.type` from `LoadBalancer` to either `NodePort` or `ClusterIP`. Please note, ExternalName is currently **NOT** supported.
 
