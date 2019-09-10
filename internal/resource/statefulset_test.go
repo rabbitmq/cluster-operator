@@ -141,6 +141,8 @@ var _ = Describe("StatefulSet", func() {
 
 		It("creates the required PersistentVolumeClaim", func() {
 			truth := true
+			q, _ := k8sresource.ParseQuantity("10Gi")
+
 			expectedPersistentVolumeClaim := corev1.PersistentVolumeClaim{
 				ObjectMeta: v1.ObjectMeta{
 					Name: "persistence",
@@ -162,7 +164,7 @@ var _ = Describe("StatefulSet", func() {
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 					Resources: corev1.ResourceRequirements{
 						Requests: map[corev1.ResourceName]k8sresource.Quantity{
-							corev1.ResourceStorage: *k8sresource.NewQuantity(10*1024*1024*1024, k8sresource.BinarySI),
+							corev1.ResourceStorage: q,
 						},
 					},
 				},
@@ -192,25 +194,63 @@ var _ = Describe("StatefulSet", func() {
 		})
 	})
 
-	Context("storage class name and capacity", func() {
-		When("storage class name and capacity is specified in both as parameters and in RabbitmqCluster instance", func() {
+	Context("storage class name", func() {
+		When("storage class name is specified in both as parameters and in RabbitmqCluster instance", func() {
 			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
 				instance.Spec.Persistence.StorageClassName = "my-storage-class"
-				instance.Spec.Persistence.Storage = "1Gi"
 
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
-				q, _ := k8sresource.ParseQuantity("1Gi")
-				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "some-other-storage-name", "", scheme)
 				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 			})
 		})
 
-		When("storage class name and capacity is specified only as parameters and not in RabbitmqCluster instance", func() {
+		When("storage class name is specified only as parameters and not in RabbitmqCluster instance", func() {
 			It("creates the PersistentVolume template according to the parameters", func() {
+				instance.Spec.Persistence.StorageClassName = ""
+
 				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "a-storage-class-name", "100Gi", scheme)
+				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("a-storage-class-name"))
+			})
+		})
+
+		When("storage class name is empty in parameters and is empty in RabbitmqCluster instance", func() {
+			It("creates the PersistentVolume template with empty class so it defaults to  default StorageClass", func() {
+				instance.Spec.Persistence.StorageClassName = ""
+
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
+			})
+		})
+	})
+
+	Context("storage class capacity", func() {
+		When("storage class capacity is specified in both as parameters and in RabbitmqCluster instance", func() {
+			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
+				instance.Spec.Persistence.Storage = "21Gi"
+
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "41Gi", scheme)
+				q, _ := k8sresource.ParseQuantity("21Gi")
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
+			})
+		})
+
+		When("storage capacity is specified only as parameters and not in RabbitmqCluster instance", func() {
+			It("creates the PersistentVolume template according to the parameters", func() {
+				instance.Spec.Persistence.Storage = ""
+
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "100Gi", scheme)
 				q, _ := k8sresource.ParseQuantity("100Gi")
 				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
-				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("a-storage-class-name"))
+			})
+		})
+
+		When("storage capacity is empty in parameters and is empty in RabbitmqCluster instance", func() {
+			It("creates the PersistentVolume template with default capacity", func() {
+				instance.Spec.Persistence.StorageClassName = ""
+
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
+				q, _ := k8sresource.ParseQuantity("10Gi")
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
 			})
 		})
 	})

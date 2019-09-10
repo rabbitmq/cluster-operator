@@ -297,8 +297,9 @@ var _ = Describe("System tests", func() {
 				pvcName = "persistence-" + podName
 
 				persistentRabbitmqCluster = generateRabbitmqCluster(namespace, instanceName)
-				persistentRabbitmqCluster.Spec.Persistence.StorageClassName = specifiedStorageClassName
-				persistentRabbitmqCluster.Spec.Persistence.Storage = specifiedStorageCapacity
+				// 'standard' is the default StorageClass in GCE
+				persistentRabbitmqCluster.Spec.Persistence.StorageClassName = "standard"
+				persistentRabbitmqCluster.Spec.Persistence.Storage = "2Gi"
 				Expect(createRabbitmqCluster(k8sClient, persistentRabbitmqCluster)).NotTo(HaveOccurred())
 
 				Eventually(func() string {
@@ -317,8 +318,8 @@ var _ = Describe("System tests", func() {
 					if pv.Spec.ClaimRef.Name == pvcName {
 						storageCap := pv.Spec.Capacity["storage"]
 						storageCapPointer := &storageCap
-						Expect(pv.Spec.StorageClassName).To(Equal(specifiedStorageClassName))
-						Expect(storageCapPointer.String()).To(Equal(specifiedStorageCapacity))
+						Expect(pv.Spec.StorageClassName).To(Equal("standard"))
+						Expect(storageCapPointer.String()).To(Equal("2Gi"))
 					}
 				}
 			})

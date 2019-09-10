@@ -15,7 +15,7 @@ import (
 
 const (
 	RabbitmqManagementImage    string = "rabbitmq:3.8-rc-management"
-	defaultPersistenceCapacity int64  = 10 * 1024 * 1024 * 1024
+	defaultPersistenceCapacity string = "10Gi"
 	StatefulSetSuffix          string = "-rabbitmq-server"
 )
 
@@ -170,6 +170,11 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 }
 
 func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*corev1.PersistentVolumeClaim, error) {
+	var err error
+	q, err := k8sresource.ParseQuantity(defaultPersistenceCapacity)
+	if err != nil {
+		return nil, err
+	}
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "persistence",
@@ -180,14 +185,13 @@ func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, per
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: *k8sresource.NewQuantity(defaultPersistenceCapacity, k8sresource.BinarySI),
+					corev1.ResourceStorage: q,
 				},
 			},
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 		},
 	}
 
-	var err error
 	if instance.Spec.Persistence.Storage != "" {
 		pvc.Spec.Resources.Requests["storage"], err = k8sresource.ParseQuantity(instance.Spec.Persistence.Storage)
 		if err != nil {
