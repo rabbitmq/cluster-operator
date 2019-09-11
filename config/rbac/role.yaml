@@ -106,6 +106,12 @@ rules:
   - update
   - patch
 - apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - get
+- apiGroups:
   - rabbitmq.pivotal.io
   resources:
   - rabbitmqclusters
@@ -138,7 +144,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - rbac
+  - rbac.authorization.k8s.io
   resources:
   - roles
   verbs:
@@ -150,7 +156,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - rbac
+  - rbac.authorization.k8s.io
   resources:
   - rolebindings
   verbs:
