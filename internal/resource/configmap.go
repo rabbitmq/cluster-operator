@@ -6,10 +6,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const pluginConfigMapName = "rabbitmq-plugins"
+
 func GenerateConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName("rabbitmq-plugins"),
+			Name:      instance.ChildResourceName(pluginConfigMapName),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app":             "pivotal-rabbitmq",

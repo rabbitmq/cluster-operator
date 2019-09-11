@@ -8,11 +8,17 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 )
 
+const (
+	serviceAccountName = "rabbitmq-server"
+	roleName           = "rabbitmq-endpoint-discovery"
+	roleBindingName    = "rabbitmq-server"
+)
+
 func GenerateServiceAccount(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: instance.Namespace,
-			Name:      instance.ChildResourceName("rabbitmq-server"),
+			Name:      instance.ChildResourceName(serviceAccountName),
 		},
 	}
 }
@@ -21,7 +27,7 @@ func GenerateRole(instance rabbitmqv1beta1.RabbitmqCluster) *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: instance.Namespace,
-			Name:      instance.ChildResourceName("rabbitmq-endpoint-discovery"),
+			Name:      instance.ChildResourceName(roleName),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -37,17 +43,17 @@ func GenerateRoleBinding(instance rabbitmqv1beta1.RabbitmqCluster) *rbacv1.RoleB
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: instance.Namespace,
-			Name:      instance.ChildResourceName("rabbitmq-server"),
+			Name:      instance.ChildResourceName(roleBindingName),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "Role",
-			Name:     instance.ChildResourceName("rabbitmq-endpoint-discovery"),
+			Name:     instance.ChildResourceName(roleName),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind: "ServiceAccount",
-				Name: instance.ChildResourceName("rabbitmq-server"),
+				Name: instance.ChildResourceName(serviceAccountName),
 			},
 		},
 	}

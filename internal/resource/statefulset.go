@@ -70,7 +70,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 					SecurityContext: &corev1.PodSecurityContext{
 						FSGroup: &rabbitmqGID,
 					},
-					ServiceAccountName:           instance.ChildResourceName("rabbitmq-server"),
+					ServiceAccountName:           instance.ChildResourceName(serviceAccountName),
 					AutomountServiceAccountToken: &t,
 					ImagePullSecrets:             imagePullSecrets,
 					Containers: []corev1.Container{
@@ -147,7 +147,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: instance.Name + "-rabbitmq-plugins",
+										Name: instance.ChildResourceName(pluginConfigMapName),
 									},
 								},
 							},
@@ -156,7 +156,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 							Name: "rabbitmq-admin",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: instance.Name + "-rabbitmq-admin",
+									SecretName: instance.ChildResourceName(adminSecretName),
 									Items: []corev1.KeyToPath{
 										{
 											Key:  "rabbitmq-username",
