@@ -88,6 +88,44 @@ var _ = Describe("StatefulSet", func() {
 					Name:  "RABBITMQ_MNESIA_BASE",
 					Value: "/var/lib/rabbitmq/db",
 				},
+				{
+					Name:  "RABBITMQ_ERLANG_COOKIE",
+					Value: "NEEDTOCHANGETHIS",
+				},
+				{
+					Name: "MY_POD_NAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath:  "metadata.name",
+							APIVersion: "v1",
+						},
+					},
+				},
+				{
+					Name: "MY_POD_NAMESPACE",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath:  "metadata.namespace",
+							APIVersion: "v1",
+						},
+					},
+				},
+				{
+					Name:  "K8S_SERVICE_NAME",
+					Value: instance.ChildResourceName("rabbitmq-headless"),
+				},
+				{
+					Name:  "RABBITMQ_USE_LONGNAME",
+					Value: "true",
+				},
+				{
+					Name:  "RABBITMQ_NODENAME",
+					Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
+				},
+				{
+					Name:  "K8S_HOSTNAME_SUFFIX",
+					Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
+				},
 			}
 
 			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
