@@ -141,7 +141,8 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 
 	resources := []runtime.Object{
 		statefulSet,
-		resource.GenerateConfigMap(*rabbitmqClusterInstance),
+		resource.GeneratePluginsConfigMap(*rabbitmqClusterInstance),
+		resource.GenerateRabbitmqConfigMap(*rabbitmqClusterInstance),
 		resource.GenerateIngressService(*rabbitmqClusterInstance, r.ServiceType, r.ServiceAnnotations),
 		resource.GenerateHeadlessService(*rabbitmqClusterInstance),
 		rabbitmqSecret,

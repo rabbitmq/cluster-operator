@@ -21,9 +21,10 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("when creating a working StatefulSet with default settings", func() {
 		var (
-			sts           *appsv1.StatefulSet
-			secretName    string
-			configMapName string
+			sts                   *appsv1.StatefulSet
+			secretName            string
+			pluginsConfigMapName  string
+			rabbitmqConfigMapName string
 		)
 
 		BeforeEach(func() {
@@ -31,7 +32,8 @@ var _ = Describe("StatefulSet", func() {
 			instance.Namespace = "foo"
 			instance.Name = "foo"
 			secretName = instance.ChildResourceName("rabbitmq-admin")
-			configMapName = instance.ChildResourceName("rabbitmq-plugins")
+			pluginsConfigMapName = instance.ChildResourceName("rabbitmq-plugins")
+			rabbitmqConfigMapName = instance.ChildResourceName("rabbitmq-conf")
 			scheme = runtime.NewScheme()
 			rabbitmqv1beta1.AddToScheme(scheme)
 			defaultscheme.AddToScheme(scheme)
@@ -56,7 +58,7 @@ var _ = Describe("StatefulSet", func() {
 			requiredContainerPorts := []int32{4369, 5672, 15672, 15692}
 			var actualContainerPorts []int32
 
-			container := extractContainer(sts, "rabbitmq")
+			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 			for _, port := range container.Ports {
 				actualContainerPorts = append(actualContainerPorts, port.ContainerPort)
 			}
@@ -84,60 +86,79 @@ var _ = Describe("StatefulSet", func() {
 				},
 			}
 
-			container := extractContainer(sts, "rabbitmq")
+			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 			Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
 		})
 
-		It("creates required Volume Mounts", func() {
-			configMapVolumeMount := corev1.VolumeMount{
-				Name:      "rabbitmq-plugins",
-				MountPath: "/opt/rabbitmq-configmap/",
-			}
-			secretVolumeMount := corev1.VolumeMount{
-				Name:      "rabbitmq-admin",
-				MountPath: "/opt/rabbitmq-secret/",
-			}
-			persistenceVolumeMount := corev1.VolumeMount{
-				Name:      "persistence",
-				MountPath: "/var/lib/rabbitmq/db/",
-			}
-
-			container := extractContainer(sts, "rabbitmq")
-			Expect(container.VolumeMounts).Should(ConsistOf(configMapVolumeMount, secretVolumeMount, persistenceVolumeMount))
+		It("creates required Volume Mounts for the rabbitmq container", func() {
+			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+			Expect(container.VolumeMounts).Should(ConsistOf(
+				corev1.VolumeMount{
+					Name:      "rabbitmq-plugins",
+					MountPath: "/opt/rabbitmq-configmap/",
+				},
+				corev1.VolumeMount{
+					Name:      "rabbitmq-admin",
+					MountPath: "/opt/rabbitmq-secret/",
+				},
+				corev1.VolumeMount{
+					Name:      "persistence",
+					MountPath: "/var/lib/rabbitmq/db/",
+				},
+				corev1.VolumeMount{
+					Name:      "rabbitmq-etc",
+					MountPath: "/etc/rabbitmq/",
+				},
+			))
 		})
 
-		It("uses required Config Map and Secret Volumes", func() {
-			configMapVolume := corev1.Volume{
-				Name: "rabbitmq-plugins",
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: configMapName,
-						},
-					},
-				},
-			}
-
-			secretVolume := corev1.Volume{
-				Name: "rabbitmq-admin",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: secretName,
-						Items: []corev1.KeyToPath{
-							{
-								Key:  "rabbitmq-username",
-								Path: "rabbitmq-username",
-							},
-							{
-								Key:  "rabbitmq-password",
-								Path: "rabbitmq-password",
+		It("defines the expected volumes", func() {
+			Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(
+				corev1.Volume{
+					Name: "rabbitmq-plugins",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: pluginsConfigMapName,
 							},
 						},
 					},
 				},
-			}
-
-			Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(configMapVolume, secretVolume))
+				corev1.Volume{
+					Name: "rabbitmq-admin",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: secretName,
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "rabbitmq-username",
+									Path: "rabbitmq-username",
+								},
+								{
+									Key:  "rabbitmq-password",
+									Path: "rabbitmq-password",
+								},
+							},
+						},
+					},
+				},
+				corev1.Volume{
+					Name: "rabbitmq-conf",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: rabbitmqConfigMapName,
+							},
+						},
+					},
+				},
+				corev1.Volume{
+					Name: "rabbitmq-etc",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			))
 		})
 
 		It("uses the correct service account", func() {
@@ -194,15 +215,38 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("defines a Readiness Probe", func() {
-			container := extractContainer(sts, "rabbitmq")
+			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 			actualProbeCommand := container.ReadinessProbe.Handler.Exec.Command
 			Expect(actualProbeCommand).To(Equal([]string{"/bin/sh", "-c", "rabbitmq-diagnostics check_running && rabbitmq-diagnostics check_port_connectivity"}))
 		})
 
 		It("templates the image string and the imagePullSecrets with default values", func() {
-			container := extractContainer(sts, "rabbitmq")
+			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 			Expect(container.Image).To(Equal(resource.RabbitmqManagementImage))
 			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
+		})
+
+		It("templates the correct InitContainer", func() {
+			initContainers := sts.Spec.Template.Spec.InitContainers
+			Expect(len(initContainers)).To(Equal(1))
+
+			container := extractContainer(initContainers, "copy-config")
+			Expect(container.Command).To(Equal([]string{
+				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf",
+			}))
+
+			Expect(container.VolumeMounts).Should(ConsistOf(
+				corev1.VolumeMount{
+					Name:      "rabbitmq-conf",
+					MountPath: "/tmp/rabbitmq/",
+				},
+				corev1.VolumeMount{
+					Name:      "rabbitmq-etc",
+					MountPath: "/etc/rabbitmq/",
+				},
+			))
+
+			Expect(container.Image).To(Equal("ubuntu:bionic"))
 		})
 	})
 
@@ -281,7 +325,7 @@ var _ = Describe("StatefulSet", func() {
 				instance.Spec.ImagePullSecret = "my-great-secret"
 
 				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
-				container := extractContainer(statefulSet, "rabbitmq")
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 			})
@@ -290,7 +334,7 @@ var _ = Describe("StatefulSet", func() {
 		When("image repository and ImagePullSecret are provided through function params", func() {
 			It("uses the provide repository and secret if not specified in RabbitmqCluster spec", func() {
 				statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", "", "", scheme)
-				container := extractContainer(statefulSet, "rabbitmq")
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("best-repository/" + "rabbitmq:3.8-rc-management"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-secret"}))
 			})
@@ -299,7 +343,7 @@ var _ = Describe("StatefulSet", func() {
 				instance.Spec.Image.Repository = "my-private-repo"
 				instance.Spec.ImagePullSecret = "my-great-secret"
 				statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository", "my-secret", "", "", scheme)
-				container := extractContainer(statefulSet, "rabbitmq")
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/" + "rabbitmq:3.8-rc-management"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 			})
@@ -313,14 +357,15 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 	})
+
 })
 
-func extractContainer(sts *appsv1.StatefulSet, containerName string) *corev1.Container {
-	for _, container := range sts.Spec.Template.Spec.Containers {
+func extractContainer(containers []corev1.Container, containerName string) corev1.Container {
+	for _, container := range containers {
 		if container.Name == containerName {
-			return &container
+			return container
 		}
 	}
 
-	return &corev1.Container{}
+	return corev1.Container{}
 }

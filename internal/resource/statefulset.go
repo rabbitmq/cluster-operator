@@ -73,6 +73,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 					ServiceAccountName:           instance.ChildResourceName(serviceAccountName),
 					AutomountServiceAccountToken: &t,
 					ImagePullSecrets:             imagePullSecrets,
+					InitContainers:               generateInitContainers(),
 					Containers: []corev1.Container{
 						{
 							Name:  "rabbitmq",
@@ -126,6 +127,10 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 									Name:      "persistence",
 									MountPath: "/var/lib/rabbitmq/db/",
 								},
+								{
+									Name:      "rabbitmq-etc",
+									MountPath: "/etc/rabbitmq/",
+								},
 							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
@@ -168,6 +173,22 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 										},
 									},
 								},
+							},
+						},
+						{
+							Name: "rabbitmq-conf",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: instance.ChildResourceName(rabbitmqConfigMapName),
+									},
+								},
+							},
+						},
+						{
+							Name: "rabbitmq-etc",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},
@@ -223,4 +244,26 @@ func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, per
 	}
 
 	return pvc, nil
+}
+
+func generateInitContainers() []corev1.Container {
+	return []corev1.Container{
+		{
+			Name: "copy-config",
+			Command: []string{
+				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf",
+			},
+			Image: "ubuntu:bionic",
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      rabbitmqConfigMapName,
+					MountPath: "/tmp/rabbitmq/",
+				},
+				{
+					Name:      "rabbitmq-etc",
+					MountPath: "/etc/rabbitmq/",
+				},
+			},
+		},
+	}
 }

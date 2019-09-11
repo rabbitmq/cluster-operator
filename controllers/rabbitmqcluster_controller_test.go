@@ -70,8 +70,15 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(sts.Name).To(Equal(stsName))
 			})
 
-			By("creating the configmap", func() {
+			By("creating the plugins configmap", func() {
 				configMapName := rabbitmqCluster.ChildResourceName("rabbitmq-plugins")
+				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(configMap.Name).To(Equal(configMapName))
+			})
+
+			By("creating the plugins configmap", func() {
+				configMapName := rabbitmqCluster.ChildResourceName("rabbitmq-conf")
 				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(configMap.Name).To(Equal(configMapName))

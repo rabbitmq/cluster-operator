@@ -6,31 +6,44 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const expectedRabbitmqConf = `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+cluster_formation.k8s.address_type = hostname
+cluster_formation.node_cleanup.interval = 30
+cluster_formation.node_cleanup.only_log_warning = true
+cluster_partition_handling = autoheal
+queue_master_locator = min-masters`
+
 var _ = Describe("ConfigMap", func() {
-	var instance rabbitmqv1beta1.RabbitmqCluster
-	var confMap *corev1.ConfigMap
+	var (
+		confMap  *corev1.ConfigMap
+		instance = rabbitmqv1beta1.RabbitmqCluster{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "a-name",
+				Namespace: "a-namespace",
+			},
+		}
+	)
 
-	BeforeEach(func() {
-		instance = rabbitmqv1beta1.RabbitmqCluster{}
-		instance.Namespace = "foo"
-		instance.Name = "foo"
-		confMap = resource.GenerateConfigMap(instance)
-	})
-
-	Context("Creates a ConfigMap with minimum requirements", func() {
-		It("with name that follows conventions", func() {
-			expectedName := instance.ChildResourceName("rabbitmq-plugins")
-			Expect(confMap.Name).To(Equal(expectedName))
+	Describe("GeneratePluginsConfigMap", func() {
+		BeforeEach(func() {
+			confMap = resource.GeneratePluginsConfigMap(instance)
 		})
 
-		It("with required labels", func() {
+		It("generates a ConfigMap with the correct name and namespace", func() {
+			Expect(confMap.Name).To(Equal(instance.ChildResourceName("rabbitmq-plugins")))
+			Expect(confMap.Namespace).To(Equal(instance.Namespace))
+		})
+
+		It("generates a ConfigMap with required labels", func() {
 			Expect(confMap.Labels["app"]).To(Equal("pivotal-rabbitmq"))
 			Expect(confMap.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
 		})
 
-		It("with required object fields", func() {
+		It("generates a ConfigMap with required object fields", func() {
 			expectedEnabledPlugins := "[" +
 				"rabbitmq_management," +
 				"rabbitmq_peer_discovery_k8s," +
@@ -44,5 +57,28 @@ var _ = Describe("ConfigMap", func() {
 			Expect(ok).To(BeTrue())
 			Expect(plugins).To(Equal(expectedEnabledPlugins))
 		})
+	})
+
+	Describe("GenerateRabbitmqConfigMap", func() {
+		BeforeEach(func() {
+			confMap = resource.GenerateRabbitmqConfigMap(instance)
+		})
+
+		It("generates a ConfigMap with the correct name and namespace", func() {
+			Expect(confMap.Name).To(Equal(instance.ChildResourceName("rabbitmq-conf")))
+			Expect(confMap.Namespace).To(Equal(instance.Namespace))
+		})
+
+		It("generates a ConfigMap with required labels", func() {
+			Expect(confMap.Labels["app"]).To(Equal("pivotal-rabbitmq"))
+			Expect(confMap.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
+		})
+
+		It("generates a rabbitmq conf with the required configurations", func() {
+			rabbitmqConf, ok := confMap.Data["rabbitmq.conf"]
+			Expect(ok).To(BeTrue())
+			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
+		})
+
 	})
 })
