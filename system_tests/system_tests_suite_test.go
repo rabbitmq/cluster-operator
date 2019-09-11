@@ -39,9 +39,6 @@ var (
 )
 
 const (
-	k8sResourcePrefix = "p-rmq-"
-	serviceSuffix     = "-rabbitmq-ingress"
-	statefulSetSuffix = "-rabbitmq-server"
 	secretSuffix      = "-rabbitmq-admin"
 	configMapSuffix   = "-rabbitmq-plugins"
 )
@@ -78,7 +75,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}
 
 	// Patch/update configMap
-	operatorConfigMapName := k8sResourcePrefix + "operator-config"
+	operatorConfigMapName := "p-rmq-operator-config"
 	configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
 
@@ -139,5 +136,4 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	specifiedStorageClassName = "persistent-test"
 	specifiedStorageCapacity = "1Gi"
-
 })
