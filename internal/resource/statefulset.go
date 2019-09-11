@@ -56,7 +56,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 			},
 		},
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: instance.Name,
+			ServiceName: instance.ChildResourceName(headlessServiceName),
 			Replicas:    &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": instance.Name},

@@ -40,6 +40,10 @@ var _ = Describe("StatefulSet", func() {
 			sts, _ = resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
 		})
 
+		It("sets the right service name", func() {
+			Expect(sts.Spec.ServiceName).To(Equal(instance.ChildResourceName("rabbitmq-headless")))
+		})
+
 		It("sets replicas to be '1' by default", func() {
 			Expect(*sts.Spec.Replicas).To(Equal(int32(1)))
 		})

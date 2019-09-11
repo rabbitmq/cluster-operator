@@ -6,10 +6,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	headlessServiceName = "rabbitmq-headless"
+)
+
 func GenerateHeadlessService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName("rabbitmq-headless"),
+			Name:      instance.ChildResourceName(headlessServiceName),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app": instance.Name,
