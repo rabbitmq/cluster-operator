@@ -31,9 +31,9 @@ var _ = Describe("StatefulSet", func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{}
 			instance.Namespace = "foo"
 			instance.Name = "foo"
-			secretName = instance.ChildResourceName("rabbitmq-admin")
-			pluginsConfigMapName = instance.ChildResourceName("rabbitmq-plugins")
-			rabbitmqConfigMapName = instance.ChildResourceName("rabbitmq-conf")
+			secretName = instance.ChildResourceName("admin")
+			pluginsConfigMapName = instance.ChildResourceName("plugins")
+			rabbitmqConfigMapName = instance.ChildResourceName("conf")
 			scheme = runtime.NewScheme()
 			rabbitmqv1beta1.AddToScheme(scheme)
 			defaultscheme.AddToScheme(scheme)
@@ -41,7 +41,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets the right service name", func() {
-			Expect(sts.Spec.ServiceName).To(Equal(instance.ChildResourceName("rabbitmq-headless")))
+			Expect(sts.Spec.ServiceName).To(Equal(instance.ChildResourceName("headless")))
 		})
 
 		It("sets replicas to be '1' by default", func() {
@@ -54,7 +54,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("adds the correct name with naming conventions", func() {
-			expectedName := instance.ChildResourceName("rabbitmq-server")
+			expectedName := instance.ChildResourceName("server")
 			Expect(sts.Name).To(Equal(expectedName))
 		})
 
@@ -112,7 +112,7 @@ var _ = Describe("StatefulSet", func() {
 				},
 				{
 					Name:  "K8S_SERVICE_NAME",
-					Value: instance.ChildResourceName("rabbitmq-headless"),
+					Value: instance.ChildResourceName("headless"),
 				},
 				{
 					Name:  "RABBITMQ_USE_LONGNAME",
@@ -204,7 +204,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("uses the correct service account", func() {
-			Expect(sts.Spec.Template.Spec.ServiceAccountName).To(Equal(instance.ChildResourceName("rabbitmq-server")))
+			Expect(sts.Spec.Template.Spec.ServiceAccountName).To(Equal(instance.ChildResourceName("server")))
 		})
 
 		It("does mount the service account in its pods", func() {

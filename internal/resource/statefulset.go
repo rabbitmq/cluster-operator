@@ -48,7 +48,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName("rabbitmq-server"),
+			Name:      instance.ChildResourceName("server"),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app":             "pivotal-rabbitmq",
@@ -120,7 +120,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 								},
 								{
 									Name:  "K8S_SERVICE_NAME",
-									Value: instance.ChildResourceName("rabbitmq-headless"),
+									Value: instance.ChildResourceName("headless"),
 								},
 								{
 									Name:  "RABBITMQ_USE_LONGNAME",
@@ -295,7 +295,7 @@ func generateInitContainers() []corev1.Container {
 			Image: "ubuntu:bionic",
 			VolumeMounts: []corev1.VolumeMount{
 				{
-					Name:      rabbitmqConfigMapName,
+					Name:      "rabbitmq-conf",
 					MountPath: "/tmp/rabbitmq/",
 				},
 				{

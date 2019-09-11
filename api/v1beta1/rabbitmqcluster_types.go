@@ -71,7 +71,7 @@ type RabbitmqClusterList struct {
 }
 
 func (r RabbitmqCluster) ChildResourceName(name string) string {
-	return strings.Join([]string{r.Name, name}, "-")
+	return strings.Join([]string{r.Name, "rabbitmq", name}, "-")
 }
 
 func init() {

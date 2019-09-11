@@ -28,7 +28,7 @@ var _ = Describe("Secret", func() {
 		})
 
 		It("creates the admin secret", func() {
-			expectedName := instance.ChildResourceName("rabbitmq-admin")
+			expectedName := instance.ChildResourceName("admin")
 			Expect(secret.Name).To(Equal(expectedName))
 		})
 

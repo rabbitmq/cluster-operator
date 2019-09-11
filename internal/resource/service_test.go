@@ -28,7 +28,7 @@ var _ = Context("Services", func() {
 			})
 
 			It("generates a service object with the correct name and labels", func() {
-				expectedName := instance.ChildResourceName("rabbitmq-ingress")
+				expectedName := instance.ChildResourceName("ingress")
 				Expect(service.Name).To(Equal(expectedName))
 				Expect(service.ObjectMeta.Labels["app"]).To(Equal(instance.Name))
 			})
@@ -209,7 +209,7 @@ var _ = Context("Services", func() {
 		})
 
 		It("generates a service object with the correct name", func() {
-			Expect(service.Name).To(Equal(instance.ChildResourceName("rabbitmq-headless")))
+			Expect(service.Name).To(Equal(instance.ChildResourceName("headless")))
 		})
 
 		It("generates a service object with the correct namespace", func() {

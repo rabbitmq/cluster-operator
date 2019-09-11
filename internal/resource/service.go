@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	headlessServiceName = "rabbitmq-headless"
+	headlessServiceName = "headless"
 )
 
 func GenerateHeadlessService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.Service {
@@ -48,7 +48,7 @@ func GenerateIngressService(instance rabbitmqv1beta1.RabbitmqCluster, serviceTyp
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName("rabbitmq-ingress"),
+			Name:      instance.ChildResourceName("ingress"),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app": instance.Name,

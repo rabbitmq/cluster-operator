@@ -34,7 +34,7 @@ var _ = Describe("ConfigMap", func() {
 		})
 
 		It("generates a ConfigMap with the correct name and namespace", func() {
-			Expect(confMap.Name).To(Equal(instance.ChildResourceName("rabbitmq-plugins")))
+			Expect(confMap.Name).To(Equal(instance.ChildResourceName("plugins")))
 			Expect(confMap.Namespace).To(Equal(instance.Namespace))
 		})
 
@@ -65,7 +65,7 @@ var _ = Describe("ConfigMap", func() {
 		})
 
 		It("generates a ConfigMap with the correct name and namespace", func() {
-			Expect(confMap.Name).To(Equal(instance.ChildResourceName("rabbitmq-conf")))
+			Expect(confMap.Name).To(Equal(instance.ChildResourceName("conf")))
 			Expect(confMap.Namespace).To(Equal(instance.Namespace))
 		})
 

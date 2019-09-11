@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	pluginConfigMapName   = "rabbitmq-plugins"
-	rabbitmqConfigMapName = "rabbitmq-conf"
+	pluginConfigMapName   = "plugins"
+	rabbitmqConfigMapName = "conf"
 )
 
 func GeneratePluginsConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ConfigMap {

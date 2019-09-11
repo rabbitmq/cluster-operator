@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	serviceAccountName = "rabbitmq-server"
-	roleName           = "rabbitmq-endpoint-discovery"
-	roleBindingName    = "rabbitmq-server"
+	serviceAccountName = "server"
+	roleName           = "endpoint-discovery"
+	roleBindingName    = "server"
 )
 
 func GenerateServiceAccount(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ServiceAccount {
