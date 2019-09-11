@@ -302,7 +302,7 @@ var _ = Describe("StatefulSet", func() {
 			defaultscheme.AddToScheme(scheme)
 		})
 
-		When("storage class name and capacity is specified in both as parameters and in RabbitmqCluster instance", func() {
+		When("storage class name is specified in both as parameters and in RabbitmqCluster instance", func() {
 			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
 				instance.Spec.Persistence.StorageClassName = "my-storage-class"
 
@@ -328,9 +328,7 @@ var _ = Describe("StatefulSet", func() {
 				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
 			})
 		})
-	})
 
-	Context("storage class capacity", func() {
 		When("storage class capacity is specified in both as parameters and in RabbitmqCluster instance", func() {
 			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
 				instance.Spec.Persistence.Storage = "21Gi"

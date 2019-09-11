@@ -231,18 +231,18 @@ func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword 
 		fmt.Printf("Failed to run cluster aliveness test: %+v \n", err)
 		return nil, fmt.Errorf("failed aliveness check: %v with api endpoint: %s", err, url)
 	}
-	defer resp.Body.Close()
-
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("Failed to read cluster aliveness test: %s \n", err)
-		return nil, fmt.Errorf("failed aliveness check: %v with api endpoint: %s", err, url)
-	}
 
 	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("Cluster aliveness test failed. Status: %s \n", resp.Status)
 		errMessage := fmt.Sprintf("Response code '%d' != '%d'", resp.StatusCode, http.StatusOK)
 		return nil, fmt.Errorf("failed aliveness check: %v with api endpoint: %s, error msg: %s", err, url, errMessage)
+	}
+
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Failed to read cluster aliveness test: %s \n", err)
+		return nil, fmt.Errorf("failed aliveness check: %v with api endpoint: %s", err, url)
 	}
 
 	healthcheckResponse := &HealthcheckResponse{}

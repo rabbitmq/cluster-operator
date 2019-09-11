@@ -38,11 +38,6 @@ var (
 	specifiedStorageCapacity  string
 )
 
-const (
-	secretSuffix      = "-rabbitmq-admin"
-	configMapSuffix   = "-rabbitmq-plugins"
-)
-
 var _ = SynchronizedBeforeSuite(func() []byte {
 	scheme := runtime.NewScheme()
 	Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())

@@ -30,7 +30,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 )
 
-const timeout = time.Second
+const timeout = 3 * time.Second
 
 var _ = Describe("RabbitmqclusterController", func() {
 
