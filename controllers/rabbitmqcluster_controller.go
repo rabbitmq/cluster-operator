@@ -162,7 +162,7 @@ func (r *RabbitmqClusterReconciler) getRabbitmqClusterInstance(NamespacedName ty
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	for _, resource := range []runtime.Object{&appsv1.StatefulSet{}, &corev1.ConfigMap{}} {
+	for _, resource := range []runtime.Object{&appsv1.StatefulSet{}, &corev1.ConfigMap{}, &corev1.Service{}} {
 		if err := mgr.GetFieldIndexer().IndexField(resource, ownerKey, addResourceToIndex); err != nil {
 			return err
 		}
@@ -172,6 +172,7 @@ func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&rabbitmqv1beta1.RabbitmqCluster{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Service{}).
 		Complete(r)
 }
 
@@ -187,6 +188,15 @@ func addResourceToIndex(rawObj runtime.Object) []string {
 		}
 		return []string{owner.Name}
 	case *corev1.ConfigMap:
+		owner := metav1.GetControllerOf(resourceObject)
+		if owner == nil {
+			return nil
+		}
+		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
+			return nil
+		}
+		return []string{owner.Name}
+	case *corev1.Service:
 		owner := metav1.GetControllerOf(resourceObject)
 		if owner == nil {
 			return nil

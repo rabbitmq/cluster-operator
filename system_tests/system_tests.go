@@ -209,11 +209,12 @@ var _ = Describe("System tests", func() {
 
 	Context("reconciles", func() {
 
-		When("a ConfigMap resource is deleted", func() {
+		When("ConfigMap and Service resources are deleted", func() {
 			var (
 				rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 				instanceName    = "delete-my-resources"
 				configMapName   = instanceName + configMapSuffix
+				serviceName = instanceName + serviceSuffix
 			)
 
 			BeforeEach(func() {
@@ -242,11 +243,22 @@ var _ = Describe("System tests", func() {
 					err := clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})
 					return err
 				}, 10, 2).ShouldNot(HaveOccurred())
+				Eventually(func() error {
+					err := clientSet.CoreV1().Services(namespace).Delete(serviceName, &metav1.DeleteOptions{})
+					return err
+				}, 10, 2).ShouldNot(HaveOccurred())
 			})
 
-			It("recreates the resource", func() {
+			It("recreates the resources", func() {
 				Eventually(func() error {
 					_, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+					if err != nil {
+						Expect(err.Error()).To(ContainSubstring("not found"))
+					}
+					return err
+				}, 5).ShouldNot(HaveOccurred())
+				Eventually(func() error {
+					_, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 					if err != nil {
 						Expect(err.Error()).To(ContainSubstring("not found"))
 					}
