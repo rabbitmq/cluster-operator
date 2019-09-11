@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -283,9 +284,11 @@ var _ = Describe("System tests", func() {
 			})
 
 			JustBeforeEach(func() {
-
-				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
+				var configMap *corev1.ConfigMap
+				Eventually(func() error {
+					configMap, err = clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+					return err
+				}, 5).ShouldNot(HaveOccurred())
 				configMap.Data["enabled_plugins"] = "[rabbitmq_management]."
 
 				_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
