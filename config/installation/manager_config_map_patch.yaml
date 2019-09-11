@@ -21,4 +21,4 @@ spec:
     spec:
       containers:
       - image: "REPLACE-WITH-OPERATOR-IMAGE-URL"
-        name: manager
+        name: operator
