@@ -167,7 +167,7 @@ In order to register the service broker, run the following `cf` CLI command:
 >  http://<service-broker-ip>:8080
 ```
 
-The `<service-broker-name>` can be any arbitrary name. The `<service-broker-ip>` is the external IP assigned to the `LoadBalancer` service named `p-rmq-servicebroker`, which is deployed in the service broker namespace `pivotal-rabbitmq-servicebroker-system`.
+The `<service-broker-name>` can be any arbitrary name. The `<service-broker-ip>` is the external IP assigned to the `LoadBalancer` service named `p-rmq-servicebroker-ingress`, which is deployed in the service broker namespace `pivotal-rabbitmq-system`.
 
 The broker-username and broker-password is the credentials you've used to create the kubernetes secrets in previous step "Create Broker Credentials".
 
