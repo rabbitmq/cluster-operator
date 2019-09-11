@@ -290,7 +290,7 @@ func generateInitContainers() []corev1.Container {
 		{
 			Name: "copy-config",
 			Command: []string{
-				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf",
+				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf",
 			},
 			Image: "ubuntu:bionic",
 			VolumeMounts: []corev1.VolumeMount{

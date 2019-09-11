@@ -274,7 +274,7 @@ var _ = Describe("StatefulSet", func() {
 
 			container := extractContainer(initContainers, "copy-config")
 			Expect(container.Command).To(Equal([]string{
-				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf",
+				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf",
 			}))
 
 			Expect(container.VolumeMounts).Should(ConsistOf(

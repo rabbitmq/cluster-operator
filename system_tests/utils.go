@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -218,6 +218,7 @@ func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassw
 
 	return nil
 }
+
 func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("http://%s:15672/api/aliveness-test/%%2F", rabbitmqHostName)

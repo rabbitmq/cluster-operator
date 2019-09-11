@@ -79,6 +79,5 @@ var _ = Describe("ConfigMap", func() {
 			Expect(ok).To(BeTrue())
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
-
 	})
 })
