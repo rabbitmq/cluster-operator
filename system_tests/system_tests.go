@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -264,53 +263,6 @@ var _ = Describe("System tests", func() {
 					}
 					return err
 				}, 5).ShouldNot(HaveOccurred())
-			})
-		})
-
-		When("a ConfigMap resource is updated directly", func() {
-			var (
-				rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-				instanceName    = "update-my-resources"
-				configMapName   = instanceName + configMapSuffix
-			)
-
-			BeforeEach(func() {
-				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      instanceName,
-						Namespace: namespace,
-					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: 1,
-					},
-				}
-
-				Expect(k8sClient.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			})
-
-			AfterEach(func() {
-				err := k8sClient.Delete(context.TODO(), rabbitmqCluster)
-				if err != nil {
-					Expect(err.Error()).To(ContainSubstring("not found"))
-				}
-			})
-
-			JustBeforeEach(func() {
-				var configMap *corev1.ConfigMap
-				Eventually(func() error {
-					configMap, err = clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
-					return err
-				}, 5).ShouldNot(HaveOccurred())
-				configMap.Data["enabled_plugins"] = "[rabbitmq_management]."
-
-				_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("does not reconcile the resource", func() {
-				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(configMap.Data["enabled_plugins"]).To(Equal("[rabbitmq_management]."))
 			})
 		})
 	})
