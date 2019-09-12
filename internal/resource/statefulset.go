@@ -14,13 +14,13 @@ import (
 )
 
 const (
-	RabbitmqManagementImage    string = "rabbitmq:3.8-rc-management"
+	rabbitmqManagementImage    string = "rabbitmq:3.8-rc-management"
 	defaultPersistenceCapacity string = "10Gi"
 )
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
 	t := true
-	image := RabbitmqManagementImage
+	image := rabbitmqManagementImage
 	rabbitmqGID := int64(999)
 
 	replicas := int32(instance.Spec.Replicas)
@@ -73,7 +73,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 					ServiceAccountName:           instance.ChildResourceName(serviceAccountName),
 					AutomountServiceAccountToken: &t,
 					ImagePullSecrets:             imagePullSecrets,
-					InitContainers:               generateInitContainers(),
+					InitContainers:               generateInitContainers(image),
 					Containers: []corev1.Container{
 						{
 							Name:  "rabbitmq",
@@ -285,14 +285,14 @@ func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, per
 	return pvc, nil
 }
 
-func generateInitContainers() []corev1.Container {
+func generateInitContainers(image string) []corev1.Container {
 	return []corev1.Container{
 		{
 			Name: "copy-config",
 			Command: []string{
 				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf",
 			},
-			Image: "ubuntu:bionic",
+			Image: image,
 			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "rabbitmq-conf",
