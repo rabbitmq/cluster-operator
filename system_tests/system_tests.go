@@ -213,7 +213,7 @@ var _ = Describe("System tests", func() {
 				rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 				instanceName    = "delete-my-resources"
 				configMapName   = instanceName + configMapSuffix
-				serviceName = instanceName + serviceSuffix
+				serviceName     = instanceName + serviceSuffix
 			)
 
 			BeforeEach(func() {
@@ -228,16 +228,7 @@ var _ = Describe("System tests", func() {
 				}
 
 				Expect(k8sClient.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			})
 
-			AfterEach(func() {
-				err := k8sClient.Delete(context.TODO(), rabbitmqCluster)
-				if err != nil {
-					Expect(err.Error()).To(ContainSubstring("not found"))
-				}
-			})
-
-			BeforeEach(func() {
 				Eventually(func() error {
 					err := clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})
 					return err
@@ -246,6 +237,13 @@ var _ = Describe("System tests", func() {
 					err := clientSet.CoreV1().Services(namespace).Delete(serviceName, &metav1.DeleteOptions{})
 					return err
 				}, 10, 2).ShouldNot(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				err := k8sClient.Delete(context.TODO(), rabbitmqCluster)
+				if err != nil {
+					Expect(err.Error()).To(ContainSubstring("not found"))
+				}
 			})
 
 			It("recreates the resources", func() {
