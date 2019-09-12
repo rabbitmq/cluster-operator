@@ -374,3 +374,40 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	return hostname
 }
+
+func assertStatefulSetReady(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	numReplicas := cluster.Spec.Replicas
+
+	EventuallyWithOffset(1, func() []byte {
+		output, err := kubectl(
+			"-n",
+			cluster.Namespace,
+			"get",
+			"sts",
+			cluster.ChildResourceName(statefulSetSuffix),
+		)
+
+		if err != nil {
+			Expect(output).To(ContainSubstring("not found"))
+		}
+
+		return output
+	}, podCreationTimeout*time.Duration(numReplicas), 1).Should(ContainSubstring(fmt.Sprintf("%d/%d", numReplicas, numReplicas)))
+}
+
+func assertHttpReady(hostname string) {
+	EventuallyWithOffset(1, func() int {
+		client := &http.Client{Timeout: 5 * time.Second}
+		url := fmt.Sprintf("http://%s:15672", hostname)
+
+		req, _ := http.NewRequest(http.MethodGet, url, nil)
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return 0
+		}
+		defer resp.Body.Close()
+
+		return resp.StatusCode
+	}, podCreationTimeout, 5).Should(Equal(http.StatusOK))
+}

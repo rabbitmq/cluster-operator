@@ -3,7 +3,6 @@ package system_tests
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -30,18 +29,14 @@ const (
 
 var _ = Describe("Operator", func() {
 	var (
-		clientSet       *kubernetes.Clientset
-		k8sClient       client.Client
-		err             error
-		namespace       string
-		instanceName    string
-		statefulSetName string
-		serviceName     string
-		podName         string
+		clientSet *kubernetes.Clientset
+		k8sClient client.Client
+
+		namespace = MustHaveEnv("NAMESPACE")
 	)
 
 	BeforeEach(func() {
-		namespace = MustHaveEnv("NAMESPACE")
+		var err error
 		clientSet, err = createClientSet()
 		Expect(err).NotTo(HaveOccurred())
 		k8sClient = mgr.GetClient()
@@ -56,32 +51,17 @@ var _ = Describe("Operator", func() {
 		)
 
 		BeforeEach(func() {
-			instanceName = "basic-rabbit"
-
-			cluster = generateRabbitmqCluster(namespace, instanceName)
-			serviceName = cluster.ChildResourceName(serviceSuffix)
-			podName = statefulSetPodName(cluster, 0)
+			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
 			cluster.Spec.Service.Type = "LoadBalancer"
 			Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
 			hostname = rabbitmqHostname(clientSet, cluster)
+
+			var err error
 			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(func() int {
-				client := &http.Client{Timeout: 5 * time.Second}
-				url := fmt.Sprintf("http://%s:15672", hostname)
-
-				req, _ := http.NewRequest(http.MethodGet, url, nil)
-
-				resp, err := client.Do(req)
-				if err != nil {
-					return 0
-				}
-				defer resp.Body.Close()
-
-				return resp.StatusCode
-			}, podCreationTimeout, 5).Should(Equal(200))
+			assertHttpReady(hostname)
 		})
 
 		AfterEach(func() {
@@ -97,7 +77,7 @@ var _ = Describe("Operator", func() {
 
 			By("having required plugins enabled", func() {
 				_, err := kubectlExec(namespace,
-					podName,
+					statefulSetPodName(cluster, 0),
 					"rabbitmq-plugins",
 					"is_enabled",
 					"rabbitmq_federation",
@@ -116,22 +96,19 @@ var _ = Describe("Operator", func() {
 	})
 
 	Context("ReadinessProbe tests", func() {
-		var cluster *rabbitmqv1beta1.RabbitmqCluster
+		var (
+			cluster     *rabbitmqv1beta1.RabbitmqCluster
+			serviceName string
+			podName     string
+		)
 
 		BeforeEach(func() {
-			instanceName = "readiness-rabbit"
-			cluster = generateRabbitmqCluster(namespace, instanceName)
+			cluster = generateRabbitmqCluster(namespace, "readiness-rabbit")
 			serviceName = cluster.ChildResourceName(serviceSuffix)
 			podName = statefulSetPodName(cluster, 0)
 			Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
-			Eventually(func() string {
-				podStatus, err := checkPodStatus(clientSet, namespace, podName)
-				if err != nil {
-					Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-				}
-				return podStatus
-			}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+			assertStatefulSetReady(cluster)
 		})
 
 		AfterEach(func() {
@@ -158,7 +135,6 @@ var _ = Describe("Operator", func() {
 					return endpointPoller(clientSet, namespace, serviceName)
 				}, 120, 3).Should(BeNumerically(">", 0))
 			})
-
 		})
 	})
 
@@ -166,20 +142,10 @@ var _ = Describe("Operator", func() {
 		var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 		BeforeEach(func() {
-			instanceName = "statefulset-rabbit"
-			cluster = generateRabbitmqCluster(namespace, instanceName)
-			serviceName = cluster.ChildResourceName(serviceSuffix)
-			statefulSetName = cluster.ChildResourceName(statefulSetSuffix)
-			podName = statefulSetName + "-0"
+			cluster = generateRabbitmqCluster(namespace, "statefulset-rabbit")
 			Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
-			Eventually(func() string {
-				podStatus, err := checkPodStatus(clientSet, namespace, podName)
-				if err != nil {
-					Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-				}
-				return podStatus
-			}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+			assertStatefulSetReady(cluster)
 		})
 
 		AfterEach(func() {
@@ -187,24 +153,18 @@ var _ = Describe("Operator", func() {
 		})
 
 		It("reconciles the state, and the cluster is working again", func() {
-			err := kubectlDelete(namespace, "statefulset", statefulSetName)
+			err := kubectlDelete(namespace, "statefulset", cluster.ChildResourceName(statefulSetSuffix))
 			Expect(err).NotTo(HaveOccurred())
-			Eventually(func() string {
-				pod, err := clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
-				if err != nil {
-					Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-					return ""
-				}
 
-				return fmt.Sprintf("%v", pod.Status.Conditions)
-			}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+			assertStatefulSetReady(cluster)
 		})
 	})
 
 	When("the ConfigMap and Service resources are deleted", func() {
 		var (
-			cluster                    *rabbitmqv1beta1.RabbitmqCluster
-			configMapName, serviceName string
+			cluster       *rabbitmqv1beta1.RabbitmqCluster
+			configMapName string
+			serviceName   string
 		)
 
 		BeforeEach(func() {
@@ -263,10 +223,7 @@ var _ = Describe("Operator", func() {
 		var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 		BeforeEach(func() {
-			instanceName = "image-rabbit"
-
-			cluster = generateRabbitmqCluster(namespace, instanceName)
-			podName = statefulSetPodName(cluster, 0)
+			cluster = generateRabbitmqCluster(namespace, "image-rabbit")
 
 			cluster.Spec.Image.Repository = "eu.gcr.io/cf-rabbitmq-for-k8s-bunny"
 			cluster.Spec.ImagePullSecret = "gcr-viewer"
@@ -278,13 +235,7 @@ var _ = Describe("Operator", func() {
 		})
 
 		It("successfully creates pods using private image and configured repository", func() {
-			Eventually(func() string {
-				podStatus, err := checkPodStatus(clientSet, namespace, podName)
-				if err != nil {
-					Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-				}
-				return podStatus
-			}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+			assertStatefulSetReady(cluster)
 		})
 	})
 
@@ -292,6 +243,7 @@ var _ = Describe("Operator", func() {
 		var (
 			cluster                *rabbitmqv1beta1.RabbitmqCluster
 			expectedConfigurations *config.Config
+			serviceName string
 		)
 
 		BeforeEach(func() {
@@ -302,8 +254,7 @@ var _ = Describe("Operator", func() {
 
 			expectedConfigurations, err = config.NewConfig([]byte(configMap.Data["CONFIG"]))
 
-			instanceName = "nodeport-rabbit"
-			cluster = generateRabbitmqCluster(namespace, instanceName)
+			cluster = generateRabbitmqCluster(namespace, "nodeport-rabbit")
 			serviceName = cluster.ChildResourceName(serviceSuffix)
 
 			Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
@@ -337,15 +288,12 @@ var _ = Describe("Operator", func() {
 
 	Context("persistence", func() {
 		var (
-			cluster  *rabbitmqv1beta1.RabbitmqCluster
-			pvcName  string
-			hostname string
-			username string
-			password string
+			cluster *rabbitmqv1beta1.RabbitmqCluster
+			pvcName string
 		)
 
 		AfterEach(func() {
-			err = k8sClient.Delete(context.TODO(), cluster)
+			err := k8sClient.Delete(context.TODO(), cluster)
 			if !apierrors.IsNotFound(err) {
 				Expect(err).NotTo(HaveOccurred())
 			}
@@ -353,24 +301,15 @@ var _ = Describe("Operator", func() {
 
 		When("storage class name and storage is specified in the RabbitmqCluster Spec", func() {
 			BeforeEach(func() {
-				instanceName = "persistence-storageclass-rabbit"
-
-				cluster = generateRabbitmqCluster(namespace, instanceName)
-				podName = statefulSetPodName(cluster, 0)
-				pvcName = "persistence-" + podName
+				cluster = generateRabbitmqCluster(namespace, "persistence-storageclass-rabbit")
+				pvcName = "persistence-" + statefulSetPodName(cluster, 0)
 
 				// 'standard' is the default StorageClass in GCE
 				cluster.Spec.Persistence.StorageClassName = "standard"
 				cluster.Spec.Persistence.Storage = "2Gi"
 				Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
-				Eventually(func() string {
-					podStatus, err := checkPodStatus(clientSet, namespace, podName)
-					if err != nil {
-						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-					}
-					return podStatus
-				}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+				assertStatefulSetReady(cluster)
 			})
 
 			It("creates the RabbitmqCluster with the specified storage", func() {
@@ -388,51 +327,29 @@ var _ = Describe("Operator", func() {
 		})
 
 		When("storage configuration is only specified in the operator configMap", func() {
-			BeforeEach(func() {
-				instanceName = "persistence-rabbit"
+			var hostname, username, password string
 
-				cluster = generateRabbitmqCluster(namespace, instanceName)
-				serviceName = cluster.ChildResourceName(serviceSuffix)
-				podName = statefulSetPodName(cluster, 0)
-				pvcName = "persistence-" + podName
+			BeforeEach(func() {
+				cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
+				pvcName = "persistence-" + statefulSetPodName(cluster, 0)
 
 				cluster.Spec.Service.Type = "LoadBalancer"
 				Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
-				Eventually(func() string {
-					pod, err := clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
-					if err != nil {
-						Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-						return ""
-					}
-
-					return fmt.Sprintf("%v", pod.Status.Conditions)
-				}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+				assertStatefulSetReady(cluster)
 
 				Eventually(func() int {
-					return endpointPoller(clientSet, namespace, serviceName)
+					return endpointPoller(clientSet, namespace, cluster.ChildResourceName(serviceSuffix))
 				}, podCreationTimeout, 5).Should(Equal(1))
 
-				username, password, err = getRabbitmqUsernameAndPassword(clientSet, namespace, instanceName)
+				var err error
+				username, password, err = getRabbitmqUsernameAndPassword(clientSet, namespace, cluster.Name)
 				Expect(err).NotTo(HaveOccurred())
 
-				hostname := rabbitmqHostname(clientSet, cluster)
+				hostname = rabbitmqHostname(clientSet, cluster)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(func() int {
-					client := &http.Client{Timeout: 5 * time.Second}
-					url := fmt.Sprintf("http://%s:15672", hostname)
-
-					req, _ := http.NewRequest(http.MethodGet, url, nil)
-
-					resp, err := client.Do(req)
-					if err != nil {
-						return 0
-					}
-					defer resp.Body.Close()
-
-					return resp.StatusCode
-				}, podCreationTimeout, 5).Should(Equal(200))
+				assertHttpReady(hostname)
 
 				response, err := rabbitmqAlivenessTest(hostname, username, password)
 				Expect(err).NotTo(HaveOccurred())
@@ -451,36 +368,15 @@ var _ = Describe("Operator", func() {
 				})
 
 				By("successfully perserving messages after recreating a pod ", func() {
-					err = rabbitmqPublishToNewQueue(hostname, username, password)
+					err := rabbitmqPublishToNewQueue(hostname, username, password)
 					Expect(err).NotTo(HaveOccurred())
 
-					err := kubectlDelete(namespace, "pod", podName)
+					err = kubectlDelete(namespace, "pod", statefulSetPodName(cluster, 0))
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(func() string {
-						pod, err := clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
-						if err != nil {
-							Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", podName)))
-							return ""
-						}
+					assertStatefulSetReady(cluster)
 
-						return fmt.Sprintf("%v", pod.Status.Conditions)
-					}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
-
-					Eventually(func() int {
-						client := &http.Client{Timeout: 5 * time.Second}
-						url := fmt.Sprintf("http://%s:15672", hostname)
-
-						req, _ := http.NewRequest(http.MethodGet, url, nil)
-
-						resp, err := client.Do(req)
-						if err != nil {
-							return 0
-						}
-						defer resp.Body.Close()
-
-						return resp.StatusCode
-					}, podCreationTimeout, 5).Should(Equal(200))
+					assertHttpReady(hostname)
 
 					message, err := rabbitmqGetMessageFromQueue(hostname, username, password)
 					Expect(err).NotTo(HaveOccurred())
@@ -489,6 +385,8 @@ var _ = Describe("Operator", func() {
 
 				By("deleting the persistent volume and claim when CRD is deleted", func() {
 					Expect(k8sClient.Delete(context.TODO(), cluster)).To(Succeed())
+
+					var err error
 					Eventually(func() error {
 						_, err = clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(pvcName, metav1.GetOptions{})
 						return err
@@ -505,27 +403,12 @@ var _ = Describe("Operator", func() {
 			var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 			BeforeEach(func() {
-				instanceName = "ha-rabbit"
-				cluster = generateRabbitmqCluster(namespace, instanceName)
+				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
 				cluster.Spec.Replicas = 3
 				cluster.Spec.Service.Type = "LoadBalancer"
 				Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
-				Eventually(func() []byte {
-					output, err := kubectl(
-						"-n",
-						cluster.Namespace,
-						"get",
-						"sts",
-						cluster.ChildResourceName(statefulSetSuffix),
-					)
-
-					if err != nil {
-						Expect(output).To(ContainSubstring("not found"))
-					}
-
-					return output
-				}, podCreationTimeout*3, 1).Should(ContainSubstring("3/3"))
+				assertStatefulSetReady(cluster)
 			})
 
 			AfterEach(func() {
