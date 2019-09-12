@@ -1,6 +1,7 @@
 package system_tests
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -11,6 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
@@ -23,6 +26,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	. "github.com/onsi/gomega"
 )
 
 func MustHaveEnv(name string) string {
@@ -65,22 +70,21 @@ func createRestConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-func kubectlExec(namespace, podname, cmd string, args ...string) error {
-	kubectlArgs := []string{
+func kubectlExec(namespace, podname string, args ...string) ([]byte, error) {
+	kubectlArgs := append([]string{
 		"-n",
 		namespace,
 		"exec",
-		"-it",
 		podname,
 		"--",
-		cmd,
-	}
+	}, args...)
 
-	kubectlArgs = append(kubectlArgs, args...)
+	return kubectl(kubectlArgs...)
+}
 
-	kubectlCmd := exec.Command("kubectl", kubectlArgs...)
-	err := kubectlCmd.Run()
-	return err
+func kubectl(args ...string) ([]byte, error) {
+	cmd := exec.Command("kubectl", args...)
+	return cmd.CombinedOutput()
 }
 
 func kubectlDelete(namespace, object, objectName string) error {
@@ -128,7 +132,6 @@ func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName str
 }
 
 func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, body []byte) (responseBody []byte, err error) {
-
 	client := &http.Client{Timeout: 5 * time.Second}
 	req, _ := http.NewRequest(httpMethod, url, bytes.NewReader(body))
 	req.SetBasicAuth(rabbitmqUsername, rabbitmqPassword)
@@ -259,7 +262,7 @@ type HealthcheckResponse struct {
 	Status string `json:"status"`
 }
 
-func getRabbitmqUsernameAndPassword(clientset *kubernetes.Clientset, namespace, instanceName, keyName string) (string, string, error) {
+func getRabbitmqUsernameAndPassword(clientset *kubernetes.Clientset, namespace, instanceName string) (string, string, error) {
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("%s-rabbitmq-admin", instanceName), metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
@@ -309,4 +312,65 @@ func toYamlBytes(c *config.Config) ([]byte, error) {
 	}
 
 	return configBytes, nil
+}
+
+func verifyClusterNodes(cluster *rabbitmqv1beta1.RabbitmqCluster, pods []string, nodeType string) {
+	for _, pod := range pods {
+		output, err := kubectlExec(
+			cluster.Namespace,
+			pod,
+			"sh",
+			"-c",
+			fmt.Sprintf(
+				"rabbitmqctl cluster_status | grep '%s Nodes' -A4 | grep %s",
+				nodeType,
+				cluster.ChildResourceName(statefulSetSuffix),
+			),
+		)
+
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		nodes := make([]string, 3)
+		s := bufio.NewScanner(bytes.NewBuffer(output))
+		for s.Scan() {
+			nodes = append(nodes, s.Text())
+		}
+
+		Expect(nodes).To(ConsistOf(rabbitmqNodeNames(cluster, pods)))
+	}
+}
+
+func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
+	return cluster.ChildResourceName(strings.Join([]string{statefulSetSuffix, strconv.Itoa(index)}, "-"))
+}
+
+func rabbitmqNodeNames(cluster *rabbitmqv1beta1.RabbitmqCluster, pods []string) []string {
+	nodes := make([]string, len(pods))
+	for _, pod := range pods {
+		nodes = append(nodes, fmt.Sprintf(
+			"rabbit@%s.%s.%s.svc.cluster.local",
+			pod,
+			cluster.ChildResourceName("headless"),
+			cluster.Namespace),
+		)
+	}
+	return nodes
+}
+
+func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+	var (
+		err      error
+		hostname string
+	)
+
+	EventuallyWithOffset(1, func() string {
+		hostname, err = getExternalIP(clientSet, cluster.Namespace, cluster.ChildResourceName("ingress"))
+		if err != nil {
+			return ""
+		}
+		return hostname
+	}, 300, 1).Should(Not(Equal("")))
+
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	return hostname
 }

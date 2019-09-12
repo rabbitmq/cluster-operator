@@ -2,7 +2,6 @@ package system_tests
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -101,15 +100,20 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	Expect(clientSet.CoreV1().Pods(namespace).Delete(operatorPod.Name, &metav1.DeleteOptions{})).To(Succeed())
 
-	Eventually(func() string {
-		pod, err := clientSet.CoreV1().Pods(namespace).Get(operatorPod.Name, metav1.GetOptions{})
-		if err != nil {
-			Expect(err).To(MatchError(fmt.Sprintf("pods \"%s\" not found", operatorPod.Name)))
-			return ""
-		}
+	Eventually(func() []byte {
+		output, err := kubectl(
+			"-n",
+			namespace,
+			"get",
+			"deployment",
+			"-l",
+			"control-plane=controller-manager",
+		)
 
-		return fmt.Sprintf("%v", pod.Status.Conditions)
-	}, podCreationTimeout, 5).Should(ContainSubstring("ContainersReady True"))
+		Expect(err).NotTo(HaveOccurred())
+
+		return output
+	}, 10, 1).Should(ContainSubstring("1/1"))
 
 	return nil
 }, func(data []byte) {
