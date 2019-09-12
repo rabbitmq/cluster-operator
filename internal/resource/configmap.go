@@ -9,14 +9,13 @@ import (
 )
 
 const (
-	pluginConfigMapName   = "plugins"
-	rabbitmqConfigMapName = "conf"
+	serverConfigMapName = "server-conf"
 )
 
-func GeneratePluginsConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ConfigMap {
+func GenerateServerConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName(pluginConfigMapName),
+			Name:      instance.ChildResourceName(serverConfigMapName),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app":             "pivotal-rabbitmq",
@@ -32,21 +31,7 @@ func GeneratePluginsConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.
 				"rabbitmq_shovel," +
 				"rabbitmq_shovel_management," +
 				"rabbitmq_prometheus].",
-		},
-	}
-}
 
-func GenerateRabbitmqConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ConfigMap {
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName(rabbitmqConfigMapName),
-			Namespace: instance.Namespace,
-			Labels: map[string]string{
-				"app":             "pivotal-rabbitmq",
-				"RabbitmqCluster": instance.Name,
-			},
-		},
-		Data: map[string]string{
 			"rabbitmq.conf": strings.Join([]string{
 				"cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s",
 				"cluster_formation.k8s.host = kubernetes.default.svc.cluster.local",

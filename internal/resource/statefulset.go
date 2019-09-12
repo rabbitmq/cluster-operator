@@ -81,7 +81,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 							Env: []corev1.EnvVar{
 								{
 									Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
-									Value: "/opt/rabbitmq-configmap/enabled_plugins",
+									Value: "/opt/server-conf/enabled_plugins",
 								},
 								{
 									Name:  "RABBITMQ_DEFAULT_PASS_FILE",
@@ -155,8 +155,8 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "rabbitmq-plugins",
-									MountPath: "/opt/rabbitmq-configmap/",
+									Name:      "server-conf",
+									MountPath: "/opt/server-conf/",
 								},
 								{
 									Name:      "rabbitmq-admin",
@@ -187,16 +187,6 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "rabbitmq-plugins",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: instance.ChildResourceName(pluginConfigMapName),
-									},
-								},
-							},
-						},
-						{
 							Name: "rabbitmq-admin",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
@@ -215,11 +205,11 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 							},
 						},
 						{
-							Name: "rabbitmq-conf",
+							Name: "server-conf",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: instance.ChildResourceName(rabbitmqConfigMapName),
+										Name: instance.ChildResourceName(serverConfigMapName),
 									},
 								},
 							},
@@ -295,7 +285,7 @@ func generateInitContainers(image string) []corev1.Container {
 			Image: image,
 			VolumeMounts: []corev1.VolumeMount{
 				{
-					Name:      "rabbitmq-conf",
+					Name:      "server-conf",
 					MountPath: "/tmp/rabbitmq/",
 				},
 				{

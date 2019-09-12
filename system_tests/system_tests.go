@@ -24,7 +24,7 @@ const (
 	serviceCreationTimeout = 10 * time.Second
 	serviceSuffix          = "ingress"
 	statefulSetSuffix      = "server"
-	configMapSuffix        = "plugins"
+	configMapSuffix        = "server-conf"
 )
 
 var _ = Describe("Operator", func() {
@@ -243,7 +243,7 @@ var _ = Describe("Operator", func() {
 		var (
 			cluster                *rabbitmqv1beta1.RabbitmqCluster
 			expectedConfigurations *config.Config
-			serviceName string
+			serviceName            string
 		)
 
 		BeforeEach(func() {

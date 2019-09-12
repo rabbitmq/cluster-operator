@@ -25,7 +25,6 @@ var _ = Describe("StatefulSet", func() {
 		var (
 			sts                   *appsv1.StatefulSet
 			secretName            string
-			pluginsConfigMapName  string
 			rabbitmqConfigMapName string
 		)
 
@@ -34,8 +33,7 @@ var _ = Describe("StatefulSet", func() {
 			instance.Namespace = "foo"
 			instance.Name = "foo"
 			secretName = instance.ChildResourceName("admin")
-			pluginsConfigMapName = instance.ChildResourceName("plugins")
-			rabbitmqConfigMapName = instance.ChildResourceName("conf")
+			rabbitmqConfigMapName = instance.ChildResourceName("server-conf")
 			scheme = runtime.NewScheme()
 			rabbitmqv1beta1.AddToScheme(scheme)
 			defaultscheme.AddToScheme(scheme)
@@ -76,7 +74,7 @@ var _ = Describe("StatefulSet", func() {
 			requiredEnvVariables := []corev1.EnvVar{
 				{
 					Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
-					Value: "/opt/rabbitmq-configmap/enabled_plugins",
+					Value: "/opt/server-conf/enabled_plugins",
 				},
 				{
 					Name:  "RABBITMQ_DEFAULT_PASS_FILE",
@@ -138,8 +136,8 @@ var _ = Describe("StatefulSet", func() {
 			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 			Expect(container.VolumeMounts).Should(ConsistOf(
 				corev1.VolumeMount{
-					Name:      "rabbitmq-plugins",
-					MountPath: "/opt/rabbitmq-configmap/",
+					Name:      "server-conf",
+					MountPath: "/opt/server-conf/",
 				},
 				corev1.VolumeMount{
 					Name:      "rabbitmq-admin",
@@ -159,16 +157,6 @@ var _ = Describe("StatefulSet", func() {
 		It("defines the expected volumes", func() {
 			Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(
 				corev1.Volume{
-					Name: "rabbitmq-plugins",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: pluginsConfigMapName,
-							},
-						},
-					},
-				},
-				corev1.Volume{
 					Name: "rabbitmq-admin",
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
@@ -187,7 +175,7 @@ var _ = Describe("StatefulSet", func() {
 					},
 				},
 				corev1.Volume{
-					Name: "rabbitmq-conf",
+					Name: "server-conf",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -281,7 +269,7 @@ var _ = Describe("StatefulSet", func() {
 
 			Expect(container.VolumeMounts).Should(ConsistOf(
 				corev1.VolumeMount{
-					Name:      "rabbitmq-conf",
+					Name:      "server-conf",
 					MountPath: "/tmp/rabbitmq/",
 				},
 				corev1.VolumeMount{
