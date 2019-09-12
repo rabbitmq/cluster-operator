@@ -44,7 +44,6 @@ func createClientSet() (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 
-	// create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Fatalf("[error] %s \n", err)
@@ -148,7 +147,7 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 	}
 
 	if resp.StatusCode >= 400 {
-		return responseBody, fmt.Errorf("Make request failed with api endpoint: %s and statusCode: %d", url, resp.StatusCode)
+		return responseBody, fmt.Errorf("make request failed with api endpoint: %s and statusCode: %d", url, resp.StatusCode)
 	}
 
 	return
@@ -175,7 +174,10 @@ func rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPas
 	}
 
 	messages := []Message{}
-	json.Unmarshal(response, &messages)
+	err = json.Unmarshal(response, &messages)
+	if err != nil {
+		return nil, err
+	}
 
 	return &messages[0], err
 }
@@ -280,15 +282,6 @@ func getRabbitmqUsernameAndPassword(clientset *kubernetes.Clientset, namespace, 
 	return string(username), string(password), nil
 }
 
-func checkPodStatus(clientSet *kubernetes.Clientset, namespace, podName string) (string, error) {
-	pod, err := clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%v", pod.Status.Conditions), nil
-}
-
 func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
 	return &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -364,7 +357,7 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 	)
 
 	EventuallyWithOffset(1, func() string {
-		hostname, err = getExternalIP(clientSet, cluster.Namespace, cluster.ChildResourceName("ingress"))
+		hostname, err = getExternalIP(clientSet, cluster.Namespace, cluster.ChildResourceName(serviceSuffix))
 		if err != nil {
 			return ""
 		}
