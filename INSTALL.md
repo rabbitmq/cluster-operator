@@ -190,3 +190,4 @@ Right now, the service broker can only provision instances in the the Kubernetes
 
 ### Provision Status of Service Instance
 If the service instance provision status is stuck in "create in progress", it's possible that the RabbitMQ cluster has failed to create. We recommend you to check the status of the RabbitMQ cluster resources in your Kubernetes cluster for more details on the failure.
+- The RabbitMQ cluster will fail to create if it has been configured with a StorageClass name of a non-existent `StorageClass` (see "Configure Persistence (Optional)"). Check for warnings on the PersistentVolumeClaims in your Kubernetes cluster to confirm whether this is the case.
