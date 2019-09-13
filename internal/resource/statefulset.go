@@ -95,11 +95,6 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 									Name:  "RABBITMQ_MNESIA_BASE",
 									Value: "/var/lib/rabbitmq/db",
 								},
-
-								{
-									Name:  "RABBITMQ_ERLANG_COOKIE",
-									Value: "NEEDTOCHANGETHIS",
-								},
 								{
 									Name: "MY_POD_NAME",
 									ValueFrom: &corev1.EnvVarSource{
@@ -170,6 +165,10 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 									Name:      "rabbitmq-etc",
 									MountPath: "/etc/rabbitmq/",
 								},
+								{
+									Name:      "rabbitmq-erlang-cookie",
+									MountPath: "/var/lib/rabbitmq/",
+								},
 							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
@@ -218,6 +217,20 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 							Name: "rabbitmq-etc",
 							VolumeSource: corev1.VolumeSource{
 								EmptyDir: &corev1.EmptyDirVolumeSource{},
+							},
+						},
+						{
+							Name: "rabbitmq-erlang-cookie",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
+							},
+						},
+						{
+							Name: "erlang-cookie-secret",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: instance.ChildResourceName(erlangCookieName),
+								},
 							},
 						},
 					},
@@ -280,7 +293,10 @@ func generateInitContainers(image string) []corev1.Container {
 		{
 			Name: "copy-config",
 			Command: []string{
-				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf",
+				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
+					"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
+					"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
+					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
 			},
 			Image: image,
 			VolumeMounts: []corev1.VolumeMount{
@@ -291,6 +307,14 @@ func generateInitContainers(image string) []corev1.Container {
 				{
 					Name:      "rabbitmq-etc",
 					MountPath: "/etc/rabbitmq/",
+				},
+				{
+					Name:      "rabbitmq-erlang-cookie",
+					MountPath: "/var/lib/rabbitmq/",
+				},
+				{
+					Name:      "erlang-cookie-secret",
+					MountPath: "/tmp/erlang-cookie-secret/",
 				},
 			},
 		},

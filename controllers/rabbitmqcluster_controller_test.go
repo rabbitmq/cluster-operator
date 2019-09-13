@@ -76,8 +76,15 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(configMap.Name).To(Equal(configMapName))
 		})
 
-		By("creating a rabbitmq secret object", func() {
+		By("creating a rabbitmq admin secret", func() {
 			secretName := rabbitmqCluster.ChildResourceName("admin")
+			secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(secret.Name).To(Equal(secretName))
+		})
+
+		By("creating an erlang cookie secret", func() {
+			secretName := rabbitmqCluster.ChildResourceName("erlang-cookie")
 			secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(secret.Name).To(Equal(secretName))

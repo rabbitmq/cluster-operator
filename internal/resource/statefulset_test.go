@@ -23,20 +23,20 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("when creating a working StatefulSet with default settings", func() {
 		var (
-			sts                   *appsv1.StatefulSet
-			secretName            string
-			rabbitmqConfigMapName string
+			sts      *appsv1.StatefulSet
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "foo",
+				},
+			}
 		)
 
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{}
-			instance.Namespace = "foo"
-			instance.Name = "foo"
-			secretName = instance.ChildResourceName("admin")
-			rabbitmqConfigMapName = instance.ChildResourceName("server-conf")
 			scheme = runtime.NewScheme()
 			rabbitmqv1beta1.AddToScheme(scheme)
 			defaultscheme.AddToScheme(scheme)
+
 			sts, _ = resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
 		})
 
@@ -87,10 +87,6 @@ var _ = Describe("StatefulSet", func() {
 				{
 					Name:  "RABBITMQ_MNESIA_BASE",
 					Value: "/var/lib/rabbitmq/db",
-				},
-				{
-					Name:  "RABBITMQ_ERLANG_COOKIE",
-					Value: "NEEDTOCHANGETHIS",
 				},
 				{
 					Name: "MY_POD_NAME",
@@ -151,6 +147,10 @@ var _ = Describe("StatefulSet", func() {
 					Name:      "rabbitmq-etc",
 					MountPath: "/etc/rabbitmq/",
 				},
+				corev1.VolumeMount{
+					Name:      "rabbitmq-erlang-cookie",
+					MountPath: "/var/lib/rabbitmq/",
+				},
 			))
 		})
 
@@ -160,7 +160,7 @@ var _ = Describe("StatefulSet", func() {
 					Name: "rabbitmq-admin",
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							SecretName: secretName,
+							SecretName: instance.ChildResourceName("admin"),
 							Items: []corev1.KeyToPath{
 								{
 									Key:  "rabbitmq-username",
@@ -179,7 +179,7 @@ var _ = Describe("StatefulSet", func() {
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: rabbitmqConfigMapName,
+								Name: instance.ChildResourceName("server-conf"),
 							},
 						},
 					},
@@ -188,6 +188,20 @@ var _ = Describe("StatefulSet", func() {
 					Name: "rabbitmq-etc",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+				corev1.Volume{
+					Name: "rabbitmq-erlang-cookie",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+				corev1.Volume{
+					Name: "erlang-cookie-secret",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: instance.ChildResourceName("erlang-cookie"),
+						},
 					},
 				},
 			))
@@ -264,7 +278,10 @@ var _ = Describe("StatefulSet", func() {
 
 			container := extractContainer(initContainers, "copy-config")
 			Expect(container.Command).To(Equal([]string{
-				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf",
+				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
+					"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
+					"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
+					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
 			}))
 
 			Expect(container.VolumeMounts).Should(ConsistOf(
@@ -275,6 +292,14 @@ var _ = Describe("StatefulSet", func() {
 				corev1.VolumeMount{
 					Name:      "rabbitmq-etc",
 					MountPath: "/etc/rabbitmq/",
+				},
+				corev1.VolumeMount{
+					Name:      "rabbitmq-erlang-cookie",
+					MountPath: "/var/lib/rabbitmq/",
+				},
+				corev1.VolumeMount{
+					Name:      "erlang-cookie-secret",
+					MountPath: "/tmp/erlang-cookie-secret/",
 				},
 			))
 

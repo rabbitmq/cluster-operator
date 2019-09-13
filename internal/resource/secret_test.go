@@ -2,6 +2,7 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,26 +11,28 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("Secret", func() {
-	var instance rabbitmqv1beta1.RabbitmqCluster
-	var secret *corev1.Secret
-	var err error
+var _ = Describe("Secrets", func() {
+	var (
+		secret   *corev1.Secret
+		instance = rabbitmqv1beta1.RabbitmqCluster{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "a name",
+				Namespace: "a namespace",
+			},
+		}
+	)
 
-	BeforeEach(func() {
-		instance = rabbitmqv1beta1.RabbitmqCluster{}
-		instance.Namespace = "foo"
-		instance.Name = "foo"
-	})
+	Describe("GenerateAdminSecret", func() {
 
-	Context("when succeeds", func() {
 		BeforeEach(func() {
-			secret, err = resource.GenerateSecret(instance)
+			var err error
+			secret, err = resource.GenerateAdminSecret(instance)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("creates the admin secret", func() {
-			expectedName := instance.ChildResourceName("admin")
-			Expect(secret.Name).To(Equal(expectedName))
+		It("creates the secret with correct name and namespace", func() {
+			Expect(secret.Name).To(Equal(instance.ChildResourceName("admin")))
+			Expect(secret.Namespace).To(Equal("a namespace"))
 		})
 
 		It("creates the required labels", func() {
@@ -56,7 +59,36 @@ var _ = Describe("Secret", func() {
 			decodedPassword, err := b64.URLEncoding.DecodeString(string(password))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(decodedPassword)).To(Equal(24))
+		})
+	})
 
+	Describe("GenerateErlangCookie", func() {
+		BeforeEach(func() {
+			var err error
+			secret, err = resource.GenerateErlangCookie(instance)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("creates the secret with the correct name and namespace", func() {
+			Expect(secret.Name).To(Equal(instance.ChildResourceName("erlang-cookie")))
+			Expect(secret.Namespace).To(Equal(instance.Namespace))
+		})
+
+		It("creates the secret required labels", func() {
+			Expect(secret.Labels["app"]).To(Equal("pivotal-rabbitmq"))
+			Expect(secret.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
+		})
+
+		It("creates a 'opaque' secret ", func() {
+			Expect(secret.Type).To(Equal(corev1.SecretTypeOpaque))
+		})
+
+		It("creates an erlang cookie that is base64 encoded and 24 characters", func() {
+			cookie, ok := secret.Data[".erlang.cookie"]
+			Expect(ok).NotTo(BeFalse())
+			decodedCookie, err := b64.URLEncoding.DecodeString(string(cookie))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(decodedCookie)).To(Equal(24))
 		})
 	})
 })
