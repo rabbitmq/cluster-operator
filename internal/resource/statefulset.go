@@ -14,13 +14,13 @@ import (
 )
 
 const (
-	rabbitmqManagementImage    string = "rabbitmq:3.8-rc-management"
+	rabbitmqImage              string = "rabbitmq:3.8.0-rc.1"
 	defaultPersistenceCapacity string = "10Gi"
 )
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
 	t := true
-	image := rabbitmqManagementImage
+	image := rabbitmqImage
 	rabbitmqGID := int64(999)
 
 	replicas := int32(instance.Spec.Replicas)

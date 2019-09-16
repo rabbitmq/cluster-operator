@@ -25,7 +25,7 @@ Load the images to local Docker:
 ```
 tar xvf path/to/rabbitmq-for-kubernetes-<version>.tar
 docker load -i rabbitmq-for-kubernetes-operator
-docker load -i rabbitmq-3.8-rc-management
+docker load -i rabbitmq
 docker load -i rabbitmq-for-kubernetes-servicebroker
 ```
 

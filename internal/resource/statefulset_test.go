@@ -13,7 +13,7 @@ import (
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-const rabbitmqImageName = "rabbitmq:3.8-rc-management"
+const rabbitmqImageName = "rabbitmq:3.8.0-rc.1"
 
 var _ = Describe("StatefulSet", func() {
 	var (
