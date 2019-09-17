@@ -10,14 +10,13 @@ import (
 )
 
 const (
-	adminSecretName        = "admin"
-	adminSecretUsernameKey = "username"
-	adminSecretPasswordKey = "password"
-	erlangCookieName       = "erlang-cookie"
-	erlangCookieKey        = "cookie"
+	secretName        = "server"
+	secretUsernameKey = "username"
+	secretPasswordKey = "password"
+	secretCookieKey   = "cookie"
 )
 
-func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, error) {
+func GenerateSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, error) {
 	username, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
@@ -28,24 +27,6 @@ func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secr
 		return nil, err
 	}
 
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName(adminSecretName),
-			Namespace: instance.Namespace,
-			Labels: map[string]string{
-				"app":             "pivotal-rabbitmq",
-				"RabbitmqCluster": instance.Name,
-			},
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{
-			adminSecretUsernameKey: []byte(username),
-			adminSecretPasswordKey: []byte(password),
-		},
-	}, nil
-}
-
-func GenerateErlangCookie(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, error) {
 	cookie, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
@@ -53,7 +34,7 @@ func GenerateErlangCookie(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Sec
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName(erlangCookieName),
+			Name:      instance.ChildResourceName(secretName),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				"app":             "pivotal-rabbitmq",
@@ -62,7 +43,9 @@ func GenerateErlangCookie(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Sec
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			erlangCookieKey: []byte(cookie),
+			secretUsernameKey: []byte(username),
+			secretPasswordKey: []byte(password),
+			secretCookieKey:   []byte(cookie),
 		},
 	}, nil
 }

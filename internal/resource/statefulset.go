@@ -86,9 +86,9 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: instance.ChildResourceName(erlangCookieName),
+												Name: instance.ChildResourceName(secretName),
 											},
-											Key: erlangCookieKey,
+											Key: secretCookieKey,
 										},
 									},
 								},
@@ -97,9 +97,9 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: instance.ChildResourceName(adminSecretName),
+												Name: instance.ChildResourceName(secretName),
 											},
-											Key: adminSecretPasswordKey,
+											Key: secretPasswordKey,
 										},
 									},
 								},
@@ -108,9 +108,9 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: instance.ChildResourceName(adminSecretName),
+												Name: instance.ChildResourceName(secretName),
 											},
-											Key: adminSecretUsernameKey,
+											Key: secretUsernameKey,
 										},
 									},
 								},

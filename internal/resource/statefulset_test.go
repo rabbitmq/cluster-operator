@@ -71,13 +71,14 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("uses required Environment Variables", func() {
+			secretName := instance.ChildResourceName("server")
 			requiredEnvVariables := []corev1.EnvVar{
 				{
 					Name: "RABBITMQ_ERLANG_COOKIE",
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: instance.ChildResourceName("erlang-cookie"),
+								Name: secretName,
 							},
 							Key: "cookie",
 						},
@@ -88,7 +89,7 @@ var _ = Describe("StatefulSet", func() {
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: instance.ChildResourceName("admin"),
+								Name: secretName,
 							},
 							Key: "password",
 						},
@@ -99,7 +100,7 @@ var _ = Describe("StatefulSet", func() {
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: instance.ChildResourceName("admin"),
+								Name: secretName,
 							},
 							Key: "username",
 						},

@@ -23,16 +23,15 @@ var _ = Describe("Secrets", func() {
 		}
 	)
 
-	Describe("GenerateAdminSecret", func() {
-
+	Describe("GenerateSecret", func() {
 		BeforeEach(func() {
 			var err error
-			secret, err = resource.GenerateAdminSecret(instance)
+			secret, err = resource.GenerateSecret(instance)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("creates the secret with correct name and namespace", func() {
-			Expect(secret.Name).To(Equal(instance.ChildResourceName("admin")))
+			Expect(secret.Name).To(Equal(instance.ChildResourceName("server")))
 			Expect(secret.Namespace).To(Equal("a namespace"))
 		})
 
@@ -60,30 +59,8 @@ var _ = Describe("Secrets", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(decodedPassword)).To(Equal(24))
 		})
-	})
 
-	Describe("GenerateErlangCookie", func() {
-		BeforeEach(func() {
-			var err error
-			secret, err = resource.GenerateErlangCookie(instance)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("creates the secret with the correct name and namespace", func() {
-			Expect(secret.Name).To(Equal(instance.ChildResourceName("erlang-cookie")))
-			Expect(secret.Namespace).To(Equal(instance.Namespace))
-		})
-
-		It("creates the secret required labels", func() {
-			Expect(secret.Labels["app"]).To(Equal("pivotal-rabbitmq"))
-			Expect(secret.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
-		})
-
-		It("creates a 'opaque' secret ", func() {
-			Expect(secret.Type).To(Equal(corev1.SecretTypeOpaque))
-		})
-
-		It("creates an erlang cookie that is base64 encoded and 24 characters", func() {
+		It("creates an erlang cookie that is base64 encoded and 24 characters in length", func() {
 			cookie, ok := secret.Data["cookie"]
 			Expect(ok).NotTo(BeFalse())
 			decodedCookie, err := b64.URLEncoding.DecodeString(string(cookie))

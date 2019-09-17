@@ -33,7 +33,6 @@ import (
 const timeout = 3 * time.Second
 
 var _ = Describe("RabbitmqclusterController", func() {
-
 	var (
 		rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -76,15 +75,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(configMap.Name).To(Equal(configMapName))
 		})
 
-		By("creating a rabbitmq admin secret", func() {
-			secretName := rabbitmqCluster.ChildResourceName("admin")
-			secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(secret.Name).To(Equal(secretName))
-		})
-
-		By("creating an erlang cookie secret", func() {
-			secretName := rabbitmqCluster.ChildResourceName("erlang-cookie")
+		By("creating a secret", func() {
+			secretName := rabbitmqCluster.ChildResourceName("server")
 			secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(secret.Name).To(Equal(secretName))
