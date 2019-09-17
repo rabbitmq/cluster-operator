@@ -73,8 +73,15 @@ var _ = Describe("StatefulSet", func() {
 		It("uses required Environment Variables", func() {
 			requiredEnvVariables := []corev1.EnvVar{
 				{
-					Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
-					Value: "/opt/server-conf/enabled_plugins",
+					Name: "RABBITMQ_ERLANG_COOKIE",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: instance.ChildResourceName("erlang-cookie"),
+							},
+							Key: "cookie",
+						},
+					},
 				},
 				{
 					Name:  "RABBITMQ_DEFAULT_PASS_FILE",
@@ -83,6 +90,10 @@ var _ = Describe("StatefulSet", func() {
 				{
 					Name:  "RABBITMQ_DEFAULT_USER_FILE",
 					Value: "/opt/rabbitmq-secret/rabbitmq-username",
+				},
+				{
+					Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+					Value: "/opt/server-conf/enabled_plugins",
 				},
 				{
 					Name:  "RABBITMQ_MNESIA_BASE",
@@ -147,10 +158,6 @@ var _ = Describe("StatefulSet", func() {
 					Name:      "rabbitmq-etc",
 					MountPath: "/etc/rabbitmq/",
 				},
-				corev1.VolumeMount{
-					Name:      "rabbitmq-erlang-cookie",
-					MountPath: "/var/lib/rabbitmq/",
-				},
 			))
 		})
 
@@ -188,20 +195,6 @@ var _ = Describe("StatefulSet", func() {
 					Name: "rabbitmq-etc",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-				corev1.Volume{
-					Name: "rabbitmq-erlang-cookie",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-				corev1.Volume{
-					Name: "erlang-cookie-secret",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: instance.ChildResourceName("erlang-cookie"),
-						},
 					},
 				},
 			))
@@ -279,10 +272,7 @@ var _ = Describe("StatefulSet", func() {
 
 			container := extractContainer(initContainers, "copy-config")
 			Expect(container.Command).To(Equal([]string{
-				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
-					"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
-					"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
-					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
+				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf",
 			}))
 
 			Expect(container.VolumeMounts).Should(ConsistOf(
@@ -293,14 +283,6 @@ var _ = Describe("StatefulSet", func() {
 				corev1.VolumeMount{
 					Name:      "rabbitmq-etc",
 					MountPath: "/etc/rabbitmq/",
-				},
-				corev1.VolumeMount{
-					Name:      "rabbitmq-erlang-cookie",
-					MountPath: "/var/lib/rabbitmq/",
-				},
-				corev1.VolumeMount{
-					Name:      "erlang-cookie-secret",
-					MountPath: "/tmp/erlang-cookie-secret/",
 				},
 			))
 

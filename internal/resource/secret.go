@@ -12,6 +12,7 @@ import (
 const (
 	adminSecretName  = "admin"
 	erlangCookieName = "erlang-cookie"
+	erlangCookieKey  = "cookie"
 )
 
 func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, error) {
@@ -59,7 +60,7 @@ func GenerateErlangCookie(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Sec
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			".erlang.cookie": []byte(cookie),
+			erlangCookieKey: []byte(cookie),
 		},
 	}, nil
 }

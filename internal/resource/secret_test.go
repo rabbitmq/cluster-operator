@@ -2,6 +2,7 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo"
@@ -84,7 +85,7 @@ var _ = Describe("Secrets", func() {
 		})
 
 		It("creates an erlang cookie that is base64 encoded and 24 characters", func() {
-			cookie, ok := secret.Data[".erlang.cookie"]
+			cookie, ok := secret.Data["cookie"]
 			Expect(ok).NotTo(BeFalse())
 			decodedCookie, err := b64.URLEncoding.DecodeString(string(cookie))
 			Expect(err).NotTo(HaveOccurred())
