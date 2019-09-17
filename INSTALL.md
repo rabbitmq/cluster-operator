@@ -177,6 +177,38 @@ Once the service broker is registered, run the following command to enable acces
 cf enable-service-access p-rabbitmq-k8s -b <service-broker-name>
 ```
 
+This command will enable access to both plans: `single` and `ha` (three node cluster)
+
+## Configure RabbitmqCluster instance (optional)
+
+In order to deploy a RabbitmqCluster without using the service broker, you can create a custom resource using a YAML manifest.
+The following example shows all the properties available with mock values:
+
+```yaml
+apiVersion: rabbitmq.pivotal.io/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmqcluster-sample
+spec:
+  replicas: 1
+  service:
+    type: NodePort
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+  image:
+    repository: hub.docker.com
+  imagePullSecret: some-secret
+  persistence:
+    storageClassName: azurefile
+    storage: 20Gi
+```
+
+`replicas` and `image.repository` are mandatory and must be present in the YAML.
+`Replicas` describes the desired number of nodes for the RabbitMQ cluster. This can only be set to 1 or 3.
+The other properties in the spec are the same as those described in the configuration steps above.
+Settings configured in the custom resource YAML will override those defined in the operator ConfigMap.
+If any of the optional spec properties are not set, they will take their default value, or the value set in the operator ConfigMap, if provided.
+
 ## Limitations
 
 ### Updating the RabbitMQ Cluster
