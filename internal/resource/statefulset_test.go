@@ -251,13 +251,14 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("creates the required SecurityContext", func() {
-			rmqGid := int64(999)
+			rmqGID, rmqUID := int64(999), int64(999)
+
 			expectedPodSecurityContext := &corev1.PodSecurityContext{
-				FSGroup: &rmqGid,
+				FSGroup:   &rmqGID,
+				RunAsUser: &rmqUID,
 			}
 
-			actualPodSecurityContext := sts.Spec.Template.Spec.SecurityContext
-			Expect(actualPodSecurityContext).To(Equal(expectedPodSecurityContext))
+			Expect(sts.Spec.Template.Spec.SecurityContext).To(Equal(expectedPodSecurityContext))
 		})
 
 		It("defines a Readiness Probe", func() {
