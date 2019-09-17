@@ -119,19 +119,17 @@ kind-prepare:
 	@kubectl apply -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
 	# create alternative default storage class using Ranger local-path provisioner (fixes readonly mounts when using host-path provisioner)
 	@kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
-	@kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
-	@kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.beta.kubernetes.io/is-default-class":"false"}}}'
-	@kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-	@kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.beta.kubernetes.io/is-default-class":"true"}}}'
+	@kubectl annotate storageclass storageclass.kubernetes.io/is-default-class- --all
+	@kubectl annotate storageclass storageclass.beta.kubernetes.io/is-default-class- --all
+	@kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class=true
 
 kind-unprepare:
 	# remove MetalLB
 	@kubectl delete -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
 	@kubectl delete -f https://raw.githubusercontent.com/danderson/metallb/v0.8.1/manifests/metallb.yaml
-	# remove local-path provisioner and reset standard storage class
+	# remove local-path provisioner and reset default storage class
 	@kubectl delete -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
-	@kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-	@kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.beta.kubernetes.io/is-default-class":"true"}}}'
+	@kubectl annotate storageclass standard storageclass.kubernetes.io/is-default-class=true
 
 system-tests:
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -p --randomizeAllSpecs -r system_tests/
