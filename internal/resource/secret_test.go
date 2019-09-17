@@ -46,16 +46,15 @@ var _ = Describe("Secrets", func() {
 		})
 
 		It("creates a rabbitmq username that is base64 encoded and 24 characters in length", func() {
-			username, ok := secret.Data["rabbitmq-username"]
+			username, ok := secret.Data["username"]
 			Expect(ok).NotTo(BeFalse())
 			decodedUsername, err := b64.URLEncoding.DecodeString(string(username))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(decodedUsername)).To(Equal(24))
-
 		})
 
 		It("creates a rabbitmq password that is base64 encoded and 24 characters in length", func() {
-			password, ok := secret.Data["rabbitmq-password"]
+			password, ok := secret.Data["password"]
 			Expect(ok).NotTo(BeFalse())
 			decodedPassword, err := b64.URLEncoding.DecodeString(string(password))
 			Expect(err).NotTo(HaveOccurred())

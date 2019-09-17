@@ -84,12 +84,26 @@ var _ = Describe("StatefulSet", func() {
 					},
 				},
 				{
-					Name:  "RABBITMQ_DEFAULT_PASS_FILE",
-					Value: "/opt/rabbitmq-secret/rabbitmq-password",
+					Name: "RABBITMQ_DEFAULT_PASS",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: instance.ChildResourceName("admin"),
+							},
+							Key: "password",
+						},
+					},
 				},
 				{
-					Name:  "RABBITMQ_DEFAULT_USER_FILE",
-					Value: "/opt/rabbitmq-secret/rabbitmq-username",
+					Name: "RABBITMQ_DEFAULT_USER",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: instance.ChildResourceName("admin"),
+							},
+							Key: "username",
+						},
+					},
 				},
 				{
 					Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
@@ -147,10 +161,6 @@ var _ = Describe("StatefulSet", func() {
 					MountPath: "/opt/server-conf/",
 				},
 				corev1.VolumeMount{
-					Name:      "rabbitmq-admin",
-					MountPath: "/opt/rabbitmq-secret/",
-				},
-				corev1.VolumeMount{
 					Name:      "persistence",
 					MountPath: "/var/lib/rabbitmq/db/",
 				},
@@ -163,24 +173,6 @@ var _ = Describe("StatefulSet", func() {
 
 		It("defines the expected volumes", func() {
 			Expect(sts.Spec.Template.Spec.Volumes).Should(ConsistOf(
-				corev1.Volume{
-					Name: "rabbitmq-admin",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: instance.ChildResourceName("admin"),
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "rabbitmq-username",
-									Path: "rabbitmq-username",
-								},
-								{
-									Key:  "rabbitmq-password",
-									Path: "rabbitmq-password",
-								},
-							},
-						},
-					},
-				},
 				corev1.Volume{
 					Name: "server-conf",
 					VolumeSource: corev1.VolumeSource{

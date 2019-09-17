@@ -93,16 +93,30 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 									},
 								},
 								{
+									Name: "RABBITMQ_DEFAULT_PASS",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: instance.ChildResourceName(adminSecretName),
+											},
+											Key: adminSecretPasswordKey,
+										},
+									},
+								},
+								{
+									Name: "RABBITMQ_DEFAULT_USER",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: instance.ChildResourceName(adminSecretName),
+											},
+											Key: adminSecretUsernameKey,
+										},
+									},
+								},
+								{
 									Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
 									Value: "/opt/server-conf/enabled_plugins",
-								},
-								{
-									Name:  "RABBITMQ_DEFAULT_PASS_FILE",
-									Value: "/opt/rabbitmq-secret/rabbitmq-password",
-								},
-								{
-									Name:  "RABBITMQ_DEFAULT_USER_FILE",
-									Value: "/opt/rabbitmq-secret/rabbitmq-username",
 								},
 								{
 									Name:  "RABBITMQ_MNESIA_BASE",
@@ -167,10 +181,6 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 									MountPath: "/opt/server-conf/",
 								},
 								{
-									Name:      "rabbitmq-admin",
-									MountPath: "/opt/rabbitmq-secret/",
-								},
-								{
 									Name:      "persistence",
 									MountPath: "/var/lib/rabbitmq/db/",
 								},
@@ -194,24 +204,6 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 						},
 					},
 					Volumes: []corev1.Volume{
-						{
-							Name: "rabbitmq-admin",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: instance.ChildResourceName(adminSecretName),
-									Items: []corev1.KeyToPath{
-										{
-											Key:  "rabbitmq-username",
-											Path: "rabbitmq-username",
-										},
-										{
-											Key:  "rabbitmq-password",
-											Path: "rabbitmq-password",
-										},
-									},
-								},
-							},
-						},
 						{
 							Name: "server-conf",
 							VolumeSource: corev1.VolumeSource{
