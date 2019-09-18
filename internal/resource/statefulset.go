@@ -22,6 +22,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 	t := true
 	image := rabbitmqImage
 	rabbitmqGID := int64(999)
+	rabbitmqUID := int64(999)
 
 	replicas := int32(instance.Spec.Replicas)
 	if replicas == 0 {
@@ -68,7 +69,9 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": instance.Name}},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{
-						FSGroup: &rabbitmqGID,
+						FSGroup:    &rabbitmqGID,
+						RunAsGroup: &rabbitmqGID,
+						RunAsUser:  &rabbitmqUID,
 					},
 					ServiceAccountName:           instance.ChildResourceName(serviceAccountName),
 					AutomountServiceAccountToken: &t,
