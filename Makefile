@@ -103,13 +103,20 @@ docker-build-ci-image:
 docker-push:
 	docker push $(CONTROLLER_IMAGE):latest
 
-docker-build-dev:
-	docker build . -t $(CONTROLLER_IMAGE):$(shell git rev-parse --short HEAD)
-	docker push $(CONTROLLER_IMAGE):$(shell git rev-parse --short HEAD)
+dev-tag:
+ifeq ("", git diff --stat)
+DEV_TAG="$(shell git rev-parse --short HEAD)"
+else
+DEV_TAG="$(shell git rev-parse --short HEAD)-"
+endif
 
-patch-dev:
+docker-build-dev: dev-tag
+	docker build . -t $(CONTROLLER_IMAGE):$(DEV_TAG)
+	docker push $(CONTROLLER_IMAGE):$(DEV_TAG)
+
+patch-dev: dev-tag
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(shell git rev-parse --short HEAD)"'@' ./config/default/base/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(DEV_TAG)"'@' ./config/default/base/manager_image_patch.yaml
 
 deploy-dev: docker-build-dev patch-dev deploy
 
