@@ -254,8 +254,9 @@ var _ = Describe("StatefulSet", func() {
 			rmqGID, rmqUID := int64(999), int64(999)
 
 			expectedPodSecurityContext := &corev1.PodSecurityContext{
-				FSGroup:   &rmqGID,
-				RunAsUser: &rmqUID,
+				FSGroup:    &rmqGID,
+				RunAsGroup: &rmqGID,
+				RunAsUser:  &rmqUID,
 			}
 
 			Expect(sts.Spec.Template.Spec.SecurityContext).To(Equal(expectedPodSecurityContext))
