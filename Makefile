@@ -34,6 +34,7 @@ generate: controller-gen
 
 # Build manager binary
 manager: generate fmt vet
+	go mod tidy
 	go build -o bin/manager main.go
 
 # Deploy manager
