@@ -6,11 +6,20 @@ metadata:
   creationTimestamp: null
   name: rabbitmqclusters.rabbitmq.pivotal.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  - JSONPath: .status.clusterStatus
+    name: Status
+    type: string
   group: rabbitmq.pivotal.io
   names:
     kind: RabbitmqCluster
     plural: rabbitmqclusters
   scope: ""
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: RabbitmqCluster is the Schema for the rabbitmqclusters API
@@ -423,6 +432,9 @@ spec:
           - replicas
           type: object
         status:
+          properties:
+            clusterStatus:
+              type: string
           type: object
       type: object
   versions:

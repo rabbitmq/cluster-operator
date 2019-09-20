@@ -48,11 +48,15 @@ type RabbitmqClusterServiceSpec struct {
 
 // RabbitmqClusterStatus defines the observed state of RabbitmqCluster
 type RabbitmqClusterStatus struct {
+	ClusterStatus string `json:"clusterStatus,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
 // RabbitmqCluster is the Schema for the rabbitmqclusters API
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.clusterStatus"
 type RabbitmqCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
