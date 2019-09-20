@@ -101,17 +101,7 @@ func kubectlDelete(namespace, object, objectName string) error {
 }
 
 func getExternalIP(clientSet *kubernetes.Clientset, namespace, serviceName string) (string, error) {
-	service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
 
-	if len(service.Status.LoadBalancer.Ingress) == 0 {
-		return "", nil
-	}
-
-	ip := service.Status.LoadBalancer.Ingress[0].IP
-	return ip, nil
 }
 
 func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName string) int {
@@ -356,16 +346,36 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 		hostname string
 	)
 
-	EventuallyWithOffset(1, func() string {
-		hostname, err = getExternalIP(clientSet, cluster.Namespace, cluster.ChildResourceName(serviceSuffix))
+	hostname, err = getExternalIP(clientSet, cluster.Namespace, cluster.ChildResourceName(serviceSuffix))
+	if err != nil {
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		return ""
+	}
+	return hostname
+}
+
+func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	var err error
+
+	EventuallyWithOffset(1, func() []byte {
+		output, err := kubectl(
+			"-n",
+			cluster.Namespace,
+			"get",
+			"rabbitmqclusters",
+			cluster.Name,
+			"-o=jsonpath='{.status.clusterStatus}'",
+		)
+
 		if err != nil {
-			return ""
+			Expect(output).To(ContainSubstring("not found"))
 		}
-		return hostname
-	}, 300, 1).Should(Not(Equal("")))
+
+		return output
+
+	}, 300, 1).Should(ContainSubstring("running"))
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	return hostname
 }
 
 func assertStatefulSetReady(cluster *rabbitmqv1beta1.RabbitmqCluster) {

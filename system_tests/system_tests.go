@@ -55,6 +55,8 @@ var _ = Describe("Operator", func() {
 			cluster.Spec.Service.Type = "LoadBalancer"
 			Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
+			waitForRabbitmqRunning(cluster)
+
 			hostname = rabbitmqHostname(clientSet, cluster)
 
 			var err error
@@ -91,6 +93,29 @@ var _ = Describe("Operator", func() {
 				)
 
 				Expect(err).NotTo(HaveOccurred())
+			})
+
+			By("updating the CR status correctly", func() {
+				Eventually(func() error {
+					err := clientSet.CoreV1().Pods(namespace).Delete(statefulSetPodName(cluster, 0), &metav1.DeleteOptions{})
+					return err
+				}, 10, 2).ShouldNot(HaveOccurred())
+
+				Eventually(func() []byte {
+					output, err := kubectl(
+						"-n",
+						cluster.Namespace,
+						"get",
+						"rabbitmqclusters",
+						cluster.Name,
+						"-o=jsonpath='{.status.clusterStatus}'",
+					)
+					Expect(err).NotTo(HaveOccurred())
+					return output
+
+				}, 20, 1).Should(ContainSubstring("created"))
+
+				waitForRabbitmqRunning(cluster)
 			})
 		})
 	})
@@ -208,14 +233,14 @@ var _ = Describe("Operator", func() {
 					Expect(err.Error()).To(ContainSubstring("not found"))
 				}
 				return err
-			}, 5).ShouldNot(HaveOccurred())
+			}, 10).ShouldNot(HaveOccurred())
 			Eventually(func() error {
 				_, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 				if err != nil {
 					Expect(err.Error()).To(ContainSubstring("not found"))
 				}
 				return err
-			}, 5).ShouldNot(HaveOccurred())
+			}, 10).ShouldNot(HaveOccurred())
 		})
 	})
 
@@ -309,7 +334,7 @@ var _ = Describe("Operator", func() {
 				cluster.Spec.Persistence.Storage = "2Gi"
 				Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
-				assertStatefulSetReady(cluster)
+				waitForRabbitmqRunning(cluster)
 			})
 
 			It("creates the RabbitmqCluster with the specified storage", func() {
@@ -336,19 +361,13 @@ var _ = Describe("Operator", func() {
 				cluster.Spec.Service.Type = "LoadBalancer"
 				Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
-				assertStatefulSetReady(cluster)
-
-				Eventually(func() int {
-					return endpointPoller(clientSet, namespace, cluster.ChildResourceName(serviceSuffix))
-				}, podCreationTimeout, 5).Should(Equal(1))
+				waitForRabbitmqRunning(cluster)
 
 				var err error
 				username, password, err = getRabbitmqUsernameAndPassword(clientSet, namespace, cluster.Name)
 				Expect(err).NotTo(HaveOccurred())
 
 				hostname = rabbitmqHostname(clientSet, cluster)
-				Expect(err).NotTo(HaveOccurred())
-
 				assertHttpReady(hostname)
 
 				response, err := rabbitmqAlivenessTest(hostname, username, password)
@@ -374,8 +393,7 @@ var _ = Describe("Operator", func() {
 					err = kubectlDelete(namespace, "pod", statefulSetPodName(cluster, 0))
 					Expect(err).NotTo(HaveOccurred())
 
-					assertStatefulSetReady(cluster)
-
+					waitForRabbitmqRunning(cluster)
 					assertHttpReady(hostname)
 
 					message, err := rabbitmqGetMessageFromQueue(hostname, username, password)

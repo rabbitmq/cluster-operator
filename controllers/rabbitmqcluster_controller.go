@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -63,6 +64,8 @@ type RabbitmqClusterReconciler struct {
 // the rbac rule requires an empty row at the end to render
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=endpoints/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
@@ -82,34 +85,49 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	_ = context.Background()
 	logger := r.Log
 
-	rabbitmqClusterInstance, err := r.getRabbitmqClusterInstance(req.NamespacedName)
+	rabbitmqCluster, err := r.getRabbitmqCluster(req.NamespacedName)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
-		logger.Error(err, "failed getting Rabbitmq cluster object")
+		logger.Error(err, "Failed getting Rabbitmq cluster object")
 		return reconcile.Result{}, err
 	}
 
-	instanceSpec, err := json.Marshal(rabbitmqClusterInstance.Spec)
+	instanceSpec, err := json.Marshal(rabbitmqCluster.Spec)
 	if err != nil {
-		logger.Error(err, "failed to marshal cluster spec")
+		logger.Error(err, "Failed to marshal cluster spec")
 	}
 
 	logger.Info(fmt.Sprintf("Start reconciling RabbitmqCluster \"%s\" in namespace \"%s\" with Spec: %+v",
-		rabbitmqClusterInstance.Name,
-		rabbitmqClusterInstance.Namespace,
+		rabbitmqCluster.Name,
+		rabbitmqCluster.Namespace,
 		string(instanceSpec)))
 
-	resources, err := r.getResources(rabbitmqClusterInstance)
+	if rabbitmqCluster.Status.ClusterStatus == "" {
+		r.updateStatus(rabbitmqCluster, "created")
+	} else if rabbitmqCluster.Status.ClusterStatus == "created" || rabbitmqCluster.Status.ClusterStatus == "running" {
+		ready, err := r.ready(rabbitmqCluster)
+		if err != nil {
+			logger.Error(err, "Failed to check if RabbitmqCluster is running")
+			return reconcile.Result{}, err
+		}
+		if ready {
+			r.updateStatus(rabbitmqCluster, "running")
+			return reconcile.Result{}, nil
+		}
+		r.updateStatus(rabbitmqCluster, "created")
+	}
+
+	resources, err := r.getResources(rabbitmqCluster)
 	if err != nil {
-		logger.Error(err, "failed to generate resources")
+		logger.Error(err, "Failed to generate resources")
 		return reconcile.Result{}, err
 	}
 
 	for _, re := range resources {
-		if err := controllerutil.SetControllerReference(rabbitmqClusterInstance, re.(metav1.Object), r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(rabbitmqCluster, re.(metav1.Object), r.Scheme); err != nil {
 			logger.Error(err, "Failed setting controller reference")
 			return reconcile.Result{}, err
 		}
@@ -121,14 +139,66 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			re.(metav1.Object)))
 
 		if err != nil {
-			logger.Error(err, "failed to CreateOrUpdate")
+			logger.Error(err, "Failed to CreateOrUpdate")
 			return reconcile.Result{}, err
 		}
 	}
 
-	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqClusterInstance.Name, rabbitmqClusterInstance.Namespace))
+	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 
-	return reconcile.Result{}, err
+	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+}
+
+func (r *RabbitmqClusterReconciler) updateStatus(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, status string) {
+	rabbitmqCluster.Status.ClusterStatus = status
+	err := r.Status().Update(context.TODO(), rabbitmqCluster)
+	if err != nil {
+		r.Log.Error(err, "Failed updating status")
+	}
+	r.Log.Info(fmt.Sprintf("RabbitmqCluster: %s is %s", rabbitmqCluster.Name, status))
+}
+
+func (r *RabbitmqClusterReconciler) ready(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) (bool, error) {
+	name := types.NamespacedName{
+		Namespace: rabbitmqCluster.Namespace,
+		Name:      rabbitmqCluster.ChildResourceName("ingress"),
+	}
+	if rabbitmqCluster.Spec.Service.Type == "LoadBalancer" {
+		return  r.loadBalancerReady(name)
+	}
+
+	return r.endpointsReady(name)
+}
+
+func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName) (bool, error) {
+	endpoints := &corev1.Endpoints{}
+
+	err := r.Get(context.TODO(), name, endpoints)
+	if err != nil {
+		return false, err
+	}
+
+	for _, e := range endpoints.Subsets {
+		if len(e.NotReadyAddresses) == 0 && len(e.Addresses) > 0 {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName) (bool, error) {
+	svc := &corev1.Service{}
+
+	err := r.Get(context.TODO(), name, svc)
+	if err != nil {
+		return false, err
+	}
+
+	if len(svc.Status.LoadBalancer.Ingress) == 0 || svc.Status.LoadBalancer.Ingress[0].IP == "" {
+		return false, nil
+	}
+
+	return r.endpointsReady(name)
 }
 
 func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
@@ -162,7 +232,7 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 	return resources, nil
 }
 
-func (r *RabbitmqClusterReconciler) getRabbitmqClusterInstance(NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
+func (r *RabbitmqClusterReconciler) getRabbitmqCluster(NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
 	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
 	err := r.Get(context.TODO(), NamespacedName, rabbitmqClusterInstance)
 	return rabbitmqClusterInstance, err
