@@ -100,20 +100,6 @@ func kubectlDelete(namespace, object, objectName string) error {
 	return err
 }
 
-func getExternalIP(clientSet *kubernetes.Clientset, namespace, serviceName string) (string, error) {
-	service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	if len(service.Status.LoadBalancer.Ingress) == 0 {
-		return "", nil
-	}
-
-	ip := service.Status.LoadBalancer.Ingress[0].IP
-	return ip, nil
-}
-
 func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName string) int {
 	endpoints, err := clientSet.CoreV1().Endpoints(namespace).Get(endpointName, metav1.GetOptions{})
 
@@ -333,6 +319,27 @@ func verifyClusterNodes(cluster *rabbitmqv1beta1.RabbitmqCluster, pods []string,
 	}
 }
 
+func assertConfigMapExist(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	Eventually(func() error {
+		_, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(cluster.ChildResourceName(configMapSuffix), metav1.GetOptions{})
+		if err != nil {
+			Expect(err.Error()).To(ContainSubstring("not found"))
+		}
+		return err
+	}, 10).ShouldNot(HaveOccurred())
+
+}
+
+func assertIngressExist(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	Eventually(func() error {
+		_, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
+		if err != nil {
+			Expect(err.Error()).To(ContainSubstring("not found"))
+		}
+		return err
+	}, 10).ShouldNot(HaveOccurred())
+}
+
 func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
 	return cluster.ChildResourceName(strings.Join([]string{statefulSetSuffix, strconv.Itoa(index)}, "-"))
 }
@@ -351,17 +358,11 @@ func rabbitmqNodeNames(cluster *rabbitmqv1beta1.RabbitmqCluster, pods []string) 
 }
 
 func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
-	var (
-		err      error
-		hostname string
-	)
+	service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, len(service.Status.LoadBalancer.Ingress)).To(BeNumerically(">", 0))
 
-	hostname, err = getExternalIP(clientSet, cluster.Namespace, cluster.ChildResourceName(serviceSuffix))
-	if err != nil {
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		return ""
-	}
-	return hostname
+	return service.Status.LoadBalancer.Ingress[0].IP
 }
 
 func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {

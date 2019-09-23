@@ -22,7 +22,7 @@ import (
 const (
 	podCreationTimeout     = 300 * time.Second
 	serviceCreationTimeout = 10 * time.Second
-	serviceSuffix          = "ingress"
+	ingressServiceSuffix   = "ingress"
 	statefulSetSuffix      = "server"
 	configMapSuffix        = "server-conf"
 )
@@ -129,7 +129,7 @@ var _ = Describe("Operator", func() {
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "readiness-rabbit")
-			serviceName = cluster.ChildResourceName(serviceSuffix)
+			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
 			podName = statefulSetPodName(cluster, 0)
 			Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 
@@ -204,19 +204,12 @@ var _ = Describe("Operator", func() {
 			}
 
 			configMapName = cluster.ChildResourceName(configMapSuffix)
-			serviceName = cluster.ChildResourceName(serviceSuffix)
+			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
 
 			Expect(k8sClient.Create(context.TODO(), cluster)).NotTo(HaveOccurred())
+			assertConfigMapExist(clientSet, cluster)
+			assertIngressExist(clientSet, cluster)
 
-			Eventually(func() error {
-				err := clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})
-				return err
-			}, 30, 2).ShouldNot(HaveOccurred())
-
-			Eventually(func() error {
-				err := clientSet.CoreV1().Services(namespace).Delete(serviceName, &metav1.DeleteOptions{})
-				return err
-			}, 30, 2).ShouldNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -227,20 +220,28 @@ var _ = Describe("Operator", func() {
 		})
 
 		It("recreates the resources", func() {
-			Eventually(func() error {
+			//delete resources and assert that they are deleted
+			Expect(clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().Services(namespace).Delete(serviceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+
+			Eventually(func() string {
 				_, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
 				if err != nil {
-					Expect(err.Error()).To(ContainSubstring("not found"))
+					return err.Error()
 				}
-				return err
-			}, 10).ShouldNot(HaveOccurred())
-			Eventually(func() error {
+				return ""
+			}, 10).Should(ContainSubstring("not found"))
+			Eventually(func() string {
 				_, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 				if err != nil {
-					Expect(err.Error()).To(ContainSubstring("not found"))
+					return err.Error()
 				}
-				return err
-			}, 10).ShouldNot(HaveOccurred())
+				return ""
+			}, 10).Should(ContainSubstring("not found"))
+
+			//resources being recreated
+			assertConfigMapExist(clientSet, cluster)
+			assertIngressExist(clientSet, cluster)
 		})
 	})
 
@@ -280,7 +281,7 @@ var _ = Describe("Operator", func() {
 			expectedConfigurations, err = config.NewConfig([]byte(configMap.Data["CONFIG"]))
 
 			cluster = generateRabbitmqCluster(namespace, "nodeport-rabbit")
-			serviceName = cluster.ChildResourceName(serviceSuffix)
+			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
 
 			Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 		})
