@@ -107,17 +107,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	if rabbitmqCluster.Status.ClusterStatus == "" {
 		r.updateStatus(rabbitmqCluster, "created")
-	} else if rabbitmqCluster.Status.ClusterStatus == "created" || rabbitmqCluster.Status.ClusterStatus == "running" {
-		ready, err := r.ready(rabbitmqCluster)
-		if err != nil {
-			logger.Error(err, "Failed to check if RabbitmqCluster is running")
-			return reconcile.Result{}, err
-		}
-		if ready {
-			r.updateStatus(rabbitmqCluster, "running")
-			return reconcile.Result{}, nil
-		}
-		r.updateStatus(rabbitmqCluster, "created")
 	}
 
 	resources, err := r.getResources(rabbitmqCluster)
@@ -146,6 +135,15 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 
+	if rabbitmqCluster.Status.ClusterStatus == "created" || rabbitmqCluster.Status.ClusterStatus == "running" {
+		ready := r.ready(rabbitmqCluster)
+		if ready {
+			r.updateStatus(rabbitmqCluster, "running")
+			return reconcile.Result{}, nil
+		}
+		r.updateStatus(rabbitmqCluster, "created")
+	}
+
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
 
@@ -158,7 +156,7 @@ func (r *RabbitmqClusterReconciler) updateStatus(rabbitmqCluster *rabbitmqv1beta
 	r.Log.Info(fmt.Sprintf("RabbitmqCluster: %s is %s", rabbitmqCluster.Name, status))
 }
 
-func (r *RabbitmqClusterReconciler) ready(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) (bool, error) {
+func (r *RabbitmqClusterReconciler) ready(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) bool {
 	name := types.NamespacedName{
 		Namespace: rabbitmqCluster.Namespace,
 		Name:      rabbitmqCluster.ChildResourceName("ingress"),
@@ -170,32 +168,34 @@ func (r *RabbitmqClusterReconciler) ready(rabbitmqCluster *rabbitmqv1beta1.Rabbi
 	return r.endpointsReady(name)
 }
 
-func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName) (bool, error) {
+func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName) bool {
 	endpoints := &corev1.Endpoints{}
 
 	err := r.Get(context.TODO(), name, endpoints)
 	if err != nil {
-		return false, err
+		r.Log.Error(err, "Failed to check if RabbitmqCluster endpoints are ready")
+		return false
 	}
 
 	for _, e := range endpoints.Subsets {
 		if len(e.NotReadyAddresses) == 0 && len(e.Addresses) > 0 {
-			return true, nil
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
-func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName) (bool, error) {
+func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName) bool {
 	svc := &corev1.Service{}
 
 	err := r.Get(context.TODO(), name, svc)
 	if err != nil {
-		return false, err
+		r.Log.Error(err, "Failed to check if RabbitmqCluster LoadBalancer service object is ready")
+		return false
 	}
 
 	if len(svc.Status.LoadBalancer.Ingress) == 0 || svc.Status.LoadBalancer.Ingress[0].IP == "" {
-		return false, nil
+		return false
 	}
 
 	return r.endpointsReady(name)
