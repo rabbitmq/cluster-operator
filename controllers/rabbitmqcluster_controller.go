@@ -164,7 +164,7 @@ func (r *RabbitmqClusterReconciler) ready(rabbitmqCluster *rabbitmqv1beta1.Rabbi
 		Name:      rabbitmqCluster.ChildResourceName("ingress"),
 	}
 	if rabbitmqCluster.Spec.Service.Type == "LoadBalancer" {
-		return  r.loadBalancerReady(name)
+		return r.loadBalancerReady(name)
 	}
 
 	return r.endpointsReady(name)

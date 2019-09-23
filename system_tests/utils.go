@@ -101,7 +101,17 @@ func kubectlDelete(namespace, object, objectName string) error {
 }
 
 func getExternalIP(clientSet *kubernetes.Clientset, namespace, serviceName string) (string, error) {
+	service, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
 
+	if len(service.Status.LoadBalancer.Ingress) == 0 {
+		return "", nil
+	}
+
+	ip := service.Status.LoadBalancer.Ingress[0].IP
+	return ip, nil
 }
 
 func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName string) int {
