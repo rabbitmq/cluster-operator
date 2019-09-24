@@ -163,13 +163,13 @@ func (r *RabbitmqClusterReconciler) ready(rabbitmqCluster *rabbitmqv1beta1.Rabbi
 		Name:      rabbitmqCluster.ChildResourceName("ingress"),
 	}
 	if rabbitmqCluster.Spec.Service.Type == "LoadBalancer" {
-		return r.loadBalancerReady(name)
+		return r.loadBalancerReady(name) && r.endpointsReady(name, rabbitmqCluster.Spec.Replicas)
 	}
 
-	return r.endpointsReady(name)
+	return r.endpointsReady(name, rabbitmqCluster.Spec.Replicas)
 }
 
-func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName) bool {
+func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName, replicas int) bool {
 	endpoints := &corev1.Endpoints{}
 
 	err := r.Get(context.TODO(), name, endpoints)
@@ -179,7 +179,7 @@ func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName) bo
 	}
 
 	for _, e := range endpoints.Subsets {
-		if len(e.NotReadyAddresses) == 0 && len(e.Addresses) > 0 {
+		if len(e.NotReadyAddresses) == 0 && len(e.Addresses) == replicas {
 			return true
 		}
 	}
@@ -199,7 +199,7 @@ func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName)
 		return false
 	}
 
-	return r.endpointsReady(name)
+	return true
 }
 
 func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {

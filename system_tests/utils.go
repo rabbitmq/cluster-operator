@@ -393,13 +393,7 @@ func assertStatefulSetReady(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	numReplicas := cluster.Spec.Replicas
 
 	EventuallyWithOffset(1, func() []byte {
-		output, err := kubectl(
-			"-n",
-			cluster.Namespace,
-			"get",
-			"sts",
-			cluster.ChildResourceName(statefulSetSuffix),
-		)
+		output, err := statefulSetStatus(cluster)
 
 		if err != nil {
 			Expect(output).To(ContainSubstring("not found"))
@@ -407,6 +401,16 @@ func assertStatefulSetReady(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 
 		return output
 	}, podCreationTimeout*time.Duration(numReplicas), 1).Should(ContainSubstring(fmt.Sprintf("%d/%d", numReplicas, numReplicas)))
+}
+
+func statefulSetStatus(cluster *rabbitmqv1beta1.RabbitmqCluster) ([]byte, error) {
+	return kubectl(
+		"-n",
+		cluster.Namespace,
+		"get",
+		"sts",
+		cluster.ChildResourceName(statefulSetSuffix),
+	)
 }
 
 func assertHttpReady(hostname string) {

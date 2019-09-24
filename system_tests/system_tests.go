@@ -96,10 +96,7 @@ var _ = Describe("Operator", func() {
 			})
 
 			By("updating the CR status correctly", func() {
-				Eventually(func() error {
-					err := clientSet.CoreV1().Pods(namespace).Delete(statefulSetPodName(cluster, 0), &metav1.DeleteOptions{})
-					return err
-				}, 10, 2).ShouldNot(HaveOccurred())
+				Expect(clientSet.CoreV1().Pods(namespace).Delete(statefulSetPodName(cluster, 0), &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
 				Eventually(func() []byte {
 					output, err := kubectl(
@@ -426,15 +423,21 @@ var _ = Describe("Operator", func() {
 				cluster.Spec.Replicas = 3
 				cluster.Spec.Service.Type = "LoadBalancer"
 				Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
-
-				assertStatefulSetReady(cluster)
 			})
 
 			AfterEach(func() {
 				Expect(k8sClient.Delete(context.TODO(), cluster)).To(Succeed())
 			})
 
-			It("forms a working cluster", func() {
+			It("works", func() {
+
+				By("updating the cluster status correctly")
+				waitForRabbitmqRunning(cluster)
+				output, err := statefulSetStatus(cluster)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(output)).To(ContainSubstring("3/3"))
+
+				By("forming a 3 nodes cluster")
 				pods := []string{
 					statefulSetPodName(cluster, 0),
 					statefulSetPodName(cluster, 1),
