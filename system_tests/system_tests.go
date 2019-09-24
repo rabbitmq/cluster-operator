@@ -160,33 +160,12 @@ var _ = Describe("Operator", func() {
 		})
 	})
 
-	When("the StatefulSet is deleted", func() {
-		var cluster *rabbitmqv1beta1.RabbitmqCluster
-
-		BeforeEach(func() {
-			cluster = generateRabbitmqCluster(namespace, "statefulset-rabbit")
-			Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
-
-			assertStatefulSetReady(cluster)
-		})
-
-		AfterEach(func() {
-			Expect(k8sClient.Delete(context.TODO(), cluster)).To(Succeed())
-		})
-
-		It("reconciles the state, and the cluster is working again", func() {
-			err := kubectlDelete(namespace, "statefulset", cluster.ChildResourceName(statefulSetSuffix))
-			Expect(err).NotTo(HaveOccurred())
-
-			assertStatefulSetReady(cluster)
-		})
-	})
-
-	When("the ConfigMap and Service resources are deleted", func() {
+	When("resources are deleted", func() {
 		var (
 			cluster       *rabbitmqv1beta1.RabbitmqCluster
 			configMapName string
 			serviceName   string
+			stsName       string
 		)
 
 		BeforeEach(func() {
@@ -202,11 +181,12 @@ var _ = Describe("Operator", func() {
 
 			configMapName = cluster.ChildResourceName(configMapSuffix)
 			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
+			stsName = cluster.ChildResourceName(statefulSetSuffix)
 
 			Expect(k8sClient.Create(context.TODO(), cluster)).NotTo(HaveOccurred())
 			assertConfigMapExist(clientSet, cluster)
 			assertIngressExist(clientSet, cluster)
-
+			assertStatefulSetReady(cluster)
 		})
 
 		AfterEach(func() {
@@ -217,28 +197,44 @@ var _ = Describe("Operator", func() {
 		})
 
 		It("recreates the resources", func() {
-			//delete resources and assert that they are deleted
+			oldConfMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			oldIngressSvc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			oldSts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(clientSet.AppsV1().StatefulSets(namespace).Delete(stsName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 			Expect(clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 			Expect(clientSet.CoreV1().Services(namespace).Delete(serviceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
 			Eventually(func() string {
-				_, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+				confMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
 				if err != nil {
 					return err.Error()
 				}
-				return ""
-			}, 10).Should(ContainSubstring("not found"))
-			Eventually(func() string {
-				_, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
-				if err != nil {
-					return err.Error()
-				}
-				return ""
-			}, 10).Should(ContainSubstring("not found"))
+				return string(confMap.UID)
+			}, 10).Should(Not(Equal(oldConfMap.UID)))
 
-			//resources being recreated
-			assertConfigMapExist(clientSet, cluster)
-			assertIngressExist(clientSet, cluster)
+			Eventually(func() string {
+				ingressSvc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
+				if err != nil {
+					return err.Error()
+				}
+				return string(ingressSvc.UID)
+			}, 10).Should(Not(Equal(oldIngressSvc.UID)))
+
+			Eventually(func() string {
+				sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
+				if err != nil {
+					return err.Error()
+				}
+				return string(sts.UID)
+			}, 10).Should(Not(Equal(oldSts.UID)))
+
+			assertStatefulSetReady(cluster)
 		})
 	})
 
