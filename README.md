@@ -8,4 +8,3 @@ Until we start using Pivotal Docs, we're generating the installation guide with 
 
 Note: `pandoc` uses LaTeX (use BasicTeX or MacTeX for a smaller install) 
 
-
