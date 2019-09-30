@@ -18,7 +18,9 @@ RUN apt-get update \
   && mv /tmp/kubebuilder_${KUBEBUILDER_VERSION}_linux_amd64 /usr/local/kubebuilder \
   && echo "deb https://packages.cloud.google.com/apt cloud-sdk-xenial main" > /etc/apt/sources.list.d/google-cloud-sdk.list \
   && apt-get update \
-  && apt-get install -y google-cloud-sdk=${CLOUD_SDK_VERSION}-0 kubectl make jq gcc git wget
+  && apt-get install -y google-cloud-sdk=${CLOUD_SDK_VERSION}-0 kubectl make jq gcc git wget \
+  && curl -L -o /usr/local/bin/duffle https://github.com/deislabs/duffle/releases/download/0.3.3-beta.1/duffle-linux-amd64 \
+  && chmod +x /usr/local/bin/duffle
 
 RUN curl -L -o /usr/local/bin/kapp https://github.com/k14s/kapp/releases/download/${KAPP_VERSION}/kapp-linux-amd64 \
   && chmod +x /usr/local/bin/kapp
