@@ -14,7 +14,7 @@ SERVICE:
   ANNOTATIONS:
     some-key: some-annotation
 IMAGE_PULL_SECRET: thought-leader
-IMAGE_REPOSITORY: some-great-repo
+IMAGE_URL: some-great-repo/bunny/rabbitmq
 PERSISTENCE:
   STORAGE: 1Gi
   STORAGE_CLASS_NAME: storage-class-name
@@ -24,7 +24,7 @@ PERSISTENCE:
 		Expect(config.Service.Type).To(Equal("test-type"))
 		Expect(config.Service.Annotations["some-key"]).To(Equal("some-annotation"))
 		Expect(config.ImagePullSecret).To(Equal("thought-leader"))
-		Expect(config.ImageRepository).To(Equal("some-great-repo"))
+		Expect(config.ImageUrl).To(Equal("some-great-repo/bunny/rabbitmq"))
 		Expect(config.Persistence.Storage).To(Equal("1Gi"))
 		Expect(config.Persistence.StorageClassName).To(Equal("storage-class-name"))
 	})
@@ -49,7 +49,7 @@ SERVICE:
   ANNOTATIONS:
     some-key: some-annotation
 IMAGE_PULL_SECRET: thought-leader
-IMAGE_REPOSITORY: some-great-repo
+IMAGE_URL: some-great-repo/bunny/rabbitmq
 `
 				config, err := config.NewConfig([]byte(rawConfig))
 				Expect(err).NotTo(HaveOccurred())
@@ -63,7 +63,7 @@ IMAGE_REPOSITORY: some-great-repo
 SERVICE:
   TYPE: test-type
 IMAGE_PULL_SECRET: thought-leader
-IMAGE_REPOSITORY: some-great-repo
+IMAGE_URL: some-great-repo/bunny/rabbitmq
 `
 				config, err := config.NewConfig([]byte(rawConfig))
 				Expect(err).NotTo(HaveOccurred())
@@ -79,11 +79,11 @@ SERVICE:
   TYPE: test-type
   ANNOTATIONS:
     some-key: some-annotation
-IMAGE_REPOSITORY: some-great-repo
+IMAGE_URL: some-great-repo/bunny/rabbitmq
 `
 				config, err := config.NewConfig([]byte(rawConfig))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(config.ImageRepository).To(Equal("some-great-repo"))
+				Expect(config.ImageUrl).To(Equal("some-great-repo/bunny/rabbitmq"))
 				Expect(config.ImagePullSecret).To(Equal(""))
 			})
 		})

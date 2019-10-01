@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"regexp"
 
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,13 +15,14 @@ import (
 )
 
 const (
-	rabbitmqImage              string = "rabbitmq:3.8.0-rc.1"
+	rabbitmqImageName          string = "rabbitmq"
+	rabbitmqImageTag           string = "3.8.0-rc.1"
 	defaultPersistenceCapacity string = "10Gi"
 )
 
-func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageRepository, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
+func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageUrl, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
 	t := true
-	image := rabbitmqImage
+	image := fmt.Sprintf("%s:%s", rabbitmqImageName, rabbitmqImageTag)
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
@@ -29,10 +31,15 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReposito
 		replicas = int32(1)
 	}
 
+	regex := "^.+:[^\\/]+$"
+	r := regexp.MustCompile(regex)
+
 	if instance.Spec.Image.Repository != "" {
 		image = fmt.Sprintf("%s/%s", instance.Spec.Image.Repository, image)
-	} else if imageRepository != "" {
-		image = fmt.Sprintf("%s/%s", imageRepository, image)
+	} else if imageUrl != "" && r.MatchString(imageUrl) {
+		image = fmt.Sprintf("%s", imageUrl)
+	} else if imageUrl != "" {
+		image = fmt.Sprintf("%s:%s", imageUrl, rabbitmqImageTag)
 	}
 
 	imagePullSecrets := []corev1.LocalObjectReference{}

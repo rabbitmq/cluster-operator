@@ -18,9 +18,10 @@ package main
 
 import (
 	"flag"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 	"io/ioutil"
 	"os"
+
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
@@ -80,7 +81,7 @@ func main() {
 		Scheme:                      mgr.GetScheme(),
 		ServiceType:                 config.Service.Type,
 		ServiceAnnotations:          config.Service.Annotations,
-		ImageRepository:             config.ImageRepository,
+		ImageUrl:                    config.ImageUrl,
 		ImagePullSecret:             config.ImagePullSecret,
 		PersistenceStorage:          config.Persistence.Storage,
 		PersistenceStorageClassName: config.Persistence.StorageClassName,

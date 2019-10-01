@@ -66,7 +66,14 @@ In your cluster, create a Kubernetes secret that authorises access to private im
 ### Configure Image Repository
 
 Provide your repository url in our operator manifest (`manifests/operator.yaml`)
-Replace all references of "REPLACE-WITH-IMAGE-REPOSITORY-HOST" with your image repository host `<your-repository>`
+Replace all references of "REPLACE-WITH-RABBITMQ-IMAGE-URL" with the full rabbitmq image URL. The following are accepted formats:
+
+`<your-repository>/rabbitmq`
+`<your-repository>/rabbitmq:<version>`
+`<your-repository>/rabbitmq@<digest>`
+
+If you specify a tag or digest sha, rabbitmq will deploy at that version, if not it will default to `3.8.0`.
+
 Replace all references of "REPLACE-WITH-OPERATOR-IMAGE-URL" with the full operator image URL:
 
 `<your-repository>/rabbitmq-for-kubernetes-operator:<version>`
