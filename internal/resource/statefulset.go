@@ -16,7 +16,7 @@ import (
 
 const (
 	rabbitmqImageName          string = "rabbitmq"
-	rabbitmqImageTag           string = "3.8.0-rc.1"
+	rabbitmqImageTag           string = "3.8.0"
 	defaultPersistenceCapacity string = "10Gi"
 )
 

@@ -13,7 +13,7 @@ import (
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-const rabbitmqImageName = "rabbitmq:3.8.0-rc.1"
+const rabbitmqImageName = "rabbitmq:3.8.0"
 
 var _ = Describe("StatefulSet", func() {
 	var (
@@ -422,12 +422,12 @@ var _ = Describe("StatefulSet", func() {
 			})
 			When("there is no tag or digest sha on the image URL", func() {
 				imageURL := "best-repository/rabbitmq"
-				expectedURL := "best-repository/rabbitmq:3.8.0-rc.1"
+				expectedURL := "best-repository/rabbitmq:3.8.0"
 				ImageURLTests(imageURL, expectedURL)
 			})
 			When("an image tag and sha are both appended to image URL", func() {
-				imageURL := "best-repository/rabbitmq:3.8.0-rc.1@sha256:12345"
-				expectedURL := "best-repository/rabbitmq:3.8.0-rc.1@sha256:12345"
+				imageURL := "best-repository/rabbitmq:3.8.0@sha256:12345"
+				expectedURL := "best-repository/rabbitmq:3.8.0@sha256:12345"
 				ImageURLTests(imageURL, expectedURL)
 			})
 		})
