@@ -42,6 +42,16 @@ func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secr
 	}, nil
 }
 
+func GenerateRegistrySecret(secret *corev1.Secret, namespace string) *corev1.Secret {
+	registrySecret := &corev1.Secret{}
+
+	registrySecret.Namespace = namespace
+	registrySecret.Name = secret.Name
+	registrySecret.Data = secret.Data
+	registrySecret.Type = secret.Type
+	return registrySecret
+}
+
 func GenerateErlangCookie(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, error) {
 	cookie, err := randomEncodedString(24)
 	if err != nil {

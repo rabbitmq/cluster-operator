@@ -89,9 +89,10 @@ var _ = BeforeSuite(func() {
 	client = mgr.GetClient()
 
 	reconciler := &controllers.RabbitmqClusterReconciler{
-		Client: client,
-		Log:    ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
-		Scheme: mgr.GetScheme(),
+		Client:          client,
+		Log:             ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
+		Scheme:          mgr.GetScheme(),
+		ImagePullSecret: "pivotal-rmq-registry-access",
 	}
 
 	var testReconciler reconcile.Reconciler

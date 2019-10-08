@@ -230,6 +230,16 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		resource.GenerateRoleBinding(*rabbitmqClusterInstance),
 	}
 
+	if r.ImagePullSecret != "" {
+		operatorRegistrySecret, err := r.getImagePullSecret(types.NamespacedName{Namespace: "pivotal-rabbitmq-system", Name: r.ImagePullSecret})
+		if err != nil {
+			return nil, fmt.Errorf("failed to find operator image pull secret: %v", err)
+		}
+
+		clusterRegistrySecret := resource.GenerateRegistrySecret(operatorRegistrySecret, rabbitmqClusterInstance.Namespace)
+		resources = append(resources, clusterRegistrySecret)
+	}
+
 	return resources, nil
 }
 
@@ -237,6 +247,12 @@ func (r *RabbitmqClusterReconciler) getRabbitmqCluster(NamespacedName types.Name
 	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
 	err := r.Get(context.TODO(), NamespacedName, rabbitmqClusterInstance)
 	return rabbitmqClusterInstance, err
+}
+
+func (r *RabbitmqClusterReconciler) getImagePullSecret(NamespacedName types.NamespacedName) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	err := r.Get(context.TODO(), NamespacedName, secret)
+	return secret, err
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
