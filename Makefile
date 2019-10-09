@@ -59,8 +59,8 @@ configure-kubectl-ci: ci-cluster
 
 # Cleanup all controller artefacts
 destroy:
-	kubectl delete -k config/default/base
-	kubectl delete -k config/namespace/base
+	kubectl delete -k config/default/base --ignore-not-found=true
+	kubectl delete -k config/namespace/base --ignore-not-found=true
 
 destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/default/overlays/ci --ignore-not-found=true
