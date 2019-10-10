@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-CONTROLLER_IMAGE=eu.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-operator
+CONTROLLER_IMAGE=registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq-for-kubernetes-operator
 CI_IMAGE=us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
 GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
 RABBITMQ_USERNAME=guest
