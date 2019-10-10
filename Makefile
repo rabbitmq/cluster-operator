@@ -143,17 +143,17 @@ system-tests:
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -p --randomizeAllSpecs -r system_tests/
 
 DOCKER_REGISTRY_SECRET=p-rmq-registry-access
-DOCKER_SERVER=registry.pivotal.io
-DOCKER_USERNAME=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-registry-ci" --notes | jq -r .name)
-DOCKER_PASSWORD=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-registry-ci" --notes | jq -r .token)
+DOCKER_REGISTRY_SERVER=registry.pivotal.io
+DOCKER_REGISTRY_USERNAME=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-registry-ci" --notes | jq -r .name)
+DOCKER_REGISTRY_PASSWORD=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-registry-ci" --notes | jq -r .token)
 docker-registry-secret: operator-namespace
 	echo "creating registry secret and patching default service account"
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_SERVER)' --docker-username='$(DOCKER_USERNAME)' --docker-password='$(DOCKER_PASSWORD)' || true
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username='$(DOCKER_REGISTRY_USERNAME)' --docker-password='$(DOCKER_REGISTRY_PASSWORD)' || true
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
 docker-registry-secret-ci: operator-namespace
 	echo "creating registry secret and patching default service account"
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_SERVER)' --docker-username='$(DOCKER_USERNAME)' --docker-password='$(DOCKER_PASSWORD)' || true
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username='$(DOCKER_REGISTRY_USERNAME)' --docker-password='$(DOCKER_REGISTRY_PASSWORD)' || true
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
 # find or download controller-gen
