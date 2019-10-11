@@ -238,14 +238,14 @@ var _ = Describe("Operator", func() {
 		})
 	})
 
-	When("using our gcr repository", func() {
+	When("using our pivnet registry", func() {
 		var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "image-rabbit")
 
-			cluster.Spec.Image.Repository = "eu.gcr.io/cf-rabbitmq-for-k8s-bunny"
-			cluster.Spec.ImagePullSecret = "gcr-viewer"
+			cluster.Spec.Image.Repository = "registry.pivnet.io/p-rabbitmq-for-kubernetes-staging"
+			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			Expect(createRabbitmqCluster(k8sClient, cluster)).NotTo(HaveOccurred())
 		})
 
