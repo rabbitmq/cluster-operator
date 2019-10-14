@@ -91,10 +91,8 @@ func generateRabbitmqClusterObject(clusterName string, numReplicas int) *Rabbitm
 			Namespace: "default",
 		},
 		Spec: RabbitmqClusterSpec{
-			Replicas: numReplicas,
-			Image: RabbitmqClusterImageSpec{
-				Repository: "my-private-repo",
-			},
+			Replicas:        numReplicas,
+			Image:           "my-private-repo",
 			ImagePullSecret: "some-secret-name",
 			Service: RabbitmqClusterServiceSpec{
 				Type: "LoadBalancer",

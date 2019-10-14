@@ -8,7 +8,7 @@ data:
   CONFIG: |
     SERVICE:
       TYPE: "ClusterIP"
-    IMAGE_URL: "REPLACE-WITH-RABBITMQ-IMAGE-URL"
+    IMAGE: "REPLACE-WITH-RABBITMQ-IMAGE-REFERENCE"
     IMAGE_PULL_SECRET: ""
 ---
 apiVersion: apps/v1

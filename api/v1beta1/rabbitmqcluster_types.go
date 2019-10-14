@@ -17,22 +17,19 @@ limitations under the License.
 package v1beta1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
 type RabbitmqClusterSpec struct {
 	// +kubebuilder:validation:Enum=1;3
 	Replicas        int                            `json:"replicas"`
-	Image           RabbitmqClusterImageSpec       `json:"image,omitempty"`
+	Image           string                         `json:"image,omitempty"`
 	ImagePullSecret string                         `json:"imagePullSecret,omitempty"`
 	Service         RabbitmqClusterServiceSpec     `json:"service,omitempty"`
 	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
-}
-
-type RabbitmqClusterImageSpec struct {
-	Repository string `json:"repository"`
 }
 
 type RabbitmqClusterPersistenceSpec struct {

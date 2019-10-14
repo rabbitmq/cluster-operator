@@ -81,7 +81,7 @@ func main() {
 		Scheme:                      mgr.GetScheme(),
 		ServiceType:                 config.Service.Type,
 		ServiceAnnotations:          config.Service.Annotations,
-		ImageUrl:                    config.ImageUrl,
+		Image:                       config.Image,
 		ImagePullSecret:             config.ImagePullSecret,
 		PersistenceStorage:          config.Persistence.Storage,
 		PersistenceStorageClassName: config.Persistence.StorageClassName,

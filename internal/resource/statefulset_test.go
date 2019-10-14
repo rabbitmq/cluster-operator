@@ -13,8 +13,6 @@ import (
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-const rabbitmqImageName = "rabbitmq:3.8.0"
-
 var _ = Describe("StatefulSet", func() {
 	var (
 		instance rabbitmqv1beta1.RabbitmqCluster
@@ -270,7 +268,7 @@ var _ = Describe("StatefulSet", func() {
 
 		It("templates the image string and the imagePullSecrets with default values", func() {
 			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-			Expect(container.Image).To(Equal(rabbitmqImageName))
+			Expect(container.Image).To(Equal("rabbitmq:3.8.0"))
 			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 		})
 
@@ -305,7 +303,7 @@ var _ = Describe("StatefulSet", func() {
 				},
 			))
 
-			Expect(container.Image).To(Equal(rabbitmqImageName))
+			Expect(container.Image).To(Equal("rabbitmq:3.8.0"))
 		})
 	})
 
@@ -378,57 +376,37 @@ var _ = Describe("StatefulSet", func() {
 
 		When("configuring a private image repository", func() {
 			It("templates the image string and the imagePullSecrets correctly", func() {
-				instance.Spec.Image.Repository = "my-private-repo"
+				instance.Spec.Image = "my-private-repo/rabbitmq:3.8.0"
 				instance.Spec.ImagePullSecret = "my-great-secret"
 
 				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", scheme)
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(container.Image).To(Equal("my-private-repo/" + rabbitmqImageName))
+				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:3.8.0"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 
 				initContainer := extractContainer(statefulSet.Spec.Template.Spec.InitContainers, "copy-config")
-				Expect(initContainer.Image).To(Equal("my-private-repo/" + rabbitmqImageName))
+				Expect(initContainer.Image).To(Equal("my-private-repo/rabbitmq:3.8.0"))
 			})
 		})
 
 		When("image repository and ImagePullSecret are provided through function params", func() {
 
 			// Anonymouse function used in this context because we had issues scoping the instance and scheme without a closure
-			ImageURLTests := func(imageURL, expectedImagePath string) {
-				It("uses the provide repository and secret if not specified in RabbitmqCluster spec", func() {
-					statefulSet, _ := resource.GenerateStatefulSet(instance, imageURL, "my-secret", "", "", scheme)
-					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-					Expect(container.Image).To(Equal(expectedImagePath))
-					Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-secret"}))
-				})
-
-				It("uses the RabbitmqCluster spec if it is provided", func() {
-					instance.Spec.Image.Repository = "my-private-repo"
-					instance.Spec.ImagePullSecret = "my-great-secret"
-					statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository/rabbitmq:some-tag", "my-secret", "", "", scheme)
-					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-					Expect(container.Image).To(Equal("my-private-repo/" + rabbitmqImageName))
-					Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
-				})
-			}
-
-			When("an image tag is appended to the image URL", func() {
+			It("uses the provided repository and secret if not specified in RabbitmqCluster spec", func() {
 				imageURL := "best-repository/rabbitmq:some-tag"
-				ImageURLTests(imageURL, imageURL)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, imageURL, "my-secret", "", "", scheme)
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.Image).To(Equal("best-repository/rabbitmq:some-tag"))
+				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-secret"}))
 			})
-			When("a digest sha is appended to the image URL", func() {
-				imageURL := "best-repository/rabbitmq@sha256:12345"
-				ImageURLTests(imageURL, imageURL)
-			})
-			When("there is no tag or digest sha on the image URL", func() {
-				imageURL := "best-repository/rabbitmq"
-				expectedURL := "best-repository/rabbitmq:3.8.0"
-				ImageURLTests(imageURL, expectedURL)
-			})
-			When("an image tag and sha are both appended to image URL", func() {
-				imageURL := "best-repository/rabbitmq:3.8.0@sha256:12345"
-				expectedURL := "best-repository/rabbitmq:3.8.0@sha256:12345"
-				ImageURLTests(imageURL, expectedURL)
+
+			It("uses the RabbitmqCluster spec if it is provided", func() {
+				instance.Spec.Image = "my-private-repo/rabbitmq:3.8.0"
+				instance.Spec.ImagePullSecret = "my-great-secret"
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository/rabbitmq:some-tag", "my-secret", "", "", scheme)
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:3.8.0"))
+				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 			})
 		})
 

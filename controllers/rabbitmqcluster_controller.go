@@ -56,7 +56,7 @@ type RabbitmqClusterReconciler struct {
 	Scheme                      *runtime.Scheme
 	ServiceType                 string
 	ServiceAnnotations          map[string]string
-	ImageUrl                    string
+	Image                       string
 	ImagePullSecret             string
 	PersistenceStorageClassName string
 	PersistenceStorage          string
@@ -213,7 +213,7 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		return nil, fmt.Errorf("failed to generate erlang cookie: %v ", err)
 	}
 
-	statefulSet, err := resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.ImageUrl, r.ImagePullSecret, r.PersistenceStorageClassName, r.PersistenceStorage, r.Scheme)
+	statefulSet, err := resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, r.ImagePullSecret, r.PersistenceStorageClassName, r.PersistenceStorage, r.Scheme)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
 	}

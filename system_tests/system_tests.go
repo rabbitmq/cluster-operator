@@ -240,7 +240,7 @@ var _ = Describe("Operator", func() {
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "image-rabbit")
 
-			cluster.Spec.Image.Repository = "registry.pivotal.io/p-rabbitmq-for-kubernetes-staging"
+			cluster.Spec.Image = "registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq:latest"
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 		})

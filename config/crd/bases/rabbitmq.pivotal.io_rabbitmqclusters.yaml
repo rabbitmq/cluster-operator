@@ -395,12 +395,7 @@ spec:
         spec:
           properties:
             image:
-              properties:
-                repository:
-                  type: string
-              required:
-              - repository
-              type: object
+              type: string
             imagePullSecret:
               type: string
             persistence:

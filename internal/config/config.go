@@ -20,7 +20,7 @@ type Config struct {
 	Service         serviceConfig     `yaml:"SERVICE"`
 	Persistence     persistenceConfig `yaml:"PERSISTENCE"`
 	ImagePullSecret string            `yaml:"IMAGE_PULL_SECRET"`
-	ImageUrl        string            `yaml:"IMAGE_URL"`
+	Image           string            `yaml:"IMAGE"`
 }
 
 func NewConfig(configRaw []byte) (*Config, error) {
