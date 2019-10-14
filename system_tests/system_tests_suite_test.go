@@ -19,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -29,12 +28,12 @@ func TestSystemTests(t *testing.T) {
 }
 
 var (
-	k8sClient                 client.Client
+	rmqClusterClient          client.Client
 	clientSet                 *kubernetes.Clientset
 	namespace                 string
 	mgr                       manager.Manager
-	specifiedStorageClassName string
-	specifiedStorageCapacity  string
+	specifiedStorageClassName = "persistent-test"
+	specifiedStorageCapacity  = "1Gi"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -45,17 +44,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	restConfig, err := createRestConfig()
 	Expect(err).NotTo(HaveOccurred())
 
-	mgr, err = ctrl.NewManager(restConfig, ctrl.Options{Scheme: scheme})
+	rmqClusterClient, err := client.New(restConfig, client.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
-	k8sClient = mgr.GetClient()
 
 	clientSet, err = createClientSet()
 	Expect(err).NotTo(HaveOccurred())
 
 	namespace = MustHaveEnv("NAMESPACE")
-
-	specifiedStorageClassName = "persistent-test"
-	specifiedStorageCapacity = "1Gi"
 
 	storageClass := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
@@ -63,7 +58,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		},
 		Provisioner: "kubernetes.io/gce-pd",
 	}
-	err = k8sClient.Create(context.TODO(), storageClass)
+	err = rmqClusterClient.Create(context.TODO(), storageClass)
 	if !apierrors.IsAlreadyExists(err) {
 		Expect(err).NotTo(HaveOccurred())
 	}
@@ -124,15 +119,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	restConfig, err := createRestConfig()
 	Expect(err).NotTo(HaveOccurred())
 
-	mgr, err = ctrl.NewManager(restConfig, ctrl.Options{Scheme: scheme})
-	Expect(err).NotTo(HaveOccurred())
-	k8sClient = mgr.GetClient()
-
-	clientSet, err = createClientSet()
+	rmqClusterClient, err = client.New(restConfig, client.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
 
-	namespace = MustHaveEnv("NAMESPACE")
-
-	specifiedStorageClassName = "persistent-test"
-	specifiedStorageCapacity = "1Gi"
 })
