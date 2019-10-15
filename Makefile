@@ -59,6 +59,7 @@ configure-kubectl-ci: ci-cluster
 
 # Cleanup all controller artefacts
 destroy:
+	kubectl delete -k config/crd --ignore-not-found=true
 	kubectl delete -k config/default/base --ignore-not-found=true
 	kubectl delete -k config/namespace/base --ignore-not-found=true
 	kubectl delete -k config/crd --ignore-not-found=true
