@@ -93,6 +93,7 @@ var _ = BeforeSuite(func() {
 		Log:             ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
 		Scheme:          mgr.GetScheme(),
 		ImagePullSecret: "pivotal-rmq-registry-access",
+		Namespace:       "pivotal-rabbitmq-system",
 	}
 
 	var testReconciler reconcile.Reconciler

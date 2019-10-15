@@ -58,6 +58,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	operatorNamespace := os.Getenv("OPERATOR_NAMESPACE")
+	if operatorNamespace == "" {
+		setupLog.Error(err, "unable to find operator namespace")
+		os.Exit(1)
+	}
+
 	configPath := os.Getenv("CONFIG_FILEPATH")
 	if configPath == "" {
 		setupLog.Error(err, "unable to find config file")
@@ -85,6 +91,7 @@ func main() {
 		ImagePullSecret:             config.ImagePullSecret,
 		PersistenceStorage:          config.Persistence.Storage,
 		PersistenceStorageClassName: config.Persistence.StorageClassName,
+		Namespace:                   operatorNamespace,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")

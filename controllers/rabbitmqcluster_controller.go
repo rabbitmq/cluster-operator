@@ -60,6 +60,7 @@ type RabbitmqClusterReconciler struct {
 	ImagePullSecret             string
 	PersistenceStorageClassName string
 	PersistenceStorage          string
+	Namespace                   string
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -231,7 +232,7 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 	}
 
 	if r.ImagePullSecret != "" && rabbitmqClusterInstance.Spec.ImagePullSecret == "" {
-		operatorRegistrySecret, err := r.getImagePullSecret(types.NamespacedName{Namespace: "pivotal-rabbitmq-system", Name: r.ImagePullSecret})
+		operatorRegistrySecret, err := r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
 		if err != nil {
 			return nil, fmt.Errorf("failed to find operator image pull secret: %v", err)
 		}
