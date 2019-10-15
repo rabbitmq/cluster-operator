@@ -230,13 +230,13 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		resource.GenerateRoleBinding(*rabbitmqClusterInstance),
 	}
 
-	if r.ImagePullSecret != "" {
+	if r.ImagePullSecret != "" && rabbitmqClusterInstance.Spec.ImagePullSecret == "" {
 		operatorRegistrySecret, err := r.getImagePullSecret(types.NamespacedName{Namespace: "pivotal-rabbitmq-system", Name: r.ImagePullSecret})
 		if err != nil {
 			return nil, fmt.Errorf("failed to find operator image pull secret: %v", err)
 		}
 
-		clusterRegistrySecret := resource.GenerateRegistrySecret(operatorRegistrySecret, rabbitmqClusterInstance.Namespace)
+		clusterRegistrySecret := resource.GenerateRegistrySecret(operatorRegistrySecret, rabbitmqClusterInstance.Namespace, rabbitmqClusterInstance.Name)
 		resources = append(resources, clusterRegistrySecret)
 	}
 

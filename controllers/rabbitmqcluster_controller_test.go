@@ -18,6 +18,7 @@ package controllers_test
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -38,6 +39,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		expectedRequest reconcile.Request
 		registrySecret  *corev1.Secret
+		secretName      = "rabbitmq-one-registry-access"
 	)
 
 	var resourceTests = func() {
@@ -138,10 +140,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 			Expect(client.Delete(context.TODO(), registrySecret)).To(Succeed())
+			Expect(clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Delete(secretName, &metav1.DeleteOptions{})).To(Succeed())
 		})
 
 		It("creating the registry secret", func() {
-			secretName := "pivotal-rmq-registry-access"
 			_, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -156,7 +158,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
+					Replicas:        1,
+					ImagePullSecret: "rabbit-one-secret",
 				},
 			}
 
@@ -166,11 +169,32 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
+			registrySecret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pivotal-rmq-registry-access",
+					Namespace: "pivotal-rabbitmq-system",
+				},
+			}
+			Expect(client.Create(context.TODO(), registrySecret)).To(Succeed())
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 		})
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(context.TODO(), registrySecret)).To(Succeed())
+		})
+
+		It("does not create a new registry secret", func() {
+			imageSecretSuffix := "registry-access"
+			secretList, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).List(metav1.ListOptions{})
+			var secretsWithImagePullSecretSuffix []corev1.Secret
+			for _, i := range secretList.Items {
+				if strings.Contains(i.Name, imageSecretSuffix) {
+					secretsWithImagePullSecretSuffix = append(secretsWithImagePullSecretSuffix, i)
+				}
+			}
+			Expect(secretsWithImagePullSecretSuffix).To(BeEmpty())
+			Expect(err).NotTo(HaveOccurred())
 		})
 		resourceTests()
 	})

@@ -3,6 +3,7 @@ package resource
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,8 +11,9 @@ import (
 )
 
 const (
-	adminSecretName  = "admin"
-	erlangCookieName = "erlang-cookie"
+	adminSecretName   = "admin"
+	erlangCookieName  = "erlang-cookie"
+	imageSecretSuffix = "registry-access"
 )
 
 func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, error) {
@@ -42,11 +44,11 @@ func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secr
 	}, nil
 }
 
-func GenerateRegistrySecret(secret *corev1.Secret, namespace string) *corev1.Secret {
+func GenerateRegistrySecret(secret *corev1.Secret, namespace string, instanceName string) *corev1.Secret {
 	registrySecret := &corev1.Secret{}
 
 	registrySecret.Namespace = namespace
-	registrySecret.Name = secret.Name
+	registrySecret.Name = fmt.Sprintf("%s-%s", instanceName, imageSecretSuffix)
 	registrySecret.Data = secret.Data
 	registrySecret.Type = secret.Type
 	return registrySecret
