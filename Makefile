@@ -61,10 +61,12 @@ configure-kubectl-ci: ci-cluster
 destroy:
 	kubectl delete -k config/default/base --ignore-not-found=true
 	kubectl delete -k config/namespace/base --ignore-not-found=true
+	kubectl delete -k config/crd --ignore-not-found=true
 
 destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/default/overlays/ci --ignore-not-found=true
 	kubectl delete -k config/namespace/base --ignore-not-found=true
+	kubectl delete -k config/crd --ignore-not-found=true
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate manifests fmt vet install deploy-namespace
