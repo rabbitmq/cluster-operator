@@ -44,13 +44,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	var resourceTests = func() {
 		It("reconciles", func() {
-			By("creating the StatefulSet", func() {
-				stsName := rabbitmqCluster.ChildResourceName("server")
-				sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(sts.Name).To(Equal(stsName))
-			})
-
 			By("creating the server conf configmap", func() {
 				configMapName := rabbitmqCluster.ChildResourceName("server-conf")
 				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
@@ -146,6 +139,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 		It("creating the registry secret", func() {
 			_, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
+			stsName := rabbitmqCluster.ChildResourceName("server")
+			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: secretName}))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sts.Name).To(Equal(stsName))
+
 		})
 		resourceTests()
 	})
@@ -154,18 +153,18 @@ var _ = Describe("RabbitmqclusterController", func() {
 		BeforeEach(func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-one",
+					Name:      "rabbitmq-two",
 					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        1,
-					ImagePullSecret: "rabbit-one-secret",
+					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
 
 			expectedRequest = reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: "rabbitmq-one", Namespace: "default",
+					Name: "rabbitmq-two", Namespace: "default",
 				},
 			}
 
@@ -195,6 +194,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 			Expect(secretsWithImagePullSecretSuffix).To(BeEmpty())
 			Expect(err).NotTo(HaveOccurred())
+			stsName := rabbitmqCluster.ChildResourceName("server")
+			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sts.Name).To(Equal(stsName))
 		})
 		resourceTests()
 	})

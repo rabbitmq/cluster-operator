@@ -214,13 +214,7 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		return nil, fmt.Errorf("failed to generate erlang cookie: %v ", err)
 	}
 
-	statefulSet, err := resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, r.ImagePullSecret, r.PersistenceStorageClassName, r.PersistenceStorage, r.Scheme)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
-	}
-
 	resources := []runtime.Object{
-		statefulSet,
 		resource.GenerateServerConfigMap(*rabbitmqClusterInstance),
 		resource.GenerateIngressService(*rabbitmqClusterInstance, r.ServiceType, r.ServiceAnnotations),
 		resource.GenerateHeadlessService(*rabbitmqClusterInstance),
@@ -230,16 +224,27 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		resource.GenerateRole(*rabbitmqClusterInstance),
 		resource.GenerateRoleBinding(*rabbitmqClusterInstance),
 	}
-
+	var clusterRegistrySecret *corev1.Secret
 	if r.ImagePullSecret != "" && rabbitmqClusterInstance.Spec.ImagePullSecret == "" {
 		operatorRegistrySecret, err := r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
 		if err != nil {
 			return nil, fmt.Errorf("failed to find operator image pull secret: %v", err)
 		}
 
-		clusterRegistrySecret := resource.GenerateRegistrySecret(operatorRegistrySecret, rabbitmqClusterInstance.Namespace, rabbitmqClusterInstance.Name)
+		clusterRegistrySecret = resource.GenerateRegistrySecret(operatorRegistrySecret, rabbitmqClusterInstance.Namespace, rabbitmqClusterInstance.Name)
 		resources = append(resources, clusterRegistrySecret)
 	}
+	var statefulSet *appsv1.StatefulSet
+	if clusterRegistrySecret != nil {
+		statefulSet, err = resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, clusterRegistrySecret.Name, r.PersistenceStorageClassName, r.PersistenceStorage, r.Scheme)
+	} else {
+		statefulSet, err = resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, r.ImagePullSecret, r.PersistenceStorageClassName, r.PersistenceStorage, r.Scheme)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
+	}
+
+	resources = append(resources, statefulSet)
 
 	return resources, nil
 }
