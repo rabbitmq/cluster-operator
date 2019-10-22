@@ -23,12 +23,12 @@ spec:
         imagePullPolicy: Always
         name: operator
         resources:
-        limits:
-          cpu: 100m
-          memory: 30Mi
-        requests:
-          cpu: 100m
-          memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
         volumeMounts:
         - name: operator-config
           mountPath: /etc/operator-config
