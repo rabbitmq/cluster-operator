@@ -11,5 +11,5 @@ images:
 - name: controller
   newName: replace-with-operator-image
 
-# patches:
-# - operator-deployment-image.yaml
+patches:
+- operator-deployment-image.yaml

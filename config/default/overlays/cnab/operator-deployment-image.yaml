@@ -7,6 +7,7 @@ spec:
   template:
     spec:
       containers:
-      - image: #@ data.values.operator.image
-        name: operator
+        - name: operator
+      imagePullSecrets:
+      - name: p-rmq-registry-access
 
