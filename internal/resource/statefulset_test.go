@@ -305,6 +305,36 @@ var _ = Describe("StatefulSet", func() {
 
 			Expect(container.Image).To(Equal("rabbitmq:3.8.0"))
 		})
+
+		It("templates the correct resource limits for the Rabbitmq container", func() {
+			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+
+			cpuLimit, err := k8sresource.ParseQuantity("500m")
+			Expect(err).NotTo(HaveOccurred())
+			memoryLimit, err := k8sresource.ParseQuantity("2Gi")
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedResourceLimits := corev1.ResourceList{
+				corev1.ResourceCPU:    cpuLimit,
+				corev1.ResourceMemory: memoryLimit,
+			}
+			Expect(container.Resources.Limits).To(Equal(expectedResourceLimits))
+		})
+
+		It("templates the correct resource requests for the Rabbitmq container", func() {
+			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+
+			cpuRequest, err := k8sresource.ParseQuantity("100m")
+			Expect(err).NotTo(HaveOccurred())
+			memoryRequest, err := k8sresource.ParseQuantity("2Gi")
+			Expect(err).NotTo(HaveOccurred())
+
+			expectResourceRequests := corev1.ResourceList{
+				corev1.ResourceCPU:    cpuRequest,
+				corev1.ResourceMemory: memoryRequest,
+			}
+			Expect(container.Resources.Requests).To(Equal(expectResourceRequests))
+		})
 	})
 
 	Context("when creating a working StatefulSet with non-default settings", func() {

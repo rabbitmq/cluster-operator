@@ -16,6 +16,10 @@ import (
 const (
 	rabbitmqImage              string = "rabbitmq:3.8.0"
 	defaultPersistenceCapacity string = "10Gi"
+	defaultMemoryLimit         string = "2Gi"
+	defaultCPULimit            string = "500m"
+	defaultMemoryRequest       string = "2Gi"
+	defaultCPURequest          string = "100m"
 )
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReference, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
@@ -43,6 +47,11 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 	}
 
 	pvc, err := generatePersistentVolumeClaim(instance, persistenceStorageClassName, persistenceStorage, scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceRequirements, err := generateResourceRequirements()
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +88,9 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 					InitContainers:               generateInitContainers(image),
 					Containers: []corev1.Container{
 						{
-							Name:  "rabbitmq",
-							Image: image,
+							Name:      "rabbitmq",
+							Image:     image,
+							Resources: resourceRequirements,
 							Env: []corev1.EnvVar{
 								{
 									Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
@@ -239,6 +249,35 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 					},
 				},
 			},
+		},
+	}, nil
+}
+
+func generateResourceRequirements() (corev1.ResourceRequirements, error) {
+	CPULimit, err := k8sresource.ParseQuantity(defaultCPULimit)
+	if err != nil {
+		return corev1.ResourceRequirements{}, err
+	}
+	memoryLimit, err := k8sresource.ParseQuantity(defaultMemoryLimit)
+	if err != nil {
+		return corev1.ResourceRequirements{}, err
+	}
+	CPURequest, err := k8sresource.ParseQuantity(defaultCPURequest)
+	if err != nil {
+		return corev1.ResourceRequirements{}, err
+	}
+	memoryRequest, err := k8sresource.ParseQuantity(defaultMemoryRequest)
+	if err != nil {
+		return corev1.ResourceRequirements{}, err
+	}
+	return corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    CPULimit,
+			corev1.ResourceMemory: memoryLimit,
+		},
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    CPURequest,
+			corev1.ResourceMemory: memoryRequest,
 		},
 	}, nil
 }
