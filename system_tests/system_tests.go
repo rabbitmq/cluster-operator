@@ -265,9 +265,9 @@ var _ = Describe("Operator", func() {
 			operatorConfigMapName := "p-rmq-operator-config"
 			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(configMap.Data["SERVICE"]).NotTo(BeNil())
+			Expect(configMap.Data["service"]).NotTo(BeNil())
 
-			expectedConfigurations, err = config.NewConfig([]byte(configMap.Data["CONFIG"]))
+			expectedConfigurations, err = config.NewConfig([]byte(configMap.Data["config"]))
 
 			cluster = generateRabbitmqCluster(namespace, "nodeport-rabbit")
 			serviceName = cluster.ChildResourceName(ingressServiceSuffix)

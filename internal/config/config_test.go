@@ -9,15 +9,15 @@ import (
 var _ = Describe("NewConfig", func() {
 	It("should return a valid config", func() {
 		rawConfig := `
-SERVICE:
-  TYPE: test-type
-  ANNOTATIONS:
+service:
+  type: test-type
+  annotations:
     some-key: some-annotation
-IMAGE_PULL_SECRET: thought-leader
-IMAGE: some-great-repo/bunny/rabbitmq
-PERSISTENCE:
-  STORAGE: 1Gi
-  STORAGE_CLASS_NAME: storage-class-name
+imagePullSecret: thought-leader
+image: some-great-repo/bunny/rabbitmq
+persistence:
+  storage: 1Gi
+  storageClassName: storage-class-name
 `
 		config, err := config.NewConfig([]byte(rawConfig))
 		Expect(err).NotTo(HaveOccurred())
@@ -45,11 +45,11 @@ PERSISTENCE:
 		When("'SERVICE.TYPE' is missing", func() {
 			It("returns a valid Config", func() {
 				rawConfig := `
-SERVICE:
-  ANNOTATIONS:
+service:
+  annotations:
     some-key: some-annotation
-IMAGE_PULL_SECRET: thought-leader
-IMAGE: some-great-repo/bunny/rabbitmq
+imagePullSecret: thought-leader
+image: some-great-repo/bunny/rabbitmq
 `
 				config, err := config.NewConfig([]byte(rawConfig))
 				Expect(err).NotTo(HaveOccurred())
@@ -60,10 +60,10 @@ IMAGE: some-great-repo/bunny/rabbitmq
 		When("'SERVICE.ANNOTATIONS' is missing", func() {
 			It("returns a valid Config", func() {
 				rawConfig := `
-SERVICE:
-  TYPE: test-type
-IMAGE_PULL_SECRET: thought-leader
-IMAGE: some-great-repo/bunny/rabbitmq
+service:
+  type: test-type
+imagePullSecret: thought-leader
+image: some-great-repo/bunny/rabbitmq
 `
 				config, err := config.NewConfig([]byte(rawConfig))
 				Expect(err).NotTo(HaveOccurred())
@@ -75,11 +75,11 @@ IMAGE: some-great-repo/bunny/rabbitmq
 		When("'IMAGE_PULL_SECRET' is missing", func() {
 			It("returns a valid Config", func() {
 				rawConfig := `
-SERVICE:
-  TYPE: test-type
-  ANNOTATIONS:
+service:
+  type: test-type
+  annotations:
     some-key: some-annotation
-IMAGE: some-great-repo/bunny/rabbitmq
+image: some-great-repo/bunny/rabbitmq
 `
 				config, err := config.NewConfig([]byte(rawConfig))
 				Expect(err).NotTo(HaveOccurred())

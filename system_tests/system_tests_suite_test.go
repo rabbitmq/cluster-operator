@@ -68,14 +68,14 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
 
-	operatorConMap, err := config.NewConfig([]byte(configMap.Data["CONFIG"]))
+	operatorConMap, err := config.NewConfig([]byte(configMap.Data["config"]))
 	Expect(err).NotTo(HaveOccurred())
 
 	operatorConMap.Persistence.StorageClassName = specifiedStorageClassName
 	operatorConMap.Persistence.Storage = specifiedStorageCapacity
 	configBytes, err := toYamlBytes(operatorConMap)
 	Expect(err).NotTo(HaveOccurred())
-	configMap.Data["CONFIG"] = string(configBytes)
+	configMap.Data["config"] = string(configBytes)
 
 	_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
 	Expect(err).NotTo(HaveOccurred())

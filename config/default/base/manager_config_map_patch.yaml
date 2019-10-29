@@ -14,7 +14,7 @@ spec:
             mountPath: /etc/operator-config
           env:
             - name: CONFIG_FILEPATH
-              value: /etc/operator-config/CONFIG
+              value: /etc/operator-config/config
             - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:

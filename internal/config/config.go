@@ -7,20 +7,20 @@ import (
 )
 
 type serviceConfig struct {
-	Type        string            `yaml:"TYPE"`
-	Annotations map[string]string `yaml:"ANNOTATIONS"`
+	Type        string            `yaml:"type"`
+	Annotations map[string]string `yaml:"annotations"`
 }
 
 type persistenceConfig struct {
-	StorageClassName string `yaml:"STORAGE_CLASS_NAME"`
-	Storage          string `yaml:"STORAGE"`
+	StorageClassName string `yaml:"storageClassName"`
+	Storage          string `yaml:"storage"`
 }
 
 type Config struct {
-	Service         serviceConfig     `yaml:"SERVICE"`
-	Persistence     persistenceConfig `yaml:"PERSISTENCE"`
-	ImagePullSecret string            `yaml:"IMAGE_PULL_SECRET"`
-	Image           string            `yaml:"IMAGE"`
+	Service         serviceConfig     `yaml:"service"`
+	Persistence     persistenceConfig `yaml:"persistence"`
+	ImagePullSecret string            `yaml:"imagePullSecret"`
+	Image           string            `yaml:"image"`
 }
 
 func NewConfig(configRaw []byte) (*Config, error) {

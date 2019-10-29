@@ -5,8 +5,8 @@ metadata:
   name: operator-config
   namespace: system
 data:
-  CONFIG: |
-    SERVICE:
-      TYPE: NodePort
-      ANNOTATIONS:
-        SERVICE_ANNOTATION: 0.0.0.0/0
+  config: |
+    service:
+      type: NodePort
+      annotations:
+        service_annotations: 0.0.0.0/0
