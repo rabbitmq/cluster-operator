@@ -52,15 +52,23 @@ func main() {
 
 	ctrl.SetLogger(zap.Logger(true))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme, MetricsBindAddress: metricsAddr})
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+	operatorNamespace := os.Getenv("OPERATOR_NAMESPACE")
+	if operatorNamespace == "" {
+		setupLog.Info("Unable to find operator namespace")
 		os.Exit(1)
 	}
 
-	operatorNamespace := os.Getenv("OPERATOR_NAMESPACE")
-	if operatorNamespace == "" {
-		setupLog.Error(err, "unable to find operator namespace")
+	options := ctrl.Options{
+		Scheme:                  scheme,
+		MetricsBindAddress:      metricsAddr,
+		LeaderElection:          true,
+		LeaderElectionNamespace: operatorNamespace,
+		LeaderElectionID:        "pivotal-rabbitmq-operator-leader-election",
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
