@@ -22,7 +22,7 @@ const (
 	defaultCPURequest          string = "100m"
 )
 
-func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReference, imagePullSecret, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
+func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReference, imagePullSecret, persistenceStorageClassName, persistenceStorage, CPULimit, memoryLimit, CPURequest, memoryRequest string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
 	t := true
 	image := rabbitmqImage
 	rabbitmqGID := int64(999)
@@ -51,7 +51,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 		return nil, err
 	}
 
-	resourceRequirements, err := generateResourceRequirements()
+	resourceRequirements, err := generateResourceRequirements(CPULimit, memoryLimit, CPURequest, memoryRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -253,31 +253,47 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 	}, nil
 }
 
-func generateResourceRequirements() (corev1.ResourceRequirements, error) {
-	CPULimit, err := k8sresource.ParseQuantity(defaultCPULimit)
+func generateResourceRequirements(CPULimit, MemoryLimit, CPURequest, MemoryRequest string) (corev1.ResourceRequirements, error) {
+	if CPULimit == "" {
+		CPULimit = defaultCPULimit
+	}
+
+	if CPURequest == "" {
+		CPURequest = defaultCPURequest
+	}
+
+	if MemoryLimit == "" {
+		MemoryLimit = defaultMemoryLimit
+	}
+
+	if MemoryRequest == "" {
+		MemoryRequest = defaultMemoryRequest
+	}
+
+	parsedCPULimit, err := k8sresource.ParseQuantity(CPULimit)
 	if err != nil {
 		return corev1.ResourceRequirements{}, err
 	}
-	memoryLimit, err := k8sresource.ParseQuantity(defaultMemoryLimit)
+	parsedMemoryLimit, err := k8sresource.ParseQuantity(MemoryLimit)
 	if err != nil {
 		return corev1.ResourceRequirements{}, err
 	}
-	CPURequest, err := k8sresource.ParseQuantity(defaultCPURequest)
+	parsedCPURequest, err := k8sresource.ParseQuantity(CPURequest)
 	if err != nil {
 		return corev1.ResourceRequirements{}, err
 	}
-	memoryRequest, err := k8sresource.ParseQuantity(defaultMemoryRequest)
+	parsedMemoryRequest, err := k8sresource.ParseQuantity(MemoryRequest)
 	if err != nil {
 		return corev1.ResourceRequirements{}, err
 	}
 	return corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    CPULimit,
-			corev1.ResourceMemory: memoryLimit,
+			corev1.ResourceCPU:    parsedCPULimit,
+			corev1.ResourceMemory: parsedMemoryLimit,
 		},
 		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    CPURequest,
-			corev1.ResourceMemory: memoryRequest,
+			corev1.ResourceCPU:    parsedCPURequest,
+			corev1.ResourceMemory: parsedMemoryRequest,
 		},
 	}, nil
 }

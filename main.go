@@ -99,6 +99,10 @@ func main() {
 		ImagePullSecret:             config.ImagePullSecret,
 		PersistenceStorage:          config.Persistence.Storage,
 		PersistenceStorageClassName: config.Persistence.StorageClassName,
+		CPULimit:                    config.Resources.Limits.CPU,
+		MemoryLimit:                 config.Resources.Limits.Memory,
+		CPURequest:                  config.Resources.Requests.CPU,
+		MemoryRequest:               config.Resources.Requests.Memory,
 		Namespace:                   operatorNamespace,
 	}).SetupWithManager(mgr)
 	if err != nil {

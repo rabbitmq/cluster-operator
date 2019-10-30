@@ -16,11 +16,27 @@ type persistenceConfig struct {
 	Storage          string `yaml:"storage"`
 }
 
+type resourcesConfig struct {
+	Limits   limitsConfig   `yaml:"limits"`
+	Requests requestsConfig `yaml:"requests"`
+}
+
+type limitsConfig struct {
+	CPU    string `yaml:"cpu"`
+	Memory string `yaml:"memory"`
+}
+
+type requestsConfig struct {
+	CPU    string `yaml:"cpu"`
+	Memory string `yaml:"memory"`
+}
+
 type Config struct {
 	Service         serviceConfig     `yaml:"service"`
 	Persistence     persistenceConfig `yaml:"persistence"`
 	ImagePullSecret string            `yaml:"imagePullSecret"`
 	Image           string            `yaml:"image"`
+	Resources       resourcesConfig   `yaml:"resources"`
 }
 
 func NewConfig(configRaw []byte) (*Config, error) {

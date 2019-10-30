@@ -18,6 +18,13 @@ image: some-great-repo/bunny/rabbitmq
 persistence:
   storage: 1Gi
   storageClassName: storage-class-name
+resources:
+  limits:
+    cpu: 10m
+    memory: 1Gi
+  requests:
+    cpu: 1m
+    memory: 1Gi
 `
 		config, err := config.NewConfig([]byte(rawConfig))
 		Expect(err).NotTo(HaveOccurred())
@@ -27,6 +34,11 @@ persistence:
 		Expect(config.Image).To(Equal("some-great-repo/bunny/rabbitmq"))
 		Expect(config.Persistence.Storage).To(Equal("1Gi"))
 		Expect(config.Persistence.StorageClassName).To(Equal("storage-class-name"))
+
+		Expect(config.Resources.Limits.Memory).To(Equal("1Gi"))
+		Expect(config.Resources.Limits.CPU).To(Equal("10m"))
+		Expect(config.Resources.Requests.Memory).To(Equal("1Gi"))
+		Expect(config.Resources.Requests.CPU).To(Equal("1m"))
 	})
 
 	It("should return an error if it fails to unmarshal", func() {
@@ -85,6 +97,65 @@ image: some-great-repo/bunny/rabbitmq
 				Expect(err).NotTo(HaveOccurred())
 				Expect(config.Image).To(Equal("some-great-repo/bunny/rabbitmq"))
 				Expect(config.ImagePullSecret).To(Equal(""))
+			})
+		})
+
+		When("'Resources' is missing", func() {
+			It("returns a valid Config", func() {
+				rawConfig := `
+service:
+  type: test-type
+  annotations:
+    some-key: some-annotation
+image: some-great-repo/bunny/rabbitmq
+`
+				config, err := config.NewConfig([]byte(rawConfig))
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(config.Resources.Limits.Memory).To(Equal(""))
+				Expect(config.Resources.Limits.CPU).To(Equal(""))
+				Expect(config.Resources.Requests.Memory).To(Equal(""))
+				Expect(config.Resources.Requests.CPU).To(Equal(""))
+			})
+		})
+
+		When("'Resources.Limits' is missing", func() {
+			It("returns a valid Config", func() {
+				rawConfig := `
+service:
+  type: test-type
+  annotations:
+    some-key: some-annotation
+image: some-great-repo/bunny/rabbitmq
+resources:
+  requests:
+    cpu: 1m
+    memory: 1Gi
+`
+				config, err := config.NewConfig([]byte(rawConfig))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(config.Resources.Limits.Memory).To(Equal(""))
+				Expect(config.Resources.Limits.CPU).To(Equal(""))
+			})
+		})
+
+		When("'Resources.Requests' is missing", func() {
+			It("returns a valid Config", func() {
+				rawConfig := `
+service:
+  type: test-type
+  annotations:
+    some-key: some-annotation
+image: some-great-repo/bunny/rabbitmq
+resources:
+  limits:
+    cpu: 10m
+    memory: 1Gi
+`
+				config, err := config.NewConfig([]byte(rawConfig))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(config.Resources.Requests.Memory).To(Equal(""))
+				Expect(config.Resources.Requests.CPU).To(Equal(""))
 			})
 		})
 	})
