@@ -240,7 +240,7 @@ var _ = Describe("Operator", func() {
 		})
 
 		It("successfully creates pods using private image and configured repository", func() {
-			assertStatefulSetReady(cluster)
+			waitForRabbitmqRunning(cluster)
 		})
 	})
 
@@ -389,7 +389,7 @@ var _ = Describe("Operator", func() {
 					Eventually(func() error {
 						_, err = clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(pvcName, metav1.GetOptions{})
 						return err
-					}, 20).Should(HaveOccurred())
+					}, 200).Should(HaveOccurred())
 
 					Expect(apierrors.IsNotFound(err)).To(BeTrue())
 				})
@@ -406,6 +406,7 @@ var _ = Describe("Operator", func() {
 				cluster.Spec.Replicas = 3
 				cluster.Spec.Service.Type = "LoadBalancer"
 				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
+				waitForRabbitmqRunning(cluster)
 			})
 
 			AfterEach(func() {
