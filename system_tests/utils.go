@@ -23,6 +23,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -338,6 +339,16 @@ func assertIngressExist(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta
 		}
 		return err
 	}, 10).ShouldNot(HaveOccurred())
+}
+
+func extractContainer(containers []corev1.Container, containerName string) corev1.Container {
+	for _, container := range containers {
+		if container.Name == containerName {
+			return container
+		}
+	}
+
+	return corev1.Container{}
 }
 
 func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {

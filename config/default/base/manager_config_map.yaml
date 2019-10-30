@@ -10,3 +10,8 @@ data:
       type: NodePort
       annotations:
         service_annotations: 0.0.0.0/0
+    resources:
+      limits:
+        memory: 1Gi
+      requests:
+        memory: 1Gi
