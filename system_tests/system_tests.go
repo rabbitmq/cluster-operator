@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	podCreationTimeout     = 300 * time.Second
+	podCreationTimeout     = 360 * time.Second
 	serviceCreationTimeout = 10 * time.Second
 	ingressServiceSuffix   = "ingress"
 	statefulSetSuffix      = "server"
