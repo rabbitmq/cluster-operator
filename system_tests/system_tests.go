@@ -298,13 +298,6 @@ var _ = Describe("Operator", func() {
 			pvcName string
 		)
 
-		AfterEach(func() {
-			err := rmqClusterClient.Delete(context.TODO(), cluster)
-			if !apierrors.IsNotFound(err) {
-				Expect(err).NotTo(HaveOccurred())
-			}
-		})
-
 		When("storage class name and storage is specified in the RabbitmqCluster Spec", func() {
 			BeforeEach(func() {
 				cluster = generateRabbitmqCluster(namespace, "persistence-storageclass-rabbit")
@@ -316,6 +309,13 @@ var _ = Describe("Operator", func() {
 				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 
 				waitForRabbitmqRunning(cluster)
+			})
+
+			AfterEach(func() {
+				err := rmqClusterClient.Delete(context.TODO(), cluster)
+				if !apierrors.IsNotFound(err) {
+					Expect(err).NotTo(HaveOccurred())
+				}
 			})
 
 			It("creates the RabbitmqCluster with the specified storage", func() {
@@ -354,6 +354,13 @@ var _ = Describe("Operator", func() {
 				response, err := rabbitmqAlivenessTest(hostname, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
+			})
+
+			AfterEach(func() {
+				err := rmqClusterClient.Delete(context.TODO(), cluster)
+				if !apierrors.IsNotFound(err) {
+					Expect(err).NotTo(HaveOccurred())
+				}
 			})
 
 			It("works as expected", func() {
