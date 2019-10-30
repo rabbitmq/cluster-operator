@@ -165,24 +165,14 @@ var _ = Describe("Operator", func() {
 		)
 
 		BeforeEach(func() {
-			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "delete-my-resources",
-					Namespace: namespace,
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
-				},
-			}
+			cluster = generateRabbitmqCluster(namespace, "delete-my-resources")
 
 			configMapName = cluster.ChildResourceName(configMapSuffix)
 			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
 			stsName = cluster.ChildResourceName(statefulSetSuffix)
+			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 
-			Expect(rmqClusterClient.Create(context.TODO(), cluster)).NotTo(HaveOccurred())
-			assertConfigMapExist(clientSet, cluster)
-			assertIngressExist(clientSet, cluster)
-			assertStatefulSetReady(cluster)
+			waitForRabbitmqRunning(cluster)
 		})
 
 		AfterEach(func() {

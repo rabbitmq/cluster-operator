@@ -384,7 +384,7 @@ func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 
 		return output
 
-	}, 300, 1).Should(ContainSubstring("running"))
+	}, podCreationTimeout, 1).Should(ContainSubstring("running"))
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 }
