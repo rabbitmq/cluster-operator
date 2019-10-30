@@ -263,6 +263,7 @@ var _ = Describe("Operator", func() {
 			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
 
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
+			waitForRabbitmqRunning(cluster)
 		})
 
 		AfterEach(func() {
