@@ -22,7 +22,14 @@ const (
 	defaultCPURequest          string = "100m"
 )
 
-func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReference, imagePullSecret, persistenceStorageClassName, persistenceStorage, CPULimit, memoryLimit, CPURequest, memoryRequest string, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
+type ResourceRequirements struct {
+	CPULimit      string
+	MemoryLimit   string
+	CPURequest    string
+	MemoryRequest string
+}
+
+func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReference, imagePullSecret, persistenceStorageClassName, persistenceStorage string, resourceRequirementsConfig ResourceRequirements, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
 	t := true
 	image := rabbitmqImage
 	rabbitmqGID := int64(999)
@@ -51,7 +58,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 		return nil, err
 	}
 
-	resourceRequirements, err := generateResourceRequirements(CPULimit, memoryLimit, CPURequest, memoryRequest)
+	resourceRequirements, err := generateResourceRequirements(resourceRequirementsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -253,36 +260,36 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 	}, nil
 }
 
-func generateResourceRequirements(CPULimit, MemoryLimit, CPURequest, MemoryRequest string) (corev1.ResourceRequirements, error) {
-	if CPULimit == "" {
-		CPULimit = defaultCPULimit
+func generateResourceRequirements(requirementsConfig ResourceRequirements) (corev1.ResourceRequirements, error) {
+	if requirementsConfig.CPULimit == "" {
+		requirementsConfig.CPULimit = defaultCPULimit
 	}
 
-	if CPURequest == "" {
-		CPURequest = defaultCPURequest
+	if requirementsConfig.CPURequest == "" {
+		requirementsConfig.CPURequest = defaultCPURequest
 	}
 
-	if MemoryLimit == "" {
-		MemoryLimit = defaultMemoryLimit
+	if requirementsConfig.MemoryLimit == "" {
+		requirementsConfig.MemoryLimit = defaultMemoryLimit
 	}
 
-	if MemoryRequest == "" {
-		MemoryRequest = defaultMemoryRequest
+	if requirementsConfig.MemoryRequest == "" {
+		requirementsConfig.MemoryRequest = defaultMemoryRequest
 	}
 
-	parsedCPULimit, err := k8sresource.ParseQuantity(CPULimit)
+	parsedCPULimit, err := k8sresource.ParseQuantity(requirementsConfig.CPULimit)
 	if err != nil {
 		return corev1.ResourceRequirements{}, err
 	}
-	parsedMemoryLimit, err := k8sresource.ParseQuantity(MemoryLimit)
+	parsedMemoryLimit, err := k8sresource.ParseQuantity(requirementsConfig.MemoryLimit)
 	if err != nil {
 		return corev1.ResourceRequirements{}, err
 	}
-	parsedCPURequest, err := k8sresource.ParseQuantity(CPURequest)
+	parsedCPURequest, err := k8sresource.ParseQuantity(requirementsConfig.CPURequest)
 	if err != nil {
 		return corev1.ResourceRequirements{}, err
 	}
-	parsedMemoryRequest, err := k8sresource.ParseQuantity(MemoryRequest)
+	parsedMemoryRequest, err := k8sresource.ParseQuantity(requirementsConfig.MemoryRequest)
 	if err != nil {
 		return corev1.ResourceRequirements{}, err
 	}

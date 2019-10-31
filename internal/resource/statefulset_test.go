@@ -15,8 +15,9 @@ import (
 
 var _ = Describe("StatefulSet", func() {
 	var (
-		instance rabbitmqv1beta1.RabbitmqCluster
-		scheme   *runtime.Scheme
+		instance             rabbitmqv1beta1.RabbitmqCluster
+		scheme               *runtime.Scheme
+		resourceRequirements resource.ResourceRequirements
 	)
 
 	Context("when creating a working StatefulSet with default settings", func() {
@@ -35,7 +36,13 @@ var _ = Describe("StatefulSet", func() {
 			rabbitmqv1beta1.AddToScheme(scheme)
 			defaultscheme.AddToScheme(scheme)
 
-			sts, _ = resource.GenerateStatefulSet(instance, "", "", "", "", "", "", "", "", scheme)
+			sts, _ = resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
+			resourceRequirements = resource.ResourceRequirements{
+				CPULimit:      "",
+				MemoryLimit:   "",
+				CPURequest:    "",
+				MemoryRequest: "",
+			}
 		})
 
 		It("sets the right service name", func() {
@@ -351,7 +358,7 @@ var _ = Describe("StatefulSet", func() {
 			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
 				instance.Spec.Persistence.StorageClassName = "my-storage-class"
 
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "some-other-storage-name", "", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "some-other-storage-name", "", resourceRequirements, scheme)
 				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 			})
 		})
@@ -360,7 +367,7 @@ var _ = Describe("StatefulSet", func() {
 			It("creates the PersistentVolume template according to the parameters", func() {
 				instance.Spec.Persistence.StorageClassName = ""
 
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "a-storage-class-name", "100Gi", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "a-storage-class-name", "100Gi", resourceRequirements, scheme)
 				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("a-storage-class-name"))
 			})
 		})
@@ -369,7 +376,7 @@ var _ = Describe("StatefulSet", func() {
 			It("creates the PersistentVolume template with empty class so it defaults to  default StorageClass", func() {
 				instance.Spec.Persistence.StorageClassName = ""
 
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
 				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
 			})
 		})
@@ -378,7 +385,7 @@ var _ = Describe("StatefulSet", func() {
 			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
 				instance.Spec.Persistence.Storage = "21Gi"
 
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "41Gi", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "41Gi", resourceRequirements, scheme)
 				q, _ := k8sresource.ParseQuantity("21Gi")
 				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
 			})
@@ -388,7 +395,7 @@ var _ = Describe("StatefulSet", func() {
 			It("creates the PersistentVolume template according to the parameters", func() {
 				instance.Spec.Persistence.Storage = ""
 
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "100Gi", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "100Gi", resourceRequirements, scheme)
 				q, _ := k8sresource.ParseQuantity("100Gi")
 				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
 			})
@@ -398,7 +405,7 @@ var _ = Describe("StatefulSet", func() {
 			It("creates the PersistentVolume template with default capacity", func() {
 				instance.Spec.Persistence.StorageClassName = ""
 
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
 				q, _ := k8sresource.ParseQuantity("10Gi")
 				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
 			})
@@ -409,7 +416,7 @@ var _ = Describe("StatefulSet", func() {
 				instance.Spec.Image = "my-private-repo/rabbitmq:3.8.0"
 				instance.Spec.ImagePullSecret = "my-great-secret"
 
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:3.8.0"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
@@ -421,8 +428,17 @@ var _ = Describe("StatefulSet", func() {
 
 		When("providing resources limits and requests", func() {
 			Context("CPU and memory limit are provided", func() {
+				BeforeEach(func() {
+					resourceRequirements = resource.ResourceRequirements{
+						CPULimit:      "1m",
+						MemoryLimit:   "10Gi",
+						CPURequest:    "",
+						MemoryRequest: "",
+					}
+				})
+
 				It("generates a statefulSet with provided CPU and memory limits, with default CPU and memory requests", func() {
-					statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", "1m", "10Gi", "", "", scheme)
+					statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
 					expectedCPULimit, _ := k8sresource.ParseQuantity("1m")
 					expectedMemoryLimit, _ := k8sresource.ParseQuantity("10Gi")
 					defaultCPURequest, _ := k8sresource.ParseQuantity("100m")
@@ -438,8 +454,16 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			Context("CPU and memory requests are provided", func() {
+				BeforeEach(func() {
+					resourceRequirements = resource.ResourceRequirements{
+						CPULimit:      "",
+						MemoryLimit:   "",
+						CPURequest:    "10m",
+						MemoryRequest: "5Gi",
+					}
+				})
 				It("generates a statefulSet with provided CPU and memory requests, with default CPU and memory limits", func() {
-					statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", "", "", "10m", "5Gi", scheme)
+					statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
 					expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
 					expectedMemoryRequest, _ := k8sresource.ParseQuantity("5Gi")
 					defaultCPULimit, _ := k8sresource.ParseQuantity("500m")
@@ -455,12 +479,21 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			Context("both CPU and memory's limits plus requests are provided", func() {
+				BeforeEach(func() {
+					resourceRequirements = resource.ResourceRequirements{
+						CPULimit:      "10m",
+						MemoryLimit:   "5Gi",
+						CPURequest:    "1m",
+						MemoryRequest: "1Gi",
+					}
+				})
+
 				It("generates a statefulSet with provided memory limit/request and provided CPU limit/request", func() {
-					statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", "10m", "5Gi", "10m", "5Gi", scheme)
+					statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
 					expectedCPULimit, _ := k8sresource.ParseQuantity("10m")
-					expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
+					expectedCPURequest, _ := k8sresource.ParseQuantity("1m")
 					expectedMemoryLimit, _ := k8sresource.ParseQuantity("5Gi")
-					expectedMemoryRequest, _ := k8sresource.ParseQuantity("5Gi")
+					expectedMemoryRequest, _ := k8sresource.ParseQuantity("1Gi")
 
 					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 					Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
@@ -477,7 +510,7 @@ var _ = Describe("StatefulSet", func() {
 			// Anonymouse function used in this context because we had issues scoping the instance and scheme without a closure
 			It("uses the provided repository and secret if not specified in RabbitmqCluster spec", func() {
 				imageURL := "best-repository/rabbitmq:some-tag"
-				statefulSet, _ := resource.GenerateStatefulSet(instance, imageURL, "my-secret", "", "", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, imageURL, "my-secret", "", "", resourceRequirements, scheme)
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("best-repository/rabbitmq:some-tag"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-secret"}))
@@ -486,7 +519,7 @@ var _ = Describe("StatefulSet", func() {
 			It("uses the RabbitmqCluster spec if it is provided", func() {
 				instance.Spec.Image = "my-private-repo/rabbitmq:3.8.0"
 				instance.Spec.ImagePullSecret = "my-great-secret"
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository/rabbitmq:some-tag", "my-secret", "", "", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "best-repository/rabbitmq:some-tag", "my-secret", "", "", resourceRequirements, scheme)
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:3.8.0"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
@@ -496,7 +529,7 @@ var _ = Describe("StatefulSet", func() {
 		When("replica count is specified in the RabbitmqCluster spec", func() {
 			It("sets the replica count of the StatefulSet to the provided value", func() {
 				instance.Spec.Replicas = 3
-				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", "", "", "", "", scheme)
+				statefulSet, _ := resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
 				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))
 			})
 		})

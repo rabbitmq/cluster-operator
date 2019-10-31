@@ -61,10 +61,7 @@ type RabbitmqClusterReconciler struct {
 	PersistenceStorageClassName string
 	PersistenceStorage          string
 	Namespace                   string
-	CPULimit                    string
-	MemoryLimit                 string
-	CPURequest                  string
-	MemoryRequest               string
+	ResourceRequirements        resource.ResourceRequirements
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -240,9 +237,9 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 	}
 	var statefulSet *appsv1.StatefulSet
 	if clusterRegistrySecret != nil {
-		statefulSet, err = resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, clusterRegistrySecret.Name, r.PersistenceStorageClassName, r.PersistenceStorage, r.CPULimit, r.MemoryLimit, r.CPURequest, r.MemoryRequest, r.Scheme)
+		statefulSet, err = resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, clusterRegistrySecret.Name, r.PersistenceStorageClassName, r.PersistenceStorage, r.ResourceRequirements, r.Scheme)
 	} else {
-		statefulSet, err = resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, r.ImagePullSecret, r.PersistenceStorageClassName, r.PersistenceStorage, r.CPULimit, r.MemoryLimit, r.CPURequest, r.MemoryRequest, r.Scheme)
+		statefulSet, err = resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, r.ImagePullSecret, r.PersistenceStorageClassName, r.PersistenceStorage, r.ResourceRequirements, r.Scheme)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)

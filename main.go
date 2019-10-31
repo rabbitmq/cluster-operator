@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	"io/ioutil"
 	"os"
 
@@ -89,6 +90,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	resourceRequirements := resource.ResourceRequirements{
+		CPULimit:      config.Resources.Limits.CPU,
+		MemoryLimit:   config.Resources.Limits.Memory,
+		CPURequest:    config.Resources.Requests.CPU,
+		MemoryRequest: config.Resources.Requests.Memory,
+	}
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client:                      mgr.GetClient(),
 		Log:                         ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
@@ -99,10 +106,7 @@ func main() {
 		ImagePullSecret:             config.ImagePullSecret,
 		PersistenceStorage:          config.Persistence.Storage,
 		PersistenceStorageClassName: config.Persistence.StorageClassName,
-		CPULimit:                    config.Resources.Limits.CPU,
-		MemoryLimit:                 config.Resources.Limits.Memory,
-		CPURequest:                  config.Resources.Requests.CPU,
-		MemoryRequest:               config.Resources.Requests.Memory,
+		ResourceRequirements:        resourceRequirements,
 		Namespace:                   operatorNamespace,
 	}).SetupWithManager(mgr)
 	if err != nil {
