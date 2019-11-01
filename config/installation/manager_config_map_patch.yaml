@@ -5,11 +5,11 @@ metadata:
   name: operator-config
   namespace: system
 data:
-  CONFIG: |
-    SERVICE:
-      TYPE: "ClusterIP"
-    IMAGE: "REPLACE-WITH-RABBITMQ-IMAGE-REFERENCE"
-    IMAGE_PULL_SECRET: ""
+  config: |
+    service:
+      type: "ClusterIP"
+    image: "REPLACE-WITH-RABBITMQ-IMAGE-REFERENCE"
+    imagePullSecret: ""
 ---
 apiVersion: apps/v1
 kind: Deployment
