@@ -275,7 +275,7 @@ var _ = Describe("StatefulSet", func() {
 
 		It("templates the image string and the imagePullSecrets with default values", func() {
 			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-			Expect(container.Image).To(Equal("rabbitmq:3.8.0"))
+			Expect(container.Image).To(Equal("rabbitmq:3.8.1"))
 			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 		})
 
@@ -310,7 +310,7 @@ var _ = Describe("StatefulSet", func() {
 				},
 			))
 
-			Expect(container.Image).To(Equal("rabbitmq:3.8.0"))
+			Expect(container.Image).To(Equal("rabbitmq:3.8.1"))
 		})
 
 		It("templates the correct resource limits for the Rabbitmq container", func() {

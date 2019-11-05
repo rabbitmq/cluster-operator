@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	rabbitmqImage              string = "rabbitmq:3.8.0"
+	rabbitmqImage              string = "rabbitmq:3.8.1"
 	defaultPersistenceCapacity string = "10Gi"
 	defaultMemoryLimit         string = "2Gi"
 	defaultCPULimit            string = "500m"
@@ -31,7 +31,6 @@ type ResourceRequirements struct {
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReference, imagePullSecret, persistenceStorageClassName, persistenceStorage string, resourceRequirementsConfig ResourceRequirements, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
 	t := true
-	image := rabbitmqImage
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
@@ -40,6 +39,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 		replicas = int32(1)
 	}
 
+	image := rabbitmqImage
 	if instance.Spec.Image != "" {
 		image = instance.Spec.Image
 	} else if imageReference != "" {
