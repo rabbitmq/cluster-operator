@@ -36,13 +36,13 @@ var _ = Describe("StatefulSet", func() {
 			rabbitmqv1beta1.AddToScheme(scheme)
 			defaultscheme.AddToScheme(scheme)
 
-			sts, _ = resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
 			resourceRequirements = resource.ResourceRequirements{
 				CPULimit:      "",
 				MemoryLimit:   "",
 				CPURequest:    "",
 				MemoryRequest: "",
 			}
+			sts, _ = resource.GenerateStatefulSet(instance, "", "", "", "", resourceRequirements, scheme)
 		})
 
 		It("sets the right service name", func() {
