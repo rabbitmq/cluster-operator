@@ -541,13 +541,13 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("uses the RabbitmqCluster spec if it is provided", func() {
-				instance.Spec.Image = "my-private-repo/rabbitmq:3.8.0"
+				instance.Spec.Image = "my-private-repo/rabbitmq:latest"
 				instance.Spec.ImagePullSecret = "my-great-secret"
 				statefulSetConfiguration.ImageReference = "best-repository/rabbitmq:some-tag"
 				statefulSetConfiguration.ImagePullSecret = "my-secret"
 				statefulSet, _ := resource.GenerateStatefulSet(instance, statefulSetConfiguration)
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:3.8.0"))
+				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:latest"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 			})
 		})
