@@ -30,7 +30,7 @@ type ResourceRequirements struct {
 }
 
 func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReference, imagePullSecret, persistenceStorageClassName, persistenceStorage string, resourceRequirementsConfig ResourceRequirements, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
-	t := true
+	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
@@ -90,7 +90,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 						RunAsUser:  &rabbitmqUID,
 					},
 					ServiceAccountName:           instance.ChildResourceName(serviceAccountName),
-					AutomountServiceAccountToken: &t,
+					AutomountServiceAccountToken: &automountServiceAccountToken,
 					ImagePullSecrets:             imagePullSecrets,
 					InitContainers:               generateInitContainers(image),
 					Containers: []corev1.Container{
