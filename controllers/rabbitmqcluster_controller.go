@@ -225,22 +225,25 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		resource.GenerateRole(*rabbitmqClusterInstance),
 		resource.GenerateRoleBinding(*rabbitmqClusterInstance),
 	}
-	var clusterRegistrySecret *corev1.Secret
+	statefulSetConfiguration := resource.StatefulSetConfiguration{
+		ImageReference:              r.Image,
+		ImagePullSecret:             r.ImagePullSecret,
+		PersistenceStorageClassName: r.PersistenceStorageClassName,
+		PersistenceStorage:          r.PersistenceStorage,
+		ResourceRequirementsConfig:  r.ResourceRequirements,
+		Scheme:                      r.Scheme,
+	}
 	if r.ImagePullSecret != "" && rabbitmqClusterInstance.Spec.ImagePullSecret == "" {
 		operatorRegistrySecret, err := r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
 		if err != nil {
 			return nil, fmt.Errorf("failed to find operator image pull secret: %v", err)
 		}
 
-		clusterRegistrySecret = resource.GenerateRegistrySecret(operatorRegistrySecret, rabbitmqClusterInstance.Namespace, rabbitmqClusterInstance.Name)
+		clusterRegistrySecret := resource.GenerateRegistrySecret(operatorRegistrySecret, rabbitmqClusterInstance.Namespace, rabbitmqClusterInstance.Name)
 		resources = append(resources, clusterRegistrySecret)
+		statefulSetConfiguration.ImagePullSecret = clusterRegistrySecret.Name
 	}
-	var statefulSet *appsv1.StatefulSet
-	if clusterRegistrySecret != nil {
-		statefulSet, err = resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, clusterRegistrySecret.Name, r.PersistenceStorageClassName, r.PersistenceStorage, r.ResourceRequirements, r.Scheme)
-	} else {
-		statefulSet, err = resource.GenerateStatefulSet(*rabbitmqClusterInstance, r.Image, r.ImagePullSecret, r.PersistenceStorageClassName, r.PersistenceStorage, r.ResourceRequirements, r.Scheme)
-	}
+	statefulSet, err := resource.GenerateStatefulSet(*rabbitmqClusterInstance, statefulSetConfiguration)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
 	}

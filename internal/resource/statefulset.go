@@ -28,8 +28,16 @@ type ResourceRequirements struct {
 	CPURequest    string
 	MemoryRequest string
 }
+type StatefulSetConfiguration struct {
+	ImageReference              string
+	ImagePullSecret             string
+	PersistenceStorageClassName string
+	PersistenceStorage          string
+	ResourceRequirementsConfig  ResourceRequirements
+	Scheme                      *runtime.Scheme
+}
 
-func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReference, imagePullSecret, persistenceStorageClassName, persistenceStorage string, resourceRequirementsConfig ResourceRequirements, scheme *runtime.Scheme) (*appsv1.StatefulSet, error) {
+func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetConfiguration StatefulSetConfiguration) (*appsv1.StatefulSet, error) {
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
@@ -42,23 +50,23 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, imageReferenc
 	image := rabbitmqImage
 	if instance.Spec.Image != "" {
 		image = instance.Spec.Image
-	} else if imageReference != "" {
-		image = imageReference
+	} else if statefulSetConfiguration.ImageReference != "" {
+		image = statefulSetConfiguration.ImageReference
 	}
 
 	imagePullSecrets := []corev1.LocalObjectReference{}
 	if instance.Spec.ImagePullSecret != "" {
 		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: instance.Spec.ImagePullSecret})
-	} else if imagePullSecret != "" {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: imagePullSecret})
+	} else if statefulSetConfiguration.ImagePullSecret != "" {
+		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
 	}
 
-	pvc, err := generatePersistentVolumeClaim(instance, persistenceStorageClassName, persistenceStorage, scheme)
+	pvc, err := generatePersistentVolumeClaim(instance, statefulSetConfiguration.PersistenceStorageClassName, statefulSetConfiguration.PersistenceStorage, statefulSetConfiguration.Scheme)
 	if err != nil {
 		return nil, err
 	}
 
-	resourceRequirements, err := generateResourceRequirements(resourceRequirementsConfig)
+	resourceRequirements, err := generateResourceRequirements(statefulSetConfiguration.ResourceRequirementsConfig)
 	if err != nil {
 		return nil, err
 	}
