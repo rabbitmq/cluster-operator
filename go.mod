@@ -40,5 +40,6 @@ require (
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d // indirect
 	k8s.io/utils v0.0.0-20191010214722-8d271d903fe4 // indirect
 	sigs.k8s.io/controller-runtime v0.2.2
+	sigs.k8s.io/controller-tools v0.2.1 // indirect
 	sigs.k8s.io/testing_frameworks v0.1.2 // indirect
 )
