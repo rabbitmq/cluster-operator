@@ -21,4 +21,12 @@ WORKDIR /
 COPY --from=builder /workspace/manager .
 ARG COMMIT_SHA
 LABEL commit=$COMMIT_SHA
+
+# Create operator system user & group
+RUN set -eux; \
+	groupadd --gid 1000 --system p-rmq; \
+	useradd --uid 1000 --system --gid p-rmq p-rmq
+
+USER 1000:1000
+
 ENTRYPOINT ["/manager"]

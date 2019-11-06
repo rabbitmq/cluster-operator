@@ -1,2 +1,5 @@
 resources:
 - manager.yaml
+
+patches:
+- manager_security_context_patch.yaml
