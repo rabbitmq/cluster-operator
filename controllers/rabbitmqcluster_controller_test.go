@@ -27,7 +27,6 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -107,7 +106,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-one",
-					Namespace: "default",
+					Namespace: "rabbitmq-one",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: 1,
@@ -141,7 +140,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 			Expect(client.Delete(context.TODO(), registrySecret)).To(Succeed())
-			Expect(clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Delete(secretName, &metav1.DeleteOptions{})).To(Succeed())
 		})
 
 		It("creating the registry secret", func() {
@@ -164,7 +162,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-two",
-					Namespace: "default",
+					Namespace: "rabbitmq-two",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        1,
