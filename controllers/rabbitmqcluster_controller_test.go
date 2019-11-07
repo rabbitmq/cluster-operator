@@ -27,6 +27,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -144,9 +145,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 		It("creating the registry secret", func() {
 			Eventually(func() *corev1.Secret {
-				secret, _ := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+				if err != nil && apierrors.IsNotFound(err) {
+					return nil
+				}
 				return secret
-			}).ShouldNot(BeNil())
+			}, 5).ShouldNot(BeNil())
 			stsName := rabbitmqCluster.ChildResourceName("server")
 			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: secretName}))
@@ -202,9 +206,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 			stsName := rabbitmqCluster.ChildResourceName("server")
 			var sts *appsv1.StatefulSet
 			Eventually(func() *appsv1.StatefulSet {
-				sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				var err error
+				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				if err != nil && apierrors.IsNotFound(err) {
+					return nil
+				}
 				return sts
-			}).ShouldNot(BeNil())
+			}, 5).ShouldNot(BeNil())
 			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
 			Expect(sts.Name).To(Equal(stsName))
 
