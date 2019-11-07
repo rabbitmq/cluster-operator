@@ -18,17 +18,18 @@ package controllers_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const timeout = 3 * time.Second
@@ -37,7 +38,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	var (
 		rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		expectedRequest reconcile.Request
 		registrySecret  *corev1.Secret
 		secretName      = "rabbitmq-one-registry-access"
 	)
@@ -114,12 +114,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			expectedRequest = reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: "rabbitmq-one", Namespace: "default",
-				},
-			}
-
 			registrySecret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pivotal-rmq-registry-access",
@@ -128,7 +122,21 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 			Expect(client.Create(context.TODO(), registrySecret)).To(Succeed())
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+			Eventually(func() string {
+				rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
+				err := client.Get(
+					context.TODO(),
+					types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
+					&rabbitmqClusterCreated,
+				)
+				if err != nil {
+					return fmt.Sprintf("%v+", err)
+				}
+
+				return rabbitmqClusterCreated.Status.ClusterStatus
+
+			}, 5, 1).Should(ContainSubstring("created"))
+
 		})
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
@@ -137,8 +145,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("creating the registry secret", func() {
-			_, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() *corev1.Secret {
+				secret, _ := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+				return secret
+			}).ShouldNot(BeNil())
 			stsName := rabbitmqCluster.ChildResourceName("server")
 			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: secretName}))
@@ -162,12 +172,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			expectedRequest = reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: "rabbitmq-two", Namespace: "default",
-				},
-			}
-
 			registrySecret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pivotal-rmq-registry-access",
@@ -176,7 +180,20 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 			Expect(client.Create(context.TODO(), registrySecret)).To(Succeed())
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
+			Eventually(func() string {
+				rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
+				err := client.Get(
+					context.TODO(),
+					types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
+					&rabbitmqClusterCreated,
+				)
+				if err != nil {
+					return fmt.Sprintf("%v+", err)
+				}
+
+				return rabbitmqClusterCreated.Status.ClusterStatus
+
+			}, 5, 1).Should(ContainSubstring("created"))
 		})
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
@@ -184,6 +201,15 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("does not create a new registry secret", func() {
+			stsName := rabbitmqCluster.ChildResourceName("server")
+			var sts *appsv1.StatefulSet
+			Eventually(func() *appsv1.StatefulSet {
+				sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				return sts
+			}).ShouldNot(BeNil())
+			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
+			Expect(sts.Name).To(Equal(stsName))
+
 			imageSecretSuffix := "registry-access"
 			secretList, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).List(metav1.ListOptions{})
 			var secretsWithImagePullSecretSuffix []corev1.Secret
@@ -194,11 +220,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 			Expect(secretsWithImagePullSecretSuffix).To(BeEmpty())
 			Expect(err).NotTo(HaveOccurred())
-			stsName := rabbitmqCluster.ChildResourceName("server")
-			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(sts.Name).To(Equal(stsName))
 		})
 		resourceTests()
 	})

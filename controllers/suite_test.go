@@ -77,9 +77,6 @@ var _ = BeforeSuite(func() {
 	err = rabbitmqv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-	// channel when it is finished.
-
 	scheme := runtime.NewScheme()
 	Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
 	Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
@@ -95,14 +92,7 @@ var _ = BeforeSuite(func() {
 		ImagePullSecret: "pivotal-rmq-registry-access",
 		Namespace:       "pivotal-rabbitmq-system",
 	}
-
-	var testReconciler reconcile.Reconciler
-	testReconciler, requests = SetupTestReconcile(reconciler)
-
-	err = ctrl.NewControllerManagedBy(mgr).
-		For(&rabbitmqv1beta1.RabbitmqCluster{}).
-		Complete(testReconciler)
-	Expect(err).NotTo(HaveOccurred())
+	reconciler.SetupWithManager(mgr)
 
 	stopMgr = make(chan struct{})
 	mgrStopped = &sync.WaitGroup{}
@@ -125,13 +115,3 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
-
-func SetupTestReconcile(inner reconcile.Reconciler) (reconcile.Reconciler, chan reconcile.Request) {
-	requests := make(chan reconcile.Request)
-	fn := reconcile.Func(func(req reconcile.Request) (reconcile.Result, error) {
-		result, err := inner.Reconcile(req)
-		requests <- req
-		return result, err
-	})
-	return fn, requests
-}
