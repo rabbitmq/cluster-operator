@@ -10,6 +10,8 @@ data:
       type: NodePort
       annotations:
         service_annotations: 0.0.0.0/0
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "15692"
     resources:
       limits:
         memory: 1Gi

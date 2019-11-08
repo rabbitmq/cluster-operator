@@ -113,6 +113,20 @@ var _ = Describe("Operator", func() {
 				waitForRabbitmqRunning(cluster)
 			})
 
+			By("adding Prometheus annotations to the ingress service", func() {
+				expectedAnnotations := map[string]string{"prometheus.io/scrape": "true", "prometheus.io/port": "15692"}
+				Eventually(func() map[string]string {
+					svc, err := clientSet.CoreV1().Services(namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
+					if err != nil {
+						Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", cluster.ChildResourceName(ingressServiceSuffix))))
+						return nil
+					}
+
+					annotations := map[string]string{"prometheus.io/scrape": svc.Annotations["prometheus.io/scrape"], "prometheus.io/port": svc.Annotations["prometheus.io/port"]}
+					return annotations
+				}, serviceCreationTimeout).Should(Equal(expectedAnnotations))
+			})
+
 			By("creating rabbitmq containers with the default CPU request and limit, and provided memory request and limit", func() {
 				operatorConfigMapName := "p-rmq-operator-config"
 				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
