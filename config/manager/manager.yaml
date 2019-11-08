@@ -24,11 +24,11 @@ spec:
         name: operator
         resources:
           limits:
-            cpu: 100m
-            memory: 30Mi
+            cpu: 200m
+            memory: 500Mi
           requests:
-            cpu: 100m
-            memory: 20Mi
+            cpu: 200m
+            memory: 500Mi
         volumeMounts:
         - name: operator-config
           mountPath: /etc/operator-config
