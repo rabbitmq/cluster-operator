@@ -38,7 +38,7 @@ func GenerateServerConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.C
 				"cluster_formation.k8s.address_type = hostname",
 				"cluster_formation.node_cleanup.interval = 30",
 				"cluster_formation.node_cleanup.only_log_warning = true",
-				"cluster_partition_handling = autoheal",
+				"cluster_partition_handling = pause_minority",
 				"queue_master_locator = min-masters",
 			}, "\n"),
 		},
