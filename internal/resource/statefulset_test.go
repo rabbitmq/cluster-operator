@@ -63,7 +63,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(*sts.Spec.Replicas).To(Equal(int32(1)))
 		})
 
-		It("adds the correct labels", func() {
+		It("adds the correct labels on the statefulset", func() {
 			Expect(sts.Labels["app"]).To(Equal("pivotal-rabbitmq"))
 			Expect(sts.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
 		})
@@ -351,6 +351,18 @@ var _ = Describe("StatefulSet", func() {
 				corev1.ResourceMemory: memoryRequest,
 			}
 			Expect(container.Resources.Requests).To(Equal(expectResourceRequests))
+		})
+
+		It("adds the correct labels on the rabbitmq pods", func() {
+			labels := sts.Spec.Template.ObjectMeta.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+
+		It("adds the correct label selector", func() {
+			labels := sts.Spec.Selector.MatchLabels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 		})
 	})
 

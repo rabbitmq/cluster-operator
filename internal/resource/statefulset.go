@@ -84,13 +84,19 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetCo
 			ServiceName: instance.ChildResourceName(headlessServiceName),
 			Replicas:    &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": instance.Name},
+				MatchLabels: map[string]string{"app.kubernetes.io/name": instance.Name},
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 				*pvc,
 			},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": instance.Name}},
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app.kubernetes.io/name":      instance.Name,
+						"app.kubernetes.io/component": "rabbitmq",
+						"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+					},
+				},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{
 						FSGroup:    &rabbitmqGID,
