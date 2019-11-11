@@ -2,6 +2,7 @@ package resource
 
 import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -15,17 +16,11 @@ func GenerateHeadlessService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.S
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.ChildResourceName(headlessServiceName),
 			Namespace: instance.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":      instance.Name,
-				"app.kubernetes.io/component": "rabbitmq",
-				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
-			},
+			Labels:    metadata.Label(instance.Name),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
-			Selector: map[string]string{
-				"app.kubernetes.io/name": instance.Name,
-			},
+			Selector:  metadata.LabelSelector(instance.Name),
 			Ports: []corev1.ServicePort{
 				{
 					Protocol: corev1.ProtocolTCP,
@@ -50,20 +45,14 @@ func GenerateIngressService(instance rabbitmqv1beta1.RabbitmqCluster, serviceTyp
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName("ingress"),
-			Namespace: instance.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":      instance.Name,
-				"app.kubernetes.io/component": "rabbitmq",
-				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
-			},
+			Name:        instance.ChildResourceName("ingress"),
+			Namespace:   instance.Namespace,
+			Labels:      metadata.Label(instance.Name),
 			Annotations: serviceAnnotations,
 		},
 		Spec: corev1.ServiceSpec{
-			Type: corev1.ServiceType(serviceType),
-			Selector: map[string]string{
-				"app.kubernetes.io/name": instance.Name,
-			},
+			Type:     corev1.ServiceType(serviceType),
+			Selector: metadata.LabelSelector(instance.Name),
 			Ports: []corev1.ServicePort{
 				{
 					Protocol: corev1.ProtocolTCP,

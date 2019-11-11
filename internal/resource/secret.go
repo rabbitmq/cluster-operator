@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,11 +32,7 @@ func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secr
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.ChildResourceName(adminSecretName),
 			Namespace: instance.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":      instance.Name,
-				"app.kubernetes.io/component": "rabbitmq",
-				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
-			},
+			Labels:    metadata.Label(instance.Name),
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
@@ -65,11 +62,7 @@ func GenerateErlangCookie(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Sec
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.ChildResourceName(erlangCookieName),
 			Namespace: instance.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":      instance.Name,
-				"app.kubernetes.io/component": "rabbitmq",
-				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
-			},
+			Labels:    metadata.Label(instance.Name),
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{

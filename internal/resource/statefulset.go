@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -75,28 +76,20 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetCo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.ChildResourceName("server"),
 			Namespace: instance.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":      instance.Name,
-				"app.kubernetes.io/component": "rabbitmq",
-				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
-			},
+			Labels:    metadata.Label(instance.Name),
 		},
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: instance.ChildResourceName(headlessServiceName),
 			Replicas:    &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app.kubernetes.io/name": instance.Name},
+				MatchLabels: metadata.LabelSelector(instance.Name),
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 				*pvc,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app.kubernetes.io/name":      instance.Name,
-						"app.kubernetes.io/component": "rabbitmq",
-						"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
-					},
+					Labels: metadata.Label(instance.Name),
 				},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{

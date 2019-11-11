@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -17,11 +18,7 @@ func GenerateServerConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.C
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.ChildResourceName(serverConfigMapName),
 			Namespace: instance.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":      instance.Name,
-				"app.kubernetes.io/component": "rabbitmq",
-				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
-			},
+			Labels:    metadata.Label(instance.Name),
 		},
 		Data: map[string]string{
 			"enabled_plugins": "[" +
