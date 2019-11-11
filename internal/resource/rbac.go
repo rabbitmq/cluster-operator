@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 )
 
 const (
@@ -19,6 +20,7 @@ func GenerateServiceAccount(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.Se
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: instance.Namespace,
 			Name:      instance.ChildResourceName(serviceAccountName),
+			Labels:    metadata.Label(instance.Name),
 		},
 	}
 }
@@ -28,6 +30,7 @@ func GenerateRole(instance rabbitmqv1beta1.RabbitmqCluster) *rbacv1.Role {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: instance.Namespace,
 			Name:      instance.ChildResourceName(roleName),
+			Labels:    metadata.Label(instance.Name),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -44,6 +47,7 @@ func GenerateRoleBinding(instance rabbitmqv1beta1.RabbitmqCluster) *rbacv1.RoleB
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: instance.Namespace,
 			Name:      instance.ChildResourceName(roleBindingName),
+			Labels:    metadata.Label(instance.Name),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
