@@ -5,16 +5,18 @@ metadata:
   name: operator
   namespace: system
   labels:
-    control-plane: controller-manager
+    app.kubernetes.io/name: p-rmq-operator
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      app.kubernetes.io/name: p-rmq-operator
   replicas: 1
   template:
     metadata:
       labels:
-        control-plane: controller-manager
+        app.kubernetes.io/name: p-rmq-operator
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/part-of: pivotal-rabbitmq
     spec:
       containers:
       - command:

@@ -102,7 +102,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			"get",
 			"deployment",
 			"-l",
-			"control-plane=controller-manager",
+			"app.kubernetes.io/name=p-rmq-operator",
 		)
 
 		Expect(err).NotTo(HaveOccurred())
