@@ -42,7 +42,7 @@ var _ = Context("Services", func() {
 			})
 
 			It("generates a service object with the correct selector", func() {
-				Expect(service.Spec.Selector["app"]).To(Equal(instance.Name))
+				Expect(service.Spec.Selector["app.kubernetes.io/name"]).To(Equal(instance.Name))
 			})
 
 			It("generates a service object with the correct ports exposed", func() {
@@ -221,7 +221,7 @@ var _ = Context("Services", func() {
 		})
 
 		It("generates a service object with the correct selector", func() {
-			Expect(service.Spec.Selector["app"]).To(Equal(instance.Name))
+			Expect(service.Spec.Selector["app.kubernetes.io/name"]).To(Equal(instance.Name))
 		})
 
 		It("generates a headless service object", func() {

@@ -22,7 +22,7 @@ func GenerateHeadlessService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.S
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
 			Selector: map[string]string{
-				"app": instance.Name,
+				"app.kubernetes.io/name": instance.Name,
 			},
 			Ports: []corev1.ServicePort{
 				{
@@ -58,7 +58,7 @@ func GenerateIngressService(instance rabbitmqv1beta1.RabbitmqCluster, serviceTyp
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceType(serviceType),
 			Selector: map[string]string{
-				"app": instance.Name,
+				"app.kubernetes.io/name": instance.Name,
 			},
 			Ports: []corev1.ServicePort{
 				{
