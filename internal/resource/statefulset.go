@@ -76,8 +76,9 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetCo
 			Name:      instance.ChildResourceName("server"),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
-				"app":             "pivotal-rabbitmq",
-				"RabbitmqCluster": instance.Name,
+				"app.kubernetes.io/name":      instance.Name,
+				"app.kubernetes.io/component": "rabbitmq",
+				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
 			},
 		},
 		Spec: appsv1.StatefulSetSpec{

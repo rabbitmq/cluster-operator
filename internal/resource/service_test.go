@@ -30,7 +30,10 @@ var _ = Context("Services", func() {
 			It("generates a service object with the correct name and labels", func() {
 				expectedName := instance.ChildResourceName("ingress")
 				Expect(service.Name).To(Equal(expectedName))
-				Expect(service.ObjectMeta.Labels["app"]).To(Equal(instance.Name))
+				labels := service.Labels
+				Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 			})
 
 			It("generates a service object with the correct namespace", func() {
@@ -217,7 +220,10 @@ var _ = Context("Services", func() {
 		})
 
 		It("generates a service object with the correct label", func() {
-			Expect(service.ObjectMeta.Labels["app"]).To(Equal(instance.Name))
+			labels := service.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
 
 		It("generates a service object with the correct selector", func() {

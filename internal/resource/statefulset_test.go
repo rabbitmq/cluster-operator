@@ -64,8 +64,10 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("adds the correct labels on the statefulset", func() {
-			Expect(sts.Labels["app"]).To(Equal("pivotal-rabbitmq"))
-			Expect(sts.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
+			labels := sts.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
 
 		It("adds the correct name with naming conventions", func() {

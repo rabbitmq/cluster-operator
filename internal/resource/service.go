@@ -16,7 +16,9 @@ func GenerateHeadlessService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.S
 			Name:      instance.ChildResourceName(headlessServiceName),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
-				"app": instance.Name,
+				"app.kubernetes.io/name":      instance.Name,
+				"app.kubernetes.io/component": "rabbitmq",
+				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
 			},
 		},
 		Spec: corev1.ServiceSpec{
@@ -51,7 +53,9 @@ func GenerateIngressService(instance rabbitmqv1beta1.RabbitmqCluster, serviceTyp
 			Name:      instance.ChildResourceName("ingress"),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
-				"app": instance.Name,
+				"app.kubernetes.io/name":      instance.Name,
+				"app.kubernetes.io/component": "rabbitmq",
+				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
 			},
 			Annotations: serviceAnnotations,
 		},
