@@ -38,8 +38,10 @@ var _ = Describe("GenerateServerConfigMap", func() {
 	})
 
 	It("generates a ConfigMap with required labels", func() {
-		Expect(confMap.Labels["app"]).To(Equal("pivotal-rabbitmq"))
-		Expect(confMap.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
+		labels := confMap.Labels
+		Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+		Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+		Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 	})
 
 	It("generates a ConfigMap with required object fields", func() {

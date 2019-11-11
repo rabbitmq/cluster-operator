@@ -18,8 +18,9 @@ func GenerateServerConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.C
 			Name:      instance.ChildResourceName(serverConfigMapName),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
-				"app":             "pivotal-rabbitmq",
-				"RabbitmqCluster": instance.Name,
+				"app.kubernetes.io/name":      instance.Name,
+				"app.kubernetes.io/component": "rabbitmq",
+				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
 			},
 		},
 		Data: map[string]string{

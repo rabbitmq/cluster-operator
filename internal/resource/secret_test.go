@@ -2,6 +2,7 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo"
@@ -36,8 +37,10 @@ var _ = Describe("Secrets", func() {
 		})
 
 		It("creates the required labels", func() {
-			Expect(secret.Labels["app"]).To(Equal("pivotal-rabbitmq"))
-			Expect(secret.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
+			labels := secret.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
 
 		It("creates a 'opaque' secret ", func() {
@@ -75,8 +78,10 @@ var _ = Describe("Secrets", func() {
 		})
 
 		It("creates the secret required labels", func() {
-			Expect(secret.Labels["app"]).To(Equal("pivotal-rabbitmq"))
-			Expect(secret.Labels["RabbitmqCluster"]).To(Equal(instance.Name))
+			labels := secret.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
 
 		It("creates a 'opaque' secret ", func() {

@@ -32,8 +32,9 @@ func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secr
 			Name:      instance.ChildResourceName(adminSecretName),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
-				"app":             "pivotal-rabbitmq",
-				"RabbitmqCluster": instance.Name,
+				"app.kubernetes.io/name":      instance.Name,
+				"app.kubernetes.io/component": "rabbitmq",
+				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -65,8 +66,9 @@ func GenerateErlangCookie(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Sec
 			Name:      instance.ChildResourceName(erlangCookieName),
 			Namespace: instance.Namespace,
 			Labels: map[string]string{
-				"app":             "pivotal-rabbitmq",
-				"RabbitmqCluster": instance.Name,
+				"app.kubernetes.io/name":      instance.Name,
+				"app.kubernetes.io/component": "rabbitmq",
+				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
