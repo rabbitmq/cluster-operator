@@ -321,10 +321,8 @@ func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, per
 	}
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "persistence",
-			Labels: map[string]string{
-				"app": instance.Name,
-			},
+			Name:   "persistence",
+			Labels: metadata.Label(instance.Name),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.ResourceRequirements{

@@ -240,13 +240,15 @@ var _ = Describe("StatefulSet", func() {
 				ObjectMeta: v1.ObjectMeta{
 					Name: "persistence",
 					Labels: map[string]string{
-						"app": "foo",
+						"app.kubernetes.io/name":      instance.Name,
+						"app.kubernetes.io/component": "rabbitmq",
+						"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
 					},
 					OwnerReferences: []v1.OwnerReference{
 						{
 							APIVersion:         "rabbitmq.pivotal.io/v1beta1",
 							Kind:               "RabbitmqCluster",
-							Name:               "foo",
+							Name:               instance.Name,
 							UID:                "",
 							Controller:         &truth,
 							BlockOwnerDeletion: &truth,
