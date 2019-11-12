@@ -8,6 +8,9 @@ data:
   config: |
     service:
       type: "ClusterIP"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "15692"
     image: "REPLACE-WITH-RABBITMQ-IMAGE-REFERENCE"
     imagePullSecret: ""
 ---
