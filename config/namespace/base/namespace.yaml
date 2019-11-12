@@ -3,6 +3,6 @@ kind: Namespace
 metadata:
   labels:
     app.kubernetes.io/name: pivotal-rabbitmq-system
-    app.kubernetes.io/component: operator
+    app.kubernetes.io/component: p-rmq-operator
     app.kubernetes.io/part-of: pivotal-rabbitmq
   name: pivotal-rabbitmq-system

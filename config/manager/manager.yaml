@@ -6,6 +6,8 @@ metadata:
   namespace: system
   labels:
     app.kubernetes.io/name: p-rmq-operator
+    app.kubernetes.io/component: p-rmq-operator
+    app.kubernetes.io/part-of: pivotal-rabbitmq
 spec:
   selector:
     matchLabels:
@@ -15,7 +17,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: p-rmq-operator
-        app.kubernetes.io/component: operator
+        app.kubernetes.io/component: p-rmq-operator
         app.kubernetes.io/part-of: pivotal-rabbitmq
     spec:
       containers:
