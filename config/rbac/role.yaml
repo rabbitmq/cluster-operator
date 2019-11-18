@@ -5,10 +5,6 @@ kind: ClusterRole
 metadata:
   creationTimestamp: null
   name: operator-role
-  labels:
-    app.kubernetes.io/name: p-rmq-operator
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/part-of: pivotal-rabbitmq
 rules:
 - apiGroups:
   - ""

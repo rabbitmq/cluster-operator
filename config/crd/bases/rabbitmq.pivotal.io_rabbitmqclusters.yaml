@@ -5,10 +5,6 @@ kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
   name: rabbitmqclusters.rabbitmq.pivotal.io
-  labels:
-    app.kubernetes.io/name: p-rmq-operator
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/part-of: pivotal-rabbitmq
 spec:
   additionalPrinterColumns:
   - JSONPath: .metadata.creationTimestamp

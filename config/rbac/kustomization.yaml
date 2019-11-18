@@ -3,3 +3,8 @@ resources:
 - role_binding.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
+
+patches:
+# the following patch file adds labels to the operator ClusterRole definition in role.yaml
+# role.yaml is a generated file, and adding labels directly to the file does not work.
+- role_labels_patch.yaml

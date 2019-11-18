@@ -5,7 +5,8 @@ resources:
 - bases/rabbitmq.pivotal.io_rabbitmqclusters.yaml
 # +kubebuilder:scaffold:kustomizeresource
 
-# patches:
+patches:
+- patches/crd_labels_patch.yaml
 # patches here are for enabling the conversion webhook for each CRD
 #- patches/webhook_in_rabbitmqclusters.yaml
 # +kubebuilder:scaffold:kustomizepatch
