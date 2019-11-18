@@ -227,7 +227,7 @@ var _ = Context("Services", func() {
 
 	Describe("GenerateHeadlessService", func() {
 		BeforeEach(func() {
-			service = resource.GenerateHeadlessService(instance)
+			service = cluster.HeadlessService()
 		})
 
 		It("generates a service object with the correct name", func() {
