@@ -6,31 +6,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	headlessServiceName = "headless"
-)
-
-func (cluster *RabbitmqCluster) HeadlessService() *corev1.Service {
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Instance.ChildResourceName(headlessServiceName),
-			Namespace: cluster.Instance.Namespace,
-			Labels:    metadata.Label(cluster.Instance.Name),
-		},
-		Spec: corev1.ServiceSpec{
-			ClusterIP: "None",
-			Selector:  metadata.LabelSelector(cluster.Instance.Name),
-			Ports: []corev1.ServicePort{
-				{
-					Protocol: corev1.ProtocolTCP,
-					Port:     4369,
-					Name:     "epmd",
-				},
-			},
-		},
-	}
-}
-
 func (cluster *RabbitmqCluster) IngressService() *corev1.Service {
 	var (
 		serviceType        string
