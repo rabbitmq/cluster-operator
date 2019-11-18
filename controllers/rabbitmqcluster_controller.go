@@ -206,7 +206,9 @@ func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName)
 
 func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
 	cluster := resource.RabbitmqCluster{
-		Instance: rabbitmqClusterInstance,
+		Instance:           rabbitmqClusterInstance,
+		ServiceType:        r.ServiceType,
+		ServiceAnnotations: r.ServiceAnnotations,
 	}
 	secrets, err := cluster.Resources()
 	if err != nil {
@@ -215,7 +217,7 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 
 	resources := []runtime.Object{
 		resource.GenerateServerConfigMap(*rabbitmqClusterInstance),
-		resource.GenerateIngressService(*rabbitmqClusterInstance, r.ServiceType, r.ServiceAnnotations),
+		cluster.IngressService(),
 		resource.GenerateHeadlessService(*rabbitmqClusterInstance),
 		secrets[0],
 		secrets[1],

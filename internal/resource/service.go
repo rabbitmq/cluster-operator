@@ -32,27 +32,36 @@ func GenerateHeadlessService(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.S
 	}
 }
 
-func GenerateIngressService(instance rabbitmqv1beta1.RabbitmqCluster, serviceType string, serviceAnnotations map[string]string) *corev1.Service {
-	if instance.Spec.Service.Type != "" {
-		serviceType = instance.Spec.Service.Type
-	} else if serviceType == "" {
+func (cluster *RabbitmqCluster) IngressService() *corev1.Service {
+	var (
+		serviceType        string
+		serviceAnnotations map[string]string
+	)
+
+	if cluster.Instance.Spec.Service.Type != "" {
+		serviceType = cluster.Instance.Spec.Service.Type
+	} else if cluster.ServiceType == "" {
 		serviceType = "ClusterIP"
+	} else {
+		serviceType = cluster.ServiceType
 	}
 
-	if instance.Spec.Service.Annotations != nil {
-		serviceAnnotations = instance.Spec.Service.Annotations
+	if cluster.Instance.Spec.Service.Annotations != nil {
+		serviceAnnotations = cluster.Instance.Spec.Service.Annotations
+	} else {
+		serviceAnnotations = cluster.ServiceAnnotations
 	}
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        instance.ChildResourceName("ingress"),
-			Namespace:   instance.Namespace,
-			Labels:      metadata.Label(instance.Name),
+			Name:        cluster.Instance.ChildResourceName("ingress"),
+			Namespace:   cluster.Instance.Namespace,
+			Labels:      metadata.Label(cluster.Instance.Name),
 			Annotations: serviceAnnotations,
 		},
 		Spec: corev1.ServiceSpec{
 			Type:     corev1.ServiceType(serviceType),
-			Selector: metadata.LabelSelector(instance.Name),
+			Selector: metadata.LabelSelector(cluster.Instance.Name),
 			Ports: []corev1.ServicePort{
 				{
 					Protocol: corev1.ProtocolTCP,
