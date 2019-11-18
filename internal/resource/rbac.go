@@ -5,7 +5,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 )
 
@@ -15,22 +14,22 @@ const (
 	roleBindingName    = "server"
 )
 
-func GenerateServiceAccount(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ServiceAccount {
+func (cluster *RabbitmqCluster) ServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: instance.Namespace,
-			Name:      instance.ChildResourceName(serviceAccountName),
-			Labels:    metadata.Label(instance.Name),
+			Namespace: cluster.Instance.Namespace,
+			Name:      cluster.Instance.ChildResourceName(serviceAccountName),
+			Labels:    metadata.Label(cluster.Instance.Name),
 		},
 	}
 }
 
-func GenerateRole(instance rabbitmqv1beta1.RabbitmqCluster) *rbacv1.Role {
+func (cluster *RabbitmqCluster) Role() *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: instance.Namespace,
-			Name:      instance.ChildResourceName(roleName),
-			Labels:    metadata.Label(instance.Name),
+			Namespace: cluster.Instance.Namespace,
+			Name:      cluster.Instance.ChildResourceName(roleName),
+			Labels:    metadata.Label(cluster.Instance.Name),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -42,22 +41,22 @@ func GenerateRole(instance rabbitmqv1beta1.RabbitmqCluster) *rbacv1.Role {
 	}
 }
 
-func GenerateRoleBinding(instance rabbitmqv1beta1.RabbitmqCluster) *rbacv1.RoleBinding {
+func (cluster *RabbitmqCluster) RoleBinding() *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: instance.Namespace,
-			Name:      instance.ChildResourceName(roleBindingName),
-			Labels:    metadata.Label(instance.Name),
+			Namespace: cluster.Instance.Namespace,
+			Name:      cluster.Instance.ChildResourceName(roleBindingName),
+			Labels:    metadata.Label(cluster.Instance.Name),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "Role",
-			Name:     instance.ChildResourceName(roleName),
+			Name:     cluster.Instance.ChildResourceName(roleName),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind: "ServiceAccount",
-				Name: instance.ChildResourceName(serviceAccountName),
+				Name: cluster.Instance.ChildResourceName(serviceAccountName),
 			},
 		},
 	}

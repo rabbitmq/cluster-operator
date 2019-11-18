@@ -35,5 +35,14 @@ func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err err
 	}
 	resources = append(resources, erlangCookie)
 
+	serviceAccount := cluster.ServiceAccount()
+	resources = append(resources, serviceAccount)
+
+	role := cluster.Role()
+	resources = append(resources, role)
+
+	roleBinding := cluster.RoleBinding()
+	resources = append(resources, roleBinding)
+
 	return resources, nil
 }

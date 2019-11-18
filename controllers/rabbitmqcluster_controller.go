@@ -210,21 +210,11 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		ServiceType:        r.ServiceType,
 		ServiceAnnotations: r.ServiceAnnotations,
 	}
-	generatedResources, err := cluster.Resources()
+	resources, err := cluster.Resources()
 	if err != nil {
 		return nil, err
 	}
 
-	resources := []runtime.Object{
-		generatedResources[0],
-		generatedResources[1],
-		generatedResources[2],
-		generatedResources[3],
-		generatedResources[4],
-		resource.GenerateServiceAccount(*rabbitmqClusterInstance),
-		resource.GenerateRole(*rabbitmqClusterInstance),
-		resource.GenerateRoleBinding(*rabbitmqClusterInstance),
-	}
 	statefulSetConfiguration := resource.StatefulSetConfiguration{
 		ImageReference:              r.Image,
 		ImagePullSecret:             r.ImagePullSecret,

@@ -15,7 +15,9 @@ var _ = Describe("RBAC", func() {
 	var (
 		instance       rabbitmqv1beta1.RabbitmqCluster
 		serviceAccount *corev1.ServiceAccount
+		cluster        *resource.RabbitmqCluster
 	)
+
 	BeforeEach(func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: v1.ObjectMeta{
@@ -23,18 +25,21 @@ var _ = Describe("RBAC", func() {
 				Name:      "a-name",
 			},
 		}
-		serviceAccount = resource.GenerateServiceAccount(instance)
+		cluster = &resource.RabbitmqCluster{
+			Instance: &instance,
+		}
+		serviceAccount = cluster.ServiceAccount()
 	})
 
 	Describe("GenerateServiceAccount", func() {
 		It("generates a correct service account", func() {
-			Expect(serviceAccount.Namespace).To(Equal(instance.Namespace))
+			Expect(serviceAccount.Namespace).To(Equal(cluster.Instance.Namespace))
 			Expect(serviceAccount.Name).To(Equal(instance.ChildResourceName("server")))
 		})
 
 		It("adds the required labels", func() {
 			labels := serviceAccount.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(cluster.Instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
@@ -43,10 +48,13 @@ var _ = Describe("RBAC", func() {
 	Describe("GenerateRole", func() {
 		var role *rbacv1.Role
 		BeforeEach(func() {
-			role = resource.GenerateRole(instance)
+			cluster = &resource.RabbitmqCluster{
+				Instance: &instance,
+			}
+			role = cluster.Role()
 		})
 		It("generates a correct service account", func() {
-			Expect(role.Namespace).To(Equal(instance.Namespace))
+			Expect(role.Namespace).To(Equal(cluster.Instance.Namespace))
 			Expect(role.Name).To(Equal(instance.ChildResourceName("endpoint-discovery")))
 
 			Expect(len(role.Rules)).To(Equal(1))
@@ -58,7 +66,7 @@ var _ = Describe("RBAC", func() {
 		})
 		It("adds the required labels", func() {
 			labels := role.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(cluster.Instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
@@ -67,25 +75,28 @@ var _ = Describe("RBAC", func() {
 	Describe("GenerateRoleBinding", func() {
 		var roleBinding *rbacv1.RoleBinding
 		BeforeEach(func() {
-			roleBinding = resource.GenerateRoleBinding(instance)
+			cluster = &resource.RabbitmqCluster{
+				Instance: &instance,
+			}
+			roleBinding = cluster.RoleBinding()
 		})
 		It("generates a correct service account", func() {
-			Expect(roleBinding.Namespace).To(Equal(instance.Namespace))
-			Expect(roleBinding.Name).To(Equal(instance.ChildResourceName("server")))
+			Expect(roleBinding.Namespace).To(Equal(cluster.Instance.Namespace))
+			Expect(roleBinding.Name).To(Equal(cluster.Instance.ChildResourceName("server")))
 
 			Expect(len(roleBinding.Subjects)).To(Equal(1))
 			subject := roleBinding.Subjects[0]
 
 			Expect(subject.Kind).To(Equal("ServiceAccount"))
-			Expect(subject.Name).To(Equal(instance.ChildResourceName("server")))
+			Expect(subject.Name).To(Equal(cluster.Instance.ChildResourceName("server")))
 
 			Expect(roleBinding.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
 			Expect(roleBinding.RoleRef.Kind).To(Equal("Role"))
-			Expect(roleBinding.RoleRef.Name).To(Equal(instance.ChildResourceName("endpoint-discovery")))
+			Expect(roleBinding.RoleRef.Name).To(Equal(cluster.Instance.ChildResourceName("endpoint-discovery")))
 		})
 		It("adds the required labels", func() {
 			labels := roleBinding.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(cluster.Instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
