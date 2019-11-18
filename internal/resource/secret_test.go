@@ -21,13 +21,19 @@ var _ = Describe("Secrets", func() {
 				Namespace: "a namespace",
 			},
 		}
+
+		rabbitmqCluster *resource.RabbitmqCluster
 	)
 
-	Describe("GenerateAdminSecret", func() {
+	Describe("AdminSecret", func() {
 
 		BeforeEach(func() {
 			var err error
-			secret, err = resource.GenerateAdminSecret(instance)
+
+			rabbitmqCluster = &resource.RabbitmqCluster{
+				Instance: &instance,
+			}
+			secret, err = rabbitmqCluster.AdminSecret()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -65,10 +71,13 @@ var _ = Describe("Secrets", func() {
 		})
 	})
 
-	Describe("GenerateErlangCookie", func() {
+	Describe("ErlangCookie", func() {
 		BeforeEach(func() {
 			var err error
-			secret, err = resource.GenerateErlangCookie(instance)
+			rabbitmqCluster = &resource.RabbitmqCluster{
+				Instance: &instance,
+			}
+			secret, err = rabbitmqCluster.ErlangCookie()
 			Expect(err).NotTo(HaveOccurred())
 		})
 

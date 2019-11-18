@@ -205,22 +205,20 @@ func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName)
 }
 
 func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
-	rabbitmqAdminSecret, err := resource.GenerateAdminSecret(*rabbitmqClusterInstance)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate admin secret: %v ", err)
+	cluster := resource.RabbitmqCluster{
+		Instance: rabbitmqClusterInstance,
 	}
-
-	erlangCookie, err := resource.GenerateErlangCookie(*rabbitmqClusterInstance)
+	secrets, err := cluster.Resources()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate erlang cookie: %v ", err)
+		return nil, err
 	}
 
 	resources := []runtime.Object{
 		resource.GenerateServerConfigMap(*rabbitmqClusterInstance),
 		resource.GenerateIngressService(*rabbitmqClusterInstance, r.ServiceType, r.ServiceAnnotations),
 		resource.GenerateHeadlessService(*rabbitmqClusterInstance),
-		rabbitmqAdminSecret,
-		erlangCookie,
+		secrets[0],
+		secrets[1],
 		resource.GenerateServiceAccount(*rabbitmqClusterInstance),
 		resource.GenerateRole(*rabbitmqClusterInstance),
 		resource.GenerateRoleBinding(*rabbitmqClusterInstance),

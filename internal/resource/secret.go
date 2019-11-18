@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +16,7 @@ const (
 	imageSecretSuffix = "registry-access"
 )
 
-func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, error) {
+func (cluster *RabbitmqCluster) AdminSecret() (*corev1.Secret, error) {
 	username, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
@@ -30,9 +29,9 @@ func GenerateAdminSecret(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secr
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName(adminSecretName),
-			Namespace: instance.Namespace,
-			Labels:    metadata.Label(instance.Name),
+			Name:      cluster.Instance.ChildResourceName(adminSecretName),
+			Namespace: cluster.Instance.Namespace,
+			Labels:    metadata.Label(cluster.Instance.Name),
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
@@ -52,7 +51,7 @@ func GenerateRegistrySecret(secret *corev1.Secret, namespace string, instanceNam
 	return registrySecret
 }
 
-func GenerateErlangCookie(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Secret, error) {
+func (cluster *RabbitmqCluster) ErlangCookie() (*corev1.Secret, error) {
 	cookie, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
@@ -60,9 +59,9 @@ func GenerateErlangCookie(instance rabbitmqv1beta1.RabbitmqCluster) (*corev1.Sec
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName(erlangCookieName),
-			Namespace: instance.Namespace,
-			Labels:    metadata.Label(instance.Name),
+			Name:      cluster.Instance.ChildResourceName(erlangCookieName),
+			Namespace: cluster.Instance.Namespace,
+			Labels:    metadata.Label(cluster.Instance.Name),
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
