@@ -205,16 +205,6 @@ func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName)
 }
 
 func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
-	cluster := resource.RabbitmqCluster{
-		Instance:           rabbitmqClusterInstance,
-		ServiceType:        r.ServiceType,
-		ServiceAnnotations: r.ServiceAnnotations,
-	}
-	resources, err := cluster.Resources()
-	if err != nil {
-		return nil, err
-	}
-
 	statefulSetConfiguration := resource.StatefulSetConfiguration{
 		ImageReference:              r.Image,
 		ImagePullSecret:             r.ImagePullSecret,
@@ -223,6 +213,17 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		ResourceRequirementsConfig:  r.ResourceRequirements,
 		Scheme:                      r.Scheme,
 	}
+	cluster := resource.RabbitmqCluster{
+		Instance:                 rabbitmqClusterInstance,
+		ServiceType:              r.ServiceType,
+		ServiceAnnotations:       r.ServiceAnnotations,
+		StatefulSetConfiguration: statefulSetConfiguration,
+	}
+	resources, err := cluster.Resources()
+	if err != nil {
+		return nil, err
+	}
+
 	if r.ImagePullSecret != "" && rabbitmqClusterInstance.Spec.ImagePullSecret == "" {
 		operatorRegistrySecret, err := r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
 		if err != nil {
@@ -231,9 +232,9 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 
 		clusterRegistrySecret := resource.GenerateRegistrySecret(operatorRegistrySecret, rabbitmqClusterInstance.Namespace, rabbitmqClusterInstance.Name)
 		resources = append(resources, clusterRegistrySecret)
-		statefulSetConfiguration.ImagePullSecret = clusterRegistrySecret.Name
+		cluster.StatefulSetConfiguration.ImagePullSecret = clusterRegistrySecret.Name
 	}
-	statefulSet, err := resource.GenerateStatefulSet(*rabbitmqClusterInstance, statefulSetConfiguration)
+	statefulSet, err := cluster.StatefulSet()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
 	}

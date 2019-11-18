@@ -38,58 +38,59 @@ type StatefulSetConfiguration struct {
 	Scheme                      *runtime.Scheme
 }
 
-func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetConfiguration StatefulSetConfiguration) (*appsv1.StatefulSet, error) {
+func (cluster *RabbitmqCluster) StatefulSet() (*appsv1.StatefulSet, error) {
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
-	replicas := int32(instance.Spec.Replicas)
+	replicas := int32(cluster.Instance.Spec.Replicas)
 	if replicas == 0 {
 		replicas = int32(1)
 	}
 
 	image := rabbitmqImage
-	if instance.Spec.Image != "" {
-		image = instance.Spec.Image
-	} else if statefulSetConfiguration.ImageReference != "" {
-		image = statefulSetConfiguration.ImageReference
+	if cluster.Instance.Spec.Image != "" {
+		image = cluster.Instance.Spec.Image
+	} else if cluster.StatefulSetConfiguration.ImageReference != "" {
+		image = cluster.StatefulSetConfiguration.ImageReference
 	}
 
 	imagePullSecrets := []corev1.LocalObjectReference{}
-	if instance.Spec.ImagePullSecret != "" {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: instance.Spec.ImagePullSecret})
-	} else if statefulSetConfiguration.ImagePullSecret != "" {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
+	if cluster.Instance.Spec.ImagePullSecret != "" {
+		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: cluster.Instance.Spec.ImagePullSecret})
+	} else if cluster.StatefulSetConfiguration.ImagePullSecret != "" {
+		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: cluster.StatefulSetConfiguration.ImagePullSecret})
 	}
 
-	pvc, err := generatePersistentVolumeClaim(instance, statefulSetConfiguration.PersistenceStorageClassName, statefulSetConfiguration.PersistenceStorage, statefulSetConfiguration.Scheme)
+	//TODO refactor arguments
+	pvc, err := generatePersistentVolumeClaim(*cluster.Instance, cluster.StatefulSetConfiguration.PersistenceStorageClassName, cluster.StatefulSetConfiguration.PersistenceStorage, cluster.StatefulSetConfiguration.Scheme)
 	if err != nil {
 		return nil, err
 	}
 
-	resourceRequirements, err := generateResourceRequirements(statefulSetConfiguration.ResourceRequirementsConfig)
+	resourceRequirements, err := generateResourceRequirements(cluster.StatefulSetConfiguration.ResourceRequirementsConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName("server"),
-			Namespace: instance.Namespace,
-			Labels:    metadata.Label(instance.Name),
+			Name:      cluster.Instance.ChildResourceName("server"),
+			Namespace: cluster.Instance.Namespace,
+			Labels:    metadata.Label(cluster.Instance.Name),
 		},
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: instance.ChildResourceName(headlessServiceName),
+			ServiceName: cluster.Instance.ChildResourceName(headlessServiceName),
 			Replicas:    &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: metadata.LabelSelector(instance.Name),
+				MatchLabels: metadata.LabelSelector(cluster.Instance.Name),
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 				*pvc,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: metadata.Label(instance.Name),
+					Labels: metadata.Label(cluster.Instance.Name),
 				},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{
@@ -97,7 +98,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetCo
 						RunAsGroup: &rabbitmqGID,
 						RunAsUser:  &rabbitmqUID,
 					},
-					ServiceAccountName:           instance.ChildResourceName(serviceAccountName),
+					ServiceAccountName:           cluster.Instance.ChildResourceName(serviceAccountName),
 					AutomountServiceAccountToken: &automountServiceAccountToken,
 					ImagePullSecrets:             imagePullSecrets,
 					InitContainers:               generateInitContainers(image),
@@ -143,7 +144,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetCo
 								},
 								{
 									Name:  "K8S_SERVICE_NAME",
-									Value: instance.ChildResourceName("headless"),
+									Value: cluster.Instance.ChildResourceName("headless"),
 								},
 								{
 									Name:  "RABBITMQ_USE_LONGNAME",
@@ -217,7 +218,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetCo
 							Name: "rabbitmq-admin",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: instance.ChildResourceName(adminSecretName),
+									SecretName: cluster.Instance.ChildResourceName(adminSecretName),
 									Items: []corev1.KeyToPath{
 										{
 											Key:  "rabbitmq-username",
@@ -236,7 +237,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetCo
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: instance.ChildResourceName(serverConfigMapName),
+										Name: cluster.Instance.ChildResourceName(serverConfigMapName),
 									},
 								},
 							},
@@ -257,7 +258,7 @@ func GenerateStatefulSet(instance rabbitmqv1beta1.RabbitmqCluster, statefulSetCo
 							Name: "erlang-cookie-secret",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: instance.ChildResourceName(erlangCookieName),
+									SecretName: cluster.Instance.ChildResourceName(erlangCookieName),
 								},
 							},
 						},
