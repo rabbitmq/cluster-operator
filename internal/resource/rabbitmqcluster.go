@@ -15,6 +15,12 @@ type RabbitmqCluster struct {
 
 func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err error) {
 
+	ingressService := cluster.IngressService()
+	resources = append(resources, ingressService)
+
+	headlessService := cluster.HeadlessService()
+	resources = append(resources, headlessService)
+
 	adminSecret, err := cluster.AdminSecret()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate admin secret: %v ", err)
@@ -26,5 +32,6 @@ func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err err
 		return nil, fmt.Errorf("failed to generate erlang cookie: %v ", err)
 	}
 	resources = append(resources, erlangCookie)
+
 	return resources, nil
 }
