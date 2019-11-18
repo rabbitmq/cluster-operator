@@ -23,7 +23,6 @@ resources:
 - manager_config_map.yaml
 
 patches:
-- manager_config_map_patch.yaml
 - manager_image_patch.yaml
 # This patch stop manager from emitting any metrics
 # For more context, refer to story #167092237
