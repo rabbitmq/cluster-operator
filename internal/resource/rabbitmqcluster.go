@@ -14,6 +14,8 @@ type RabbitmqCluster struct {
 }
 
 func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err error) {
+	serverConf := cluster.ServerConfigMap()
+	resources = append(resources, serverConf)
 
 	ingressService := cluster.IngressService()
 	resources = append(resources, ingressService)

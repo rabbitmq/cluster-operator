@@ -26,20 +26,25 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				Namespace: "a-namespace",
 			},
 		}
+
+		cluster *resource.RabbitmqCluster
 	)
 
 	BeforeEach(func() {
-		confMap = resource.GenerateServerConfigMap(instance)
+		cluster = &resource.RabbitmqCluster{
+			Instance: &instance,
+		}
+		confMap = cluster.ServerConfigMap()
 	})
 
 	It("generates a ConfigMap with the correct name and namespace", func() {
-		Expect(confMap.Name).To(Equal(instance.ChildResourceName("server-conf")))
-		Expect(confMap.Namespace).To(Equal(instance.Namespace))
+		Expect(confMap.Name).To(Equal(cluster.Instance.ChildResourceName("server-conf")))
+		Expect(confMap.Namespace).To(Equal(cluster.Instance.Namespace))
 	})
 
 	It("generates a ConfigMap with required labels", func() {
 		labels := confMap.Labels
-		Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+		Expect(labels["app.kubernetes.io/name"]).To(Equal(cluster.Instance.Name))
 		Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 		Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 	})

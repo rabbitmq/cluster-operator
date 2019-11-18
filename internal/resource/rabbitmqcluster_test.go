@@ -30,7 +30,7 @@ var _ = Describe("RabbitmqCluster", func() {
 		It("returns the required resources", func() {
 			resources, err := rabbitmqCluster.Resources()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(resources)).To(Equal(4))
+			Expect(len(resources)).To(Equal(5))
 
 			resourceMap := make(map[string]bool)
 			for _, resource := range resources {
@@ -49,11 +49,15 @@ var _ = Describe("RabbitmqCluster", func() {
 					if r.Name == "test-rabbitmq-ingress" {
 						resourceMap[r.Name] = true
 					}
-				}
+				case *corev1.ConfigMap:
+					if r.Name == "test-rabbitmq-server-conf" {
+						resourceMap[r.Name] = true
+					}
 
+				}
 			}
 
-			Expect(len(resourceMap)).To(Equal(4))
+			Expect(len(resourceMap)).To(Equal(5))
 
 		})
 	})

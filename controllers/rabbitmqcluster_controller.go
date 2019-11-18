@@ -216,11 +216,11 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 	}
 
 	resources := []runtime.Object{
-		resource.GenerateServerConfigMap(*rabbitmqClusterInstance),
 		generatedResources[0],
 		generatedResources[1],
 		generatedResources[2],
 		generatedResources[3],
+		generatedResources[4],
 		resource.GenerateServiceAccount(*rabbitmqClusterInstance),
 		resource.GenerateRole(*rabbitmqClusterInstance),
 		resource.GenerateRoleBinding(*rabbitmqClusterInstance),

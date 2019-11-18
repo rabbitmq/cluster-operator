@@ -3,7 +3,6 @@ package resource
 import (
 	"strings"
 
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,12 +12,12 @@ const (
 	serverConfigMapName = "server-conf"
 )
 
-func GenerateServerConfigMap(instance rabbitmqv1beta1.RabbitmqCluster) *corev1.ConfigMap {
+func (cluster *RabbitmqCluster) ServerConfigMap() *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.ChildResourceName(serverConfigMapName),
-			Namespace: instance.Namespace,
-			Labels:    metadata.Label(instance.Name),
+			Name:      cluster.Instance.ChildResourceName(serverConfigMapName),
+			Namespace: cluster.Instance.Namespace,
+			Labels:    metadata.Label(cluster.Instance.Name),
 		},
 		Data: map[string]string{
 			"enabled_plugins": "[" +
