@@ -205,46 +205,39 @@ func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName)
 }
 
 func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
+	var operatorRegistrySecret *corev1.Secret
+	if resource.IsUsingDefaultImagePullSecret(r.ImagePullSecret, rabbitmqClusterInstance.Spec.ImagePullSecret) {
+		var err error
+		operatorRegistrySecret, err = r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
+		if err != nil {
+			return nil, fmt.Errorf("failed to find operator image pull secret: %v", err)
+		}
+	}
+
+	defaultConfiguration := resource.DefaultConfiguration{
+		ServiceAnnotations:     r.ServiceAnnotations,
+		ServiceType:            r.ServiceType,
+		OperatorRegistrySecret: operatorRegistrySecret,
+	}
+
 	statefulSetConfiguration := resource.StatefulSetConfiguration{
 		ImageReference:              r.Image,
-		ImagePullSecret:             r.ImagePullSecret,
+		ImagePullSecret:             resource.ClusterImagePullSecretName(r.ImagePullSecret, rabbitmqClusterInstance.Spec.ImagePullSecret, rabbitmqClusterInstance.Name),
 		PersistenceStorageClassName: r.PersistenceStorageClassName,
 		PersistenceStorage:          r.PersistenceStorage,
 		ResourceRequirementsConfig:  r.ResourceRequirements,
 		Scheme:                      r.Scheme,
 	}
 
-	defaultConfiguration := resource.DefaultConfiguration{
-		ServiceAnnotations: r.ServiceAnnotations,
-		ServiceType:        r.ServiceType,
-	}
-
 	cluster := resource.RabbitmqCluster{
-		Instance:                 rabbitmqClusterInstance,
-		DefaultConfiguration:     defaultConfiguration,
+		Instance:                 rabbitmqClusterInstance, //CodyConfiguration?
+		DefaultConfiguration:     defaultConfiguration,    // AlanaConfiguration?
 		StatefulSetConfiguration: statefulSetConfiguration,
 	}
 	resources, err := cluster.Resources()
 	if err != nil {
 		return nil, err
 	}
-
-	if r.ImagePullSecret != "" && rabbitmqClusterInstance.Spec.ImagePullSecret == "" {
-		operatorRegistrySecret, err := r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
-		if err != nil {
-			return nil, fmt.Errorf("failed to find operator image pull secret: %v", err)
-		}
-
-		clusterRegistrySecret := cluster.RegistrySecret(operatorRegistrySecret)
-		resources = append(resources, clusterRegistrySecret)
-		cluster.StatefulSetConfiguration.ImagePullSecret = clusterRegistrySecret.Name
-	}
-	statefulSet, err := cluster.StatefulSet()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
-	}
-
-	resources = append(resources, statefulSet)
 
 	return resources, nil
 }

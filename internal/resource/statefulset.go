@@ -56,9 +56,7 @@ func (cluster *RabbitmqCluster) StatefulSet() (*appsv1.StatefulSet, error) {
 	}
 
 	imagePullSecrets := []corev1.LocalObjectReference{}
-	if cluster.Instance.Spec.ImagePullSecret != "" {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: cluster.Instance.Spec.ImagePullSecret})
-	} else if cluster.StatefulSetConfiguration.ImagePullSecret != "" {
+	if cluster.StatefulSetConfiguration.ImagePullSecret != "" {
 		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: cluster.StatefulSetConfiguration.ImagePullSecret})
 	}
 
@@ -391,4 +389,21 @@ func generateInitContainers(image string) []corev1.Container {
 			},
 		},
 	}
+}
+
+func IsUsingDefaultImagePullSecret(operatorImagePullSecretName, customResourceImagePullSecretName string) bool {
+	return operatorImagePullSecretName != "" && customResourceImagePullSecretName == ""
+}
+
+func ClusterImagePullSecretName(operatorSecretName, customResourceSecretName, instanceName string) string {
+	var imagePullSecretName string
+	if customResourceSecretName != "" {
+		imagePullSecretName = customResourceSecretName
+	} else if operatorSecretName != "" {
+		imagePullSecretName = RegistrySecretName(instanceName)
+	} else {
+		imagePullSecretName = ""
+	}
+
+	return imagePullSecretName
 }

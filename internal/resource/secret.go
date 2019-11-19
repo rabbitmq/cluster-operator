@@ -10,12 +10,16 @@ const (
 	imageSecretSuffix = "registry-access"
 )
 
-func (cluster *RabbitmqCluster) RegistrySecret(secret *corev1.Secret) *corev1.Secret {
+func (cluster *RabbitmqCluster) RegistrySecret() *corev1.Secret {
 	registrySecret := &corev1.Secret{}
 
 	registrySecret.Namespace = cluster.Instance.Namespace
-	registrySecret.Name = fmt.Sprintf("%s-%s", cluster.Instance.Name, imageSecretSuffix)
-	registrySecret.Data = secret.Data
-	registrySecret.Type = secret.Type
+	registrySecret.Name = RegistrySecretName(cluster.Instance.Name)
+	registrySecret.Data = cluster.DefaultConfiguration.OperatorRegistrySecret.Data
+	registrySecret.Type = cluster.DefaultConfiguration.OperatorRegistrySecret.Type
 	return registrySecret
+}
+
+func RegistrySecretName(instanceName string) string {
+	return fmt.Sprintf("%s-%s", instanceName, imageSecretSuffix)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -14,8 +15,9 @@ type RabbitmqCluster struct {
 }
 
 type DefaultConfiguration struct {
-	ServiceAnnotations map[string]string
-	ServiceType        string
+	ServiceAnnotations     map[string]string
+	ServiceType            string
+	OperatorRegistrySecret *corev1.Secret
 }
 
 func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err error) {
@@ -48,6 +50,18 @@ func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err err
 
 	roleBinding := cluster.RoleBinding()
 	resources = append(resources, roleBinding)
+
+	if cluster.DefaultConfiguration.OperatorRegistrySecret != nil {
+		clusterRegistrySecret := cluster.RegistrySecret()
+		resources = append(resources, clusterRegistrySecret)
+	}
+
+	statefulSet, err := cluster.StatefulSet()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
+	}
+
+	resources = append(resources, statefulSet)
 
 	return resources, nil
 }
