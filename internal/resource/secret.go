@@ -10,11 +10,11 @@ const (
 	imageSecretSuffix = "registry-access"
 )
 
-func GenerateRegistrySecret(secret *corev1.Secret, namespace string, instanceName string) *corev1.Secret {
+func (cluster *RabbitmqCluster) RegistrySecret(secret *corev1.Secret) *corev1.Secret {
 	registrySecret := &corev1.Secret{}
 
-	registrySecret.Namespace = namespace
-	registrySecret.Name = fmt.Sprintf("%s-%s", instanceName, imageSecretSuffix)
+	registrySecret.Namespace = cluster.Instance.Namespace
+	registrySecret.Name = fmt.Sprintf("%s-%s", cluster.Instance.Name, imageSecretSuffix)
 	registrySecret.Data = secret.Data
 	registrySecret.Type = secret.Type
 	return registrySecret

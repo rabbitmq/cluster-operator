@@ -235,7 +235,7 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 			return nil, fmt.Errorf("failed to find operator image pull secret: %v", err)
 		}
 
-		clusterRegistrySecret := resource.GenerateRegistrySecret(operatorRegistrySecret, rabbitmqClusterInstance.Namespace, rabbitmqClusterInstance.Name)
+		clusterRegistrySecret := cluster.RegistrySecret(operatorRegistrySecret)
 		resources = append(resources, clusterRegistrySecret)
 		cluster.StatefulSetConfiguration.ImagePullSecret = clusterRegistrySecret.Name
 	}
