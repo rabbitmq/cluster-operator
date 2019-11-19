@@ -213,10 +213,15 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		ResourceRequirementsConfig:  r.ResourceRequirements,
 		Scheme:                      r.Scheme,
 	}
+
+	defaultConfiguration := resource.DefaultConfiguration{
+		ServiceAnnotations: r.ServiceAnnotations,
+		ServiceType:        r.ServiceType,
+	}
+
 	cluster := resource.RabbitmqCluster{
 		Instance:                 rabbitmqClusterInstance,
-		ServiceType:              r.ServiceType,
-		ServiceAnnotations:       r.ServiceAnnotations,
+		DefaultConfiguration:     defaultConfiguration,
 		StatefulSetConfiguration: statefulSetConfiguration,
 	}
 	resources, err := cluster.Resources()

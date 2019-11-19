@@ -14,16 +14,16 @@ func (cluster *RabbitmqCluster) IngressService() *corev1.Service {
 
 	if cluster.Instance.Spec.Service.Type != "" {
 		serviceType = cluster.Instance.Spec.Service.Type
-	} else if cluster.ServiceType == "" {
+	} else if cluster.DefaultConfiguration.ServiceType == "" {
 		serviceType = "ClusterIP"
 	} else {
-		serviceType = cluster.ServiceType
+		serviceType = cluster.DefaultConfiguration.ServiceType
 	}
 
 	if cluster.Instance.Spec.Service.Annotations != nil {
 		serviceAnnotations = cluster.Instance.Spec.Service.Annotations
 	} else {
-		serviceAnnotations = cluster.ServiceAnnotations
+		serviceAnnotations = cluster.DefaultConfiguration.ServiceAnnotations
 	}
 
 	return &corev1.Service{

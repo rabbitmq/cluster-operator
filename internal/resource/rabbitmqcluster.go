@@ -9,9 +9,13 @@ import (
 
 type RabbitmqCluster struct {
 	Instance                 *rabbitmqv1beta1.RabbitmqCluster
-	ServiceAnnotations       map[string]string
-	ServiceType              string
 	StatefulSetConfiguration StatefulSetConfiguration
+	DefaultConfiguration     DefaultConfiguration
+}
+
+type DefaultConfiguration struct {
+	ServiceAnnotations map[string]string
+	ServiceType        string
 }
 
 func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err error) {

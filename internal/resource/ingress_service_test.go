@@ -137,7 +137,7 @@ var _ = Context("IngressServices", func() {
 				},
 			}
 			cluster.Instance = instance
-			cluster.ServiceType = "NodePort"
+			cluster.DefaultConfiguration.ServiceType = "NodePort"
 			nodePortService := cluster.IngressService()
 			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 
@@ -156,7 +156,7 @@ var _ = Context("IngressServices", func() {
 				},
 			}
 			cluster.Instance = loadBalancerInstance
-			cluster.ServiceType = "ClusterIP"
+			cluster.DefaultConfiguration.ServiceType = "ClusterIP"
 			loadBalancerService := cluster.IngressService()
 			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 		})
@@ -198,8 +198,8 @@ var _ = Context("IngressServices", func() {
 				},
 			}
 			cluster.Instance = instance
-			cluster.ServiceAnnotations = ignoredAnnotations
-			cluster.ServiceType = "NodePort"
+			cluster.DefaultConfiguration.ServiceAnnotations = ignoredAnnotations
+			cluster.DefaultConfiguration.ServiceType = "NodePort"
 			nodePortService := cluster.IngressService()
 			Expect(nodePortService.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 		})
@@ -216,8 +216,8 @@ var _ = Context("IngressServices", func() {
 
 			annotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
 			cluster.Instance = instance
-			cluster.ServiceAnnotations = annotations
-			cluster.ServiceType = "NodePort"
+			cluster.DefaultConfiguration.ServiceAnnotations = annotations
+			cluster.DefaultConfiguration.ServiceType = "NodePort"
 			nodePortService := cluster.IngressService()
 			Expect(nodePortService.ObjectMeta.Annotations).To(Equal(annotations))
 		})
