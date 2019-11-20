@@ -42,6 +42,11 @@ func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err err
 	}
 	resources = append(resources, erlangCookie)
 
+	if cluster.DefaultConfiguration.OperatorRegistrySecret != nil {
+		clusterRegistrySecret := cluster.RegistrySecret()
+		resources = append(resources, clusterRegistrySecret)
+	}
+
 	serviceAccount := cluster.ServiceAccount()
 	resources = append(resources, serviceAccount)
 
@@ -50,11 +55,6 @@ func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err err
 
 	roleBinding := cluster.RoleBinding()
 	resources = append(resources, roleBinding)
-
-	if cluster.DefaultConfiguration.OperatorRegistrySecret != nil {
-		clusterRegistrySecret := cluster.RegistrySecret()
-		resources = append(resources, clusterRegistrySecret)
-	}
 
 	statefulSet, err := cluster.StatefulSet()
 	if err != nil {

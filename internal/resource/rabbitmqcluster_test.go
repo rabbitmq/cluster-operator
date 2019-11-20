@@ -44,7 +44,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					},
 				}
 			})
-			It("returns the required resources", func() {
+			It("returns the required resources in the expected order", func() {
 				resources, err := rabbitmqCluster.Resources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(resources)).To(Equal(10))
@@ -52,23 +52,21 @@ var _ = Describe("RabbitmqCluster", func() {
 				resourceMap := checkForResources(resources)
 
 				expectedKeys := []string{
-					"ConfigMap:test-rabbitmq-server-conf",
-					"Role:test-rabbitmq-endpoint-discovery",
-					"RoleBinding:test-rabbitmq-server",
-					"Secret:test-rabbitmq-admin",
-					"Secret:test-rabbitmq-erlang-cookie",
-					"Secret:test-registry-access",
-					"Service:test-rabbitmq-headless",
-					"Service:test-rabbitmq-ingress",
-					"ServiceAccount:test-rabbitmq-server",
-					"StatefulSet:test-rabbitmq-server",
+					"0 - ConfigMap:test-rabbitmq-server-conf",
+					"1 - Service:test-rabbitmq-ingress",
+					"2 - Service:test-rabbitmq-headless",
+					"3 - Secret:test-rabbitmq-admin",
+					"4 - Secret:test-rabbitmq-erlang-cookie",
+					"5 - Secret:test-registry-access",
+					"6 - ServiceAccount:test-rabbitmq-server",
+					"7 - Role:test-rabbitmq-endpoint-discovery",
+					"8 - RoleBinding:test-rabbitmq-server",
+					"9 - StatefulSet:test-rabbitmq-server",
 				}
 
 				for index, _ := range expectedKeys {
 					Expect(resourceMap[expectedKeys[index]]).Should(BeTrue())
 				}
-
-				Expect(len(resourceMap)).To(Equal(10))
 			})
 		})
 
@@ -88,7 +86,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					},
 				}
 			})
-			It("returns the required resources", func() {
+			It("returns the required resources in the expected order", func() {
 				resources, err := rabbitmqCluster.Resources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(resources)).To(Equal(9))
@@ -96,23 +94,20 @@ var _ = Describe("RabbitmqCluster", func() {
 				resourceMap := checkForResources(resources)
 
 				expectedKeys := []string{
-					"ConfigMap:test-rabbitmq-server-conf",
-					"Role:test-rabbitmq-endpoint-discovery",
-					"RoleBinding:test-rabbitmq-server",
-					"Secret:test-rabbitmq-admin",
-					"Secret:test-rabbitmq-erlang-cookie",
-					"Service:test-rabbitmq-headless",
-					"Service:test-rabbitmq-ingress",
-					"ServiceAccount:test-rabbitmq-server",
-					"StatefulSet:test-rabbitmq-server",
+					"0 - ConfigMap:test-rabbitmq-server-conf",
+					"1 - Service:test-rabbitmq-ingress",
+					"2 - Service:test-rabbitmq-headless",
+					"3 - Secret:test-rabbitmq-admin",
+					"4 - Secret:test-rabbitmq-erlang-cookie",
+					"5 - ServiceAccount:test-rabbitmq-server",
+					"6 - Role:test-rabbitmq-endpoint-discovery",
+					"7 - RoleBinding:test-rabbitmq-server",
+					"8 - StatefulSet:test-rabbitmq-server",
 				}
 
 				for index, _ := range expectedKeys {
 					Expect(resourceMap[expectedKeys[index]]).Should(BeTrue())
 				}
-
-				Expect(len(resourceMap)).To(Equal(9))
-
 			})
 		})
 	})
@@ -120,44 +115,44 @@ var _ = Describe("RabbitmqCluster", func() {
 
 func checkForResources(resources []runtime.Object) (resourceMap map[string]bool) {
 	resourceMap = make(map[string]bool)
-	for _, resource := range resources {
+	for i, resource := range resources {
 		switch r := resource.(type) {
 		case *corev1.Secret:
 			if r.Name == "test-rabbitmq-admin" {
-				resourceMap[fmt.Sprintf("Secret:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - Secret:%s", i, r.Name)] = true
 			}
 			if r.Name == "test-rabbitmq-erlang-cookie" {
-				resourceMap[fmt.Sprintf("Secret:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - Secret:%s", i, r.Name)] = true
 			}
 			if r.Name == "test-registry-access" {
-				resourceMap[fmt.Sprintf("Secret:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - Secret:%s", i, r.Name)] = true
 			}
 		case *corev1.Service:
 			if r.Name == "test-rabbitmq-headless" {
-				resourceMap[fmt.Sprintf("Service:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - Service:%s", i, r.Name)] = true
 			}
 			if r.Name == "test-rabbitmq-ingress" {
-				resourceMap[fmt.Sprintf("Service:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - Service:%s", i, r.Name)] = true
 			}
 		case *corev1.ConfigMap:
 			if r.Name == "test-rabbitmq-server-conf" {
-				resourceMap[fmt.Sprintf("ConfigMap:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - ConfigMap:%s", i, r.Name)] = true
 			}
 		case *corev1.ServiceAccount:
 			if r.Name == "test-rabbitmq-server" {
-				resourceMap[fmt.Sprintf("ServiceAccount:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - ServiceAccount:%s", i, r.Name)] = true
 			}
 		case *rbacv1.Role:
 			if r.Name == "test-rabbitmq-endpoint-discovery" {
-				resourceMap[fmt.Sprintf("Role:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - Role:%s", i, r.Name)] = true
 			}
 		case *rbacv1.RoleBinding:
 			if r.Name == "test-rabbitmq-server" {
-				resourceMap[fmt.Sprintf("RoleBinding:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - RoleBinding:%s", i, r.Name)] = true
 			}
 		case *appsv1.StatefulSet:
 			if r.Name == "test-rabbitmq-server" {
-				resourceMap[fmt.Sprintf("StatefulSet:%s", r.Name)] = true
+				resourceMap[fmt.Sprintf("%d - StatefulSet:%s", i, r.Name)] = true
 			}
 		}
 	}
