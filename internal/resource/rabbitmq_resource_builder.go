@@ -29,9 +29,6 @@ func (cluster *RabbitmqResourceBuilder) Resources() (resources []runtime.Object,
 	serverConf := cluster.ServerConfigMap()
 	resources = append(resources, serverConf)
 
-	ingressService := cluster.IngressService()
-	resources = append(resources, ingressService)
-
 	headlessService := cluster.HeadlessService()
 	resources = append(resources, headlessService)
 

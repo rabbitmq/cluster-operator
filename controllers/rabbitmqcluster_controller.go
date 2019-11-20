@@ -112,9 +112,37 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		r.updateStatus(rabbitmqCluster, "created")
 	}
 
-	resources, err := r.getResources(rabbitmqCluster)
+	var operatorRegistrySecret *corev1.Secret
+	if r.ImagePullSecret != "" && rabbitmqCluster.Spec.ImagePullSecret == "" {
+		var err error
+		operatorRegistrySecret, err = r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("failed to find operator image pull secret: %v", err)
+		}
+	}
+
+	defaultConfiguration := resource.DefaultConfiguration{
+		ServiceAnnotations:         r.ServiceAnnotations,
+		ServiceType:                r.ServiceType,
+		Scheme:                     r.Scheme,
+		OperatorRegistrySecret:     operatorRegistrySecret,
+		ImageReference:             r.Image,
+		ImagePullSecret:            r.ImagePullSecret,
+		PersistentStorage:          r.PersistentStorage,
+		PersistentStorageClassName: r.PersistentStorageClassName,
+		ResourceRequirements:       r.ResourceRequirements,
+	}
+
+	resourceBuilder := resource.RabbitmqResourceBuilder{
+		Instance:             rabbitmqCluster,
+		DefaultConfiguration: defaultConfiguration,
+	}
+	resources, err := resourceBuilder.Resources()
 	if err != nil {
-		logger.Error(err, "Failed to generate resources")
+		return reconcile.Result{}, err
+	}
+
+	if _, err = r.reconcileIngressService(resourceBuilder); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -148,6 +176,24 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+}
+func (r *RabbitmqClusterReconciler) reconcileIngressService(builder resource.RabbitmqResourceBuilder) (ctrl.Result, error) {
+	ingressService := builder.IngressService()
+
+	operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, ingressService, func() error {
+		builder.SetMutableServiceParams(ingressService)
+		return nil
+	})
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	r.Log.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type Service",
+		operationResult,
+		ingressService.GetName()))
+
+	return ctrl.Result{}, nil
 }
 
 func (r *RabbitmqClusterReconciler) updateStatus(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, status string) {
@@ -202,40 +248,6 @@ func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName)
 	}
 
 	return true
-}
-
-func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
-	var operatorRegistrySecret *corev1.Secret
-	if r.ImagePullSecret != "" && rabbitmqClusterInstance.Spec.ImagePullSecret == "" {
-		var err error
-		operatorRegistrySecret, err = r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
-		if err != nil {
-			return nil, fmt.Errorf("failed to find operator image pull secret: %v", err)
-		}
-	}
-
-	defaultConfiguration := resource.DefaultConfiguration{
-		ServiceAnnotations:         r.ServiceAnnotations,
-		ServiceType:                r.ServiceType,
-		Scheme:                     r.Scheme,
-		OperatorRegistrySecret:     operatorRegistrySecret,
-		ImageReference:             r.Image,
-		ImagePullSecret:            r.ImagePullSecret,
-		PersistentStorage:          r.PersistentStorage,
-		PersistentStorageClassName: r.PersistentStorageClassName,
-		ResourceRequirements:       r.ResourceRequirements,
-	}
-
-	resourceBuilder := resource.RabbitmqResourceBuilder{
-		Instance:             rabbitmqClusterInstance,
-		DefaultConfiguration: defaultConfiguration,
-	}
-	resources, err := resourceBuilder.Resources()
-	if err != nil {
-		return nil, err
-	}
-
-	return resources, nil
 }
 
 func (r *RabbitmqClusterReconciler) getRabbitmqCluster(NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {

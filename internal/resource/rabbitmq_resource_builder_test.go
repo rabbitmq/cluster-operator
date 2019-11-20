@@ -46,21 +46,20 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				resources, err := rabbitmqCluster.Resources()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(len(resources)).To(Equal(10))
+				Expect(len(resources)).To(Equal(9))
 
 				resourceMap := checkForResources(resources)
 
 				expectedKeys := []string{
 					"0 - ConfigMap:test-rabbitmq-server-conf",
-					"1 - Service:test-rabbitmq-ingress",
-					"2 - Service:test-rabbitmq-headless",
-					"3 - Secret:test-rabbitmq-admin",
-					"4 - Secret:test-rabbitmq-erlang-cookie",
-					"5 - Secret:test-registry-access",
-					"6 - ServiceAccount:test-rabbitmq-server",
-					"7 - Role:test-rabbitmq-endpoint-discovery",
-					"8 - RoleBinding:test-rabbitmq-server",
-					"9 - StatefulSet:test-rabbitmq-server",
+					"1 - Service:test-rabbitmq-headless",
+					"2 - Secret:test-rabbitmq-admin",
+					"3 - Secret:test-rabbitmq-erlang-cookie",
+					"4 - Secret:test-registry-access",
+					"5 - ServiceAccount:test-rabbitmq-server",
+					"6 - Role:test-rabbitmq-endpoint-discovery",
+					"7 - RoleBinding:test-rabbitmq-server",
+					"8 - StatefulSet:test-rabbitmq-server",
 				}
 
 				for index, _ := range expectedKeys {
@@ -87,20 +86,19 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			It("returns the required resources in the expected order", func() {
 				resources, err := rabbitmqCluster.Resources()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(resources)).To(Equal(9))
+				Expect(len(resources)).To(Equal(8))
 
 				resourceMap := checkForResources(resources)
 
 				expectedKeys := []string{
 					"0 - ConfigMap:test-rabbitmq-server-conf",
-					"1 - Service:test-rabbitmq-ingress",
-					"2 - Service:test-rabbitmq-headless",
-					"3 - Secret:test-rabbitmq-admin",
-					"4 - Secret:test-rabbitmq-erlang-cookie",
-					"5 - ServiceAccount:test-rabbitmq-server",
-					"6 - Role:test-rabbitmq-endpoint-discovery",
-					"7 - RoleBinding:test-rabbitmq-server",
-					"8 - StatefulSet:test-rabbitmq-server",
+					"1 - Service:test-rabbitmq-headless",
+					"2 - Secret:test-rabbitmq-admin",
+					"3 - Secret:test-rabbitmq-erlang-cookie",
+					"4 - ServiceAccount:test-rabbitmq-server",
+					"5 - Role:test-rabbitmq-endpoint-discovery",
+					"6 - RoleBinding:test-rabbitmq-server",
+					"7 - StatefulSet:test-rabbitmq-server",
 				}
 
 				for index, _ := range expectedKeys {
