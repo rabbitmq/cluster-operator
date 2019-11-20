@@ -297,7 +297,7 @@ var _ = Describe("StatefulSet", func() {
 		It("defines a Readiness Probe", func() {
 			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 			actualProbeCommand := container.ReadinessProbe.Handler.Exec.Command
-			Expect(actualProbeCommand).To(Equal([]string{"/bin/sh", "-c", "rabbitmq-diagnostics check_running && rabbitmq-diagnostics check_port_connectivity"}))
+			Expect(actualProbeCommand).To(Equal([]string{"/bin/sh", "-c", "rabbitmq-diagnostics check_port_connectivity"}))
 		})
 
 		It("templates the image string and the imagePullSecrets with default values", func() {

@@ -259,7 +259,7 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{
-										Command: []string{"/bin/sh", "-c", "rabbitmq-diagnostics check_running && rabbitmq-diagnostics check_port_connectivity"},
+										Command: []string{"/bin/sh", "-c", "rabbitmq-diagnostics check_port_connectivity"},
 									},
 								},
 								InitialDelaySeconds: 10,

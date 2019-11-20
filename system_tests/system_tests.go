@@ -147,14 +147,12 @@ var _ = Describe("Operator", func() {
 
 	Context("ReadinessProbe tests", func() {
 		var (
-			cluster     *rabbitmqv1beta1.RabbitmqCluster
-			serviceName string
-			podName     string
+			cluster *rabbitmqv1beta1.RabbitmqCluster
+			podName string
 		)
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "readiness-rabbit")
-			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
 			podName = statefulSetPodName(cluster, 0)
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 
@@ -165,25 +163,34 @@ var _ = Describe("Operator", func() {
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
-		It("checks whether the rabbitmq cluster is ready to serve traffic", func() {
+		FIt("checks whether the rabbitmq cluster is ready to serve traffic", func() {
 			By("not publishing addresses after stopping Rabbitmq app", func() {
+				waitForRabbitmqRunning(cluster)
+
 				_, err := kubectlExec(namespace, podName, "rabbitmqctl", "stop_app")
 				Expect(err).NotTo(HaveOccurred())
 
-				// Check endpoints and expect addresses are not ready
-				Eventually(func() int {
-					return endpointPoller(clientSet, namespace, serviceName)
-				}, 120, 3).Should(Equal(0))
+				Eventually(func() []byte {
+					output, err := kubectl(
+						"-n",
+						cluster.Namespace,
+						"get",
+						"rabbitmqclusters",
+						cluster.Name,
+						"-o=jsonpath='{.status.clusterStatus}'",
+					)
+					Expect(err).NotTo(HaveOccurred())
+					return output
+
+				}, 100, 1).Should(ContainSubstring("created"))
+
 			})
 
 			By("publishing addresses after starting the Rabbitmq app", func() {
 				_, err := kubectlExec(namespace, podName, "rabbitmqctl", "start_app")
 				Expect(err).ToNot(HaveOccurred())
 
-				// Check endpoints and expect addresses are ready
-				Eventually(func() int {
-					return endpointPoller(clientSet, namespace, serviceName)
-				}, 120, 3).Should(BeNumerically(">", 0))
+				waitForRabbitmqRunning(cluster)
 			})
 		})
 	})
