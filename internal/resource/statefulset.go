@@ -21,6 +21,8 @@ const (
 	defaultCPULimit            string = "500m"
 	defaultMemoryRequest       string = "2Gi"
 	defaultCPURequest          string = "100m"
+	initContainerCPU           string = "100m"
+	initContainerMemory        string = "500Mi"
 )
 
 type ResourceRequirements struct {
@@ -71,6 +73,11 @@ func (cluster *RabbitmqCluster) StatefulSet() (*appsv1.StatefulSet, error) {
 		return nil, err
 	}
 
+	initContainers, err := generateInitContainers(image)
+	if err != nil {
+		return nil, err
+	}
+
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Instance.ChildResourceName("server"),
@@ -99,7 +106,7 @@ func (cluster *RabbitmqCluster) StatefulSet() (*appsv1.StatefulSet, error) {
 					ServiceAccountName:           cluster.Instance.ChildResourceName(serviceAccountName),
 					AutomountServiceAccountToken: &automountServiceAccountToken,
 					ImagePullSecrets:             imagePullSecrets,
-					InitContainers:               generateInitContainers(image),
+					InitContainers:               initContainers,
 					Containers: []corev1.Container{
 						{
 							Name:      "rabbitmq",
@@ -358,7 +365,15 @@ func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, per
 	return pvc, nil
 }
 
-func generateInitContainers(image string) []corev1.Container {
+func generateInitContainers(image string) ([]corev1.Container, error) {
+	cpuRequest, err := k8sresource.ParseQuantity(initContainerCPU)
+	if err != nil {
+		return nil, err
+	}
+	memoryRequest, err := k8sresource.ParseQuantity(initContainerMemory)
+	if err != nil {
+		return nil, err
+	}
 	return []corev1.Container{
 		{
 			Name: "copy-config",
@@ -369,6 +384,16 @@ func generateInitContainers(image string) []corev1.Container {
 					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
 			},
 			Image: image,
+			Resources: corev1.ResourceRequirements{
+				Limits: map[corev1.ResourceName]k8sresource.Quantity{
+					"cpu":    cpuRequest,
+					"memory": memoryRequest,
+				},
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{
+					"cpu":    cpuRequest,
+					"memory": memoryRequest,
+				},
+			},
 			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "server-conf",
@@ -388,7 +413,7 @@ func generateInitContainers(image string) []corev1.Container {
 				},
 			},
 		},
-	}
+	}, nil
 }
 
 func IsUsingDefaultImagePullSecret(operatorImagePullSecretName, customResourceImagePullSecretName string) bool {
