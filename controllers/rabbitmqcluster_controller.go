@@ -206,7 +206,7 @@ func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName)
 
 func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
 	var operatorRegistrySecret *corev1.Secret
-	if resource.IsUsingDefaultImagePullSecret(r.ImagePullSecret, rabbitmqClusterInstance.Spec.ImagePullSecret) {
+	if r.ImagePullSecret != "" && rabbitmqClusterInstance.Spec.ImagePullSecret == "" {
 		var err error
 		operatorRegistrySecret, err = r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
 		if err != nil {
@@ -226,11 +226,11 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 		ResourceRequirements:       r.ResourceRequirements,
 	}
 
-	cluster := resource.RabbitmqResourceBuilder{
+	resourceBuilder := resource.RabbitmqResourceBuilder{
 		Instance:             rabbitmqClusterInstance,
 		DefaultConfiguration: defaultConfiguration,
 	}
-	resources, err := cluster.Resources()
+	resources, err := resourceBuilder.Resources()
 	if err != nil {
 		return nil, err
 	}
