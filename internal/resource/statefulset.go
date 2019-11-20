@@ -15,14 +15,14 @@ import (
 )
 
 const (
-	rabbitmqImage              string = "rabbitmq:3.8.1"
-	defaultPersistenceCapacity string = "10Gi"
-	defaultMemoryLimit         string = "2Gi"
-	defaultCPULimit            string = "500m"
-	defaultMemoryRequest       string = "2Gi"
-	defaultCPURequest          string = "100m"
-	initContainerCPU           string = "100m"
-	initContainerMemory        string = "500Mi"
+	rabbitmqImage             string = "rabbitmq:3.8.1"
+	defaultPersistentCapacity string = "10Gi"
+	defaultMemoryLimit        string = "2Gi"
+	defaultCPULimit           string = "500m"
+	defaultMemoryRequest      string = "2Gi"
+	defaultCPURequest         string = "100m"
+	initContainerCPU          string = "100m"
+	initContainerMemory       string = "500Mi"
 )
 
 type ResourceRequirements struct {
@@ -32,15 +32,15 @@ type ResourceRequirements struct {
 	MemoryRequest string
 }
 type StatefulSetConfiguration struct {
-	ImageReference              string
-	ImagePullSecret             string
-	PersistenceStorageClassName string
-	PersistenceStorage          string
-	ResourceRequirementsConfig  ResourceRequirements
-	Scheme                      *runtime.Scheme
+	ImageReference             string
+	ImagePullSecret            string
+	PersistentStorageClassName string
+	PersistentStorage          string
+	ResourceRequirementsConfig ResourceRequirements
+	Scheme                     *runtime.Scheme
 }
 
-func (cluster *RabbitmqCluster) StatefulSet() (*appsv1.StatefulSet, error) {
+func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, error) {
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
@@ -50,25 +50,34 @@ func (cluster *RabbitmqCluster) StatefulSet() (*appsv1.StatefulSet, error) {
 		replicas = int32(1)
 	}
 
+	statefulSetConfiguration := StatefulSetConfiguration{
+		ImageReference:             cluster.DefaultConfiguration.ImageReference,
+		ImagePullSecret:            ClusterImagePullSecretName(cluster.DefaultConfiguration.ImagePullSecret, cluster.Instance.Spec.ImagePullSecret, cluster.Instance.Name),
+		PersistentStorageClassName: cluster.DefaultConfiguration.PersistentStorageClassName,
+		PersistentStorage:          cluster.DefaultConfiguration.PersistentStorage,
+		ResourceRequirementsConfig: cluster.DefaultConfiguration.ResourceRequirements,
+		Scheme:                     cluster.DefaultConfiguration.Scheme,
+	}
+
 	image := rabbitmqImage
 	if cluster.Instance.Spec.Image != "" {
 		image = cluster.Instance.Spec.Image
-	} else if cluster.StatefulSetConfiguration.ImageReference != "" {
-		image = cluster.StatefulSetConfiguration.ImageReference
+	} else if statefulSetConfiguration.ImageReference != "" {
+		image = statefulSetConfiguration.ImageReference
 	}
 
 	imagePullSecrets := []corev1.LocalObjectReference{}
-	if cluster.StatefulSetConfiguration.ImagePullSecret != "" {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: cluster.StatefulSetConfiguration.ImagePullSecret})
+	if statefulSetConfiguration.ImagePullSecret != "" {
+		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
 	}
 
 	//TODO refactor arguments
-	pvc, err := generatePersistentVolumeClaim(*cluster.Instance, cluster.StatefulSetConfiguration.PersistenceStorageClassName, cluster.StatefulSetConfiguration.PersistenceStorage, cluster.StatefulSetConfiguration.Scheme)
+	pvc, err := generatePersistentVolumeClaim(*cluster.Instance, statefulSetConfiguration.PersistentStorageClassName, statefulSetConfiguration.PersistentStorage, statefulSetConfiguration.Scheme)
 	if err != nil {
 		return nil, err
 	}
 
-	resourceRequirements, err := generateResourceRequirements(cluster.StatefulSetConfiguration.ResourceRequirementsConfig)
+	resourceRequirements, err := generateResourceRequirements(statefulSetConfiguration.ResourceRequirementsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +330,7 @@ func generateResourceRequirements(requirementsConfig ResourceRequirements) (core
 
 func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, persistenceStorageClassName, persistenceStorage string, scheme *runtime.Scheme) (*corev1.PersistentVolumeClaim, error) {
 	var err error
-	q, err := k8sresource.ParseQuantity(defaultPersistenceCapacity)
+	q, err := k8sresource.ParseQuantity(defaultPersistentCapacity)
 	if err != nil {
 		return nil, err
 	}

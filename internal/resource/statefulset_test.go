@@ -15,11 +15,11 @@ import (
 
 var _ = Describe("StatefulSet", func() {
 	var (
-		instance                 rabbitmqv1beta1.RabbitmqCluster
-		scheme                   *runtime.Scheme
-		resourceRequirements     resource.ResourceRequirements
-		statefulSetConfiguration resource.StatefulSetConfiguration
-		cluster                  *resource.RabbitmqCluster
+		instance             rabbitmqv1beta1.RabbitmqCluster
+		scheme               *runtime.Scheme
+		resourceRequirements resource.ResourceRequirements
+		defaultConfiguration resource.DefaultConfiguration
+		cluster              *resource.RabbitmqResourceBuilder
 	)
 
 	Context("when creating a working StatefulSet with default settings", func() {
@@ -45,17 +45,17 @@ var _ = Describe("StatefulSet", func() {
 				MemoryRequest: "",
 			}
 
-			statefulSetConfiguration = resource.StatefulSetConfiguration{
-				ImageReference:              "",
-				ImagePullSecret:             "",
-				PersistenceStorageClassName: "",
-				PersistenceStorage:          "",
-				ResourceRequirementsConfig:  resourceRequirements,
-				Scheme:                      scheme,
+			defaultConfiguration = resource.DefaultConfiguration{
+				ImageReference:             "",
+				ImagePullSecret:            "",
+				PersistentStorageClassName: "",
+				PersistentStorage:          "",
+				ResourceRequirements:       resourceRequirements,
+				Scheme:                     scheme,
 			}
-			cluster = &resource.RabbitmqCluster{
-				Instance:                 &instance,
-				StatefulSetConfiguration: statefulSetConfiguration,
+			cluster = &resource.RabbitmqResourceBuilder{
+				Instance:             &instance,
+				DefaultConfiguration: defaultConfiguration,
 			}
 			sts, _ = cluster.StatefulSet()
 		})
@@ -388,65 +388,82 @@ var _ = Describe("StatefulSet", func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{}
 			instance.Namespace = "foo"
 			instance.Name = "foo"
+
 			scheme = runtime.NewScheme()
 			rabbitmqv1beta1.AddToScheme(scheme)
 			defaultscheme.AddToScheme(scheme)
+
+			resourceRequirements = resource.ResourceRequirements{
+				CPULimit:      "",
+				MemoryLimit:   "",
+				CPURequest:    "",
+				MemoryRequest: "",
+			}
+
+			defaultConfiguration = resource.DefaultConfiguration{
+				ImageReference:             "",
+				ImagePullSecret:            "",
+				PersistentStorageClassName: "",
+				PersistentStorage:          "",
+				ResourceRequirements:       resourceRequirements,
+				Scheme:                     scheme,
+			}
 		})
 
-		When("storage class name is specified in both as parameters and in RabbitmqCluster instance", func() {
+		When("storage class name is specified in both as parameters and in RabbitmqResourceBuilder instance", func() {
 			BeforeEach(func() {
 				instance.Spec.Persistence.StorageClassName = "my-storage-class"
-				statefulSetConfiguration.PersistenceStorageClassName = "a-storage-class-name"
+				defaultConfiguration.PersistentStorageClassName = "a-storage-class-name"
 			})
-			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+			It("creates the PersistentVolume template according to configurations in the RabbitmqResourceBuilder instance", func() {
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
 				statefulSet, _ := cluster.StatefulSet()
 				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 			})
 		})
 
-		When("storage class name is specified only as parameters and not in RabbitmqCluster instance", func() {
+		When("storage class name is specified only as parameters and not in RabbitmqResourceBuilder instance", func() {
 			BeforeEach(func() {
 				instance.Spec.Persistence.StorageClassName = ""
-				statefulSetConfiguration.PersistenceStorageClassName = "a-storage-class-name"
+				defaultConfiguration.PersistentStorageClassName = "a-storage-class-name"
 			})
 			It("creates the PersistentVolume template according to the parameters", func() {
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
 				statefulSet, _ := cluster.StatefulSet()
 				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("a-storage-class-name"))
 			})
 		})
 
-		When("storage class name is empty in parameters and is empty in RabbitmqCluster instance", func() {
+		When("storage class name is empty in parameters and is empty in RabbitmqResourceBuilder instance", func() {
 			BeforeEach(func() {
 				instance.Spec.Persistence.StorageClassName = ""
-				statefulSetConfiguration.PersistenceStorageClassName = ""
+				defaultConfiguration.PersistentStorageClassName = ""
 			})
 			It("creates the PersistentVolume template with empty class so it defaults to  default StorageClass", func() {
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
 				statefulSet, _ := cluster.StatefulSet()
 				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
 			})
 		})
 
-		When("storage class capacity is specified in both as parameters and in RabbitmqCluster instance", func() {
+		When("storage class capacity is specified in both as parameters and in RabbitmqResourceBuilder instance", func() {
 			BeforeEach(func() {
 				instance.Spec.Persistence.Storage = "21Gi"
-				statefulSetConfiguration.PersistenceStorage = "100Gi"
+				defaultConfiguration.PersistentStorage = "100Gi"
 			})
-			It("creates the PersistentVolume template according to configurations in the RabbitmqCluster instance", func() {
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+			It("creates the PersistentVolume template according to configurations in the RabbitmqResourceBuilder instance", func() {
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
 				statefulSet, _ := cluster.StatefulSet()
 				q, _ := k8sresource.ParseQuantity("21Gi")
@@ -454,15 +471,15 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
-		When("storage capacity is specified only as parameters and not in RabbitmqCluster instance", func() {
+		When("storage capacity is specified only as parameters and not in RabbitmqResourceBuilder instance", func() {
 			BeforeEach(func() {
 				instance.Spec.Persistence.Storage = ""
-				statefulSetConfiguration.PersistenceStorage = "100Gi"
+				defaultConfiguration.PersistentStorage = "100Gi"
 			})
 			It("creates the PersistentVolume template according to the parameters", func() {
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
 				statefulSet, _ := cluster.StatefulSet()
 				q, _ := k8sresource.ParseQuantity("100Gi")
@@ -470,15 +487,15 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
-		When("storage capacity is empty in parameters and is empty in RabbitmqCluster instance", func() {
+		When("storage capacity is empty in parameters and is empty in RabbitmqResourceBuilder instance", func() {
 			BeforeEach(func() {
 				instance.Spec.Persistence.StorageClassName = ""
-				statefulSetConfiguration.PersistenceStorage = ""
+				defaultConfiguration.PersistentStorage = ""
 			})
 			It("creates the PersistentVolume template with default capacity", func() {
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
 				statefulSet, _ := cluster.StatefulSet()
 				q, _ := k8sresource.ParseQuantity("10Gi")
@@ -490,11 +507,11 @@ var _ = Describe("StatefulSet", func() {
 			It("templates the image string and the imagePullSecrets correctly", func() {
 				instance.Spec.Image = "my-private-repo/rabbitmq:3.8.0"
 				instance.Spec.ImagePullSecret = "my-great-secret"
-				statefulSetConfiguration.ImagePullSecret = resource.ClusterImagePullSecretName("ignored-operator-secret", instance.Spec.ImagePullSecret, instance.Name)
+				defaultConfiguration.ImagePullSecret = resource.ClusterImagePullSecretName("ignored-operator-secret", instance.Spec.ImagePullSecret, instance.Name)
 
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
 				statefulSet, _ := cluster.StatefulSet()
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -509,7 +526,7 @@ var _ = Describe("StatefulSet", func() {
 		When("providing resources limits and requests", func() {
 			Context("CPU and memory limit are provided", func() {
 				BeforeEach(func() {
-					statefulSetConfiguration.ResourceRequirementsConfig = resource.ResourceRequirements{
+					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
 						CPULimit:      "1m",
 						MemoryLimit:   "10Gi",
 						CPURequest:    "",
@@ -518,9 +535,9 @@ var _ = Describe("StatefulSet", func() {
 				})
 
 				It("generates a statefulSet with provided CPU and memory limits, with default CPU and memory requests", func() {
-					cluster = &resource.RabbitmqCluster{
-						Instance:                 &instance,
-						StatefulSetConfiguration: statefulSetConfiguration,
+					cluster = &resource.RabbitmqResourceBuilder{
+						Instance:             &instance,
+						DefaultConfiguration: defaultConfiguration,
 					}
 					statefulSet, _ := cluster.StatefulSet()
 					expectedCPULimit, _ := k8sresource.ParseQuantity("1m")
@@ -539,7 +556,7 @@ var _ = Describe("StatefulSet", func() {
 
 			Context("CPU and memory requests are provided", func() {
 				BeforeEach(func() {
-					statefulSetConfiguration.ResourceRequirementsConfig = resource.ResourceRequirements{
+					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
 						CPULimit:      "",
 						MemoryLimit:   "",
 						CPURequest:    "10m",
@@ -547,9 +564,9 @@ var _ = Describe("StatefulSet", func() {
 					}
 				})
 				It("generates a statefulSet with provided CPU and memory requests, with default CPU and memory limits", func() {
-					cluster = &resource.RabbitmqCluster{
-						Instance:                 &instance,
-						StatefulSetConfiguration: statefulSetConfiguration,
+					cluster = &resource.RabbitmqResourceBuilder{
+						Instance:             &instance,
+						DefaultConfiguration: defaultConfiguration,
 					}
 					statefulSet, _ := cluster.StatefulSet()
 					expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
@@ -568,7 +585,7 @@ var _ = Describe("StatefulSet", func() {
 
 			Context("both CPU and memory's limits plus requests are provided", func() {
 				BeforeEach(func() {
-					statefulSetConfiguration.ResourceRequirementsConfig = resource.ResourceRequirements{
+					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
 						CPULimit:      "10m",
 						MemoryLimit:   "5Gi",
 						CPURequest:    "1m",
@@ -577,9 +594,9 @@ var _ = Describe("StatefulSet", func() {
 				})
 
 				It("generates a statefulSet with provided memory limit/request and provided CPU limit/request", func() {
-					cluster = &resource.RabbitmqCluster{
-						Instance:                 &instance,
-						StatefulSetConfiguration: statefulSetConfiguration,
+					cluster = &resource.RabbitmqResourceBuilder{
+						Instance:             &instance,
+						DefaultConfiguration: defaultConfiguration,
 					}
 					statefulSet, _ := cluster.StatefulSet()
 					expectedCPULimit, _ := k8sresource.ParseQuantity("10m")
@@ -597,31 +614,30 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
-		When("image repository and ImagePullSecret are provided through function params", func() {
-
-			// Anonymouse function used in this context because we had issues scoping the instance and scheme without a closure
-			It("uses the provided repository and secret if not specified in RabbitmqCluster spec", func() {
-				statefulSetConfiguration.ImageReference = "best-repository/rabbitmq:some-tag"
-				statefulSetConfiguration.ImagePullSecret = "my-secret"
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+		When("image repository and ImagePullSecret are provided through DefaultConfigurations", func() {
+			It("uses the provided repository and references the instance registry secret name", func() {
+				defaultConfiguration.ImageReference = "best-repository/rabbitmq:some-tag"
+				defaultConfiguration.ImagePullSecret = "my-secret"
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
 				statefulSet, _ := cluster.StatefulSet()
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("best-repository/rabbitmq:some-tag"))
-				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-secret"}))
+				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "foo-registry-access"}))
 			})
 
-			It("uses the RabbitmqCluster spec if it is provided", func() {
+			It("uses the instance ImagePullSecret and image reference if it is provided", func() {
 				instance.Spec.Image = "my-private-repo/rabbitmq:latest"
 				instance.Spec.ImagePullSecret = "my-great-secret"
-				statefulSetConfiguration.ImageReference = "best-repository/rabbitmq:some-tag"
-				statefulSetConfiguration.ImagePullSecret = resource.ClusterImagePullSecretName("my-secret", instance.Spec.ImagePullSecret, instance.Name)
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+				defaultConfiguration.ImageReference = "best-repository/rabbitmq:some-tag"
+				defaultConfiguration.ImagePullSecret = "my-secret"
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
+
 				statefulSet, _ := cluster.StatefulSet()
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:latest"))
@@ -629,12 +645,12 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
-		When("replica count is specified in the RabbitmqCluster spec", func() {
+		When("replica count is specified in the RabbitmqResourceBuilder spec", func() {
 			It("sets the replica count of the StatefulSet to the provided value", func() {
 				instance.Spec.Replicas = 3
-				cluster = &resource.RabbitmqCluster{
-					Instance:                 &instance,
-					StatefulSetConfiguration: statefulSetConfiguration,
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
 				}
 				statefulSet, _ := cluster.StatefulSet()
 				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))

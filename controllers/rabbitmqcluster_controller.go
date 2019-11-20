@@ -52,16 +52,16 @@ var (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
-	Log                         logr.Logger
-	Scheme                      *runtime.Scheme
-	ServiceType                 string
-	ServiceAnnotations          map[string]string
-	Image                       string
-	ImagePullSecret             string
-	PersistenceStorageClassName string
-	PersistenceStorage          string
-	Namespace                   string
-	ResourceRequirements        resource.ResourceRequirements
+	Log                        logr.Logger
+	Scheme                     *runtime.Scheme
+	ServiceType                string
+	ServiceAnnotations         map[string]string
+	Image                      string
+	ImagePullSecret            string
+	PersistentStorageClassName string
+	PersistentStorage          string
+	Namespace                  string
+	ResourceRequirements       resource.ResourceRequirements
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -215,24 +215,20 @@ func (r *RabbitmqClusterReconciler) getResources(rabbitmqClusterInstance *rabbit
 	}
 
 	defaultConfiguration := resource.DefaultConfiguration{
-		ServiceAnnotations:     r.ServiceAnnotations,
-		ServiceType:            r.ServiceType,
-		OperatorRegistrySecret: operatorRegistrySecret,
+		ServiceAnnotations:         r.ServiceAnnotations,
+		ServiceType:                r.ServiceType,
+		Scheme:                     r.Scheme,
+		OperatorRegistrySecret:     operatorRegistrySecret,
+		ImageReference:             r.Image,
+		ImagePullSecret:            r.ImagePullSecret,
+		PersistentStorage:          r.PersistentStorage,
+		PersistentStorageClassName: r.PersistentStorageClassName,
+		ResourceRequirements:       r.ResourceRequirements,
 	}
 
-	statefulSetConfiguration := resource.StatefulSetConfiguration{
-		ImageReference:              r.Image,
-		ImagePullSecret:             resource.ClusterImagePullSecretName(r.ImagePullSecret, rabbitmqClusterInstance.Spec.ImagePullSecret, rabbitmqClusterInstance.Name),
-		PersistenceStorageClassName: r.PersistenceStorageClassName,
-		PersistenceStorage:          r.PersistenceStorage,
-		ResourceRequirementsConfig:  r.ResourceRequirements,
-		Scheme:                      r.Scheme,
-	}
-
-	cluster := resource.RabbitmqCluster{
-		Instance:                 rabbitmqClusterInstance, //CodyConfiguration?
-		DefaultConfiguration:     defaultConfiguration,    // AlanaConfiguration?
-		StatefulSetConfiguration: statefulSetConfiguration,
+	cluster := resource.RabbitmqResourceBuilder{
+		Instance:             rabbitmqClusterInstance,
+		DefaultConfiguration: defaultConfiguration,
 	}
 	resources, err := cluster.Resources()
 	if err != nil {

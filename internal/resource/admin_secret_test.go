@@ -22,13 +22,13 @@ var _ = Describe("AdminSecret", func() {
 			},
 		}
 
-		rabbitmqCluster *resource.RabbitmqCluster
+		rabbitmqCluster *resource.RabbitmqResourceBuilder
 	)
 
 	BeforeEach(func() {
 		var err error
 
-		rabbitmqCluster = &resource.RabbitmqCluster{
+		rabbitmqCluster = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
 		secret, err = rabbitmqCluster.AdminSecret()

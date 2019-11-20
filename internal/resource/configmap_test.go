@@ -27,11 +27,11 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			},
 		}
 
-		cluster *resource.RabbitmqCluster
+		cluster *resource.RabbitmqResourceBuilder
 	)
 
 	BeforeEach(func() {
-		cluster = &resource.RabbitmqCluster{
+		cluster = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
 		confMap = cluster.ServerConfigMap()

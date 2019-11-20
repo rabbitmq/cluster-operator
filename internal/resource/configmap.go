@@ -12,7 +12,7 @@ const (
 	serverConfigMapName = "server-conf"
 )
 
-func (cluster *RabbitmqCluster) ServerConfigMap() *corev1.ConfigMap {
+func (cluster *RabbitmqResourceBuilder) ServerConfigMap() *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Instance.ChildResourceName(serverConfigMapName),

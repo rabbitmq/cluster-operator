@@ -13,7 +13,7 @@ const (
 	erlangCookieName = "erlang-cookie"
 )
 
-func (cluster *RabbitmqCluster) ErlangCookie() (*corev1.Secret, error) {
+func (cluster *RabbitmqResourceBuilder) ErlangCookie() (*corev1.Secret, error) {
 	cookie, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err

@@ -10,7 +10,7 @@ const (
 	headlessServiceName = "headless"
 )
 
-func (cluster *RabbitmqCluster) HeadlessService() *corev1.Service {
+func (cluster *RabbitmqResourceBuilder) HeadlessService() *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Instance.ChildResourceName(headlessServiceName),

@@ -8,19 +8,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type RabbitmqCluster struct {
-	Instance                 *rabbitmqv1beta1.RabbitmqCluster
-	StatefulSetConfiguration StatefulSetConfiguration
-	DefaultConfiguration     DefaultConfiguration
+type RabbitmqResourceBuilder struct {
+	Instance             *rabbitmqv1beta1.RabbitmqCluster
+	DefaultConfiguration DefaultConfiguration
 }
 
 type DefaultConfiguration struct {
-	ServiceAnnotations     map[string]string
-	ServiceType            string
-	OperatorRegistrySecret *corev1.Secret
+	ServiceAnnotations         map[string]string
+	ServiceType                string
+	Scheme                     *runtime.Scheme
+	ImageReference             string
+	ImagePullSecret            string
+	PersistentStorage          string
+	PersistentStorageClassName string
+	ResourceRequirements       ResourceRequirements
+	OperatorRegistrySecret     *corev1.Secret
 }
 
-func (cluster *RabbitmqCluster) Resources() (resources []runtime.Object, err error) {
+func (cluster *RabbitmqResourceBuilder) Resources() (resources []runtime.Object, err error) {
 	serverConf := cluster.ServerConfigMap()
 	resources = append(resources, serverConf)
 

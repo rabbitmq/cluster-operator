@@ -97,17 +97,17 @@ func main() {
 		MemoryRequest: config.Resources.Requests.Memory,
 	}
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client:                      mgr.GetClient(),
-		Log:                         ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
-		Scheme:                      mgr.GetScheme(),
-		ServiceType:                 config.Service.Type,
-		ServiceAnnotations:          config.Service.Annotations,
-		Image:                       config.Image,
-		ImagePullSecret:             config.ImagePullSecret,
-		PersistenceStorage:          config.Persistence.Storage,
-		PersistenceStorageClassName: config.Persistence.StorageClassName,
-		ResourceRequirements:        resourceRequirements,
-		Namespace:                   operatorNamespace,
+		Client:                     mgr.GetClient(),
+		Log:                        ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
+		Scheme:                     mgr.GetScheme(),
+		ServiceType:                config.Service.Type,
+		ServiceAnnotations:         config.Service.Annotations,
+		Image:                      config.Image,
+		ImagePullSecret:            config.ImagePullSecret,
+		PersistentStorage:          config.Persistence.Storage,
+		PersistentStorageClassName: config.Persistence.StorageClassName,
+		ResourceRequirements:       resourceRequirements,
+		Namespace:                  operatorNamespace,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")

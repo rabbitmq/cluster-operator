@@ -15,7 +15,7 @@ var _ = Describe("RBAC", func() {
 	var (
 		instance       rabbitmqv1beta1.RabbitmqCluster
 		serviceAccount *corev1.ServiceAccount
-		cluster        *resource.RabbitmqCluster
+		cluster        *resource.RabbitmqResourceBuilder
 	)
 
 	BeforeEach(func() {
@@ -25,7 +25,7 @@ var _ = Describe("RBAC", func() {
 				Name:      "a-name",
 			},
 		}
-		cluster = &resource.RabbitmqCluster{
+		cluster = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
 		serviceAccount = cluster.ServiceAccount()
@@ -48,7 +48,7 @@ var _ = Describe("RBAC", func() {
 	Describe("GenerateRole", func() {
 		var role *rbacv1.Role
 		BeforeEach(func() {
-			cluster = &resource.RabbitmqCluster{
+			cluster = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 			}
 			role = cluster.Role()
@@ -75,7 +75,7 @@ var _ = Describe("RBAC", func() {
 	Describe("GenerateRoleBinding", func() {
 		var roleBinding *rbacv1.RoleBinding
 		BeforeEach(func() {
-			cluster = &resource.RabbitmqCluster{
+			cluster = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 			}
 			roleBinding = cluster.RoleBinding()

@@ -10,7 +10,7 @@ const (
 	adminSecretName = "admin"
 )
 
-func (cluster *RabbitmqCluster) AdminSecret() (*corev1.Secret, error) {
+func (cluster *RabbitmqResourceBuilder) AdminSecret() (*corev1.Secret, error) {
 	username, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err

@@ -15,7 +15,7 @@ import (
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-var _ = Describe("RabbitmqCluster", func() {
+var _ = Describe("RabbitmqResourceBuilder", func() {
 	Context("Resources", func() {
 		var (
 			instance = rabbitmqv1beta1.RabbitmqCluster{
@@ -25,7 +25,7 @@ var _ = Describe("RabbitmqCluster", func() {
 				},
 			}
 
-			rabbitmqCluster *resource.RabbitmqCluster
+			rabbitmqCluster *resource.RabbitmqResourceBuilder
 			scheme          *runtime.Scheme
 		)
 		When("an operator Registry secret is set in the default configuration", func() {
@@ -34,19 +34,18 @@ var _ = Describe("RabbitmqCluster", func() {
 				rabbitmqv1beta1.AddToScheme(scheme)
 				defaultscheme.AddToScheme(scheme)
 
-				rabbitmqCluster = &resource.RabbitmqCluster{
-					Instance:             &instance,
-					DefaultConfiguration: resource.DefaultConfiguration{OperatorRegistrySecret: &corev1.Secret{}},
-					StatefulSetConfiguration: resource.StatefulSetConfiguration{
-						PersistenceStorageClassName: "standard",
-						PersistenceStorage:          "10Gi",
-						Scheme:                      scheme,
-					},
+				rabbitmqCluster = &resource.RabbitmqResourceBuilder{
+					Instance: &instance,
+					DefaultConfiguration: resource.DefaultConfiguration{
+						OperatorRegistrySecret: &corev1.Secret{}, PersistentStorageClassName: "standard",
+						PersistentStorage: "10Gi",
+						Scheme:            scheme},
 				}
 			})
 			It("returns the required resources in the expected order", func() {
 				resources, err := rabbitmqCluster.Resources()
 				Expect(err).NotTo(HaveOccurred())
+
 				Expect(len(resources)).To(Equal(10))
 
 				resourceMap := checkForResources(resources)
@@ -76,13 +75,12 @@ var _ = Describe("RabbitmqCluster", func() {
 				rabbitmqv1beta1.AddToScheme(scheme)
 				defaultscheme.AddToScheme(scheme)
 
-				rabbitmqCluster = &resource.RabbitmqCluster{
-					Instance:             &instance,
-					DefaultConfiguration: resource.DefaultConfiguration{},
-					StatefulSetConfiguration: resource.StatefulSetConfiguration{
-						PersistenceStorageClassName: "standard",
-						PersistenceStorage:          "10Gi",
-						Scheme:                      scheme,
+				rabbitmqCluster = &resource.RabbitmqResourceBuilder{
+					Instance: &instance,
+					DefaultConfiguration: resource.DefaultConfiguration{
+						PersistentStorageClassName: "standard",
+						PersistentStorage:          "10Gi",
+						Scheme:                     scheme,
 					},
 				}
 			})

@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (cluster *RabbitmqCluster) IngressService() *corev1.Service {
+func (cluster *RabbitmqResourceBuilder) IngressService() *corev1.Service {
 	var (
 		serviceType        string
 		serviceAnnotations map[string]string

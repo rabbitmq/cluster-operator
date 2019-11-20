@@ -10,7 +10,7 @@ const (
 	imageSecretSuffix = "registry-access"
 )
 
-func (cluster *RabbitmqCluster) RegistrySecret() *corev1.Secret {
+func (cluster *RabbitmqResourceBuilder) RegistrySecret() *corev1.Secret {
 	registrySecret := &corev1.Secret{}
 
 	registrySecret.Namespace = cluster.Instance.Namespace

@@ -14,7 +14,7 @@ const (
 	roleBindingName    = "server"
 )
 
-func (cluster *RabbitmqCluster) ServiceAccount() *corev1.ServiceAccount {
+func (cluster *RabbitmqResourceBuilder) ServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Instance.Namespace,
@@ -24,7 +24,7 @@ func (cluster *RabbitmqCluster) ServiceAccount() *corev1.ServiceAccount {
 	}
 }
 
-func (cluster *RabbitmqCluster) Role() *rbacv1.Role {
+func (cluster *RabbitmqResourceBuilder) Role() *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Instance.Namespace,
@@ -41,7 +41,7 @@ func (cluster *RabbitmqCluster) Role() *rbacv1.Role {
 	}
 }
 
-func (cluster *RabbitmqCluster) RoleBinding() *rbacv1.RoleBinding {
+func (cluster *RabbitmqResourceBuilder) RoleBinding() *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Instance.Namespace,
