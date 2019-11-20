@@ -163,7 +163,7 @@ var _ = Describe("Operator", func() {
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
-		FIt("checks whether the rabbitmq cluster is ready to serve traffic", func() {
+		It("checks whether the rabbitmq cluster is ready to serve traffic", func() {
 			By("not publishing addresses after stopping Rabbitmq app", func() {
 				waitForRabbitmqRunning(cluster)
 
