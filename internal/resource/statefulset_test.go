@@ -507,7 +507,7 @@ var _ = Describe("StatefulSet", func() {
 			It("templates the image string and the imagePullSecrets correctly", func() {
 				instance.Spec.Image = "my-private-repo/rabbitmq:3.8.0"
 				instance.Spec.ImagePullSecret = "my-great-secret"
-				defaultConfiguration.ImagePullSecret = resource.ClusterImagePullSecretName("ignored-operator-secret", instance.Spec.ImagePullSecret, instance.Name)
+				defaultConfiguration.ImagePullSecret = "ignored-operator-secret"
 
 				cluster = &resource.RabbitmqResourceBuilder{
 					Instance:             &instance,

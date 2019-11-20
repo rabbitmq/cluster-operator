@@ -48,95 +48,6 @@ type StatefulSetConfiguration struct {
 	Scheme                     *runtime.Scheme
 }
 
-func ClusterImagePullSecretName(operatorSecretName, customResourceSecretName, instanceName string) string {
-	var imagePullSecretName string
-	if customResourceSecretName != "" {
-		imagePullSecretName = customResourceSecretName
-	} else if operatorSecretName != "" {
-		imagePullSecretName = RegistrySecretName(instanceName)
-	} else {
-		imagePullSecretName = ""
-	}
-
-	return imagePullSecretName
-}
-
-func (cluster *RabbitmqResourceBuilder) StatefulSetConfigurations() (StatefulSetConfiguration, error) {
-	var err error
-	statefulSetConfiguration := StatefulSetConfiguration{Scheme: cluster.DefaultConfiguration.Scheme}
-
-	statefulSetConfiguration.ImageReference = rabbitmqImage
-	if cluster.Instance.Spec.Image != "" {
-		statefulSetConfiguration.ImageReference = cluster.Instance.Spec.Image
-	} else if cluster.DefaultConfiguration.ImageReference != "" {
-		statefulSetConfiguration.ImageReference = cluster.DefaultConfiguration.ImageReference
-	}
-
-	statefulSetConfiguration.ImagePullSecret = ClusterImagePullSecretName(cluster.DefaultConfiguration.ImagePullSecret, cluster.Instance.Spec.ImagePullSecret, cluster.Instance.Name)
-
-	CPULimit := defaultCPULimit
-	if cluster.DefaultConfiguration.ResourceRequirements.CPULimit != "" {
-		CPULimit = cluster.DefaultConfiguration.ResourceRequirements.CPULimit
-	}
-	statefulSetConfiguration.ResourceRequirementsConfig.CPULimit, err = k8sresource.ParseQuantity(CPULimit)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	cpuRequest := defaultCPURequest
-	if cluster.DefaultConfiguration.ResourceRequirements.CPURequest != "" {
-		cpuRequest = cluster.DefaultConfiguration.ResourceRequirements.CPURequest
-	}
-	statefulSetConfiguration.ResourceRequirementsConfig.CPURequest, err = k8sresource.ParseQuantity(cpuRequest)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	memoryLimit := defaultMemoryLimit
-	if cluster.DefaultConfiguration.ResourceRequirements.MemoryLimit != "" {
-		memoryLimit = cluster.DefaultConfiguration.ResourceRequirements.MemoryLimit
-	}
-	statefulSetConfiguration.ResourceRequirementsConfig.MemoryLimit, err = k8sresource.ParseQuantity(memoryLimit)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	memoryRequest := defaultMemoryRequest
-	if cluster.DefaultConfiguration.ResourceRequirements.MemoryRequest != "" {
-		memoryRequest = cluster.DefaultConfiguration.ResourceRequirements.MemoryRequest
-	}
-	statefulSetConfiguration.ResourceRequirementsConfig.MemoryRequest, err = k8sresource.ParseQuantity(memoryRequest)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(defaultPersistentCapacity)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	if cluster.Instance.Spec.Persistence.Storage != "" {
-		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(cluster.Instance.Spec.Persistence.Storage)
-		if err != nil {
-			return statefulSetConfiguration, err
-		}
-	} else if cluster.DefaultConfiguration.PersistentStorage != "" {
-		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(cluster.DefaultConfiguration.PersistentStorage)
-		if err != nil {
-			return statefulSetConfiguration, err
-		}
-	}
-
-	statefulSetConfiguration.PersistentStorageClassName = nil
-	if cluster.Instance.Spec.Persistence.StorageClassName != "" {
-		statefulSetConfiguration.PersistentStorageClassName = &cluster.Instance.Spec.Persistence.StorageClassName
-	} else if cluster.DefaultConfiguration.PersistentStorageClassName != "" {
-		statefulSetConfiguration.PersistentStorageClassName = &cluster.DefaultConfiguration.PersistentStorageClassName
-	}
-
-	return statefulSetConfiguration, nil
-}
-
 func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, error) {
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
@@ -147,23 +58,26 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 		replicas = int32(1)
 	}
 
-	statefulSetConfiguration, err := cluster.StatefulSetConfigurations()
+	statefulSetConfiguration, err := cluster.statefulSetConfigurations()
 	if err != nil {
 		return nil, err
 	}
 
-	imagePullSecrets := []corev1.LocalObjectReference{}
+	var imagePullSecrets []corev1.LocalObjectReference
 	if statefulSetConfiguration.ImagePullSecret != "" {
 		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
 	}
 
-	//TODO refactor arguments
-	pvc, err := generatePersistentVolumeClaim(*cluster.Instance, statefulSetConfiguration.PersistentStorageClassName, statefulSetConfiguration.PersistentStorage, statefulSetConfiguration.Scheme)
+	pvc, err := persistentVolumeClaim(cluster.Instance, statefulSetConfiguration)
 	if err != nil {
 		return nil, err
 	}
 
-	initContainers, err := generateInitContainers(statefulSetConfiguration.ImageReference)
+	cpuRequest, err := k8sresource.ParseQuantity(initContainerCPU)
+	if err != nil {
+		return nil, err
+	}
+	memoryRequest, err := k8sresource.ParseQuantity(initContainerMemory)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +110,46 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 					ServiceAccountName:           cluster.Instance.ChildResourceName(serviceAccountName),
 					AutomountServiceAccountToken: &automountServiceAccountToken,
 					ImagePullSecrets:             imagePullSecrets,
-					InitContainers:               initContainers,
+					InitContainers: []corev1.Container{
+						{
+							Name: "copy-config",
+							Command: []string{
+								"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
+									"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
+									"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
+									"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
+							},
+							Image: statefulSetConfiguration.ImageReference,
+							Resources: corev1.ResourceRequirements{
+								Limits: map[corev1.ResourceName]k8sresource.Quantity{
+									"cpu":    cpuRequest,
+									"memory": memoryRequest,
+								},
+								Requests: map[corev1.ResourceName]k8sresource.Quantity{
+									"cpu":    cpuRequest,
+									"memory": memoryRequest,
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "server-conf",
+									MountPath: "/tmp/rabbitmq/",
+								},
+								{
+									Name:      "rabbitmq-etc",
+									MountPath: "/etc/rabbitmq/",
+								},
+								{
+									Name:      "rabbitmq-erlang-cookie",
+									MountPath: "/var/lib/rabbitmq/",
+								},
+								{
+									Name:      "erlang-cookie-secret",
+									MountPath: "/tmp/erlang-cookie-secret/",
+								},
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:  "rabbitmq",
@@ -373,7 +326,7 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 	}, nil
 }
 
-func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, persistenceStorageClassName *string, persistenceStorage k8sresource.Quantity, scheme *runtime.Scheme) (*corev1.PersistentVolumeClaim, error) {
+func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSetConfigureation StatefulSetConfiguration) (*corev1.PersistentVolumeClaim, error) {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "persistence",
@@ -382,68 +335,100 @@ func generatePersistentVolumeClaim(instance rabbitmqv1beta1.RabbitmqCluster, per
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: persistenceStorage,
+					corev1.ResourceStorage: statefulSetConfigureation.PersistentStorage,
 				},
 			},
 			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			StorageClassName: persistenceStorageClassName,
+			StorageClassName: statefulSetConfigureation.PersistentStorageClassName,
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(&instance, pvc, scheme); err != nil {
+	if err := controllerutil.SetControllerReference(instance, pvc, statefulSetConfigureation.Scheme); err != nil {
 		return nil, fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
 	return pvc, nil
 }
 
-func generateInitContainers(image string) ([]corev1.Container, error) {
-	cpuRequest, err := k8sresource.ParseQuantity(initContainerCPU)
-	if err != nil {
-		return nil, err
+func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSetConfiguration, error) {
+	var err error
+	statefulSetConfiguration := StatefulSetConfiguration{
+		ImageReference:  rabbitmqImage,
+		ImagePullSecret: "",
+		Scheme:          cluster.DefaultConfiguration.Scheme,
 	}
-	memoryRequest, err := k8sresource.ParseQuantity(initContainerMemory)
-	if err != nil {
-		return nil, err
+
+	if cluster.Instance.Spec.Image != "" {
+		statefulSetConfiguration.ImageReference = cluster.Instance.Spec.Image
+	} else if cluster.DefaultConfiguration.ImageReference != "" {
+		statefulSetConfiguration.ImageReference = cluster.DefaultConfiguration.ImageReference
 	}
-	return []corev1.Container{
-		{
-			Name: "copy-config",
-			Command: []string{
-				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
-					"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
-					"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
-					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
-			},
-			Image: image,
-			Resources: corev1.ResourceRequirements{
-				Limits: map[corev1.ResourceName]k8sresource.Quantity{
-					"cpu":    cpuRequest,
-					"memory": memoryRequest,
-				},
-				Requests: map[corev1.ResourceName]k8sresource.Quantity{
-					"cpu":    cpuRequest,
-					"memory": memoryRequest,
-				},
-			},
-			VolumeMounts: []corev1.VolumeMount{
-				{
-					Name:      "server-conf",
-					MountPath: "/tmp/rabbitmq/",
-				},
-				{
-					Name:      "rabbitmq-etc",
-					MountPath: "/etc/rabbitmq/",
-				},
-				{
-					Name:      "rabbitmq-erlang-cookie",
-					MountPath: "/var/lib/rabbitmq/",
-				},
-				{
-					Name:      "erlang-cookie-secret",
-					MountPath: "/tmp/erlang-cookie-secret/",
-				},
-			},
-		},
-	}, nil
+
+	if cluster.Instance.Spec.ImagePullSecret != "" {
+		statefulSetConfiguration.ImagePullSecret = cluster.Instance.Spec.ImagePullSecret
+	} else if cluster.DefaultConfiguration.ImagePullSecret != "" {
+		statefulSetConfiguration.ImagePullSecret = RegistrySecretName(cluster.Instance.Name)
+	}
+
+	cpuLimit := defaultCPULimit
+	if cluster.DefaultConfiguration.ResourceRequirements.CPULimit != "" {
+		cpuLimit = cluster.DefaultConfiguration.ResourceRequirements.CPULimit
+	}
+	statefulSetConfiguration.ResourceRequirementsConfig.CPULimit, err = k8sresource.ParseQuantity(cpuLimit)
+	if err != nil {
+		return statefulSetConfiguration, err
+	}
+
+	cpuRequest := defaultCPURequest
+	if cluster.DefaultConfiguration.ResourceRequirements.CPURequest != "" {
+		cpuRequest = cluster.DefaultConfiguration.ResourceRequirements.CPURequest
+	}
+	statefulSetConfiguration.ResourceRequirementsConfig.CPURequest, err = k8sresource.ParseQuantity(cpuRequest)
+	if err != nil {
+		return statefulSetConfiguration, err
+	}
+
+	memoryLimit := defaultMemoryLimit
+	if cluster.DefaultConfiguration.ResourceRequirements.MemoryLimit != "" {
+		memoryLimit = cluster.DefaultConfiguration.ResourceRequirements.MemoryLimit
+	}
+	statefulSetConfiguration.ResourceRequirementsConfig.MemoryLimit, err = k8sresource.ParseQuantity(memoryLimit)
+	if err != nil {
+		return statefulSetConfiguration, err
+	}
+
+	memoryRequest := defaultMemoryRequest
+	if cluster.DefaultConfiguration.ResourceRequirements.MemoryRequest != "" {
+		memoryRequest = cluster.DefaultConfiguration.ResourceRequirements.MemoryRequest
+	}
+	statefulSetConfiguration.ResourceRequirementsConfig.MemoryRequest, err = k8sresource.ParseQuantity(memoryRequest)
+	if err != nil {
+		return statefulSetConfiguration, err
+	}
+
+	statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(defaultPersistentCapacity)
+	if err != nil {
+		return statefulSetConfiguration, err
+	}
+
+	if cluster.Instance.Spec.Persistence.Storage != "" {
+		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(cluster.Instance.Spec.Persistence.Storage)
+		if err != nil {
+			return statefulSetConfiguration, err
+		}
+	} else if cluster.DefaultConfiguration.PersistentStorage != "" {
+		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(cluster.DefaultConfiguration.PersistentStorage)
+		if err != nil {
+			return statefulSetConfiguration, err
+		}
+	}
+
+	statefulSetConfiguration.PersistentStorageClassName = nil
+	if cluster.Instance.Spec.Persistence.StorageClassName != "" {
+		statefulSetConfiguration.PersistentStorageClassName = &cluster.Instance.Spec.Persistence.StorageClassName
+	} else if cluster.DefaultConfiguration.PersistentStorageClassName != "" {
+		statefulSetConfiguration.PersistentStorageClassName = &cluster.DefaultConfiguration.PersistentStorageClassName
+	}
+
+	return statefulSetConfiguration, nil
 }
