@@ -77,9 +77,9 @@ var _ = Describe("StatefulSet", func() {
 
 		It("has resources requirements on the init container", func() {
 			resources := sts.Spec.Template.Spec.InitContainers[0].Resources
-			Expect(resources.Requests["cpu"]).To(Equal(k8sresource.MustParse("500m")))
+			Expect(resources.Requests["cpu"]).To(Equal(k8sresource.MustParse("100m")))
 			Expect(resources.Requests["memory"]).To(Equal(k8sresource.MustParse("500Mi")))
-			Expect(resources.Limits["cpu"]).To(Equal(k8sresource.MustParse("500m")))
+			Expect(resources.Limits["cpu"]).To(Equal(k8sresource.MustParse("100m")))
 			Expect(resources.Limits["memory"]).To(Equal(k8sresource.MustParse("500Mi")))
 		})
 
