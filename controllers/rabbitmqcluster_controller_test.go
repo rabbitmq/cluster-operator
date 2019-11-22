@@ -34,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -63,66 +64,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 	AfterEach(func() {
 		stopManager()
 	})
-
-	var resourceTests = func() {
-		It("reconciles", func() {
-			By("creating the server conf configmap", func() {
-				configMapName := rabbitmqCluster.ChildResourceName("server-conf")
-				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(configMap.Name).To(Equal(configMapName))
-			})
-
-			By("creating a rabbitmq admin secret", func() {
-				secretName := rabbitmqCluster.ChildResourceName("admin")
-				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(secret.Name).To(Equal(secretName))
-			})
-
-			By("creating an erlang cookie secret", func() {
-				secretName := rabbitmqCluster.ChildResourceName("erlang-cookie")
-				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(secret.Name).To(Equal(secretName))
-			})
-
-			By("creating a rabbitmq ingress service object", func() {
-				ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
-				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(service.Name).To(Equal(ingressServiceName))
-			})
-
-			By("creating a rabbitmq headless service object", func() {
-				headlessServiceName := rabbitmqCluster.ChildResourceName("headless")
-				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(headlessServiceName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(service.Name).To(Equal(headlessServiceName))
-			})
-
-			By("creating a service account", func() {
-				name := rabbitmqCluster.ChildResourceName("server")
-				serviceAccount, err := clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(serviceAccount.Name).To(Equal(name))
-			})
-
-			By("creating a role", func() {
-				name := rabbitmqCluster.ChildResourceName("endpoint-discovery")
-				serviceAccount, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(serviceAccount.Name).To(Equal(name))
-			})
-
-			By("creating a role binding", func() {
-				name := rabbitmqCluster.ChildResourceName("server")
-				serviceAccount, err := clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(serviceAccount.Name).To(Equal(name))
-			})
-		})
-	}
 
 	When("the imagePullSecret is specified only in config", func() {
 		BeforeEach(func() {
@@ -180,7 +121,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(sts.Name).To(Equal(stsName))
 
 		})
-		resourceTests()
+
+		It("reconciles", func() {
+			resourceTests(rabbitmqCluster, clientSet)
+		})
 	})
 
 	When("the imagePullSecret is specified in the instance spec (and config)", func() {
@@ -249,7 +193,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(secretsWithImagePullSecretSuffix).To(BeEmpty())
 			Expect(err).NotTo(HaveOccurred())
 		})
-		resourceTests()
+
+		It("reconciles", func() {
+			resourceTests(rabbitmqCluster, clientSet)
+		})
 	})
 })
 
@@ -284,4 +231,62 @@ func startManager(scheme *runtime.Scheme, config config.Config) {
 func stopManager() {
 	close(stopMgr)
 	mgrStopped.Wait()
+}
+
+func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *kubernetes.Clientset) {
+	By("creating the server conf configmap", func() {
+		configMapName := rabbitmqCluster.ChildResourceName("server-conf")
+		configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(configMap.Name).To(Equal(configMapName))
+	})
+
+	By("creating a rabbitmq admin secret", func() {
+		secretName := rabbitmqCluster.ChildResourceName("admin")
+		secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(secret.Name).To(Equal(secretName))
+	})
+
+	By("creating an erlang cookie secret", func() {
+		secretName := rabbitmqCluster.ChildResourceName("erlang-cookie")
+		secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(secret.Name).To(Equal(secretName))
+	})
+
+	By("creating a rabbitmq ingress service object", func() {
+		ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
+		service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(service.Name).To(Equal(ingressServiceName))
+	})
+
+	By("creating a rabbitmq headless service object", func() {
+		headlessServiceName := rabbitmqCluster.ChildResourceName("headless")
+		service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(headlessServiceName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(service.Name).To(Equal(headlessServiceName))
+	})
+
+	By("creating a service account", func() {
+		name := rabbitmqCluster.ChildResourceName("server")
+		serviceAccount, err := clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(serviceAccount.Name).To(Equal(name))
+	})
+
+	By("creating a role", func() {
+		name := rabbitmqCluster.ChildResourceName("endpoint-discovery")
+		serviceAccount, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(serviceAccount.Name).To(Equal(name))
+	})
+
+	By("creating a role binding", func() {
+		name := rabbitmqCluster.ChildResourceName("server")
+		serviceAccount, err := clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(serviceAccount.Name).To(Equal(name))
+	})
 }
