@@ -181,7 +181,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 			Expect(client.Create(context.TODO(), registrySecret)).To(Succeed())
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 			Eventually(func() string {
 				rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
 				err := client.Get(

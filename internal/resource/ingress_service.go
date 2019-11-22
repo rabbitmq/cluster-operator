@@ -35,31 +35,28 @@ func (cluster *RabbitmqResourceBuilder) IngressService() *corev1.Service {
 		},
 	}
 
-	cluster.SetMutableServiceParams(service)
-	cluster.setImmutableServiceParams(service)
+	cluster.setServiceParams(service)
+	cluster.UpdateServiceParams(service)
 
 	return service
 }
 
-func (cluster *RabbitmqResourceBuilder) SetMutableServiceParams(service *corev1.Service) {
-	var serviceAnnotations map[string]string
-	if cluster.Instance.Spec.Service.Annotations != nil {
-		serviceAnnotations = cluster.Instance.Spec.Service.Annotations
-	} else {
-		serviceAnnotations = cluster.DefaultConfiguration.ServiceAnnotations
-	}
-	service.Annotations = serviceAnnotations
-}
-
-func (cluster *RabbitmqResourceBuilder) setImmutableServiceParams(service *corev1.Service) {
+func (cluster *RabbitmqResourceBuilder) setServiceParams(service *corev1.Service) {
 	var serviceType string
 	if cluster.Instance.Spec.Service.Type != "" {
 		serviceType = cluster.Instance.Spec.Service.Type
-	} else if cluster.DefaultConfiguration.ServiceType == "" {
-		serviceType = "ClusterIP"
-	} else {
+	} else if cluster.DefaultConfiguration.ServiceType != "" {
 		serviceType = cluster.DefaultConfiguration.ServiceType
+	} else {
+		serviceType = "ClusterIP"
 	}
-
 	service.Spec.Type = corev1.ServiceType(serviceType)
+
+	service.Annotations = cluster.DefaultConfiguration.ServiceAnnotations
+}
+
+func (cluster *RabbitmqResourceBuilder) UpdateServiceParams(service *corev1.Service) {
+	if cluster.Instance.Spec.Service.Annotations != nil {
+		service.Annotations = cluster.Instance.Spec.Service.Annotations
+	}
 }

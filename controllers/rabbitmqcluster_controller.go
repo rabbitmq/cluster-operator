@@ -177,11 +177,13 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
+
 func (r *RabbitmqClusterReconciler) reconcileIngressService(builder resource.RabbitmqResourceBuilder) (ctrl.Result, error) {
 	ingressService := builder.IngressService()
 
 	operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, ingressService, func() error {
-		builder.SetMutableServiceParams(ingressService)
+
+		builder.UpdateServiceParams(ingressService)
 		return nil
 	})
 
