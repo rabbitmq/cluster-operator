@@ -390,7 +390,7 @@ func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 		)
 
 		if err != nil {
-			Expect(output).To(ContainSubstring("not found"))
+			Expect(string(output)).To(ContainSubstring("not found"))
 		}
 
 		return output
@@ -407,7 +407,7 @@ func assertStatefulSetReady(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 		output, err := statefulSetStatus(cluster)
 
 		if err != nil {
-			Expect(output).To(ContainSubstring("not found"))
+			Expect(string(output)).To(ContainSubstring("not found"))
 		}
 
 		return output

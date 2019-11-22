@@ -217,7 +217,7 @@ var _ = Describe("Operator", func() {
 		AfterEach(func() {
 			err := rmqClusterClient.Delete(context.TODO(), cluster)
 			if err != nil {
-				Expect(err.Error()).To(ContainSubstring("not found"))
+				Expect(err).To(MatchError("not found"))
 			}
 		})
 
