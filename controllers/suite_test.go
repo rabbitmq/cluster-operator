@@ -24,14 +24,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
-	"k8s.io/apimachinery/pkg/runtime"
+	// "github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
+
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -74,43 +70,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = rabbitmqv1beta1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	scheme := runtime.NewScheme()
-	Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
-
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
-	Expect(err).NotTo(HaveOccurred())
-	client = mgr.GetClient()
-
-	reconciler := &controllers.RabbitmqClusterReconciler{
-		Client:          client,
-		Log:             ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
-		Scheme:          mgr.GetScheme(),
-		ImagePullSecret: "pivotal-rmq-registry-access",
-		Namespace:       "pivotal-rabbitmq-system",
-	}
-	reconciler.SetupWithManager(mgr)
-
-	stopMgr = make(chan struct{})
-	mgrStopped = &sync.WaitGroup{}
-	mgrStopped.Add(1)
-	go func() {
-		defer mgrStopped.Done()
-		Expect(mgr.Start(stopMgr)).NotTo(HaveOccurred())
-	}()
-
 	clientSet, err = kubernetes.NewForConfig(cfg)
 	Expect(err).NotTo(HaveOccurred())
-	// +kubebuilder:scaffold:scheme
+
 })
 
 var _ = AfterSuite(func() {
-	By("stopping the manager")
-	close(stopMgr)
-	mgrStopped.Wait()
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())

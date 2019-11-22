@@ -20,16 +20,22 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const timeout = 3 * time.Second
@@ -41,6 +47,22 @@ var _ = Describe("RabbitmqclusterController", func() {
 		registrySecret  *corev1.Secret
 		secretName      = "rabbitmq-one-registry-access"
 	)
+
+	BeforeEach(func() {
+		scheme := runtime.NewScheme()
+		Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
+		Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+
+		managerConfig := config.Config{
+			ImagePullSecret: "pivotal-rmq-registry-access",
+		}
+
+		startManager(scheme, managerConfig)
+	})
+
+	AfterEach(func() {
+		stopManager()
+	})
 
 	var resourceTests = func() {
 		It("reconciles", func() {
@@ -230,3 +252,36 @@ var _ = Describe("RabbitmqclusterController", func() {
 		resourceTests()
 	})
 })
+
+func startManager(scheme *runtime.Scheme, config config.Config) {
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
+	Expect(err).NotTo(HaveOccurred())
+	client = mgr.GetClient()
+
+	reconciler := &controllers.RabbitmqClusterReconciler{
+		Client:                     client,
+		Log:                        ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
+		Scheme:                     mgr.GetScheme(),
+		Namespace:                  "pivotal-rabbitmq-system",
+		ServiceType:                config.Service.Type,
+		ServiceAnnotations:         config.Service.Annotations,
+		Image:                      config.Image,
+		ImagePullSecret:            config.ImagePullSecret,
+		PersistentStorage:          config.Persistence.Storage,
+		PersistentStorageClassName: config.Persistence.StorageClassName,
+	}
+	reconciler.SetupWithManager(mgr)
+
+	stopMgr = make(chan struct{})
+	mgrStopped = &sync.WaitGroup{}
+	mgrStopped.Add(1)
+	go func() {
+		defer mgrStopped.Done()
+		Expect(mgr.Start(stopMgr)).NotTo(HaveOccurred())
+	}()
+}
+
+func stopManager() {
+	close(stopMgr)
+	mgrStopped.Wait()
+}
