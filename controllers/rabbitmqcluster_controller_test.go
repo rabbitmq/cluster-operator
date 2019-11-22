@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,36 +46,169 @@ var _ = Describe("RabbitmqclusterController", func() {
 		rabbitmqCluster        *rabbitmqv1beta1.RabbitmqCluster
 		operatorRegistrySecret *corev1.Secret
 		secretName             = "rabbitmq-one-registry-access"
-		managerConfig          config.Config
+		managerConfig          resource.DefaultConfiguration
+		scheme                 *runtime.Scheme
 	)
 
 	BeforeEach(func() {
-		scheme := runtime.NewScheme()
+		scheme = runtime.NewScheme()
 		Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
 		Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
-
-		managerConfig = config.Config{
-			ImagePullSecret: "pivotal-rmq-registry-access",
-		}
-
-		startManager(scheme, managerConfig)
-
-		operatorRegistrySecret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "pivotal-rmq-registry-access",
-				Namespace: "pivotal-rabbitmq-system",
-			},
-		}
-		Expect(client.Create(context.TODO(), operatorRegistrySecret)).To(Succeed())
 	})
 
-	AfterEach(func() {
-		Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
-		stopManager()
+	Context("Config updates", func() {
+		BeforeEach(func() {
+			managerConfig = resource.DefaultConfiguration{
+				ImagePullSecret: "pivotal-rmq-registry-access",
+			}
+
+			startManager(scheme, managerConfig)
+
+			operatorRegistrySecret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pivotal-rmq-registry-access",
+					Namespace: "pivotal-rabbitmq-system",
+				},
+			}
+			Expect(client.Create(context.TODO(), operatorRegistrySecret)).To(Succeed())
+
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-two",
+					Namespace: "rabbitmq-two",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-two-secret",
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(rabbitmqCluster, client)
+
+			stopManager()
+			managerConfig := resource.DefaultConfiguration{
+				ImagePullSecret:    "pivotal-rmq-registry-access",
+				ServiceAnnotations: map[string]string{"test-key": "test-value"},
+			}
+			startManager(scheme, managerConfig)
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			stopManager()
+		})
+
+		It("does not impact existing instances", func() {
+			ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
+			service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(service.Annotations).NotTo(HaveKeyWithValue("test-key", "test-value"))
+		})
+
+		It("impacts new instances", func() {
+			newRabbitmqCluster := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-three",
+					Namespace: "rabbitmq-three",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-two-secret",
+				},
+			}
+
+			Expect(client.Create(context.TODO(), newRabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(newRabbitmqCluster, client)
+			ingressServiceName := newRabbitmqCluster.ChildResourceName("ingress")
+			service, err := clientSet.CoreV1().Services(newRabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(service.Annotations).To(HaveKeyWithValue("test-key", "test-value"))
+			Expect(client.Delete(context.TODO(), newRabbitmqCluster)).To(Succeed())
+		})
+	})
+
+	Context("Custom Resource updates", func() {
+		BeforeEach(func() {
+			managerConfig = resource.DefaultConfiguration{
+				ImagePullSecret: "pivotal-rmq-registry-access",
+			}
+
+			startManager(scheme, managerConfig)
+
+			operatorRegistrySecret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pivotal-rmq-registry-access",
+					Namespace: "pivotal-rabbitmq-system",
+				},
+			}
+			Expect(client.Create(context.TODO(), operatorRegistrySecret)).To(Succeed())
+
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-two",
+					Namespace: "rabbitmq-two",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-two-secret",
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(rabbitmqCluster, client)
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			stopManager()
+		})
+
+		It("reconciles an existing instance", func() {
+			Expect(client.Get(
+				context.TODO(),
+				types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
+				rabbitmqCluster,
+			)).To(Succeed())
+			rabbitmqCluster.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
+			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Eventually(func() map[string]string {
+				ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
+				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				return service.Annotations
+			}, 100).Should(HaveKeyWithValue("test-key", "test-value"))
+		})
 	})
 
 	Context("ImagePullSecret", func() {
-		When("specified only in config", func() {
+		BeforeEach(func() {
+			scheme := runtime.NewScheme()
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
+			Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+
+			managerConfig = resource.DefaultConfiguration{
+				ImagePullSecret: "pivotal-rmq-registry-access",
+			}
+
+			startManager(scheme, managerConfig)
+
+			operatorRegistrySecret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pivotal-rmq-registry-access",
+					Namespace: "pivotal-rabbitmq-system",
+				},
+			}
+			Expect(client.Create(context.TODO(), operatorRegistrySecret)).To(Succeed())
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
+			stopManager()
+		})
+		When("specified in config", func() {
 			BeforeEach(func() {
 				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -150,7 +283,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 })
 
-func startManager(scheme *runtime.Scheme, config config.Config) {
+func startManager(scheme *runtime.Scheme, config resource.DefaultConfiguration) {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
 	client = mgr.GetClient()
@@ -160,12 +293,12 @@ func startManager(scheme *runtime.Scheme, config config.Config) {
 		Log:                        ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
 		Scheme:                     mgr.GetScheme(),
 		Namespace:                  "pivotal-rabbitmq-system",
-		ServiceType:                config.Service.Type,
-		ServiceAnnotations:         config.Service.Annotations,
-		Image:                      config.Image,
+		ServiceType:                config.ServiceType,
+		ServiceAnnotations:         config.ServiceAnnotations,
+		Image:                      config.ImageReference,
 		ImagePullSecret:            config.ImagePullSecret,
-		PersistentStorage:          config.Persistence.Storage,
-		PersistentStorageClassName: config.Persistence.StorageClassName,
+		PersistentStorage:          config.PersistentStorage,
+		PersistentStorageClassName: config.PersistentStorageClassName,
 	}
 	reconciler.SetupWithManager(mgr)
 
