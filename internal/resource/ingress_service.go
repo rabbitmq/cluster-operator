@@ -1,12 +1,15 @@
 package resource
 
 import (
+	"fmt"
+
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (cluster *RabbitmqResourceBuilder) IngressService() *corev1.Service {
+func (cluster *RabbitmqResourceBuilder) IngressService() (*corev1.Service, error) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Instance.ChildResourceName("ingress"),
@@ -34,11 +37,14 @@ func (cluster *RabbitmqResourceBuilder) IngressService() *corev1.Service {
 			},
 		},
 	}
+	if err := controllerutil.SetControllerReference(cluster.Instance, service, cluster.DefaultConfiguration.Scheme); err != nil {
+		return nil, fmt.Errorf("failed setting controller reference: %v", err)
+	}
 
 	cluster.setServiceParams(service)
 	cluster.UpdateServiceParams(service)
 
-	return service
+	return service, nil
 }
 
 func (cluster *RabbitmqResourceBuilder) setServiceParams(service *corev1.Service) {

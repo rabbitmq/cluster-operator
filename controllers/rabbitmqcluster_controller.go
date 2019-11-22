@@ -178,8 +178,11 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
 
-func (r *RabbitmqClusterReconciler) reconcileIngressService(builder resource.RabbitmqResourceBuilder) (ctrl.Result, error) {
-	ingressService := builder.IngressService()
+func (r *RabbitmqClusterReconciler) reconcileIngressService(builder resource.RabbitmqResourceBuilder) (reconcile.Result, error) {
+	ingressService, err := builder.IngressService()
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 
 	operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, ingressService, func() error {
 
@@ -188,14 +191,14 @@ func (r *RabbitmqClusterReconciler) reconcileIngressService(builder resource.Rab
 	})
 
 	if err != nil {
-		return ctrl.Result{}, err
+		return reconcile.Result{}, err
 	}
 
 	r.Log.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type Service",
 		operationResult,
 		ingressService.GetName()))
 
-	return ctrl.Result{}, nil
+	return reconcile.Result{}, nil
 }
 
 func (r *RabbitmqClusterReconciler) updateStatus(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, status string) {

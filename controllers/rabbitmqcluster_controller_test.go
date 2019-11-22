@@ -339,6 +339,7 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 		configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(configMap.Name).To(Equal(configMapName))
+		Expect(configMap.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 	})
 
 	By("creating a rabbitmq admin secret", func() {
@@ -360,6 +361,7 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 		service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(service.Name).To(Equal(ingressServiceName))
+		Expect(service.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 	})
 
 	By("creating a rabbitmq headless service", func() {
@@ -367,6 +369,7 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 		service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(headlessServiceName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(service.Name).To(Equal(headlessServiceName))
+		Expect(service.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 	})
 
 	By("creating a statefulset", func() {
@@ -375,6 +378,7 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 		Expect(err).NotTo(HaveOccurred())
 		Expect(sts.Name).To(Equal(statefulSetName))
 		Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: imagePullSecretName}))
+		Expect(sts.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 	})
 
 	By("creating a service account", func() {

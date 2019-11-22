@@ -7,6 +7,8 @@ import (
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var _ = Context("IngressServices", func() {
@@ -14,23 +16,30 @@ var _ = Context("IngressServices", func() {
 		instance rabbitmqv1beta1.RabbitmqCluster
 		cluster  resource.RabbitmqResourceBuilder
 		service  *corev1.Service
+		scheme   *runtime.Scheme
 	)
 
 	BeforeEach(func() {
+		scheme = runtime.NewScheme()
+		rabbitmqv1beta1.AddToScheme(scheme)
+		defaultscheme.AddToScheme(scheme)
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
 		cluster = resource.RabbitmqResourceBuilder{
 			Instance: &instance,
+			DefaultConfiguration: resource.DefaultConfiguration{
+				Scheme: scheme,
+			},
 		}
 	})
 
-	When("using generating Ingress Service with defaults", func() {
-		BeforeEach(func() {
-			service = cluster.IngressService()
-		})
+	It("generates Ingress Service with defaults", func() {
+		var err error
+		service, err = cluster.IngressService()
+		Expect(err).NotTo(HaveOccurred())
 
-		It("generates a service object with the correct name and labels", func() {
+		By("generates a service object with the correct name and labels", func() {
 			expectedName := instance.ChildResourceName("ingress")
 			Expect(service.Name).To(Equal(expectedName))
 			labels := service.Labels
@@ -39,19 +48,19 @@ var _ = Context("IngressServices", func() {
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
 
-		It("generates a service object with the correct namespace", func() {
+		By("generates a service object with the correct namespace", func() {
 			Expect(service.Namespace).To(Equal(instance.Namespace))
 		})
 
-		It("generates a ClusterIP type service by default", func() {
+		By("generates a ClusterIP type service by default", func() {
 			Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 		})
 
-		It("generates a service object with the correct selector", func() {
+		By("generates a service object with the correct selector", func() {
 			Expect(service.Spec.Selector["app.kubernetes.io/name"]).To(Equal(instance.Name))
 		})
 
-		It("generates a service object with the correct ports exposed", func() {
+		By("generates a service object with the correct ports exposed", func() {
 			amqpPort := corev1.ServicePort{
 				Name:     "amqp",
 				Port:     5672,
@@ -70,8 +79,12 @@ var _ = Context("IngressServices", func() {
 			Expect(service.Spec.Ports).Should(ConsistOf(amqpPort, httpPort, prometheusPort))
 		})
 
-		It("generates the service without any annotation", func() {
+		By("generates the service without any annotation", func() {
 			Expect(service.ObjectMeta.Annotations).To(BeNil())
+		})
+
+		By("setting the ownerreference", func() {
+			Expect(service.ObjectMeta.OwnerReferences[0].Name).To(Equal("foo"))
 		})
 	})
 
@@ -89,7 +102,8 @@ var _ = Context("IngressServices", func() {
 				},
 			}
 			cluster.Instance = loadBalancerInstance
-			loadBalancerService := cluster.IngressService()
+			loadBalancerService, err := cluster.IngressService()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 		})
 
@@ -106,7 +120,8 @@ var _ = Context("IngressServices", func() {
 				},
 			}
 			cluster.Instance = clusterIPInstance
-			clusterIPService := cluster.IngressService()
+			clusterIPService, err := cluster.IngressService()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(clusterIPService.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 		})
 
@@ -123,7 +138,8 @@ var _ = Context("IngressServices", func() {
 				},
 			}
 			cluster.Instance = nodePortInstance
-			nodePortService := cluster.IngressService()
+			nodePortService, err := cluster.IngressService()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 		})
 	})
@@ -138,7 +154,8 @@ var _ = Context("IngressServices", func() {
 			}
 			cluster.Instance = instance
 			cluster.DefaultConfiguration.ServiceType = "NodePort"
-			nodePortService := cluster.IngressService()
+			nodePortService, err := cluster.IngressService()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 
 		})
@@ -157,7 +174,8 @@ var _ = Context("IngressServices", func() {
 			}
 			cluster.Instance = loadBalancerInstance
 			cluster.DefaultConfiguration.ServiceType = "ClusterIP"
-			loadBalancerService := cluster.IngressService()
+			loadBalancerService, err := cluster.IngressService()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 		})
 	})
@@ -177,7 +195,8 @@ var _ = Context("IngressServices", func() {
 				},
 			}
 			cluster.Instance = instance
-			service := cluster.IngressService()
+			service, err := cluster.IngressService()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(service.ObjectMeta.Annotations).To(Equal(annotations))
 		})
 	})
@@ -200,7 +219,8 @@ var _ = Context("IngressServices", func() {
 			cluster.Instance = instance
 			cluster.DefaultConfiguration.ServiceAnnotations = ignoredAnnotations
 			cluster.DefaultConfiguration.ServiceType = "NodePort"
-			nodePortService := cluster.IngressService()
+			nodePortService, err := cluster.IngressService()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(nodePortService.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
@@ -218,7 +238,8 @@ var _ = Context("IngressServices", func() {
 			cluster.Instance = instance
 			cluster.DefaultConfiguration.ServiceAnnotations = annotations
 			cluster.DefaultConfiguration.ServiceType = "NodePort"
-			nodePortService := cluster.IngressService()
+			nodePortService, err := cluster.IngressService()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(nodePortService.ObjectMeta.Annotations).To(Equal(annotations))
 		})
 	})
