@@ -37,6 +37,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const timeout = 3 * time.Second
@@ -44,9 +45,10 @@ const timeout = 3 * time.Second
 var _ = Describe("RabbitmqclusterController", func() {
 
 	var (
-		rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		registrySecret  *corev1.Secret
-		secretName      = "rabbitmq-one-registry-access"
+		rabbitmqCluster        *rabbitmqv1beta1.RabbitmqCluster
+		operatorRegistrySecret *corev1.Secret
+		secretName             = "rabbitmq-one-registry-access"
+		managerConfig          config.Config
 	)
 
 	BeforeEach(func() {
@@ -54,14 +56,23 @@ var _ = Describe("RabbitmqclusterController", func() {
 		Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
 		Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
 
-		managerConfig := config.Config{
+		managerConfig = config.Config{
 			ImagePullSecret: "pivotal-rmq-registry-access",
 		}
 
 		startManager(scheme, managerConfig)
+
+		operatorRegistrySecret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "pivotal-rmq-registry-access",
+				Namespace: "pivotal-rabbitmq-system",
+			},
+		}
+		Expect(client.Create(context.TODO(), operatorRegistrySecret)).To(Succeed())
 	})
 
 	AfterEach(func() {
+		Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
 		stopManager()
 	})
 
@@ -77,33 +88,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			registrySecret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pivotal-rmq-registry-access",
-					Namespace: "pivotal-rabbitmq-system",
-				},
-			}
-			Expect(client.Create(context.TODO(), registrySecret)).To(Succeed())
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			Eventually(func() string {
-				rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(
-					context.TODO(),
-					types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
-					&rabbitmqClusterCreated,
-				)
-				if err != nil {
-					return fmt.Sprintf("%v+", err)
-				}
-
-				return rabbitmqClusterCreated.Status.ClusterStatus
-
-			}, 5, 1).Should(ContainSubstring("created"))
+			waitForClusterCreation(rabbitmqCluster, client)
 
 		})
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-			Expect(client.Delete(context.TODO(), registrySecret)).To(Succeed())
 		})
 
 		It("creating the registry secret", func() {
@@ -140,32 +130,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			registrySecret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pivotal-rmq-registry-access",
-					Namespace: "pivotal-rabbitmq-system",
-				},
-			}
-			Expect(client.Create(context.TODO(), registrySecret)).To(Succeed())
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			Eventually(func() string {
-				rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(
-					context.TODO(),
-					types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
-					&rabbitmqClusterCreated,
-				)
-				if err != nil {
-					return fmt.Sprintf("%v+", err)
-				}
-
-				return rabbitmqClusterCreated.Status.ClusterStatus
-
-			}, 5, 1).Should(ContainSubstring("created"))
+			waitForClusterCreation(rabbitmqCluster, client)
 		})
+
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-			Expect(client.Delete(context.TODO(), registrySecret)).To(Succeed())
 		})
 
 		It("does not create a new registry secret", func() {
@@ -231,6 +201,23 @@ func startManager(scheme *runtime.Scheme, config config.Config) {
 func stopManager() {
 	close(stopMgr)
 	mgrStopped.Wait()
+}
+
+func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
+	Eventually(func() string {
+		rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
+		err := client.Get(
+			context.TODO(),
+			types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
+			&rabbitmqClusterCreated,
+		)
+		if err != nil {
+			return fmt.Sprintf("%v+", err)
+		}
+
+		return rabbitmqClusterCreated.Status.ClusterStatus
+
+	}, 5, 1).Should(ContainSubstring("created"))
 }
 
 func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *kubernetes.Clientset) {
