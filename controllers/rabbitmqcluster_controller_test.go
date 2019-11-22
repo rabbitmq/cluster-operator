@@ -28,9 +28,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -76,96 +74,78 @@ var _ = Describe("RabbitmqclusterController", func() {
 		stopManager()
 	})
 
-	When("the imagePullSecret is specified only in config", func() {
-		BeforeEach(func() {
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-one",
-					Namespace: "rabbitmq-one",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
-				},
-			}
-
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			waitForClusterCreation(rabbitmqCluster, client)
-
-		})
-		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-		})
-
-		It("creating the registry secret", func() {
-			Eventually(func() *corev1.Secret {
-				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
-				if err != nil && apierrors.IsNotFound(err) {
-					return nil
+	Context("ImagePullSecret", func() {
+		When("specified only in config", func() {
+			BeforeEach(func() {
+				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rabbitmq-one",
+						Namespace: "rabbitmq-one",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas: 1,
+					},
 				}
-				return secret
-			}, 5).ShouldNot(BeNil())
-			stsName := rabbitmqCluster.ChildResourceName("server")
-			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: secretName}))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(sts.Name).To(Equal(stsName))
 
+				Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+				waitForClusterCreation(rabbitmqCluster, client)
+
+			})
+			AfterEach(func() {
+				Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			})
+
+			It("creates the registry secret", func() {
+				_, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				stsName := rabbitmqCluster.ChildResourceName("server")
+				sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: secretName}))
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("reconciles", func() {
+				resourceTests(rabbitmqCluster, clientSet, secretName)
+			})
 		})
 
-		It("reconciles", func() {
-			resourceTests(rabbitmqCluster, clientSet)
-		})
-	})
-
-	When("the imagePullSecret is specified in the instance spec (and config)", func() {
-		BeforeEach(func() {
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-two",
-					Namespace: "rabbitmq-two",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
-					ImagePullSecret: "rabbit-two-secret",
-				},
-			}
-
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-		})
-
-		It("does not create a new registry secret", func() {
-			stsName := rabbitmqCluster.ChildResourceName("server")
-			var sts *appsv1.StatefulSet
-			Eventually(func() *appsv1.StatefulSet {
-				var err error
-				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-				if err != nil && apierrors.IsNotFound(err) {
-					return nil
+		When("specified in the instance spec and config", func() {
+			BeforeEach(func() {
+				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rabbitmq-two",
+						Namespace: "rabbitmq-two",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas:        1,
+						ImagePullSecret: "rabbit-two-secret",
+					},
 				}
-				return sts
-			}, 5).ShouldNot(BeNil())
-			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
-			Expect(sts.Name).To(Equal(stsName))
 
-			imageSecretSuffix := "registry-access"
-			secretList, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).List(metav1.ListOptions{})
-			var secretsWithImagePullSecretSuffix []corev1.Secret
-			for _, i := range secretList.Items {
-				if strings.Contains(i.Name, imageSecretSuffix) {
-					secretsWithImagePullSecretSuffix = append(secretsWithImagePullSecretSuffix, i)
+				Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+				waitForClusterCreation(rabbitmqCluster, client)
+			})
+
+			AfterEach(func() {
+				Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			})
+
+			It("does not create a new registry secret", func() {
+				imageSecretSuffix := "registry-access"
+				secretList, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).List(metav1.ListOptions{})
+				var secretsWithImagePullSecretSuffix []corev1.Secret
+				for _, i := range secretList.Items {
+					if strings.Contains(i.Name, imageSecretSuffix) {
+						secretsWithImagePullSecretSuffix = append(secretsWithImagePullSecretSuffix, i)
+					}
 				}
-			}
-			Expect(secretsWithImagePullSecretSuffix).To(BeEmpty())
-			Expect(err).NotTo(HaveOccurred())
-		})
+				Expect(secretsWithImagePullSecretSuffix).To(BeEmpty())
+				Expect(err).NotTo(HaveOccurred())
+			})
 
-		It("reconciles", func() {
-			resourceTests(rabbitmqCluster, clientSet)
+			It("reconciles", func() {
+				resourceTests(rabbitmqCluster, clientSet, "rabbit-two-secret")
+			})
 		})
 	})
 })
@@ -220,7 +200,7 @@ func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 	}, 5, 1).Should(ContainSubstring("created"))
 }
 
-func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *kubernetes.Clientset) {
+func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *kubernetes.Clientset, imagePullSecretName string) {
 	By("creating the server conf configmap", func() {
 		configMapName := rabbitmqCluster.ChildResourceName("server-conf")
 		configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
@@ -242,18 +222,26 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 		Expect(secret.Name).To(Equal(secretName))
 	})
 
-	By("creating a rabbitmq ingress service object", func() {
+	By("creating a rabbitmq ingress service", func() {
 		ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
 		service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(service.Name).To(Equal(ingressServiceName))
 	})
 
-	By("creating a rabbitmq headless service object", func() {
+	By("creating a rabbitmq headless service", func() {
 		headlessServiceName := rabbitmqCluster.ChildResourceName("headless")
 		service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(headlessServiceName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(service.Name).To(Equal(headlessServiceName))
+	})
+
+	By("creating a statefulset", func() {
+		statefulSetName := rabbitmqCluster.ChildResourceName("server")
+		sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(sts.Name).To(Equal(statefulSetName))
+		Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: imagePullSecretName}))
 	})
 
 	By("creating a service account", func() {
