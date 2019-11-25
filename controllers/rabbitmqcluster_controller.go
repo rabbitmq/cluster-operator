@@ -112,6 +112,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		r.updateStatus(rabbitmqCluster, "created")
 	}
 
+	// TODO refactor operatorRegistrySecret generation based on configured valued (stick it in config!)
+	// https://www.pivotaltracker.com/story/show/169947561
 	var operatorRegistrySecret *corev1.Secret
 	if r.ImagePullSecret != "" && rabbitmqCluster.Spec.ImagePullSecret == "" {
 		var err error
