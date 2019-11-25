@@ -25,18 +25,24 @@ const (
 	initContainerMemory       string = "500Mi"
 )
 
+type ComputeResourceQuantities struct {
+	CPU    k8sresource.Quantity
+	Memory k8sresource.Quantity
+}
+
 type ResourceRequirementQuantities struct {
-	CPULimit      k8sresource.Quantity
-	MemoryLimit   k8sresource.Quantity
-	CPURequest    k8sresource.Quantity
-	MemoryRequest k8sresource.Quantity
+	Limit   ComputeResourceQuantities
+	Request ComputeResourceQuantities
+}
+
+type ComputeResource struct {
+	CPU    string
+	Memory string
 }
 
 type ResourceRequirements struct {
-	CPULimit      string
-	MemoryLimit   string
-	CPURequest    string
-	MemoryRequest string
+	Limit   ComputeResource
+	Request ComputeResource
 }
 
 type StatefulSetConfiguration struct {
@@ -156,12 +162,12 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 							Image: statefulSetConfiguration.ImageReference,
 							Resources: corev1.ResourceRequirements{
 								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.CPULimit,
-									corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.MemoryLimit,
+									corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.Limit.CPU,
+									corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Limit.Memory,
 								},
 								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.CPURequest,
-									corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.MemoryRequest,
+									corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.Request.CPU,
+									corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory,
 								},
 							},
 							Env: []corev1.EnvVar{
@@ -371,37 +377,37 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	cpuLimit := defaultCPULimit
-	if cluster.DefaultConfiguration.ResourceRequirements.CPULimit != "" {
-		cpuLimit = cluster.DefaultConfiguration.ResourceRequirements.CPULimit
+	if cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU != "" {
+		cpuLimit = cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU
 	}
-	statefulSetConfiguration.ResourceRequirementsConfig.CPULimit, err = k8sresource.ParseQuantity(cpuLimit)
+	statefulSetConfiguration.ResourceRequirementsConfig.Limit.CPU, err = k8sresource.ParseQuantity(cpuLimit)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
 
 	cpuRequest := defaultCPURequest
-	if cluster.DefaultConfiguration.ResourceRequirements.CPURequest != "" {
-		cpuRequest = cluster.DefaultConfiguration.ResourceRequirements.CPURequest
+	if cluster.DefaultConfiguration.ResourceRequirements.Request.CPU != "" {
+		cpuRequest = cluster.DefaultConfiguration.ResourceRequirements.Request.CPU
 	}
-	statefulSetConfiguration.ResourceRequirementsConfig.CPURequest, err = k8sresource.ParseQuantity(cpuRequest)
+	statefulSetConfiguration.ResourceRequirementsConfig.Request.CPU, err = k8sresource.ParseQuantity(cpuRequest)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
 
 	memoryLimit := defaultMemoryLimit
-	if cluster.DefaultConfiguration.ResourceRequirements.MemoryLimit != "" {
-		memoryLimit = cluster.DefaultConfiguration.ResourceRequirements.MemoryLimit
+	if cluster.DefaultConfiguration.ResourceRequirements.Limit.Memory != "" {
+		memoryLimit = cluster.DefaultConfiguration.ResourceRequirements.Limit.Memory
 	}
-	statefulSetConfiguration.ResourceRequirementsConfig.MemoryLimit, err = k8sresource.ParseQuantity(memoryLimit)
+	statefulSetConfiguration.ResourceRequirementsConfig.Limit.Memory, err = k8sresource.ParseQuantity(memoryLimit)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
 
 	memoryRequest := defaultMemoryRequest
-	if cluster.DefaultConfiguration.ResourceRequirements.MemoryRequest != "" {
-		memoryRequest = cluster.DefaultConfiguration.ResourceRequirements.MemoryRequest
+	if cluster.DefaultConfiguration.ResourceRequirements.Request.Memory != "" {
+		memoryRequest = cluster.DefaultConfiguration.ResourceRequirements.Request.Memory
 	}
-	statefulSetConfiguration.ResourceRequirementsConfig.MemoryRequest, err = k8sresource.ParseQuantity(memoryRequest)
+	statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory, err = k8sresource.ParseQuantity(memoryRequest)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}

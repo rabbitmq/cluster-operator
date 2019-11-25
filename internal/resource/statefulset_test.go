@@ -39,10 +39,14 @@ var _ = Describe("StatefulSet", func() {
 			defaultscheme.AddToScheme(scheme)
 
 			resourceRequirements = resource.ResourceRequirements{
-				CPULimit:      "",
-				MemoryLimit:   "",
-				CPURequest:    "",
-				MemoryRequest: "",
+				Limit: resource.ComputeResource{
+					CPU:    "",
+					Memory: "",
+				},
+				Request: resource.ComputeResource{
+					CPU:    "",
+					Memory: "",
+				},
 			}
 
 			defaultConfiguration = resource.DefaultConfiguration{
@@ -394,10 +398,14 @@ var _ = Describe("StatefulSet", func() {
 			defaultscheme.AddToScheme(scheme)
 
 			resourceRequirements = resource.ResourceRequirements{
-				CPULimit:      "",
-				MemoryLimit:   "",
-				CPURequest:    "",
-				MemoryRequest: "",
+				Limit: resource.ComputeResource{
+					CPU:    "",
+					Memory: "",
+				},
+				Request: resource.ComputeResource{
+					CPU:    "",
+					Memory: "",
+				},
 			}
 
 			defaultConfiguration = resource.DefaultConfiguration{
@@ -527,10 +535,14 @@ var _ = Describe("StatefulSet", func() {
 			Context("CPU and memory limit are provided", func() {
 				BeforeEach(func() {
 					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
-						CPULimit:      "1m",
-						MemoryLimit:   "10Gi",
-						CPURequest:    "",
-						MemoryRequest: "",
+						Limit: resource.ComputeResource{
+							CPU:    "1m",
+							Memory: "10Gi",
+						},
+						Request: resource.ComputeResource{
+							CPU:    "",
+							Memory: "",
+						},
 					}
 				})
 
@@ -557,12 +569,17 @@ var _ = Describe("StatefulSet", func() {
 			Context("CPU and memory requests are provided", func() {
 				BeforeEach(func() {
 					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
-						CPULimit:      "",
-						MemoryLimit:   "",
-						CPURequest:    "10m",
-						MemoryRequest: "5Gi",
+						Limit: resource.ComputeResource{
+							CPU:    "",
+							Memory: "",
+						},
+						Request: resource.ComputeResource{
+							CPU:    "10m",
+							Memory: "5Gi",
+						},
 					}
 				})
+
 				It("generates a statefulSet with provided CPU and memory requests, with default CPU and memory limits", func() {
 					cluster = &resource.RabbitmqResourceBuilder{
 						Instance:             &instance,
@@ -586,10 +603,14 @@ var _ = Describe("StatefulSet", func() {
 			Context("both CPU and memory's limits plus requests are provided", func() {
 				BeforeEach(func() {
 					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
-						CPULimit:      "10m",
-						MemoryLimit:   "5Gi",
-						CPURequest:    "1m",
-						MemoryRequest: "1Gi",
+						Limit: resource.ComputeResource{
+							CPU:    "10m",
+							Memory: "5Gi",
+						},
+						Request: resource.ComputeResource{
+							CPU:    "1m",
+							Memory: "1Gi",
+						},
 					}
 				})
 

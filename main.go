@@ -18,11 +18,11 @@ package main
 
 import (
 	"flag"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	"io/ioutil"
 	"os"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
@@ -91,10 +91,14 @@ func main() {
 	}
 
 	resourceRequirements := resource.ResourceRequirements{
-		CPULimit:      config.Resources.Limits.CPU,
-		MemoryLimit:   config.Resources.Limits.Memory,
-		CPURequest:    config.Resources.Requests.CPU,
-		MemoryRequest: config.Resources.Requests.Memory,
+		Limit: resource.ComputeResource{
+			CPU:    config.Resources.Limits.CPU,
+			Memory: config.Resources.Limits.Memory,
+		},
+		Request: resource.ComputeResource{
+			CPU:    config.Resources.Requests.CPU,
+			Memory: config.Resources.Requests.Memory,
+		},
 	}
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client:                     mgr.GetClient(),
