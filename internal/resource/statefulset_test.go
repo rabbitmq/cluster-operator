@@ -567,33 +567,39 @@ var _ = Describe("StatefulSet", func() {
 					})
 				})
 
-				Context("is overridden by instance specified resource requirements", func() {
+				Context("both default resource requirements and CR resource requirements have been provided", func() {
 					BeforeEach(func() {
-						instance.Spec.Resource.Request = resource.ResourceRequirements{
-							CPULimit:      "1m",
-							MemoryLimit:   "10Gi",
-							CPURequest:    "",
-							MemoryRequest: "",
+						instance.Spec.Resource.Request = rabbitmqv1beta1.RabbitmqClusterComputeResource{
+							CPU: "10m",
+						}
+
+						instance.Spec.Resource.Limit = rabbitmqv1beta1.RabbitmqClusterComputeResource{
+							CPU: "11m",
+						}
+
+						defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
+							Request: resource.ComputeResource{
+								CPU: "1m",
+							},
+							Limit: resource.ComputeResource{
+								CPU: "2m",
+							},
 						}
 					})
 
-					It("generates a statefulSet with provided CPU and memory limits, with default CPU and memory requests", func() {
+					It("overrides StatefulSet CPU resource requirements with those provided by CR spec", func() {
 						cluster = &resource.RabbitmqResourceBuilder{
 							Instance:             &instance,
 							DefaultConfiguration: defaultConfiguration,
 						}
+
 						statefulSet, _ := cluster.StatefulSet()
-						expectedCPULimit, _ := k8sresource.ParseQuantity("1m")
-						expectedMemoryLimit, _ := k8sresource.ParseQuantity("10Gi")
-						defaultCPURequest, _ := k8sresource.ParseQuantity("100m")
-						defaultMemoryRequest, _ := k8sresource.ParseQuantity("2Gi")
+						expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
+						expectedCPULimit, _ := k8sresource.ParseQuantity("11m")
 
 						container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+						Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(expectedCPURequest))
 						Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
-						Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(defaultCPURequest))
-
-						Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
-						Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(defaultMemoryRequest))
 					})
 				})
 			})

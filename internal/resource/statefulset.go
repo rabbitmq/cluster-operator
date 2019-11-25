@@ -377,7 +377,9 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	cpuLimit := defaultCPULimit
-	if cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU != "" {
+	if cluster.Instance.Spec.Resource.Limit.CPU != "" {
+		cpuLimit = cluster.Instance.Spec.Resource.Limit.CPU
+	} else if cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU != "" {
 		cpuLimit = cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU
 	}
 	statefulSetConfiguration.ResourceRequirementsConfig.Limit.CPU, err = k8sresource.ParseQuantity(cpuLimit)
@@ -386,7 +388,9 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	cpuRequest := defaultCPURequest
-	if cluster.DefaultConfiguration.ResourceRequirements.Request.CPU != "" {
+	if cluster.Instance.Spec.Resource.Request.CPU != "" {
+		cpuRequest = cluster.Instance.Spec.Resource.Request.CPU
+	} else if cluster.DefaultConfiguration.ResourceRequirements.Request.CPU != "" {
 		cpuRequest = cluster.DefaultConfiguration.ResourceRequirements.Request.CPU
 	}
 	statefulSetConfiguration.ResourceRequirementsConfig.Request.CPU, err = k8sresource.ParseQuantity(cpuRequest)
