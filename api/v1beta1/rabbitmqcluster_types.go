@@ -30,6 +30,12 @@ type RabbitmqClusterSpec struct {
 	ImagePullSecret string                         `json:"imagePullSecret,omitempty"`
 	Service         RabbitmqClusterServiceSpec     `json:"service,omitempty"`
 	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
+	Resource        RabbitmqClusterResourceSpec    `json:"resource,omitempty"`
+}
+
+type RabbitmqClusterResourceSpec struct {
+	Request RabbitmqClusterComputeResource `json:"request,omitempty"`
+	Limit   RabbitmqClusterComputeResource `json:"limit,omitempty"`
 }
 
 type RabbitmqClusterPersistenceSpec struct {
@@ -60,6 +66,13 @@ type RabbitmqCluster struct {
 
 	Spec   RabbitmqClusterSpec   `json:"spec,omitempty"`
 	Status RabbitmqClusterStatus `json:"status,omitempty"`
+}
+
+type RabbitmqClusterComputeResource struct {
+	// +kubebuilder:validation:Pattern="^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
+	CPU string `json:"cpu,omitempty"`
+	// +kubebuilder:validation:Pattern="^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
+	Memory string `json:"memory,omitempty"`
 }
 
 // +kubebuilder:object:root=true

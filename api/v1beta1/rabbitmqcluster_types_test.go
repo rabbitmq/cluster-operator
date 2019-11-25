@@ -55,6 +55,13 @@ var _ = Describe("RabbitmqCluster spec", func() {
 		Expect(k8sClient.Get(context.TODO(), getKey(created), created)).ToNot(Succeed())
 	})
 
+	It("can be created with resource requests", func() {
+		created := generateRabbitmqClusterObject("rabbit-resource-request", 1)
+		created.Spec.Resource.Request = RabbitmqClusterComputeResource{CPU: "100m", Memory: "100Mi"}
+		created.Spec.Resource.Limit = RabbitmqClusterComputeResource{CPU: "100m", Memory: "100Mi"}
+		Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+	})
+
 	It("is validated", func() {
 		By("checking the replica count", func() {
 			invalidReplica := generateRabbitmqClusterObject("rabbit4", 1)
@@ -66,6 +73,26 @@ var _ = Describe("RabbitmqCluster spec", func() {
 			invalidService := generateRabbitmqClusterObject("rabbit5", 1)
 			invalidService.Spec.Service.Type = "ihateservices"
 			Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("validation failure list:\nspec.service.type in body should be one of [ClusterIP LoadBalancer NodePort]")))
+		})
+
+		By("checking the format of compute resource request", func() {
+			invalidComputeResource := generateRabbitmqClusterObject("rabbit-invalid-compute-resource", 1)
+			computeResource := RabbitmqClusterComputeResource{CPU: "%", Memory: "123notvalid"}
+			invalidComputeResource.Spec.Resource.Request = computeResource
+			err := k8sClient.Create(context.TODO(), invalidComputeResource)
+			Expect(err).To(MatchError(ContainSubstring("validation failure list:")))
+			Expect(err).To(MatchError(ContainSubstring("\nspec.resource.request.cpu in body should match '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'")))
+			Expect(err).To(MatchError(ContainSubstring("\nspec.resource.request.memory in body should match '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'")))
+		})
+
+		By("checking the format of compute resource limit", func() {
+			invalidComputeResource := generateRabbitmqClusterObject("rabbit-invalid-compute-resource", 1)
+			computeResource := RabbitmqClusterComputeResource{CPU: "%", Memory: "123notvalid"}
+			invalidComputeResource.Spec.Resource.Limit = computeResource
+			err := k8sClient.Create(context.TODO(), invalidComputeResource)
+			Expect(err).To(MatchError(ContainSubstring("validation failure list:")))
+			Expect(err).To(MatchError(ContainSubstring("\nspec.resource.limit.cpu in body should match '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'")))
+			Expect(err).To(MatchError(ContainSubstring("\nspec.resource.limit.memory in body should match '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'")))
 		})
 	})
 

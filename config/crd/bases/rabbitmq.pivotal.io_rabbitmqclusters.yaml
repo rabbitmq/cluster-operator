@@ -57,6 +57,27 @@ spec:
               - 1
               - 3
               type: integer
+            resource:
+              properties:
+                limit:
+                  properties:
+                    cpu:
+                      pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                      type: string
+                    memory:
+                      pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                      type: string
+                  type: object
+                request:
+                  properties:
+                    cpu:
+                      pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                      type: string
+                    memory:
+                      pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                      type: string
+                  type: object
+              type: object
             service:
               properties:
                 annotations:
