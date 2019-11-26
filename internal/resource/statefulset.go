@@ -19,9 +19,9 @@ const (
 	rabbitmqImage                    string = "rabbitmq:3.8.1"
 	defaultPersistentCapacity        string = "10Gi"
 	defaultMemoryLimit               string = "2Gi"
-	defaultCPULimit                  string = "500m"
+	defaultCPULimit                  string = "2000m"
 	defaultMemoryRequest             string = "2Gi"
-	defaultCPURequest                string = "100m"
+	defaultCPURequest                string = "1000m"
 	defaultGracePeriodTimeoutSeconds int64  = 150
 	initContainerCPU                 string = "100m"
 	initContainerMemory              string = "500Mi"

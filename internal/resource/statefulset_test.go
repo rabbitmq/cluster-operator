@@ -347,9 +347,9 @@ var _ = Describe("StatefulSet", func() {
 		It("templates the correct resource limits for the Rabbitmq container", func() {
 			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 
-			cpuLimit, err := k8sresource.ParseQuantity("500m")
+			cpuLimit, err := k8sresource.ParseQuantity(defaultCPULimit)
 			Expect(err).NotTo(HaveOccurred())
-			memoryLimit, err := k8sresource.ParseQuantity("2Gi")
+			memoryLimit, err := k8sresource.ParseQuantity(defaultMemoryLimit)
 			Expect(err).NotTo(HaveOccurred())
 
 			expectedResourceLimits := corev1.ResourceList{
@@ -362,9 +362,9 @@ var _ = Describe("StatefulSet", func() {
 		It("templates the correct resource requests for the Rabbitmq container", func() {
 			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 
-			cpuRequest, err := k8sresource.ParseQuantity("100m")
+			cpuRequest, err := k8sresource.ParseQuantity(defaultCPURequest)
 			Expect(err).NotTo(HaveOccurred())
-			memoryRequest, err := k8sresource.ParseQuantity("2Gi")
+			memoryRequest, err := k8sresource.ParseQuantity(defaultMemoryRequest)
 			Expect(err).NotTo(HaveOccurred())
 
 			expectResourceRequests := corev1.ResourceList{
@@ -542,7 +542,7 @@ var _ = Describe("StatefulSet", func() {
 				BeforeEach(func() {
 					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
 						Limit: resource.ComputeResource{
-							CPU:    "1m",
+							CPU:    "3m",
 							Memory: "10Gi",
 						},
 						Request: resource.ComputeResource{
@@ -559,17 +559,15 @@ var _ = Describe("StatefulSet", func() {
 							DefaultConfiguration: defaultConfiguration,
 						}
 						statefulSet, _ := cluster.StatefulSet()
-						expectedCPULimit, _ := k8sresource.ParseQuantity("1m")
+						expectedCPULimit, _ := k8sresource.ParseQuantity("3m")
 						expectedMemoryLimit, _ := k8sresource.ParseQuantity("10Gi")
-						defaultCPURequest, _ := k8sresource.ParseQuantity("100m")
-						defaultMemoryRequest, _ := k8sresource.ParseQuantity("2Gi")
 
 						container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 						Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
-						Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(defaultCPURequest))
+						Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPURequest)))
 
 						Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
-						Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(defaultMemoryRequest))
+						Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryRequest)))
 					})
 				})
 
@@ -632,14 +630,12 @@ var _ = Describe("StatefulSet", func() {
 					statefulSet, _ := cluster.StatefulSet()
 					expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
 					expectedMemoryRequest, _ := k8sresource.ParseQuantity("5Gi")
-					defaultCPULimit, _ := k8sresource.ParseQuantity("500m")
-					defaultMemoryLimit, _ := k8sresource.ParseQuantity("2Gi")
 
 					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-					Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(defaultMemoryLimit))
+					Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryLimit)))
 					Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
 
-					Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(defaultCPULimit))
+					Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPULimit)))
 					Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(expectedCPURequest))
 				})
 			})

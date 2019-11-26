@@ -90,10 +90,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 			stopManager()
 			resourceRequirements := resource.ResourceRequirements{
 				Limit: resource.ComputeResource{
-					CPU: "2000m",
+					CPU: "3000m",
 				},
 				Request: resource.ComputeResource{
-					CPU: "1000m",
+					CPU: "1100m",
 				},
 			}
 			managerConfig := resource.DefaultConfiguration{
@@ -120,7 +120,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			statefulSetName := rabbitmqCluster.ChildResourceName("server")
 			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("500m")))
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("2")))
 		})
 
 		It("impacts new instances", func() {
@@ -145,7 +145,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			statefulSetName := newRabbitmqCluster.ChildResourceName("server")
 			sts, err := clientSet.AppsV1().StatefulSets(newRabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("2")))
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("3")))
 
 			Expect(client.Delete(context.TODO(), newRabbitmqCluster)).To(Succeed())
 		})
