@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
@@ -60,38 +61,9 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
-	replicas := int32(cluster.Instance.Spec.Replicas)
-	if replicas == 0 {
-		replicas = int32(1)
-	}
-
-	statefulSetConfiguration, err := cluster.statefulSetConfigurations()
-	if err != nil {
-		return nil, err
-	}
-
-	var imagePullSecrets []corev1.LocalObjectReference
-	if statefulSetConfiguration.ImagePullSecret != "" {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
-	}
-
-	pvc, err := persistentVolumeClaim(cluster.Instance, statefulSetConfiguration)
-	if err != nil {
-		return nil, err
-	}
-
-	cpuRequest, err := k8sresource.ParseQuantity(initContainerCPU)
-	if err != nil {
-		return nil, err
-	}
-	memoryRequest, err := k8sresource.ParseQuantity(initContainerMemory)
-	if err != nil {
-		return nil, err
-	}
-
 	terminationGracePeriod := defaultGracePeriodTimeoutSeconds
 
-	return &appsv1.StatefulSet{
+	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Instance.ChildResourceName("server"),
 			Namespace: cluster.Instance.Namespace,
@@ -99,12 +71,8 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 		},
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: cluster.Instance.ChildResourceName(headlessServiceName),
-			Replicas:    &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: metadata.LabelSelector(cluster.Instance.Name),
-			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
-				*pvc,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -119,7 +87,6 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
 					ServiceAccountName:            cluster.Instance.ChildResourceName(serviceAccountName),
 					AutomountServiceAccountToken:  &automountServiceAccountToken,
-					ImagePullSecrets:              imagePullSecrets,
 					InitContainers: []corev1.Container{
 						{
 							Name: "copy-config",
@@ -128,17 +95,6 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 									"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 									"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
 									"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
-							},
-							Image: statefulSetConfiguration.ImageReference,
-							Resources: corev1.ResourceRequirements{
-								Limits: map[corev1.ResourceName]k8sresource.Quantity{
-									"cpu":    cpuRequest,
-									"memory": memoryRequest,
-								},
-								Requests: map[corev1.ResourceName]k8sresource.Quantity{
-									"cpu":    cpuRequest,
-									"memory": memoryRequest,
-								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -162,18 +118,7 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 					},
 					Containers: []corev1.Container{
 						{
-							Name:  "rabbitmq",
-							Image: statefulSetConfiguration.ImageReference,
-							Resources: corev1.ResourceRequirements{
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.Limit.CPU,
-									corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Limit.Memory,
-								},
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.Request.CPU,
-									corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory,
-								},
-							},
+							Name: "rabbitmq",
 							Env: []corev1.EnvVar{
 								{
 									Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
@@ -333,11 +278,101 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 				},
 			},
 		},
-	}, nil
+	}
+
+	if err := cluster.setStatefulSetParams(sts); err != nil {
+		return nil, err
+	}
+	if err := cluster.UpdateStatefulSetParams(sts); err != nil {
+		return nil, err
+	}
+
+	if err := controllerutil.SetControllerReference(cluster.Instance, sts, cluster.DefaultConfiguration.Scheme); err != nil {
+		return nil, fmt.Errorf("failed setting controller reference: %v", err)
+	}
+
+	return sts, nil
 }
 
-func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSetConfigureation StatefulSetConfiguration) (*corev1.PersistentVolumeClaim, error) {
-	pvc := &corev1.PersistentVolumeClaim{
+func (cluster *RabbitmqResourceBuilder) setStatefulSetParams(sts *appsv1.StatefulSet) error {
+	one := int32(1)
+	sts.Spec.Replicas = &one
+	replicas := int32(cluster.Instance.Spec.Replicas)
+	if replicas != 0 {
+		sts.Spec.Replicas = &replicas
+	}
+
+	statefulSetConfiguration, err := cluster.statefulSetConfigurations()
+	if err != nil {
+		return err
+	}
+	sts.Spec.Template.Spec.InitContainers[0].Image = statefulSetConfiguration.ImageReference
+
+	sts.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{}
+	if statefulSetConfiguration.ImagePullSecret != "" {
+		sts.Spec.Template.Spec.ImagePullSecrets = append(sts.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
+	}
+
+	pvc, err := persistentVolumeClaim(cluster.Instance, statefulSetConfiguration)
+	if err != nil {
+		return err
+	} else {
+		sts.Spec.VolumeClaimTemplates = pvc
+	}
+	cpuRequest, err := k8sresource.ParseQuantity(initContainerCPU)
+	if err != nil {
+		return err
+	}
+	memoryRequest, err := k8sresource.ParseQuantity(initContainerMemory)
+	if err != nil {
+		return err
+	}
+	sts.Spec.Template.Spec.InitContainers[0].Resources = corev1.ResourceRequirements{
+		Limits: map[corev1.ResourceName]k8sresource.Quantity{
+			"cpu":    cpuRequest,
+			"memory": memoryRequest,
+		},
+		Requests: map[corev1.ResourceName]k8sresource.Quantity{
+			"cpu":    cpuRequest,
+			"memory": memoryRequest,
+		},
+	}
+
+	sts.Spec.Template.Spec.Containers[0].Image = statefulSetConfiguration.ImageReference
+
+	sts.Spec.Template.Spec.Containers[0].Resources = corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.Limit.CPU,
+			corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Limit.Memory,
+		},
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.Request.CPU,
+			corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory,
+		},
+	}
+	return nil
+}
+
+func (cluster *RabbitmqResourceBuilder) UpdateStatefulSetParams(sts *appsv1.StatefulSet) error {
+	if cluster.Instance.Spec.Resource.Limit.CPU != "" {
+		cpuLimit, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Limit.CPU)
+		if err != nil {
+			return err
+		}
+		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU] = cpuLimit
+	}
+	if cluster.Instance.Spec.Resource.Request.CPU != "" {
+		cpuRequest, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Request.CPU)
+		if err != nil {
+			return err
+		}
+		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
+	}
+	return nil
+}
+
+func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSetConfigureation StatefulSetConfiguration) ([]corev1.PersistentVolumeClaim, error) {
+	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "persistence",
 			Labels: metadata.Label(instance.Name),
@@ -353,11 +388,11 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSe
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(instance, pvc, statefulSetConfigureation.Scheme); err != nil {
-		return nil, fmt.Errorf("failed setting controller reference: %v", err)
+	if err := controllerutil.SetControllerReference(instance, &pvc, statefulSetConfigureation.Scheme); err != nil {
+		return []corev1.PersistentVolumeClaim{}, fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
-	return pvc, nil
+	return []corev1.PersistentVolumeClaim{pvc}, nil
 }
 
 func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSetConfiguration, error) {
@@ -381,9 +416,7 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	cpuLimit := defaultCPULimit
-	if cluster.Instance.Spec.Resource.Limit.CPU != "" {
-		cpuLimit = cluster.Instance.Spec.Resource.Limit.CPU
-	} else if cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU != "" {
+	if cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU != "" {
 		cpuLimit = cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU
 	}
 	statefulSetConfiguration.ResourceRequirementsConfig.Limit.CPU, err = k8sresource.ParseQuantity(cpuLimit)
@@ -392,9 +425,7 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	cpuRequest := defaultCPURequest
-	if cluster.Instance.Spec.Resource.Request.CPU != "" {
-		cpuRequest = cluster.Instance.Spec.Resource.Request.CPU
-	} else if cluster.DefaultConfiguration.ResourceRequirements.Request.CPU != "" {
+	if cluster.DefaultConfiguration.ResourceRequirements.Request.CPU != "" {
 		cpuRequest = cluster.DefaultConfiguration.ResourceRequirements.Request.CPU
 	}
 	statefulSetConfiguration.ResourceRequirementsConfig.Request.CPU, err = k8sresource.ParseQuantity(cpuRequest)
@@ -445,4 +476,26 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	return statefulSetConfiguration, nil
+}
+
+func (cluster *RabbitmqResourceBuilder) UpdateComputeRequirementsParams(sts *appsv1.StatefulSet) error {
+	return errors.New("Not Implemented")
+	// if cluster.Instance.Spec.Resource.Request.CPU != "" {
+	// 	cpuRequest, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Request.CPU)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
+	// }
+
+	// if cluster.Instance.Spec.Resource.Limit.CPU != "" {
+	// 	cpuLimit, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Limit.CPU)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU] = cpuLimit
+	// }
+
+	// return nil
 }

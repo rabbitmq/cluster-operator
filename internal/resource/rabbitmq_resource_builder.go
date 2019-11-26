@@ -58,12 +58,5 @@ func (cluster *RabbitmqResourceBuilder) Resources() (resources []runtime.Object,
 	roleBinding := cluster.RoleBinding()
 	resources = append(resources, roleBinding)
 
-	statefulSet, err := cluster.StatefulSet()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate StatefulSet: %v ", err)
-	}
-
-	resources = append(resources, statefulSet)
-
 	return resources, nil
 }

@@ -29,6 +29,7 @@ import (
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -87,11 +88,21 @@ var _ = Describe("RabbitmqclusterController", func() {
 			waitForClusterCreation(rabbitmqCluster, client)
 
 			stopManager()
+			resourceRequirements := resource.ResourceRequirements{
+				Limit: resource.ComputeResource{
+					CPU: "2000m",
+				},
+				Request: resource.ComputeResource{
+					CPU: "1000m",
+				},
+			}
 			managerConfig := resource.DefaultConfiguration{
-				ImagePullSecret:    "pivotal-rmq-registry-access",
-				ServiceAnnotations: map[string]string{"test-key": "test-value"},
+				ImagePullSecret:      "pivotal-rmq-registry-access",
+				ServiceAnnotations:   map[string]string{"test-key": "test-value"},
+				ResourceRequirements: resourceRequirements,
 			}
 			startManager(scheme, managerConfig)
+			waitForClusterCreation(rabbitmqCluster, client)
 		})
 
 		AfterEach(func() {
@@ -105,6 +116,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 			service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(service.Annotations).NotTo(HaveKeyWithValue("test-key", "test-value"))
+
+			statefulSetName := rabbitmqCluster.ChildResourceName("server")
+			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("500m")))
 		})
 
 		It("impacts new instances", func() {
@@ -125,6 +141,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 			service, err := clientSet.CoreV1().Services(newRabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(service.Annotations).To(HaveKeyWithValue("test-key", "test-value"))
+
+			statefulSetName := newRabbitmqCluster.ChildResourceName("server")
+			sts, err := clientSet.AppsV1().StatefulSets(newRabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("2")))
+
 			Expect(client.Delete(context.TODO(), newRabbitmqCluster)).To(Succeed())
 		})
 	})
@@ -172,14 +194,37 @@ var _ = Describe("RabbitmqclusterController", func() {
 				types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
 				rabbitmqCluster,
 			)).To(Succeed())
-			rabbitmqCluster.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
-			Eventually(func() map[string]string {
-				ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
-				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				return service.Annotations
-			}, 100).Should(HaveKeyWithValue("test-key", "test-value"))
+
+			When("the service annotations are updated", func() {
+				rabbitmqCluster.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+				Eventually(func() map[string]string {
+					ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
+					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return service.Annotations
+				}, 100).Should(HaveKeyWithValue("test-key", "test-value"))
+			})
+
+			When("the CPU requirements are updated", func() {
+				var resourceRequirements corev1.ResourceRequirements
+				expectedRequirements := corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{corev1.ResourceCPU: k8sresource.MustParse("1100m")},
+					Limits:   corev1.ResourceList{corev1.ResourceCPU: k8sresource.MustParse("1200m")},
+				}
+				rabbitmqCluster.Spec.Resource.Request.CPU = "1100m"
+				rabbitmqCluster.Spec.Resource.Limit.CPU = "1200m"
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				Eventually(func() corev1.ResourceList {
+					stsName := rabbitmqCluster.ChildResourceName("server")
+					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					resourceRequirements = sts.Spec.Template.Spec.Containers[0].Resources
+					return resourceRequirements.Requests
+				}, 100).Should(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Requests[corev1.ResourceCPU]))
+				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Limits[corev1.ResourceCPU]))
+			})
 		})
 	})
 
@@ -299,6 +344,7 @@ func startManager(scheme *runtime.Scheme, config resource.DefaultConfiguration) 
 		ImagePullSecret:            config.ImagePullSecret,
 		PersistentStorage:          config.PersistentStorage,
 		PersistentStorageClassName: config.PersistentStorageClassName,
+		ResourceRequirements:       config.ResourceRequirements,
 	}
 	reconciler.SetupWithManager(mgr)
 

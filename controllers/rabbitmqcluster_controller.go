@@ -148,6 +148,10 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return reconcile.Result{}, err
 	}
 
+	if _, err = r.reconcileStatefulset(resourceBuilder); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	for _, re := range resources {
 		if err := controllerutil.SetControllerReference(rabbitmqCluster, re.(metav1.Object), r.Scheme); err != nil {
 			logger.Error(err, "Failed setting controller reference")
@@ -199,6 +203,27 @@ func (r *RabbitmqClusterReconciler) reconcileIngressService(builder resource.Rab
 	r.Log.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type Service",
 		operationResult,
 		ingressService.GetName()))
+
+	return reconcile.Result{}, nil
+}
+
+func (r *RabbitmqClusterReconciler) reconcileStatefulset(builder resource.RabbitmqResourceBuilder) (reconcile.Result, error) {
+	sts, err := builder.StatefulSet()
+	if err != nil {
+		return reconcile.Result{}, fmt.Errorf("failed to generate StatefulSet: %v ", err)
+	}
+
+	operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, sts, func() error {
+		return builder.UpdateStatefulSetParams(sts)
+	})
+
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	r.Log.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type StatefulSet",
+		operationResult,
+		sts.GetName()))
 
 	return reconcile.Result{}, nil
 }
