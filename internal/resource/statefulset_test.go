@@ -385,6 +385,12 @@ var _ = Describe("StatefulSet", func() {
 			labels := sts.Spec.Selector.MatchLabels
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 		})
+
+		It("adds the required terminationGracePeriodSeconds", func() {
+			gracePeriodSeconds := sts.Spec.Template.Spec.TerminationGracePeriodSeconds
+			expectedGracePeriodSeconds := int64(150)
+			Expect(gracePeriodSeconds).To(Equal(&expectedGracePeriodSeconds))
+		})
 	})
 
 	Context("when creating a working StatefulSet with non-default settings", func() {

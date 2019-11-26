@@ -15,14 +15,15 @@ import (
 )
 
 const (
-	rabbitmqImage             string = "rabbitmq:3.8.1"
-	defaultPersistentCapacity string = "10Gi"
-	defaultMemoryLimit        string = "2Gi"
-	defaultCPULimit           string = "500m"
-	defaultMemoryRequest      string = "2Gi"
-	defaultCPURequest         string = "100m"
-	initContainerCPU          string = "100m"
-	initContainerMemory       string = "500Mi"
+	rabbitmqImage                    string = "rabbitmq:3.8.1"
+	defaultPersistentCapacity        string = "10Gi"
+	defaultMemoryLimit               string = "2Gi"
+	defaultCPULimit                  string = "500m"
+	defaultMemoryRequest             string = "2Gi"
+	defaultCPURequest                string = "100m"
+	defaultGracePeriodTimeoutSeconds int64  = 150
+	initContainerCPU                 string = "100m"
+	initContainerMemory              string = "500Mi"
 )
 
 type ComputeResourceQuantities struct {
@@ -88,6 +89,8 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 		return nil, err
 	}
 
+	terminationGracePeriod := defaultGracePeriodTimeoutSeconds
+
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Instance.ChildResourceName("server"),
@@ -113,9 +116,10 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 						RunAsGroup: &rabbitmqGID,
 						RunAsUser:  &rabbitmqUID,
 					},
-					ServiceAccountName:           cluster.Instance.ChildResourceName(serviceAccountName),
-					AutomountServiceAccountToken: &automountServiceAccountToken,
-					ImagePullSecrets:             imagePullSecrets,
+					TerminationGracePeriodSeconds: &terminationGracePeriod,
+					ServiceAccountName:            cluster.Instance.ChildResourceName(serviceAccountName),
+					AutomountServiceAccountToken:  &automountServiceAccountToken,
+					ImagePullSecrets:              imagePullSecrets,
 					InitContainers: []corev1.Container{
 						{
 							Name: "copy-config",
