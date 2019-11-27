@@ -45,6 +45,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	var (
 		rabbitmqCluster        *rabbitmqv1beta1.RabbitmqCluster
+		newRabbitmqCluster     *rabbitmqv1beta1.RabbitmqCluster
 		operatorRegistrySecret *corev1.Secret
 		secretName             = "rabbitmq-one-registry-access"
 		managerConfig          resource.DefaultConfiguration
@@ -102,12 +103,26 @@ var _ = Describe("RabbitmqclusterController", func() {
 				ResourceRequirements: resourceRequirements,
 			}
 			startManager(scheme, managerConfig)
-			waitForClusterCreation(rabbitmqCluster, client)
+			// Doing this in beforeEach to trigger a reconcile after restarting the manager
+			newRabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-three",
+					Namespace: "rabbitmq-three",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-two-secret",
+				},
+			}
+
+			Expect(client.Create(context.TODO(), newRabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(newRabbitmqCluster, client)
 		})
 
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(context.TODO(), newRabbitmqCluster)).To(Succeed())
 			stopManager()
 		})
 
@@ -124,19 +139,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("impacts new instances", func() {
-			newRabbitmqCluster := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-three",
-					Namespace: "rabbitmq-three",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
-					ImagePullSecret: "rabbit-two-secret",
-				},
-			}
-
-			Expect(client.Create(context.TODO(), newRabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(newRabbitmqCluster, client)
 			ingressServiceName := newRabbitmqCluster.ChildResourceName("ingress")
 			service, err := clientSet.CoreV1().Services(newRabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
@@ -146,8 +148,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			sts, err := clientSet.AppsV1().StatefulSets(newRabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("3")))
-
-			Expect(client.Delete(context.TODO(), newRabbitmqCluster)).To(Succeed())
 		})
 	})
 
