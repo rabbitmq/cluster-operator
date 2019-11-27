@@ -362,7 +362,7 @@ func startManager(scheme *runtime.Scheme, config resource.DefaultConfiguration) 
 		PersistentStorageClassName: config.PersistentStorageClassName,
 		ResourceRequirements:       config.ResourceRequirements,
 	}
-	reconciler.SetupWithManager(mgr)
+	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
 
 	stopMgr = make(chan struct{})
 	mgrStopped = &sync.WaitGroup{}
