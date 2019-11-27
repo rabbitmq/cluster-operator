@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -415,12 +416,8 @@ var _ = Describe("StatefulSet", func() {
 			}
 
 			defaultConfiguration = resource.DefaultConfiguration{
-				ImageReference:             "",
-				ImagePullSecret:            "",
-				PersistentStorageClassName: "",
-				PersistentStorage:          "",
-				ResourceRequirements:       resourceRequirements,
-				Scheme:                     scheme,
+				ResourceRequirements: resourceRequirements,
+				Scheme:               scheme,
 			}
 		})
 
@@ -727,6 +724,151 @@ var _ = Describe("StatefulSet", func() {
 		})
 	})
 
+	Context("label inheritance", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance.Namespace = "foo"
+			instance.Name = "foo"
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+
+			scheme = runtime.NewScheme()
+			rabbitmqv1beta1.AddToScheme(scheme)
+			defaultscheme.AddToScheme(scheme)
+
+			defaultConfiguration = resource.DefaultConfiguration{
+				Scheme: scheme,
+			}
+			cluster = &resource.RabbitmqResourceBuilder{
+				Instance:             &instance,
+				DefaultConfiguration: defaultConfiguration,
+			}
+		})
+
+		It("has the labels from the CRD on the statefulset", func() {
+			statefulSet, err := cluster.StatefulSet()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(statefulSet.Labels).To(SatisfyAll(
+				HaveKeyWithValue("foo", "bar"),
+				HaveKeyWithValue("rabbitmq", "is-great"),
+				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
+				Not(HaveKey("app.kubernetes.io/foo")),
+			))
+
+		})
+		It("has the labels from the CRD on the PVC", func() {
+			statefulSet, _ := cluster.StatefulSet()
+			pvcTemplate := statefulSet.Spec.VolumeClaimTemplates[0]
+			Expect(pvcTemplate.Labels).To(SatisfyAll(
+				HaveKeyWithValue("foo", "bar"),
+				HaveKeyWithValue("rabbitmq", "is-great"),
+				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
+				Not(HaveKey("app.kubernetes.io/foo")),
+			))
+
+		})
+		It("has the labels from the CRD on the pod", func() {
+			statefulSet, _ := cluster.StatefulSet()
+			podTemplate := statefulSet.Spec.Template
+			Expect(podTemplate.Labels).To(SatisfyAll(
+				HaveKeyWithValue("foo", "bar"),
+				HaveKeyWithValue("rabbitmq", "is-great"),
+				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
+				Not(HaveKey("app.kubernetes.io/foo")),
+			))
+		})
+	})
+	Context("UpdateServiceParams", func() {
+		var statefulSet *appsv1.StatefulSet
+
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance.Namespace = "foo"
+			instance.Name = "foo"
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+
+			scheme = runtime.NewScheme()
+			rabbitmqv1beta1.AddToScheme(scheme)
+			defaultscheme.AddToScheme(scheme)
+
+			defaultConfiguration = resource.DefaultConfiguration{
+				Scheme: scheme,
+			}
+			cluster = &resource.RabbitmqResourceBuilder{
+				Instance:             &instance,
+				DefaultConfiguration: defaultConfiguration,
+			}
+			statefulSet = &appsv1.StatefulSet{
+				Spec: appsv1.StatefulSetSpec{
+					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+						corev1.PersistentVolumeClaim{
+							ObjectMeta: metav1.ObjectMeta{Name: "pvc"},
+						},
+					},
+				},
+			}
+		})
+
+		It("adds labels from the CRD on the statefulset", func() {
+			err := cluster.UpdateStatefulSetParams(statefulSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(statefulSet.Labels).To(SatisfyAll(
+				HaveKeyWithValue("foo", "bar"),
+				HaveKeyWithValue("rabbitmq", "is-great"),
+				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
+				Not(HaveKey("app.kubernetes.io/foo")),
+			))
+
+		})
+		It("adds labels from the CRD on the PVC", func() {
+			err := cluster.UpdateStatefulSetParams(statefulSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			pvcTemplate := statefulSet.Spec.VolumeClaimTemplates[0]
+			Expect(pvcTemplate.Labels).To(SatisfyAll(
+				HaveKeyWithValue("foo", "bar"),
+				HaveKeyWithValue("rabbitmq", "is-great"),
+				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
+				Not(HaveKey("app.kubernetes.io/foo")),
+			))
+
+		})
+		It("adds labels from the CRD on the pod", func() {
+			err := cluster.UpdateStatefulSetParams(statefulSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			podTemplate := statefulSet.Spec.Template
+			Expect(podTemplate.Labels).To(SatisfyAll(
+				HaveKeyWithValue("foo", "bar"),
+				HaveKeyWithValue("rabbitmq", "is-great"),
+				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
+				Not(HaveKey("app.kubernetes.io/foo")),
+			))
+		})
+
+		It("sets nothing if the instance has no labels", func() {
+			cluster.Instance.Labels = nil
+			err := cluster.UpdateStatefulSetParams(statefulSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(statefulSet.Labels).To(BeNil())
+			pvcTemplate := statefulSet.Spec.VolumeClaimTemplates[0]
+			Expect(pvcTemplate.Labels).To(BeNil())
+			podTemplate := statefulSet.Spec.Template
+			Expect(podTemplate.Labels).To(BeNil())
+
+		})
+	})
 })
 
 func extractContainer(containers []corev1.Container, containerName string) corev1.Container {

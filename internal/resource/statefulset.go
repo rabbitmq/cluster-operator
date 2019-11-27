@@ -1,8 +1,8 @@
 package resource
 
 import (
-	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
@@ -290,7 +290,6 @@ func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 	if err := controllerutil.SetControllerReference(cluster.Instance, sts, cluster.DefaultConfiguration.Scheme); err != nil {
 		return nil, fmt.Errorf("failed setting controller reference: %v", err)
 	}
-
 	return sts, nil
 }
 
@@ -382,6 +381,28 @@ func (cluster *RabbitmqResourceBuilder) UpdateStatefulSetParams(sts *appsv1.Stat
 		}
 		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
 	}
+
+	if cluster.Instance.Labels != nil {
+		if sts.Labels == nil {
+			sts.Labels = make(map[string]string)
+		}
+		if len(sts.Spec.VolumeClaimTemplates) > 0 && sts.Spec.VolumeClaimTemplates[0].Labels == nil {
+			sts.Spec.VolumeClaimTemplates[0].Labels = make(map[string]string)
+		}
+		if sts.Spec.Template.Labels == nil {
+			sts.Spec.Template.Labels = make(map[string]string)
+		}
+
+		for label, value := range cluster.Instance.Labels {
+			if !strings.HasPrefix(label, "app.kubernetes.io") {
+				// TODO if a label is in the StatefulSet and in the CR, the value in the CR will overwrite the value in STS
+				sts.Labels[label] = value
+				sts.Spec.VolumeClaimTemplates[0].Labels[label] = value
+				sts.Spec.Template.Labels[label] = value
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -490,26 +511,4 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	return statefulSetConfiguration, nil
-}
-
-func (cluster *RabbitmqResourceBuilder) UpdateComputeRequirementsParams(sts *appsv1.StatefulSet) error {
-	return errors.New("Not Implemented")
-	// if cluster.Instance.Spec.Resource.Request.CPU != "" {
-	// 	cpuRequest, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Request.CPU)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
-	// }
-
-	// if cluster.Instance.Spec.Resource.Limit.CPU != "" {
-	// 	cpuLimit, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Limit.CPU)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU] = cpuLimit
-	// }
-
-	// return nil
 }
