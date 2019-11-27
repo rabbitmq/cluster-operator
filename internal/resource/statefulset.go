@@ -368,6 +368,20 @@ func (cluster *RabbitmqResourceBuilder) UpdateStatefulSetParams(sts *appsv1.Stat
 		}
 		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
 	}
+	if cluster.Instance.Spec.Resource.Limit.Memory != "" {
+		memoryLimit, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Limit.Memory)
+		if err != nil {
+			return err
+		}
+		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory] = memoryLimit
+	}
+	if cluster.Instance.Spec.Resource.Request.Memory != "" {
+		memoryRequest, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Request.Memory)
+		if err != nil {
+			return err
+		}
+		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
+	}
 	return nil
 }
 

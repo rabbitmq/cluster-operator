@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,8 +37,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-const timeout = 3 * time.Second
 
 var _ = Describe("RabbitmqclusterController", func() {
 
@@ -91,10 +88,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 			stopManager()
 			resourceRequirements := resource.ResourceRequirements{
 				Limit: resource.ComputeResource{
-					CPU: "3000m",
+					CPU:    "6000m",
+					Memory: "3Mi",
 				},
 				Request: resource.ComputeResource{
-					CPU: "1100m",
+					CPU:    "5000m",
+					Memory: "1Mi",
 				},
 			}
 			managerConfig := resource.DefaultConfiguration{
@@ -136,6 +135,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("2")))
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu()).To(Equal(k8sresource.MustParse("1")))
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory()).To(Equal(k8sresource.MustParse("2Gi")))
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()).To(Equal(k8sresource.MustParse("2Gi")))
 		})
 
 		It("impacts new instances", func() {
@@ -147,7 +149,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 			statefulSetName := newRabbitmqCluster.ChildResourceName("server")
 			sts, err := clientSet.AppsV1().StatefulSets(newRabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("3")))
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("6")))
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu()).To(Equal(k8sresource.MustParse("5")))
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory()).To(Equal(k8sresource.MustParse("3Mi")))
+			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()).To(Equal(k8sresource.MustParse("1Mi")))
 		})
 	})
 
@@ -206,14 +211,22 @@ var _ = Describe("RabbitmqclusterController", func() {
 				}, 100).Should(HaveKeyWithValue("test-key", "test-value"))
 			})
 
-			When("the CPU requirements are updated", func() {
+			When("the CPU and memory requirements are updated", func() {
 				var resourceRequirements corev1.ResourceRequirements
 				expectedRequirements := corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{corev1.ResourceCPU: k8sresource.MustParse("1100m")},
-					Limits:   corev1.ResourceList{corev1.ResourceCPU: k8sresource.MustParse("1200m")},
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    k8sresource.MustParse("1100m"),
+						corev1.ResourceMemory: k8sresource.MustParse("5Gi"),
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    k8sresource.MustParse("1200m"),
+						corev1.ResourceMemory: k8sresource.MustParse("6Gi"),
+					},
 				}
 				rabbitmqCluster.Spec.Resource.Request.CPU = "1100m"
+				rabbitmqCluster.Spec.Resource.Request.Memory = "5Gi"
 				rabbitmqCluster.Spec.Resource.Limit.CPU = "1200m"
+				rabbitmqCluster.Spec.Resource.Limit.Memory = "6Gi"
 				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
 
 				Eventually(func() corev1.ResourceList {
@@ -224,6 +237,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 					return resourceRequirements.Requests
 				}, 100).Should(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Requests[corev1.ResourceCPU]))
 				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Limits[corev1.ResourceCPU]))
+
+				Expect(resourceRequirements.Requests).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Requests[corev1.ResourceMemory]))
+				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
 			})
 		})
 	})

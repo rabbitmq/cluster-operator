@@ -212,6 +212,9 @@ func (r *RabbitmqClusterReconciler) reconcileStatefulset(builder resource.Rabbit
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to generate StatefulSet: %v ", err)
 	}
+	if sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory() != sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory() {
+		r.Log.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.GetName()))
+	}
 
 	operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, sts, func() error {
 		return builder.UpdateStatefulSetParams(sts)

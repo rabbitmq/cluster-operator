@@ -393,7 +393,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 	})
 
-	Context("when creating a working StatefulSet with non-default settings", func() {
+	Context("when creating a StatefulSet with non-default settings", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{}
 			instance.Namespace = "foo"
@@ -552,7 +552,7 @@ var _ = Describe("StatefulSet", func() {
 					}
 				})
 
-				Context("by the default config", func() {
+				Context("by the config", func() {
 					It("generates a statefulSet with provided CPU and memory limits, with default CPU and memory requests", func() {
 						cluster = &resource.RabbitmqResourceBuilder{
 							Instance:             &instance,
@@ -574,24 +574,28 @@ var _ = Describe("StatefulSet", func() {
 				Context("both default resource requirements and CR resource requirements have been provided", func() {
 					BeforeEach(func() {
 						instance.Spec.Resource.Request = rabbitmqv1beta1.RabbitmqClusterComputeResource{
-							CPU: "10m",
+							CPU:    "10m",
+							Memory: "3Gi",
 						}
 
 						instance.Spec.Resource.Limit = rabbitmqv1beta1.RabbitmqClusterComputeResource{
-							CPU: "11m",
+							CPU:    "11m",
+							Memory: "4Gi",
 						}
 
 						defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
 							Request: resource.ComputeResource{
-								CPU: "1m",
+								CPU:    "1m",
+								Memory: "1Mi",
 							},
 							Limit: resource.ComputeResource{
-								CPU: "2m",
+								CPU:    "2m",
+								Memory: "2Mi",
 							},
 						}
 					})
 
-					It("overrides StatefulSet CPU resource requirements with those provided by CR spec", func() {
+					It("overrides StatefulSet resource requirements with those provided by CR spec", func() {
 						cluster = &resource.RabbitmqResourceBuilder{
 							Instance:             &instance,
 							DefaultConfiguration: defaultConfiguration,
@@ -599,11 +603,15 @@ var _ = Describe("StatefulSet", func() {
 
 						statefulSet, _ := cluster.StatefulSet()
 						expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
+						expectedMemoryRequest, _ := k8sresource.ParseQuantity("3Gi")
 						expectedCPULimit, _ := k8sresource.ParseQuantity("11m")
+						expectedMemoryLimit, _ := k8sresource.ParseQuantity("4Gi")
 
 						container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 						Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(expectedCPURequest))
+						Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
 						Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
+						Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
 					})
 				})
 			})
@@ -622,7 +630,7 @@ var _ = Describe("StatefulSet", func() {
 					}
 				})
 
-				It("generates a statefulSet with provided CPU and memory requests, with default CPU and memory limits", func() {
+				It("generates a statefulSet with default CPU and memory limits", func() {
 					cluster = &resource.RabbitmqResourceBuilder{
 						Instance:             &instance,
 						DefaultConfiguration: defaultConfiguration,
