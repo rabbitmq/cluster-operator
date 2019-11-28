@@ -27,6 +27,11 @@ type DefaultConfiguration struct {
 	OperatorRegistrySecret     *corev1.Secret
 }
 
+type ResourceBuilder interface {
+	Update(runtime.Object) error
+	Build() (runtime.Object, error)
+}
+
 func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object, err error) {
 	serverConf := builder.ServerConfigMap()
 	resources = append(resources, serverConf)

@@ -13,20 +13,19 @@ import (
 
 var _ = Context("IngressServices", func() {
 	var (
-		instance rabbitmqv1beta1.RabbitmqCluster
-		cluster  resource.RabbitmqResourceBuilder
-		service  *corev1.Service
-		scheme   *runtime.Scheme
+		instance   rabbitmqv1beta1.RabbitmqCluster
+		rmqBuilder resource.RabbitmqResourceBuilder
+		scheme     *runtime.Scheme
 	)
 
 	BeforeEach(func() {
 		scheme = runtime.NewScheme()
-		rabbitmqv1beta1.AddToScheme(scheme)
-		defaultscheme.AddToScheme(scheme)
+		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
-		cluster = resource.RabbitmqResourceBuilder{
+		rmqBuilder = resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 			DefaultConfiguration: resource.DefaultConfiguration{
 				Scheme: scheme,
@@ -35,9 +34,10 @@ var _ = Context("IngressServices", func() {
 	})
 
 	It("generates Ingress Service with defaults", func() {
-		var err error
-		service, err = cluster.IngressService()
+		serviceBuilder := rmqBuilder.IngressService()
+		obj, err := serviceBuilder.Build()
 		Expect(err).NotTo(HaveOccurred())
+		service := obj.(*corev1.Service)
 
 		By("generates a service object with the correct name and labels", func() {
 			expectedName := instance.ChildResourceName("ingress")
@@ -101,8 +101,11 @@ var _ = Context("IngressServices", func() {
 					},
 				},
 			}
-			cluster.Instance = loadBalancerInstance
-			loadBalancerService, err := cluster.IngressService()
+			rmqBuilder.Instance = loadBalancerInstance
+			serviceBuilder := rmqBuilder.IngressService()
+			obj, err := serviceBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			loadBalancerService := obj.(*corev1.Service)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 		})
@@ -119,9 +122,11 @@ var _ = Context("IngressServices", func() {
 					},
 				},
 			}
-			cluster.Instance = clusterIPInstance
-			clusterIPService, err := cluster.IngressService()
+			rmqBuilder.Instance = clusterIPInstance
+			serviceBuilder := rmqBuilder.IngressService()
+			obj, err := serviceBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
+			clusterIPService := obj.(*corev1.Service)
 			Expect(clusterIPService.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 		})
 
@@ -137,14 +142,17 @@ var _ = Context("IngressServices", func() {
 					},
 				},
 			}
-			cluster.Instance = nodePortInstance
-			nodePortService, err := cluster.IngressService()
+			rmqBuilder.Instance = nodePortInstance
+			serviceBuilder := rmqBuilder.IngressService()
+			obj, err := serviceBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			nodePortService := obj.(*corev1.Service)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 		})
 	})
 
-	When("service type is specified on the cluster struct", func() {
+	When("service type is specified on the rmqBuilder struct", func() {
 		It("generates the service type as specified", func() {
 			instance := &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{
@@ -152,9 +160,12 @@ var _ = Context("IngressServices", func() {
 					Namespace: "mynamespace",
 				},
 			}
-			cluster.Instance = instance
-			cluster.DefaultConfiguration.ServiceType = "NodePort"
-			nodePortService, err := cluster.IngressService()
+			rmqBuilder.Instance = instance
+			rmqBuilder.DefaultConfiguration.ServiceType = "NodePort"
+			serviceBuilder := rmqBuilder.IngressService()
+			obj, err := serviceBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			nodePortService := obj.(*corev1.Service)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 
@@ -172,9 +183,12 @@ var _ = Context("IngressServices", func() {
 					},
 				},
 			}
-			cluster.Instance = loadBalancerInstance
-			cluster.DefaultConfiguration.ServiceType = "ClusterIP"
-			loadBalancerService, err := cluster.IngressService()
+			rmqBuilder.Instance = loadBalancerInstance
+			rmqBuilder.DefaultConfiguration.ServiceType = "ClusterIP"
+			serviceBuilder := rmqBuilder.IngressService()
+			obj, err := serviceBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			loadBalancerService := obj.(*corev1.Service)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 		})
@@ -194,8 +208,11 @@ var _ = Context("IngressServices", func() {
 					},
 				},
 			}
-			cluster.Instance = instance
-			service, err := cluster.IngressService()
+			rmqBuilder.Instance = instance
+			serviceBuilder := rmqBuilder.IngressService()
+			obj, err := serviceBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			service := obj.(*corev1.Service)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(service.ObjectMeta.Annotations).To(Equal(annotations))
 		})
@@ -216,10 +233,13 @@ var _ = Context("IngressServices", func() {
 					},
 				},
 			}
-			cluster.Instance = instance
-			cluster.DefaultConfiguration.ServiceAnnotations = ignoredAnnotations
-			cluster.DefaultConfiguration.ServiceType = "NodePort"
-			nodePortService, err := cluster.IngressService()
+			rmqBuilder.Instance = instance
+			rmqBuilder.DefaultConfiguration.ServiceAnnotations = ignoredAnnotations
+			rmqBuilder.DefaultConfiguration.ServiceType = "NodePort"
+			serviceBuilder := rmqBuilder.IngressService()
+			obj, err := serviceBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			nodePortService := obj.(*corev1.Service)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(nodePortService.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 		})
@@ -235,10 +255,13 @@ var _ = Context("IngressServices", func() {
 			}
 
 			annotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
-			cluster.Instance = instance
-			cluster.DefaultConfiguration.ServiceAnnotations = annotations
-			cluster.DefaultConfiguration.ServiceType = "NodePort"
-			nodePortService, err := cluster.IngressService()
+			rmqBuilder.Instance = instance
+			rmqBuilder.DefaultConfiguration.ServiceAnnotations = annotations
+			rmqBuilder.DefaultConfiguration.ServiceType = "NodePort"
+			serviceBuilder := rmqBuilder.IngressService()
+			obj, err := serviceBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			nodePortService := obj.(*corev1.Service)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(nodePortService.ObjectMeta.Annotations).To(Equal(annotations))
 		})
@@ -255,7 +278,10 @@ var _ = Context("IngressServices", func() {
 		})
 
 		It("has the labels from the CRD on the ingress service", func() {
-			ingressService, err := cluster.IngressService()
+			serviceBuilder := rmqBuilder.IngressService()
+			obj, err := serviceBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			ingressService := obj.(*corev1.Service)
 			Expect(err).NotTo(HaveOccurred())
 			testLabels(ingressService.Labels)
 		})
