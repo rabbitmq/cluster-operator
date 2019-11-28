@@ -81,7 +81,7 @@ func (builder *IngressServiceBuilder) Update(object runtime.Object) {
 	if builder.Instance.Spec.Service.Annotations != nil {
 		object.(*corev1.Service).Annotations = builder.Instance.Spec.Service.Annotations
 	}
-	builder.updateLabels(&object.(*corev1.Service).ObjectMeta)
+	updateLabels(&object.(*corev1.Service).ObjectMeta, builder.Instance.Labels)
 }
 
 func (builder *IngressServiceBuilder) updateLabels(objectMeta *metav1.ObjectMeta) {

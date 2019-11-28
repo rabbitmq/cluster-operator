@@ -68,12 +68,12 @@ func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object,
 	return resources, nil
 }
 
-func (builder *RabbitmqResourceBuilder) updateLabels(objectMeta *metav1.ObjectMeta) {
-	if builder.Instance.Labels != nil {
+func updateLabels(objectMeta *metav1.ObjectMeta, labels map[string]string) {
+	if labels != nil {
 		if objectMeta.Labels == nil {
 			objectMeta.Labels = make(map[string]string)
 		}
-		for label, value := range builder.Instance.Labels {
+		for label, value := range labels {
 			if !strings.HasPrefix(label, "app.kubernetes.io") {
 				// TODO if a label is in the StatefulSet and in the CR, the value in the CR will overwrite the value in STS
 				objectMeta.Labels[label] = value

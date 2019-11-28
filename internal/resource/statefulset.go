@@ -55,13 +55,25 @@ type StatefulSetConfiguration struct {
 	Scheme                     *runtime.Scheme
 }
 
-func (builder *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, error) {
+func (builder *RabbitmqResourceBuilder) StatefulSet() StatefulSetBuilder {
+	return StatefulSetBuilder{
+		Instance:             builder.Instance,
+		DefaultConfiguration: builder.DefaultConfiguration,
+	}
+}
+
+type StatefulSetBuilder struct {
+	Instance             *rabbitmqv1beta1.RabbitmqCluster
+	DefaultConfiguration DefaultConfiguration
+}
+
+func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 
 	sts := builder.statefulSet()
 	if err := builder.setStatefulSetParams(sts); err != nil {
 		return nil, err
 	}
-	if err := builder.UpdateStatefulSetParams(sts); err != nil {
+	if err := builder.Update(sts); err != nil {
 		return nil, err
 	}
 
@@ -71,7 +83,7 @@ func (builder *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, erro
 	return sts, nil
 }
 
-func (builder *RabbitmqResourceBuilder) setStatefulSetParams(sts *appsv1.StatefulSet) error {
+func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet) error {
 	one := int32(1)
 	sts.Spec.Replicas = &one
 	replicas := int32(builder.Instance.Spec.Replicas)
@@ -132,38 +144,38 @@ func (builder *RabbitmqResourceBuilder) setStatefulSetParams(sts *appsv1.Statefu
 	return nil
 }
 
-func (builder *RabbitmqResourceBuilder) UpdateStatefulSetParams(sts *appsv1.StatefulSet) error {
+func (builder *StatefulSetBuilder) Update(sts runtime.Object) error {
 	if builder.Instance.Spec.Resource.Limit.CPU != "" {
 		cpuLimit, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Limit.CPU)
 		if err != nil {
 			return err
 		}
-		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU] = cpuLimit
+		sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU] = cpuLimit
 	}
 	if builder.Instance.Spec.Resource.Request.CPU != "" {
 		cpuRequest, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Request.CPU)
 		if err != nil {
 			return err
 		}
-		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
+		sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
 	}
 	if builder.Instance.Spec.Resource.Limit.Memory != "" {
 		memoryLimit, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Limit.Memory)
 		if err != nil {
 			return err
 		}
-		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory] = memoryLimit
+		sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory] = memoryLimit
 	}
 	if builder.Instance.Spec.Resource.Request.Memory != "" {
 		memoryRequest, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Request.Memory)
 		if err != nil {
 			return err
 		}
-		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
+		sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
 	}
 
-	builder.updateLabels(&sts.ObjectMeta)
-	builder.updateLabels(&sts.Spec.Template.ObjectMeta)
+	updateLabels(&sts.(*appsv1.StatefulSet).ObjectMeta, builder.Instance.Labels)
+	updateLabels(&sts.(*appsv1.StatefulSet).Spec.Template.ObjectMeta, builder.Instance.Labels)
 
 	return nil
 }
@@ -192,7 +204,7 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSe
 	return []corev1.PersistentVolumeClaim{pvc}, nil
 }
 
-func (builder *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSetConfiguration, error) {
+func (builder *StatefulSetBuilder) statefulSetConfigurations() (StatefulSetConfiguration, error) {
 	var err error
 	statefulSetConfiguration := StatefulSetConfiguration{
 		ImageReference:  rabbitmqImage,
@@ -275,7 +287,7 @@ func (builder *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	return statefulSetConfiguration, nil
 }
 
-func (builder *RabbitmqResourceBuilder) statefulSet() *appsv1.StatefulSet {
+func (builder *StatefulSetBuilder) statefulSet() *appsv1.StatefulSet {
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)

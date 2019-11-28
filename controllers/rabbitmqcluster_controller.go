@@ -209,16 +209,17 @@ func (r *RabbitmqClusterReconciler) reconcileIngressService(builder resource.Rab
 }
 
 func (r *RabbitmqClusterReconciler) reconcileStatefulset(builder resource.RabbitmqResourceBuilder) (reconcile.Result, error) {
-	sts, err := builder.StatefulSet()
+	stsBuilder := builder.StatefulSet()
+	sts, err := stsBuilder.Build()
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to generate StatefulSet: %v ", err)
 	}
-	if sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory() != sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory() {
-		r.Log.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.GetName()))
+	if sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Limits.Memory() != sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Requests.Memory() {
+		r.Log.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.(*appsv1.StatefulSet).GetName()))
 	}
 
 	operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, sts, func() error {
-		return builder.UpdateStatefulSetParams(sts)
+		return stsBuilder.Update(sts)
 	})
 
 	if err != nil {
@@ -227,7 +228,7 @@ func (r *RabbitmqClusterReconciler) reconcileStatefulset(builder resource.Rabbit
 
 	r.Log.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type StatefulSet",
 		operationResult,
-		sts.GetName()))
+		sts.(*appsv1.StatefulSet).GetName()))
 
 	return reconcile.Result{}, nil
 }
