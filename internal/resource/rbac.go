@@ -14,22 +14,22 @@ const (
 	roleBindingName    = "server"
 )
 
-func (cluster *RabbitmqResourceBuilder) ServiceAccount() *corev1.ServiceAccount {
+func (builder *RabbitmqResourceBuilder) ServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Instance.Namespace,
-			Name:      cluster.Instance.ChildResourceName(serviceAccountName),
-			Labels:    metadata.Label(cluster.Instance.Name),
+			Namespace: builder.Instance.Namespace,
+			Name:      builder.Instance.ChildResourceName(serviceAccountName),
+			Labels:    metadata.Label(builder.Instance.Name),
 		},
 	}
 }
 
-func (cluster *RabbitmqResourceBuilder) Role() *rbacv1.Role {
+func (builder *RabbitmqResourceBuilder) Role() *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Instance.Namespace,
-			Name:      cluster.Instance.ChildResourceName(roleName),
-			Labels:    metadata.Label(cluster.Instance.Name),
+			Namespace: builder.Instance.Namespace,
+			Name:      builder.Instance.ChildResourceName(roleName),
+			Labels:    metadata.Label(builder.Instance.Name),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -41,22 +41,22 @@ func (cluster *RabbitmqResourceBuilder) Role() *rbacv1.Role {
 	}
 }
 
-func (cluster *RabbitmqResourceBuilder) RoleBinding() *rbacv1.RoleBinding {
+func (builder *RabbitmqResourceBuilder) RoleBinding() *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Instance.Namespace,
-			Name:      cluster.Instance.ChildResourceName(roleBindingName),
-			Labels:    metadata.Label(cluster.Instance.Name),
+			Namespace: builder.Instance.Namespace,
+			Name:      builder.Instance.ChildResourceName(roleBindingName),
+			Labels:    metadata.Label(builder.Instance.Name),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "Role",
-			Name:     cluster.Instance.ChildResourceName(roleName),
+			Name:     builder.Instance.ChildResourceName(roleName),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind: "ServiceAccount",
-				Name: cluster.Instance.ChildResourceName(serviceAccountName),
+				Name: builder.Instance.ChildResourceName(serviceAccountName),
 			},
 		},
 	}

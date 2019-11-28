@@ -27,37 +27,37 @@ type DefaultConfiguration struct {
 	OperatorRegistrySecret     *corev1.Secret
 }
 
-func (cluster *RabbitmqResourceBuilder) Resources() (resources []runtime.Object, err error) {
-	serverConf := cluster.ServerConfigMap()
+func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object, err error) {
+	serverConf := builder.ServerConfigMap()
 	resources = append(resources, serverConf)
 
-	headlessService := cluster.HeadlessService()
+	headlessService := builder.HeadlessService()
 	resources = append(resources, headlessService)
 
-	adminSecret, err := cluster.AdminSecret()
+	adminSecret, err := builder.AdminSecret()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate admin secret: %v ", err)
 	}
 	resources = append(resources, adminSecret)
 
-	erlangCookie, err := cluster.ErlangCookie()
+	erlangCookie, err := builder.ErlangCookie()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate erlang cookie: %v ", err)
 	}
 	resources = append(resources, erlangCookie)
 
-	if cluster.DefaultConfiguration.OperatorRegistrySecret != nil {
-		clusterRegistrySecret := cluster.RegistrySecret()
+	if builder.DefaultConfiguration.OperatorRegistrySecret != nil {
+		clusterRegistrySecret := builder.RegistrySecret()
 		resources = append(resources, clusterRegistrySecret)
 	}
 
-	serviceAccount := cluster.ServiceAccount()
+	serviceAccount := builder.ServiceAccount()
 	resources = append(resources, serviceAccount)
 
-	role := cluster.Role()
+	role := builder.Role()
 	resources = append(resources, role)
 
-	roleBinding := cluster.RoleBinding()
+	roleBinding := builder.RoleBinding()
 	resources = append(resources, roleBinding)
 
 	return resources, nil

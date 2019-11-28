@@ -12,12 +12,12 @@ const (
 	serverConfigMapName = "server-conf"
 )
 
-func (cluster *RabbitmqResourceBuilder) ServerConfigMap() *corev1.ConfigMap {
+func (builder *RabbitmqResourceBuilder) ServerConfigMap() *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Instance.ChildResourceName(serverConfigMapName),
-			Namespace: cluster.Instance.Namespace,
-			Labels:    metadata.Label(cluster.Instance.Name),
+			Name:      builder.Instance.ChildResourceName(serverConfigMapName),
+			Namespace: builder.Instance.Namespace,
+			Labels:    metadata.Label(builder.Instance.Name),
 		},
 		Data: map[string]string{
 			"enabled_plugins": "[" +

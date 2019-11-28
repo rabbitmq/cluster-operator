@@ -10,16 +10,16 @@ const (
 	headlessServiceName = "headless"
 )
 
-func (cluster *RabbitmqResourceBuilder) HeadlessService() *corev1.Service {
+func (builder *RabbitmqResourceBuilder) HeadlessService() *corev1.Service {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Instance.ChildResourceName(headlessServiceName),
-			Namespace: cluster.Instance.Namespace,
-			Labels:    metadata.Label(cluster.Instance.Name),
+			Name:      builder.Instance.ChildResourceName(headlessServiceName),
+			Namespace: builder.Instance.Namespace,
+			Labels:    metadata.Label(builder.Instance.Name),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
-			Selector:  metadata.LabelSelector(cluster.Instance.Name),
+			Selector:  metadata.LabelSelector(builder.Instance.Name),
 			Ports: []corev1.ServicePort{
 				{
 					Protocol: corev1.ProtocolTCP,
@@ -30,7 +30,7 @@ func (cluster *RabbitmqResourceBuilder) HeadlessService() *corev1.Service {
 		},
 	}
 
-	cluster.updateLabels(&service.ObjectMeta)
+	builder.updateLabels(&service.ObjectMeta)
 
 	return service
 }

@@ -13,7 +13,7 @@ const (
 	erlangCookieName = "erlang-cookie"
 )
 
-func (cluster *RabbitmqResourceBuilder) ErlangCookie() (*corev1.Secret, error) {
+func (builder *RabbitmqResourceBuilder) ErlangCookie() (*corev1.Secret, error) {
 	cookie, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
@@ -21,9 +21,9 @@ func (cluster *RabbitmqResourceBuilder) ErlangCookie() (*corev1.Secret, error) {
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Instance.ChildResourceName(erlangCookieName),
-			Namespace: cluster.Instance.Namespace,
-			Labels:    metadata.Label(cluster.Instance.Name),
+			Name:      builder.Instance.ChildResourceName(erlangCookieName),
+			Namespace: builder.Instance.Namespace,
+			Labels:    metadata.Label(builder.Instance.Name),
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{

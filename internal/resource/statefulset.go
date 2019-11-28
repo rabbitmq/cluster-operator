@@ -55,31 +55,31 @@ type StatefulSetConfiguration struct {
 	Scheme                     *runtime.Scheme
 }
 
-func (cluster *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, error) {
+func (builder *RabbitmqResourceBuilder) StatefulSet() (*appsv1.StatefulSet, error) {
 
-	sts := cluster.statefulSet()
-	if err := cluster.setStatefulSetParams(sts); err != nil {
+	sts := builder.statefulSet()
+	if err := builder.setStatefulSetParams(sts); err != nil {
 		return nil, err
 	}
-	if err := cluster.UpdateStatefulSetParams(sts); err != nil {
+	if err := builder.UpdateStatefulSetParams(sts); err != nil {
 		return nil, err
 	}
 
-	if err := controllerutil.SetControllerReference(cluster.Instance, sts, cluster.DefaultConfiguration.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.DefaultConfiguration.Scheme); err != nil {
 		return nil, fmt.Errorf("failed setting controller reference: %v", err)
 	}
 	return sts, nil
 }
 
-func (cluster *RabbitmqResourceBuilder) setStatefulSetParams(sts *appsv1.StatefulSet) error {
+func (builder *RabbitmqResourceBuilder) setStatefulSetParams(sts *appsv1.StatefulSet) error {
 	one := int32(1)
 	sts.Spec.Replicas = &one
-	replicas := int32(cluster.Instance.Spec.Replicas)
+	replicas := int32(builder.Instance.Spec.Replicas)
 	if replicas != 0 {
 		sts.Spec.Replicas = &replicas
 	}
 
-	statefulSetConfiguration, err := cluster.statefulSetConfigurations()
+	statefulSetConfiguration, err := builder.statefulSetConfigurations()
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (cluster *RabbitmqResourceBuilder) setStatefulSetParams(sts *appsv1.Statefu
 		sts.Spec.Template.Spec.ImagePullSecrets = append(sts.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
 	}
 
-	pvc, err := persistentVolumeClaim(cluster.Instance, statefulSetConfiguration)
+	pvc, err := persistentVolumeClaim(builder.Instance, statefulSetConfiguration)
 	if err != nil {
 		return err
 	}
@@ -132,38 +132,38 @@ func (cluster *RabbitmqResourceBuilder) setStatefulSetParams(sts *appsv1.Statefu
 	return nil
 }
 
-func (cluster *RabbitmqResourceBuilder) UpdateStatefulSetParams(sts *appsv1.StatefulSet) error {
-	if cluster.Instance.Spec.Resource.Limit.CPU != "" {
-		cpuLimit, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Limit.CPU)
+func (builder *RabbitmqResourceBuilder) UpdateStatefulSetParams(sts *appsv1.StatefulSet) error {
+	if builder.Instance.Spec.Resource.Limit.CPU != "" {
+		cpuLimit, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Limit.CPU)
 		if err != nil {
 			return err
 		}
 		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU] = cpuLimit
 	}
-	if cluster.Instance.Spec.Resource.Request.CPU != "" {
-		cpuRequest, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Request.CPU)
+	if builder.Instance.Spec.Resource.Request.CPU != "" {
+		cpuRequest, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Request.CPU)
 		if err != nil {
 			return err
 		}
 		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
 	}
-	if cluster.Instance.Spec.Resource.Limit.Memory != "" {
-		memoryLimit, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Limit.Memory)
+	if builder.Instance.Spec.Resource.Limit.Memory != "" {
+		memoryLimit, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Limit.Memory)
 		if err != nil {
 			return err
 		}
 		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory] = memoryLimit
 	}
-	if cluster.Instance.Spec.Resource.Request.Memory != "" {
-		memoryRequest, err := k8sresource.ParseQuantity(cluster.Instance.Spec.Resource.Request.Memory)
+	if builder.Instance.Spec.Resource.Request.Memory != "" {
+		memoryRequest, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Request.Memory)
 		if err != nil {
 			return err
 		}
 		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
 	}
 
-	cluster.updateLabels(&sts.ObjectMeta)
-	cluster.updateLabels(&sts.Spec.Template.ObjectMeta)
+	builder.updateLabels(&sts.ObjectMeta)
+	builder.updateLabels(&sts.Spec.Template.ObjectMeta)
 
 	return nil
 }
@@ -192,29 +192,29 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSe
 	return []corev1.PersistentVolumeClaim{pvc}, nil
 }
 
-func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSetConfiguration, error) {
+func (builder *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSetConfiguration, error) {
 	var err error
 	statefulSetConfiguration := StatefulSetConfiguration{
 		ImageReference:  rabbitmqImage,
 		ImagePullSecret: "",
-		Scheme:          cluster.DefaultConfiguration.Scheme,
+		Scheme:          builder.DefaultConfiguration.Scheme,
 	}
 
-	if cluster.Instance.Spec.Image != "" {
-		statefulSetConfiguration.ImageReference = cluster.Instance.Spec.Image
-	} else if cluster.DefaultConfiguration.ImageReference != "" {
-		statefulSetConfiguration.ImageReference = cluster.DefaultConfiguration.ImageReference
+	if builder.Instance.Spec.Image != "" {
+		statefulSetConfiguration.ImageReference = builder.Instance.Spec.Image
+	} else if builder.DefaultConfiguration.ImageReference != "" {
+		statefulSetConfiguration.ImageReference = builder.DefaultConfiguration.ImageReference
 	}
 
-	if cluster.Instance.Spec.ImagePullSecret != "" {
-		statefulSetConfiguration.ImagePullSecret = cluster.Instance.Spec.ImagePullSecret
-	} else if cluster.DefaultConfiguration.ImagePullSecret != "" {
-		statefulSetConfiguration.ImagePullSecret = RegistrySecretName(cluster.Instance.Name)
+	if builder.Instance.Spec.ImagePullSecret != "" {
+		statefulSetConfiguration.ImagePullSecret = builder.Instance.Spec.ImagePullSecret
+	} else if builder.DefaultConfiguration.ImagePullSecret != "" {
+		statefulSetConfiguration.ImagePullSecret = RegistrySecretName(builder.Instance.Name)
 	}
 
 	cpuLimit := defaultCPULimit
-	if cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU != "" {
-		cpuLimit = cluster.DefaultConfiguration.ResourceRequirements.Limit.CPU
+	if builder.DefaultConfiguration.ResourceRequirements.Limit.CPU != "" {
+		cpuLimit = builder.DefaultConfiguration.ResourceRequirements.Limit.CPU
 	}
 	statefulSetConfiguration.ResourceRequirementsConfig.Limit.CPU, err = k8sresource.ParseQuantity(cpuLimit)
 	if err != nil {
@@ -222,8 +222,8 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	cpuRequest := defaultCPURequest
-	if cluster.DefaultConfiguration.ResourceRequirements.Request.CPU != "" {
-		cpuRequest = cluster.DefaultConfiguration.ResourceRequirements.Request.CPU
+	if builder.DefaultConfiguration.ResourceRequirements.Request.CPU != "" {
+		cpuRequest = builder.DefaultConfiguration.ResourceRequirements.Request.CPU
 	}
 	statefulSetConfiguration.ResourceRequirementsConfig.Request.CPU, err = k8sresource.ParseQuantity(cpuRequest)
 	if err != nil {
@@ -231,8 +231,8 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	memoryLimit := defaultMemoryLimit
-	if cluster.DefaultConfiguration.ResourceRequirements.Limit.Memory != "" {
-		memoryLimit = cluster.DefaultConfiguration.ResourceRequirements.Limit.Memory
+	if builder.DefaultConfiguration.ResourceRequirements.Limit.Memory != "" {
+		memoryLimit = builder.DefaultConfiguration.ResourceRequirements.Limit.Memory
 	}
 	statefulSetConfiguration.ResourceRequirementsConfig.Limit.Memory, err = k8sresource.ParseQuantity(memoryLimit)
 	if err != nil {
@@ -240,8 +240,8 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 	}
 
 	memoryRequest := defaultMemoryRequest
-	if cluster.DefaultConfiguration.ResourceRequirements.Request.Memory != "" {
-		memoryRequest = cluster.DefaultConfiguration.ResourceRequirements.Request.Memory
+	if builder.DefaultConfiguration.ResourceRequirements.Request.Memory != "" {
+		memoryRequest = builder.DefaultConfiguration.ResourceRequirements.Request.Memory
 	}
 	statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory, err = k8sresource.ParseQuantity(memoryRequest)
 	if err != nil {
@@ -253,29 +253,29 @@ func (cluster *RabbitmqResourceBuilder) statefulSetConfigurations() (StatefulSet
 		return statefulSetConfiguration, err
 	}
 
-	if cluster.Instance.Spec.Persistence.Storage != "" {
-		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(cluster.Instance.Spec.Persistence.Storage)
+	if builder.Instance.Spec.Persistence.Storage != "" {
+		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(builder.Instance.Spec.Persistence.Storage)
 		if err != nil {
 			return statefulSetConfiguration, err
 		}
-	} else if cluster.DefaultConfiguration.PersistentStorage != "" {
-		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(cluster.DefaultConfiguration.PersistentStorage)
+	} else if builder.DefaultConfiguration.PersistentStorage != "" {
+		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(builder.DefaultConfiguration.PersistentStorage)
 		if err != nil {
 			return statefulSetConfiguration, err
 		}
 	}
 
 	statefulSetConfiguration.PersistentStorageClassName = nil
-	if cluster.Instance.Spec.Persistence.StorageClassName != "" {
-		statefulSetConfiguration.PersistentStorageClassName = &cluster.Instance.Spec.Persistence.StorageClassName
-	} else if cluster.DefaultConfiguration.PersistentStorageClassName != "" {
-		statefulSetConfiguration.PersistentStorageClassName = &cluster.DefaultConfiguration.PersistentStorageClassName
+	if builder.Instance.Spec.Persistence.StorageClassName != "" {
+		statefulSetConfiguration.PersistentStorageClassName = &builder.Instance.Spec.Persistence.StorageClassName
+	} else if builder.DefaultConfiguration.PersistentStorageClassName != "" {
+		statefulSetConfiguration.PersistentStorageClassName = &builder.DefaultConfiguration.PersistentStorageClassName
 	}
 
 	return statefulSetConfiguration, nil
 }
 
-func (cluster *RabbitmqResourceBuilder) statefulSet() *appsv1.StatefulSet {
+func (builder *RabbitmqResourceBuilder) statefulSet() *appsv1.StatefulSet {
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
@@ -284,18 +284,18 @@ func (cluster *RabbitmqResourceBuilder) statefulSet() *appsv1.StatefulSet {
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Instance.ChildResourceName("server"),
-			Namespace: cluster.Instance.Namespace,
-			Labels:    metadata.Label(cluster.Instance.Name),
+			Name:      builder.Instance.ChildResourceName("server"),
+			Namespace: builder.Instance.Namespace,
+			Labels:    metadata.Label(builder.Instance.Name),
 		},
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: cluster.Instance.ChildResourceName(headlessServiceName),
+			ServiceName: builder.Instance.ChildResourceName(headlessServiceName),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: metadata.LabelSelector(cluster.Instance.Name),
+				MatchLabels: metadata.LabelSelector(builder.Instance.Name),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: metadata.Label(cluster.Instance.Name),
+					Labels: metadata.Label(builder.Instance.Name),
 				},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{
@@ -304,7 +304,7 @@ func (cluster *RabbitmqResourceBuilder) statefulSet() *appsv1.StatefulSet {
 						RunAsUser:  &rabbitmqUID,
 					},
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
-					ServiceAccountName:            cluster.Instance.ChildResourceName(serviceAccountName),
+					ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
 					AutomountServiceAccountToken:  &automountServiceAccountToken,
 					InitContainers: []corev1.Container{
 						{
@@ -375,7 +375,7 @@ func (cluster *RabbitmqResourceBuilder) statefulSet() *appsv1.StatefulSet {
 								},
 								{
 									Name:  "K8S_SERVICE_NAME",
-									Value: cluster.Instance.ChildResourceName("headless"),
+									Value: builder.Instance.ChildResourceName("headless"),
 								},
 								{
 									Name:  "RABBITMQ_USE_LONGNAME",
@@ -449,7 +449,7 @@ func (cluster *RabbitmqResourceBuilder) statefulSet() *appsv1.StatefulSet {
 							Name: "rabbitmq-admin",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: cluster.Instance.ChildResourceName(adminSecretName),
+									SecretName: builder.Instance.ChildResourceName(adminSecretName),
 									Items: []corev1.KeyToPath{
 										{
 											Key:  "rabbitmq-username",
@@ -468,7 +468,7 @@ func (cluster *RabbitmqResourceBuilder) statefulSet() *appsv1.StatefulSet {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: cluster.Instance.ChildResourceName(serverConfigMapName),
+										Name: builder.Instance.ChildResourceName(serverConfigMapName),
 									},
 								},
 							},
@@ -489,7 +489,7 @@ func (cluster *RabbitmqResourceBuilder) statefulSet() *appsv1.StatefulSet {
 							Name: "erlang-cookie-secret",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: cluster.Instance.ChildResourceName(erlangCookieName),
+									SecretName: builder.Instance.ChildResourceName(erlangCookieName),
 								},
 							},
 						},
