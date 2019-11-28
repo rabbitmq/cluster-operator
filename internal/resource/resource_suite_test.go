@@ -18,3 +18,12 @@ const (
 	defaultMemoryLimit   string = "2Gi"
 	defaultCPULimit      string = "2000m"
 )
+
+func testLabels(labels map[string]string) {
+	ExpectWithOffset(1, labels).To(SatisfyAll(
+		HaveKeyWithValue("foo", "bar"),
+		HaveKeyWithValue("rabbitmq", "is-great"),
+		HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
+		Not(HaveKey("app.kubernetes.io/foo")),
+	))
+}

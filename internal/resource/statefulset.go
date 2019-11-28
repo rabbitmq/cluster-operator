@@ -2,7 +2,6 @@ package resource
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
@@ -163,26 +162,9 @@ func (cluster *RabbitmqResourceBuilder) UpdateStatefulSetParams(sts *appsv1.Stat
 		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
 	}
 
-	if cluster.Instance.Labels != nil {
-		if sts.Labels == nil {
-			sts.Labels = make(map[string]string)
-		}
-		if len(sts.Spec.VolumeClaimTemplates) > 0 && sts.Spec.VolumeClaimTemplates[0].Labels == nil {
-			sts.Spec.VolumeClaimTemplates[0].Labels = make(map[string]string)
-		}
-		if sts.Spec.Template.Labels == nil {
-			sts.Spec.Template.Labels = make(map[string]string)
-		}
-
-		for label, value := range cluster.Instance.Labels {
-			if !strings.HasPrefix(label, "app.kubernetes.io") {
-				// TODO if a label is in the StatefulSet and in the CR, the value in the CR will overwrite the value in STS
-				sts.Labels[label] = value
-				sts.Spec.VolumeClaimTemplates[0].Labels[label] = value
-				sts.Spec.Template.Labels[label] = value
-			}
-		}
-	}
+	sts.Labels = cluster.updateLabels(sts.Labels)
+	sts.Spec.VolumeClaimTemplates[0].Labels = cluster.updateLabels(sts.Spec.VolumeClaimTemplates[0].Labels)
+	sts.Spec.Template.Labels = cluster.updateLabels(sts.Spec.Template.Labels)
 
 	return nil
 }

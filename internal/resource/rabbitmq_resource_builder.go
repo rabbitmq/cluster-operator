@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"strings"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -59,4 +60,20 @@ func (cluster *RabbitmqResourceBuilder) Resources() (resources []runtime.Object,
 	resources = append(resources, roleBinding)
 
 	return resources, nil
+}
+
+func (builder *RabbitmqResourceBuilder) updateLabels(labels map[string]string) map[string]string {
+	if builder.Instance.Labels != nil {
+		if labels == nil {
+			labels = make(map[string]string)
+		}
+		for label, value := range builder.Instance.Labels {
+			if !strings.HasPrefix(label, "app.kubernetes.io") {
+				// TODO if a label is in the StatefulSet and in the CR, the value in the CR will overwrite the value in STS
+				labels[label] = value
+			}
+		}
+	}
+
+	return labels
 }

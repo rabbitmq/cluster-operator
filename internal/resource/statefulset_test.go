@@ -752,34 +752,17 @@ var _ = Describe("StatefulSet", func() {
 		It("has the labels from the CRD on the statefulset", func() {
 			statefulSet, err := cluster.StatefulSet()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(statefulSet.Labels).To(SatisfyAll(
-				HaveKeyWithValue("foo", "bar"),
-				HaveKeyWithValue("rabbitmq", "is-great"),
-				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
-				Not(HaveKey("app.kubernetes.io/foo")),
-			))
-
+			testLabels(statefulSet.Labels)
 		})
 		It("has the labels from the CRD on the PVC", func() {
 			statefulSet, _ := cluster.StatefulSet()
 			pvcTemplate := statefulSet.Spec.VolumeClaimTemplates[0]
-			Expect(pvcTemplate.Labels).To(SatisfyAll(
-				HaveKeyWithValue("foo", "bar"),
-				HaveKeyWithValue("rabbitmq", "is-great"),
-				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
-				Not(HaveKey("app.kubernetes.io/foo")),
-			))
-
+			testLabels(pvcTemplate.Labels)
 		})
 		It("has the labels from the CRD on the pod", func() {
 			statefulSet, _ := cluster.StatefulSet()
 			podTemplate := statefulSet.Spec.Template
-			Expect(podTemplate.Labels).To(SatisfyAll(
-				HaveKeyWithValue("foo", "bar"),
-				HaveKeyWithValue("rabbitmq", "is-great"),
-				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
-				Not(HaveKey("app.kubernetes.io/foo")),
-			))
+			testLabels(podTemplate.Labels)
 		})
 	})
 	Context("UpdateServiceParams", func() {
@@ -822,38 +805,23 @@ var _ = Describe("StatefulSet", func() {
 			err := cluster.UpdateStatefulSetParams(statefulSet)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(statefulSet.Labels).To(SatisfyAll(
-				HaveKeyWithValue("foo", "bar"),
-				HaveKeyWithValue("rabbitmq", "is-great"),
-				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
-				Not(HaveKey("app.kubernetes.io/foo")),
-			))
-
+			testLabels(statefulSet.Labels)
 		})
+
 		It("adds labels from the CRD on the PVC", func() {
 			err := cluster.UpdateStatefulSetParams(statefulSet)
 			Expect(err).NotTo(HaveOccurred())
 
 			pvcTemplate := statefulSet.Spec.VolumeClaimTemplates[0]
-			Expect(pvcTemplate.Labels).To(SatisfyAll(
-				HaveKeyWithValue("foo", "bar"),
-				HaveKeyWithValue("rabbitmq", "is-great"),
-				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
-				Not(HaveKey("app.kubernetes.io/foo")),
-			))
-
+			testLabels(pvcTemplate.Labels)
 		})
+
 		It("adds labels from the CRD on the pod", func() {
 			err := cluster.UpdateStatefulSetParams(statefulSet)
 			Expect(err).NotTo(HaveOccurred())
 
 			podTemplate := statefulSet.Spec.Template
-			Expect(podTemplate.Labels).To(SatisfyAll(
-				HaveKeyWithValue("foo", "bar"),
-				HaveKeyWithValue("rabbitmq", "is-great"),
-				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
-				Not(HaveKey("app.kubernetes.io/foo")),
-			))
+			testLabels(podTemplate.Labels)
 		})
 
 		It("sets nothing if the instance has no labels", func() {
@@ -866,7 +834,6 @@ var _ = Describe("StatefulSet", func() {
 			Expect(pvcTemplate.Labels).To(BeNil())
 			podTemplate := statefulSet.Spec.Template
 			Expect(podTemplate.Labels).To(BeNil())
-
 		})
 	})
 })
