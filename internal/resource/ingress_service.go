@@ -9,15 +9,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (cluster *RabbitmqResourceBuilder) IngressService() (*corev1.Service, error) {
+func (builder *RabbitmqResourceBuilder) IngressService() (*corev1.Service, error) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Instance.ChildResourceName("ingress"),
-			Namespace: cluster.Instance.Namespace,
-			Labels:    metadata.Label(cluster.Instance.Name),
+			Name:      builder.Instance.ChildResourceName("ingress"),
+			Namespace: builder.Instance.Namespace,
+			Labels:    metadata.Label(builder.Instance.Name),
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: metadata.LabelSelector(cluster.Instance.Name),
+			Selector: metadata.LabelSelector(builder.Instance.Name),
 			Ports: []corev1.ServicePort{
 				{
 					Protocol: corev1.ProtocolTCP,
@@ -37,32 +37,33 @@ func (cluster *RabbitmqResourceBuilder) IngressService() (*corev1.Service, error
 			},
 		},
 	}
-	if err := controllerutil.SetControllerReference(cluster.Instance, service, cluster.DefaultConfiguration.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(builder.Instance, service, builder.DefaultConfiguration.Scheme); err != nil {
 		return nil, fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
-	cluster.setServiceParams(service)
-	cluster.UpdateServiceParams(service)
+	builder.setServiceParams(service)
+	builder.UpdateServiceParams(service)
 
 	return service, nil
 }
 
-func (cluster *RabbitmqResourceBuilder) setServiceParams(service *corev1.Service) {
+func (builder *RabbitmqResourceBuilder) setServiceParams(service *corev1.Service) {
 	var serviceType string
-	if cluster.Instance.Spec.Service.Type != "" {
-		serviceType = cluster.Instance.Spec.Service.Type
-	} else if cluster.DefaultConfiguration.ServiceType != "" {
-		serviceType = cluster.DefaultConfiguration.ServiceType
+	if builder.Instance.Spec.Service.Type != "" {
+		serviceType = builder.Instance.Spec.Service.Type
+	} else if builder.DefaultConfiguration.ServiceType != "" {
+		serviceType = builder.DefaultConfiguration.ServiceType
 	} else {
 		serviceType = "ClusterIP"
 	}
 	service.Spec.Type = corev1.ServiceType(serviceType)
 
-	service.Annotations = cluster.DefaultConfiguration.ServiceAnnotations
+	service.Annotations = builder.DefaultConfiguration.ServiceAnnotations
 }
 
-func (cluster *RabbitmqResourceBuilder) UpdateServiceParams(service *corev1.Service) {
-	if cluster.Instance.Spec.Service.Annotations != nil {
-		service.Annotations = cluster.Instance.Spec.Service.Annotations
+func (builder *RabbitmqResourceBuilder) UpdateServiceParams(service *corev1.Service) {
+	if builder.Instance.Spec.Service.Annotations != nil {
+		service.Annotations = builder.Instance.Spec.Service.Annotations
 	}
+	service.Labels = builder.updateLabels(service.Labels)
 }

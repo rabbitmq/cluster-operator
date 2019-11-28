@@ -754,17 +754,14 @@ var _ = Describe("StatefulSet", func() {
 			Expect(err).NotTo(HaveOccurred())
 			testLabels(statefulSet.Labels)
 		})
-		It("has the labels from the CRD on the PVC", func() {
-			statefulSet, _ := cluster.StatefulSet()
-			pvcTemplate := statefulSet.Spec.VolumeClaimTemplates[0]
-			testLabels(pvcTemplate.Labels)
-		})
+
 		It("has the labels from the CRD on the pod", func() {
 			statefulSet, _ := cluster.StatefulSet()
 			podTemplate := statefulSet.Spec.Template
 			testLabels(podTemplate.Labels)
 		})
 	})
+
 	Context("UpdateServiceParams", func() {
 		var statefulSet *appsv1.StatefulSet
 
@@ -806,14 +803,6 @@ var _ = Describe("StatefulSet", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			testLabels(statefulSet.Labels)
-		})
-
-		It("adds labels from the CRD on the PVC", func() {
-			err := cluster.UpdateStatefulSetParams(statefulSet)
-			Expect(err).NotTo(HaveOccurred())
-
-			pvcTemplate := statefulSet.Spec.VolumeClaimTemplates[0]
-			testLabels(pvcTemplate.Labels)
 		})
 
 		It("adds labels from the CRD on the pod", func() {

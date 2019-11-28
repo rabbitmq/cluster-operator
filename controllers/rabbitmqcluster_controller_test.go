@@ -157,6 +157,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 
 	Context("Custom Resource updates", func() {
+		var (
+			ingressServiceName string
+			statefulSetName    string
+		)
 		BeforeEach(func() {
 			managerConfig = resource.DefaultConfiguration{
 				ImagePullSecret: "pivotal-rmq-registry-access",
@@ -182,6 +186,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
+			ingressServiceName = rabbitmqCluster.ChildResourceName("ingress")
+			statefulSetName = rabbitmqCluster.ChildResourceName("server")
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 			waitForClusterCreation(rabbitmqCluster, client)
@@ -240,6 +246,25 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 				Expect(resourceRequirements.Requests).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Requests[corev1.ResourceMemory]))
 				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
+			})
+
+			When("CR labels are added", func() {
+				labels := make(map[string]string)
+				rabbitmqCluster.Labels = labels
+				rabbitmqCluster.Labels["foo"] = "bar"
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				Eventually(func() map[string]string {
+					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return service.Labels
+				}, 5).Should(HaveKeyWithValue("foo", "bar"))
+
+				Eventually(func() map[string]string {
+					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return sts.Labels
+				}, 10).Should(HaveKeyWithValue("foo", "bar"))
 			})
 		})
 	})

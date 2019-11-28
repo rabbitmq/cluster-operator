@@ -243,4 +243,21 @@ var _ = Context("IngressServices", func() {
 			Expect(nodePortService.ObjectMeta.Annotations).To(Equal(annotations))
 		})
 	})
+
+	Context("label inheritance", func() {
+		BeforeEach(func() {
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+		})
+
+		It("has the labels from the CRD on the ingress service", func() {
+			ingressService, err := cluster.IngressService()
+			Expect(err).NotTo(HaveOccurred())
+			testLabels(ingressService.Labels)
+		})
+	})
 })

@@ -163,7 +163,6 @@ func (cluster *RabbitmqResourceBuilder) UpdateStatefulSetParams(sts *appsv1.Stat
 	}
 
 	sts.Labels = cluster.updateLabels(sts.Labels)
-	sts.Spec.VolumeClaimTemplates[0].Labels = cluster.updateLabels(sts.Spec.VolumeClaimTemplates[0].Labels)
 	sts.Spec.Template.Labels = cluster.updateLabels(sts.Spec.Template.Labels)
 
 	return nil
