@@ -67,4 +67,20 @@ var _ = Describe("AdminSecret", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(decodedPassword)).To(Equal(24))
 	})
+
+	Context("label inheritance", func() {
+		BeforeEach(func() {
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+		})
+
+		It("has the labels from the CRD on the admin secret", func() {
+			adminSecret, _ := rabbitmqCluster.AdminSecret()
+			testLabels(adminSecret.Labels)
+		})
+	})
 })
