@@ -162,8 +162,8 @@ func (cluster *RabbitmqResourceBuilder) UpdateStatefulSetParams(sts *appsv1.Stat
 		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
 	}
 
-	sts.Labels = cluster.updateLabels(sts.Labels)
-	sts.Spec.Template.Labels = cluster.updateLabels(sts.Spec.Template.Labels)
+	cluster.updateLabels(&sts.ObjectMeta)
+	cluster.updateLabels(&sts.Spec.Template.ObjectMeta)
 
 	return nil
 }

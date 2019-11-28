@@ -65,5 +65,5 @@ func (builder *RabbitmqResourceBuilder) UpdateServiceParams(service *corev1.Serv
 	if builder.Instance.Spec.Service.Annotations != nil {
 		service.Annotations = builder.Instance.Spec.Service.Annotations
 	}
-	service.Labels = builder.updateLabels(service.Labels)
+	builder.updateLabels(&service.ObjectMeta)
 }

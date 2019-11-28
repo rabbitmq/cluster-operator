@@ -17,7 +17,7 @@ func (builder *RabbitmqResourceBuilder) RegistrySecret() *corev1.Secret {
 	registrySecret.Name = RegistrySecretName(builder.Instance.Name)
 	registrySecret.Data = builder.DefaultConfiguration.OperatorRegistrySecret.Data
 	registrySecret.Type = builder.DefaultConfiguration.OperatorRegistrySecret.Type
-	registrySecret.Labels = builder.updateLabels(registrySecret.Labels)
+	builder.updateLabels(&registrySecret.ObjectMeta)
 	return registrySecret
 }
 

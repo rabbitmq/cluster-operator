@@ -22,9 +22,6 @@ var _ = Describe("HeadlessService", func() {
 		cluster = resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
-	})
-
-	BeforeEach(func() {
 		service = cluster.HeadlessService()
 	})
 
@@ -58,5 +55,21 @@ var _ = Describe("HeadlessService", func() {
 			Protocol: corev1.ProtocolTCP,
 		}
 		Expect(service.Spec.Ports).Should(ConsistOf(epmdPort))
+	})
+
+	Context("label inheritance", func() {
+		BeforeEach(func() {
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+		})
+
+		It("has the labels from the CRD on the ingress service", func() {
+			headlessService := cluster.HeadlessService()
+			testLabels(headlessService.Labels)
+		})
 	})
 })
