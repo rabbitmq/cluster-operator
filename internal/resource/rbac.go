@@ -15,17 +15,20 @@ const (
 )
 
 func (builder *RabbitmqResourceBuilder) ServiceAccount() *corev1.ServiceAccount {
-	return &corev1.ServiceAccount{
+	serviceAccount := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: builder.Instance.Namespace,
 			Name:      builder.Instance.ChildResourceName(serviceAccountName),
 			Labels:    metadata.Label(builder.Instance.Name),
 		},
 	}
+
+	updateLabels(&serviceAccount.ObjectMeta, builder.Instance.Labels)
+	return serviceAccount
 }
 
 func (builder *RabbitmqResourceBuilder) Role() *rbacv1.Role {
-	return &rbacv1.Role{
+	role := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: builder.Instance.Namespace,
 			Name:      builder.Instance.ChildResourceName(roleName),
@@ -39,10 +42,12 @@ func (builder *RabbitmqResourceBuilder) Role() *rbacv1.Role {
 			},
 		},
 	}
+	updateLabels(&role.ObjectMeta, builder.Instance.Labels)
+	return role
 }
 
 func (builder *RabbitmqResourceBuilder) RoleBinding() *rbacv1.RoleBinding {
-	return &rbacv1.RoleBinding{
+	rolebinding := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: builder.Instance.Namespace,
 			Name:      builder.Instance.ChildResourceName(roleBindingName),
@@ -60,4 +65,6 @@ func (builder *RabbitmqResourceBuilder) RoleBinding() *rbacv1.RoleBinding {
 			},
 		},
 	}
+	updateLabels(&rolebinding.ObjectMeta, builder.Instance.Labels)
+	return rolebinding
 }

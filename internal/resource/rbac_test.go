@@ -43,6 +43,22 @@ var _ = Describe("RBAC", func() {
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
+
+		Context("label inheritance", func() {
+			BeforeEach(func() {
+				instance.Labels = map[string]string{
+					"app.kubernetes.io/foo": "bar",
+					"foo":                   "bar",
+					"rabbitmq":              "is-great",
+					"foo/app.kubernetes.io": "edgecase",
+				}
+			})
+
+			It("has the labels from the CRD on the service account", func() {
+				serviceAccount := cluster.ServiceAccount()
+				testLabels(serviceAccount.Labels)
+			})
+		})
 	})
 
 	Describe("GenerateRole", func() {
@@ -69,6 +85,21 @@ var _ = Describe("RBAC", func() {
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(cluster.Instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+		Context("label inheritance", func() {
+			BeforeEach(func() {
+				instance.Labels = map[string]string{
+					"app.kubernetes.io/foo": "bar",
+					"foo":                   "bar",
+					"rabbitmq":              "is-great",
+					"foo/app.kubernetes.io": "edgecase",
+				}
+			})
+
+			It("has the labels from the CRD on the role", func() {
+				role := cluster.Role()
+				testLabels(role.Labels)
+			})
 		})
 	})
 
@@ -99,6 +130,21 @@ var _ = Describe("RBAC", func() {
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(cluster.Instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+		Context("label inheritance", func() {
+			BeforeEach(func() {
+				instance.Labels = map[string]string{
+					"app.kubernetes.io/foo": "bar",
+					"foo":                   "bar",
+					"rabbitmq":              "is-great",
+					"foo/app.kubernetes.io": "edgecase",
+				}
+			})
+
+			It("has the labels from the CRD on the rolebinding", func() {
+				roleBinding := cluster.RoleBinding()
+				testLabels(roleBinding.Labels)
+			})
 		})
 	})
 })
