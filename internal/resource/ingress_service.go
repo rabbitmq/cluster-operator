@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (builder *RabbitmqResourceBuilder) IngressService() IngressServiceBuilder {
-	return IngressServiceBuilder{
+func (builder *RabbitmqResourceBuilder) IngressService() *IngressServiceBuilder {
+	return &IngressServiceBuilder{
 		Instance:             builder.Instance,
 		DefaultConfiguration: builder.DefaultConfiguration,
 	}
@@ -58,7 +58,10 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 	}
 
 	builder.setServiceParams(service)
-	builder.Update(service)
+	err := builder.Update(service)
+	if err != nil {
+		return nil, err
+	}
 
 	return service, nil
 }
@@ -77,11 +80,12 @@ func (builder *IngressServiceBuilder) setServiceParams(service *corev1.Service) 
 	service.Annotations = builder.DefaultConfiguration.ServiceAnnotations
 }
 
-func (builder *IngressServiceBuilder) Update(object runtime.Object) {
+func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
 	if builder.Instance.Spec.Service.Annotations != nil {
 		object.(*corev1.Service).Annotations = builder.Instance.Spec.Service.Annotations
 	}
 	updateLabels(&object.(*corev1.Service).ObjectMeta, builder.Instance.Labels)
+	return nil
 }
 
 func (builder *IngressServiceBuilder) updateLabels(objectMeta *metav1.ObjectMeta) {

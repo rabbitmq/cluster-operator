@@ -35,6 +35,7 @@ type ResourceBuilder interface {
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceBuilder, err error) {
 	headlessServiceBuilder := builder.HeadlessService()
 	builders = append(builders, headlessServiceBuilder)
+	builders = append(builders, builder.IngressService())
 
 	return builders, nil
 }

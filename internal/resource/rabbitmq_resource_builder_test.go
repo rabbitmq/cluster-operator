@@ -120,6 +120,9 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 		)
 
 		BeforeEach(func() {
+			scheme = runtime.NewScheme()
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			rabbitmqCluster = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				DefaultConfiguration: resource.DefaultConfiguration{
@@ -133,13 +136,13 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(len(resourceBuilders)).To(Equal(1))
+			Expect(len(resourceBuilders)).To(Equal(2))
 
 			resourceMap := checkForResourceBuilders(resourceBuilders)
 
 			expectedKeys := []string{
 				"0 - Service:test-rabbitmq-headless",
-				// "1 - Service:test-rabbitmq-ingress",
+				"1 - Service:test-rabbitmq-ingress",
 				// "2 - Service:test-rabbitmq-server",
 			}
 
