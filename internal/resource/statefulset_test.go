@@ -1,6 +1,8 @@
 package resource_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -21,20 +23,18 @@ var _ = Describe("StatefulSet", func() {
 		resourceRequirements resource.ResourceRequirements
 		defaultConfiguration resource.DefaultConfiguration
 		cluster              *resource.RabbitmqResourceBuilder
+		sts                  *appsv1.StatefulSet
 	)
 
 	Context("when creating a working StatefulSet with default settings", func() {
-		var (
-			sts      *appsv1.StatefulSet
+
+		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "foo",
 				},
 			}
-		)
-
-		BeforeEach(func() {
 			scheme = runtime.NewScheme()
 			rabbitmqv1beta1.AddToScheme(scheme)
 			defaultscheme.AddToScheme(scheme)
@@ -62,7 +62,9 @@ var _ = Describe("StatefulSet", func() {
 				Instance:             &instance,
 				DefaultConfiguration: defaultConfiguration,
 			}
-			sts, _ = cluster.StatefulSet()
+			stsBuilder := cluster.StatefulSet()
+			obj, _ := stsBuilder.Build()
+			sts = obj.(*appsv1.StatefulSet)
 		})
 
 		It("sets the right service name", func() {
@@ -396,6 +398,14 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("when creating a StatefulSet with non-default settings", func() {
 		BeforeEach(func() {
+			var (
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "foo",
+					},
+				}
+			)
 			instance = rabbitmqv1beta1.RabbitmqCluster{}
 			instance.Namespace = "foo"
 			instance.Name = "foo"
@@ -431,8 +441,10 @@ var _ = Describe("StatefulSet", func() {
 					Instance:             &instance,
 					DefaultConfiguration: defaultConfiguration,
 				}
-				statefulSet, _ := cluster.StatefulSet()
-				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 			})
 		})
 
@@ -446,8 +458,10 @@ var _ = Describe("StatefulSet", func() {
 					Instance:             &instance,
 					DefaultConfiguration: defaultConfiguration,
 				}
-				statefulSet, _ := cluster.StatefulSet()
-				Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("a-storage-class-name"))
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("a-storage-class-name"))
 			})
 		})
 
@@ -461,8 +475,10 @@ var _ = Describe("StatefulSet", func() {
 					Instance:             &instance,
 					DefaultConfiguration: defaultConfiguration,
 				}
-				statefulSet, _ := cluster.StatefulSet()
-				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				Expect(sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
 			})
 		})
 
@@ -476,9 +492,11 @@ var _ = Describe("StatefulSet", func() {
 					Instance:             &instance,
 					DefaultConfiguration: defaultConfiguration,
 				}
-				statefulSet, _ := cluster.StatefulSet()
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
 				q, _ := k8sresource.ParseQuantity("21Gi")
-				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
+				Expect(sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
 			})
 		})
 
@@ -492,9 +510,11 @@ var _ = Describe("StatefulSet", func() {
 					Instance:             &instance,
 					DefaultConfiguration: defaultConfiguration,
 				}
-				statefulSet, _ := cluster.StatefulSet()
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
 				q, _ := k8sresource.ParseQuantity("100Gi")
-				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
+				Expect(sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
 			})
 		})
 
@@ -508,9 +528,11 @@ var _ = Describe("StatefulSet", func() {
 					Instance:             &instance,
 					DefaultConfiguration: defaultConfiguration,
 				}
-				statefulSet, _ := cluster.StatefulSet()
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
 				q, _ := k8sresource.ParseQuantity("10Gi")
-				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
+				Expect(sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
 			})
 		})
 
@@ -524,12 +546,14 @@ var _ = Describe("StatefulSet", func() {
 					Instance:             &instance,
 					DefaultConfiguration: defaultConfiguration,
 				}
-				statefulSet, _ := cluster.StatefulSet()
-				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:3.8.0"))
-				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
+				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 
-				initContainer := extractContainer(statefulSet.Spec.Template.Spec.InitContainers, "copy-config")
+				initContainer := extractContainer(sts.Spec.Template.Spec.InitContainers, "copy-config")
 				Expect(initContainer.Image).To(Equal("my-private-repo/rabbitmq:3.8.0"))
 			})
 		})
@@ -555,11 +579,13 @@ var _ = Describe("StatefulSet", func() {
 							Instance:             &instance,
 							DefaultConfiguration: defaultConfiguration,
 						}
-						statefulSet, _ := cluster.StatefulSet()
+						stsBuilder := cluster.StatefulSet()
+						obj, _ := stsBuilder.Build()
+						sts = obj.(*appsv1.StatefulSet)
 						expectedCPULimit, _ := k8sresource.ParseQuantity("3m")
 						expectedMemoryLimit, _ := k8sresource.ParseQuantity("10Gi")
 
-						container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+						container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 						Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
 						Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPURequest)))
 
@@ -598,13 +624,15 @@ var _ = Describe("StatefulSet", func() {
 							DefaultConfiguration: defaultConfiguration,
 						}
 
-						statefulSet, _ := cluster.StatefulSet()
+						stsBuilder := cluster.StatefulSet()
+						obj, _ := stsBuilder.Build()
+						sts = obj.(*appsv1.StatefulSet)
 						expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
 						expectedMemoryRequest, _ := k8sresource.ParseQuantity("3Gi")
 						expectedCPULimit, _ := k8sresource.ParseQuantity("11m")
 						expectedMemoryLimit, _ := k8sresource.ParseQuantity("4Gi")
 
-						container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+						container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 						Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(expectedCPURequest))
 						Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
 						Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
@@ -615,6 +643,9 @@ var _ = Describe("StatefulSet", func() {
 
 			Context("CPU and memory requests are provided", func() {
 				BeforeEach(func() {
+					instance = rabbitmqv1beta1.RabbitmqCluster{}
+					instance.Namespace = "foo"
+					instance.Name = "foo"
 					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
 						Limit: resource.ComputeResource{
 							CPU:    "",
@@ -632,11 +663,13 @@ var _ = Describe("StatefulSet", func() {
 						Instance:             &instance,
 						DefaultConfiguration: defaultConfiguration,
 					}
-					statefulSet, _ := cluster.StatefulSet()
+					stsBuilder := cluster.StatefulSet()
+					obj, _ := stsBuilder.Build()
+					sts = obj.(*appsv1.StatefulSet)
 					expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
 					expectedMemoryRequest, _ := k8sresource.ParseQuantity("5Gi")
 
-					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 					Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryLimit)))
 					Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
 
@@ -647,6 +680,12 @@ var _ = Describe("StatefulSet", func() {
 
 			Context("both CPU and memory's limits plus requests are provided", func() {
 				BeforeEach(func() {
+					instance = rabbitmqv1beta1.RabbitmqCluster{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "foo",
+							Namespace: "foo",
+						},
+					}
 					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
 						Limit: resource.ComputeResource{
 							CPU:    "10m",
@@ -664,13 +703,15 @@ var _ = Describe("StatefulSet", func() {
 						Instance:             &instance,
 						DefaultConfiguration: defaultConfiguration,
 					}
-					statefulSet, _ := cluster.StatefulSet()
+					stsBuilder := cluster.StatefulSet()
+					obj, _ := stsBuilder.Build()
+					sts = obj.(*appsv1.StatefulSet)
 					expectedCPULimit, _ := k8sresource.ParseQuantity("10m")
 					expectedCPURequest, _ := k8sresource.ParseQuantity("1m")
 					expectedMemoryLimit, _ := k8sresource.ParseQuantity("5Gi")
 					expectedMemoryRequest, _ := k8sresource.ParseQuantity("1Gi")
 
-					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 					Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
 					Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
 
@@ -688,10 +729,12 @@ var _ = Describe("StatefulSet", func() {
 					Instance:             &instance,
 					DefaultConfiguration: defaultConfiguration,
 				}
-				statefulSet, _ := cluster.StatefulSet()
-				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("best-repository/rabbitmq:some-tag"))
-				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "foo-registry-access"}))
+				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "foo-registry-access"}))
 			})
 
 			It("uses the instance ImagePullSecret and image reference if it is provided", func() {
@@ -704,10 +747,12 @@ var _ = Describe("StatefulSet", func() {
 					DefaultConfiguration: defaultConfiguration,
 				}
 
-				statefulSet, _ := cluster.StatefulSet()
-				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:latest"))
-				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
+				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 			})
 		})
 
@@ -718,8 +763,10 @@ var _ = Describe("StatefulSet", func() {
 					Instance:             &instance,
 					DefaultConfiguration: defaultConfiguration,
 				}
-				statefulSet, _ := cluster.StatefulSet()
-				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				Expect(*sts.Spec.Replicas).To(Equal(int32(3)))
 			})
 		})
 	})
@@ -750,20 +797,26 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("has the labels from the CRD on the statefulset", func() {
-			statefulSet, err := cluster.StatefulSet()
-			Expect(err).NotTo(HaveOccurred())
-			testLabels(statefulSet.Labels)
+			stsBuilder := cluster.StatefulSet()
+			obj, _ := stsBuilder.Build()
+			sts = obj.(*appsv1.StatefulSet)
+			testLabels(sts.Labels)
 		})
 
 		It("has the labels from the CRD on the pod", func() {
-			statefulSet, _ := cluster.StatefulSet()
-			podTemplate := statefulSet.Spec.Template
+			stsBuilder := cluster.StatefulSet()
+			obj, _ := stsBuilder.Build()
+			sts = obj.(*appsv1.StatefulSet)
+			podTemplate := sts.Spec.Template
 			testLabels(podTemplate.Labels)
 		})
 	})
 
-	Context("UpdateServiceParams", func() {
-		var statefulSet *appsv1.StatefulSet
+	Context("Update", func() {
+		var (
+			statefulSet *appsv1.StatefulSet
+			stsBuilder  resource.StatefulSetBuilder
+		)
 
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{}
@@ -787,26 +840,26 @@ var _ = Describe("StatefulSet", func() {
 				Instance:             &instance,
 				DefaultConfiguration: defaultConfiguration,
 			}
-			statefulSet = &appsv1.StatefulSet{
-				Spec: appsv1.StatefulSetSpec{
-					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
-						corev1.PersistentVolumeClaim{
-							ObjectMeta: metav1.ObjectMeta{Name: "pvc"},
-						},
-					},
+
+			stsBuilder = cluster.StatefulSet()
+			obj, _ := stsBuilder.Build()
+			statefulSet = obj.(*appsv1.StatefulSet)
+			statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+				corev1.PersistentVolumeClaim{
+					ObjectMeta: metav1.ObjectMeta{Name: "pvc"},
 				},
 			}
 		})
 
 		It("adds labels from the CRD on the statefulset", func() {
-			err := cluster.UpdateStatefulSetParams(statefulSet)
+			err := stsBuilder.Update(statefulSet)
 			Expect(err).NotTo(HaveOccurred())
 
 			testLabels(statefulSet.Labels)
 		})
 
 		It("adds labels from the CRD on the pod", func() {
-			err := cluster.UpdateStatefulSetParams(statefulSet)
+			err := stsBuilder.Update(statefulSet)
 			Expect(err).NotTo(HaveOccurred())
 
 			podTemplate := statefulSet.Spec.Template
@@ -814,15 +867,24 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets nothing if the instance has no labels", func() {
-			cluster.Instance.Labels = nil
-			err := cluster.UpdateStatefulSetParams(statefulSet)
+			stsBuilder = cluster.StatefulSet()
+			stsBuilder.Instance.Labels = nil
+			obj, _ := stsBuilder.Build()
+			statefulSet = obj.(*appsv1.StatefulSet)
+			err := stsBuilder.Update(statefulSet)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(statefulSet.Labels).To(BeNil())
+			for label := range statefulSet.Labels {
+				Expect(strings.HasPrefix(label, "app.kubernetes.io")).To(BeTrue())
+			}
 			pvcTemplate := statefulSet.Spec.VolumeClaimTemplates[0]
-			Expect(pvcTemplate.Labels).To(BeNil())
+			for label := range pvcTemplate.Labels {
+				Expect(strings.HasPrefix(label, "app.kubernetes.io")).To(BeTrue())
+			}
 			podTemplate := statefulSet.Spec.Template
-			Expect(podTemplate.Labels).To(BeNil())
+			for label := range podTemplate.Labels {
+				Expect(strings.HasPrefix(label, "app.kubernetes.io")).To(BeTrue())
+			}
 		})
 	})
 })

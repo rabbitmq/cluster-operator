@@ -30,7 +30,7 @@ func (builder *RabbitmqResourceBuilder) HeadlessService() *corev1.Service {
 		},
 	}
 
-	builder.updateLabels(&service.ObjectMeta)
+	updateLabels(&service.ObjectMeta, builder.Instance.Labels)
 
 	return service
 }

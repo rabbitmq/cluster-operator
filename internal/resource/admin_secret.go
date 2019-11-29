@@ -34,6 +34,6 @@ func (builder *RabbitmqResourceBuilder) AdminSecret() (*corev1.Secret, error) {
 		},
 	}
 
-	builder.updateLabels(&secret.ObjectMeta)
+	updateLabels(&secret.ObjectMeta, builder.Instance.Labels)
 	return secret, nil
 }
