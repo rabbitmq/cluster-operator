@@ -144,6 +144,38 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return reconcile.Result{}, err
 	}
 
+	builders, err := resourceBuilder.ResourceBuilders()
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	for _, builder := range builders {
+		resource, err := builder.Build()
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+
+		//TODO this should be done in the builders
+		if err := controllerutil.SetControllerReference(rabbitmqCluster, resource.(metav1.Object), r.Scheme); err != nil {
+			logger.Error(err, "Failed setting controller reference")
+			return reconcile.Result{}, err
+		}
+
+		operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, resource, func() error {
+			return builder.Update(resource)
+		})
+
+		logger.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type %T",
+			operationResult,
+			resource.(metav1.Object).GetName(),
+			resource.(metav1.Object)))
+
+		if err != nil {
+			logger.Error(err, "Failed to CreateOrUpdate")
+			return reconcile.Result{}, err
+		}
+	}
+
 	if _, err = r.reconcileIngressService(resourceBuilder); err != nil {
 		return reconcile.Result{}, err
 	}

@@ -1,16 +1,34 @@
 package resource
 
 import (
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
 	headlessServiceName = "headless"
 )
 
-func (builder *RabbitmqResourceBuilder) HeadlessService() *corev1.Service {
+func (builder *RabbitmqResourceBuilder) HeadlessService() *HeadlessServiceBuilder {
+	return &HeadlessServiceBuilder{
+		Instance:             builder.Instance,
+		DefaultConfiguration: builder.DefaultConfiguration,
+	}
+}
+
+type HeadlessServiceBuilder struct {
+	Instance             *rabbitmqv1beta1.RabbitmqCluster
+	DefaultConfiguration DefaultConfiguration
+}
+
+func (builder *HeadlessServiceBuilder) Update(runtime.Object) error {
+	return nil
+}
+
+func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(headlessServiceName),
@@ -32,5 +50,5 @@ func (builder *RabbitmqResourceBuilder) HeadlessService() *corev1.Service {
 
 	updateLabels(&service.ObjectMeta, builder.Instance.Labels)
 
-	return service
+	return service, nil
 }

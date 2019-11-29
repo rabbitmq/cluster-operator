@@ -1,6 +1,8 @@
 package resource_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -11,7 +13,7 @@ import (
 var _ = Describe("HeadlessService", func() {
 	var (
 		instance rabbitmqv1beta1.RabbitmqCluster
-		cluster  resource.RabbitmqResourceBuilder
+		cluster  *resource.RabbitmqResourceBuilder
 		service  *corev1.Service
 	)
 
@@ -19,10 +21,12 @@ var _ = Describe("HeadlessService", func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
-		cluster = resource.RabbitmqResourceBuilder{
+		cluster = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
-		service = cluster.HeadlessService()
+		serviceBuilder := cluster.HeadlessService()
+		obj, _ := serviceBuilder.Build()
+		service = obj.(*corev1.Service)
 	})
 
 	It("generates a service object with the correct name", func() {
@@ -68,8 +72,58 @@ var _ = Describe("HeadlessService", func() {
 		})
 
 		It("has the labels from the CRD on the ingress service", func() {
-			headlessService := cluster.HeadlessService()
+			serviceBuilder := cluster.HeadlessService()
+			obj, _ := serviceBuilder.Build()
+			headlessService := obj.(*corev1.Service)
 			testLabels(headlessService.Labels)
+		})
+	})
+
+	Context("Update", func() {
+		var (
+			service        *corev1.Service
+			serviceBuilder *resource.HeadlessServiceBuilder
+		)
+
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance.Namespace = "foo"
+			instance.Name = "foo"
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+
+			cluster = &resource.RabbitmqResourceBuilder{
+				Instance: &instance,
+			}
+
+			serviceBuilder = cluster.HeadlessService()
+			obj, _ := serviceBuilder.Build()
+			service = obj.(*corev1.Service)
+		})
+
+		It("adds labels from the CRD on the headless service", func() {
+			err := serviceBuilder.Update(service)
+			Expect(err).NotTo(HaveOccurred())
+
+			testLabels(service.Labels)
+		})
+
+		It("sets nothing if the instance has no labels", func() {
+			serviceBuilder = cluster.HeadlessService()
+			serviceBuilder.Instance.Labels = nil
+			obj, _ := serviceBuilder.Build()
+			service = obj.(*corev1.Service)
+			err := serviceBuilder.Update(service)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Expect to have a set of labels that are always included
+			for label := range service.Labels {
+				Expect(strings.HasPrefix(label, "app.kubernetes.io")).To(BeTrue())
+			}
 		})
 	})
 })

@@ -32,12 +32,16 @@ type ResourceBuilder interface {
 	Build() (runtime.Object, error)
 }
 
+func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceBuilder, err error) {
+	headlessServiceBuilder := builder.HeadlessService()
+	builders = append(builders, headlessServiceBuilder)
+
+	return builders, nil
+}
+
 func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object, err error) {
 	serverConf := builder.ServerConfigMap()
 	resources = append(resources, serverConf)
-
-	headlessService := builder.HeadlessService()
-	resources = append(resources, headlessService)
 
 	adminSecret, err := builder.AdminSecret()
 	if err != nil {
