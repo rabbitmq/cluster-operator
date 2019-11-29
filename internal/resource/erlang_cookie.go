@@ -4,16 +4,30 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
 	erlangCookieName = "erlang-cookie"
 )
 
-func (builder *RabbitmqResourceBuilder) ErlangCookie() (*corev1.Secret, error) {
+type ErlangCookieBuilder struct {
+	Instance             *rabbitmqv1beta1.RabbitmqCluster
+	DefaultConfiguration DefaultConfiguration
+}
+
+func (builder *RabbitmqResourceBuilder) ErlangCookie() *ErlangCookieBuilder {
+	return &ErlangCookieBuilder{
+		Instance:             builder.Instance,
+		DefaultConfiguration: builder.DefaultConfiguration,
+	}
+}
+
+func (builder *ErlangCookieBuilder) Build() (runtime.Object, error) {
 	cookie, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
@@ -30,6 +44,11 @@ func (builder *RabbitmqResourceBuilder) ErlangCookie() (*corev1.Secret, error) {
 			".erlang.cookie": []byte(cookie),
 		},
 	}, nil
+}
+
+func (builder *ErlangCookieBuilder) Update(object runtime.Object) error {
+	updateLabels(&object.(*corev1.Secret).ObjectMeta, builder.Instance.Labels)
+	return nil
 }
 
 func randomEncodedString(dataLen int) (string, error) {

@@ -36,6 +36,7 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceB
 	headlessServiceBuilder := builder.HeadlessService()
 	builders = append(builders, headlessServiceBuilder)
 	builders = append(builders, builder.IngressService())
+	builders = append(builders, builder.ErlangCookie())
 
 	return builders, nil
 }
@@ -49,12 +50,6 @@ func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object,
 		return nil, fmt.Errorf("failed to generate admin secret: %v ", err)
 	}
 	resources = append(resources, adminSecret)
-
-	erlangCookie, err := builder.ErlangCookie()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate erlang cookie: %v ", err)
-	}
-	resources = append(resources, erlangCookie)
 
 	if builder.DefaultConfiguration.OperatorRegistrySecret != nil {
 		clusterRegistrySecret := builder.RegistrySecret()

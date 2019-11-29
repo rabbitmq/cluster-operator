@@ -36,8 +36,8 @@ var _ = Describe("StatefulSet", func() {
 				},
 			}
 			scheme = runtime.NewScheme()
-			rabbitmqv1beta1.AddToScheme(scheme)
-			defaultscheme.AddToScheme(scheme)
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
 			resourceRequirements = resource.ResourceRequirements{
 				Limit: resource.ComputeResource{
@@ -411,8 +411,8 @@ var _ = Describe("StatefulSet", func() {
 			instance.Name = "foo"
 
 			scheme = runtime.NewScheme()
-			rabbitmqv1beta1.AddToScheme(scheme)
-			defaultscheme.AddToScheme(scheme)
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
 			resourceRequirements = resource.ResourceRequirements{
 				Limit: resource.ComputeResource{
@@ -784,8 +784,8 @@ var _ = Describe("StatefulSet", func() {
 			}
 
 			scheme = runtime.NewScheme()
-			rabbitmqv1beta1.AddToScheme(scheme)
-			defaultscheme.AddToScheme(scheme)
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
 			defaultConfiguration = resource.DefaultConfiguration{
 				Scheme: scheme,
@@ -830,8 +830,8 @@ var _ = Describe("StatefulSet", func() {
 			}
 
 			scheme = runtime.NewScheme()
-			rabbitmqv1beta1.AddToScheme(scheme)
-			defaultscheme.AddToScheme(scheme)
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
 			defaultConfiguration = resource.DefaultConfiguration{
 				Scheme: scheme,
