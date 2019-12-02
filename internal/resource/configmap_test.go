@@ -20,54 +20,112 @@ queue_master_locator = min-masters`
 var _ = Describe("GenerateServerConfigMap", func() {
 	var (
 		confMap  *corev1.ConfigMap
-		instance = rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: v1.ObjectMeta{
-				Name:      "a-name",
-				Namespace: "a-namespace",
-			},
-		}
-
-		cluster *resource.RabbitmqResourceBuilder
+		instance rabbitmqv1beta1.RabbitmqCluster
+		builder  *resource.RabbitmqResourceBuilder
 	)
 
-	BeforeEach(func() {
-		cluster = &resource.RabbitmqResourceBuilder{
-			Instance: &instance,
-		}
-		confMap = cluster.ServerConfigMap()
+	Context("Create", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "a name",
+					Namespace: "a namespace",
+				},
+			}
+			builder = &resource.RabbitmqResourceBuilder{
+				Instance: &instance,
+			}
+			confMap = builder.ServerConfigMap()
+		})
+
+		It("generates a ConfigMap with the correct name and namespace", func() {
+			Expect(confMap.Name).To(Equal(builder.Instance.ChildResourceName("server-conf")))
+			Expect(confMap.Namespace).To(Equal(builder.Instance.Namespace))
+		})
+
+		It("generates a ConfigMap with required labels", func() {
+			labels := confMap.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(builder.Instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+
+		It("generates a ConfigMap with required object fields", func() {
+			expectedEnabledPlugins := "[" +
+				"rabbitmq_management," +
+				"rabbitmq_peer_discovery_k8s," +
+				"rabbitmq_federation," +
+				"rabbitmq_federation_management," +
+				"rabbitmq_shovel," +
+				"rabbitmq_shovel_management," +
+				"rabbitmq_prometheus]."
+
+			plugins, ok := confMap.Data["enabled_plugins"]
+			Expect(ok).To(BeTrue())
+			Expect(plugins).To(Equal(expectedEnabledPlugins))
+		})
+
+		It("generates a rabbitmq conf with the required configurations", func() {
+			rabbitmqConf, ok := confMap.Data["rabbitmq.conf"]
+			Expect(ok).To(BeTrue())
+			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
+		})
 	})
 
-	It("generates a ConfigMap with the correct name and namespace", func() {
-		Expect(confMap.Name).To(Equal(cluster.Instance.ChildResourceName("server-conf")))
-		Expect(confMap.Namespace).To(Equal(cluster.Instance.Namespace))
+	When("instance labels are empty", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "a name",
+					Namespace: "a namespace",
+				},
+			}
+
+			builder = &resource.RabbitmqResourceBuilder{
+				Instance: &instance,
+			}
+			confMap = builder.ServerConfigMap()
+		})
+
+		It("only creates the required labels", func() {
+			labels := confMap.Labels
+			Expect(len(labels)).To(Equal(3))
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
 	})
 
-	It("generates a ConfigMap with required labels", func() {
-		labels := confMap.Labels
-		Expect(labels["app.kubernetes.io/name"]).To(Equal(cluster.Instance.Name))
-		Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-		Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+	When("instance labels are not empty", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "a name",
+					Namespace: "a namespace",
+					Labels: map[string]string{
+						"app.kubernetes.io/foo": "bar",
+						"foo":                   "bar",
+						"rabbitmq":              "is-great",
+						"foo/app.kubernetes.io": "edgecase",
+					},
+				},
+			}
+
+			builder = &resource.RabbitmqResourceBuilder{
+				Instance: &instance,
+			}
+			confMap = builder.ServerConfigMap()
+		})
+
+		It("has the labels from the CRD on the confMap", func() {
+			testLabels(confMap.Labels)
+		})
+
+		It("also has the required labels", func() {
+			labels := confMap.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
 	})
-
-	It("generates a ConfigMap with required object fields", func() {
-		expectedEnabledPlugins := "[" +
-			"rabbitmq_management," +
-			"rabbitmq_peer_discovery_k8s," +
-			"rabbitmq_federation," +
-			"rabbitmq_federation_management," +
-			"rabbitmq_shovel," +
-			"rabbitmq_shovel_management," +
-			"rabbitmq_prometheus]."
-
-		plugins, ok := confMap.Data["enabled_plugins"]
-		Expect(ok).To(BeTrue())
-		Expect(plugins).To(Equal(expectedEnabledPlugins))
-	})
-
-	It("generates a rabbitmq conf with the required configurations", func() {
-		rabbitmqConf, ok := confMap.Data["rabbitmq.conf"]
-		Expect(ok).To(BeTrue())
-		Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
-	})
-
 })

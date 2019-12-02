@@ -13,7 +13,8 @@ const (
 )
 
 func (builder *RabbitmqResourceBuilder) ServerConfigMap() *corev1.ConfigMap {
-	return &corev1.ConfigMap{
+
+	serverConfig := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(serverConfigMapName),
 			Namespace: builder.Instance.Namespace,
@@ -40,4 +41,6 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *corev1.ConfigMap {
 			}, "\n"),
 		},
 	}
+	updateLabels(&serverConfig.ObjectMeta, builder.Instance.Labels)
+	return serverConfig
 }
