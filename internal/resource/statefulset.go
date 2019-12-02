@@ -183,9 +183,8 @@ func (builder *StatefulSetBuilder) Update(sts runtime.Object) error {
 func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSetConfigureation StatefulSetConfiguration) ([]corev1.PersistentVolumeClaim, error) {
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "persistence",
-			Namespace: instance.GetNamespace(),
-			Labels:    metadata.Label(instance.Name),
+			Name:   "persistence",
+			Labels: metadata.Label(instance.Name),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.ResourceRequirements{

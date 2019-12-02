@@ -28,7 +28,6 @@ import (
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -316,11 +315,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 
 			It("creates the registry secret", func() {
-				Eventually(func() error {
-					_, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
-					return err
-				}, 5).Should(Succeed())
-
+				_, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
 				stsName := rabbitmqCluster.ChildResourceName("server")
 				sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: secretName}))
@@ -474,34 +470,22 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 
 	By("creating a service account", func() {
 		name := rabbitmqCluster.ChildResourceName("server")
-		var serviceAccount *corev1.ServiceAccount
-		Eventually(func() error {
-			var err error
-			serviceAccount, err = clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
-			return err
-		}, 5).Should(Succeed())
+		serviceAccount, err := clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
 		Expect(serviceAccount.Name).To(Equal(name))
 	})
 
 	By("creating a role", func() {
 		name := rabbitmqCluster.ChildResourceName("endpoint-discovery")
-		var role *rbacv1.Role
-		Eventually(func() error {
-			var err error
-			role, err = clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
-			return err
-		}, 5).Should(Succeed())
-		Expect(role.Name).To(Equal(name))
+		serviceAccount, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(serviceAccount.Name).To(Equal(name))
 	})
 
 	By("creating a role binding", func() {
 		name := rabbitmqCluster.ChildResourceName("server")
-		var roleBinding *rbacv1.RoleBinding
-		Eventually(func() error {
-			var err error
-			roleBinding, err = clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
-			return err
-		}, 5).Should(Succeed())
-		Expect(roleBinding.Name).To(Equal(name))
+		serviceAccount, err := clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(serviceAccount.Name).To(Equal(name))
 	})
 }
