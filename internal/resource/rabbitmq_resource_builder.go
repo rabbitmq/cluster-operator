@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"strings"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -33,10 +32,10 @@ type ResourceBuilder interface {
 }
 
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceBuilder, err error) {
-	headlessServiceBuilder := builder.HeadlessService()
-	builders = append(builders, headlessServiceBuilder)
+	builders = append(builders, builder.HeadlessService())
 	builders = append(builders, builder.IngressService())
 	builders = append(builders, builder.ErlangCookie())
+	builders = append(builders, builder.AdminSecret())
 
 	return builders, nil
 }
@@ -44,12 +43,6 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceB
 func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object, err error) {
 	serverConf := builder.ServerConfigMap()
 	resources = append(resources, serverConf)
-
-	adminSecret, err := builder.AdminSecret()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate admin secret: %v ", err)
-	}
-	resources = append(resources, adminSecret)
 
 	if builder.DefaultConfiguration.OperatorRegistrySecret != nil {
 		clusterRegistrySecret := builder.RegistrySecret()

@@ -3,6 +3,7 @@ package resource_test
 import (
 	b64 "encoding/base64"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo"
@@ -14,26 +15,30 @@ import (
 
 var _ = Describe("AdminSecret", func() {
 	var (
-		secret          *corev1.Secret
-		instance        rabbitmqv1beta1.RabbitmqCluster
-		rabbitmqCluster *resource.RabbitmqResourceBuilder
+		secret             *corev1.Secret
+		instance           rabbitmqv1beta1.RabbitmqCluster
+		rabbitmqCluster    *resource.RabbitmqResourceBuilder
+		adminSecretBuilder *resource.AdminSecretBuilder
 	)
 
-	Context("create", func() {
-		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "a name",
-					Namespace: "a namespace",
-				},
-			}
-			var err error
+	BeforeEach(func() {
+		instance = rabbitmqv1beta1.RabbitmqCluster{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "a name",
+				Namespace: "a namespace",
+			},
+		}
+		rabbitmqCluster = &resource.RabbitmqResourceBuilder{
+			Instance: &instance,
+		}
+		adminSecretBuilder = rabbitmqCluster.AdminSecret()
+	})
 
-			rabbitmqCluster = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-			}
-			secret, err = rabbitmqCluster.AdminSecret()
+	Context("Build", func() {
+		BeforeEach(func() {
+			obj, err := adminSecretBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
+			secret = obj.(*corev1.Secret)
 		})
 
 		It("creates the secret with correct name and namespace", func() {
@@ -61,24 +66,6 @@ var _ = Describe("AdminSecret", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(decodedPassword)).To(Equal(24))
 		})
-	})
-
-	When("instance labels are empty", func() {
-		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "a name",
-					Namespace: "a namespace",
-				},
-			}
-			var err error
-
-			rabbitmqCluster = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-			}
-			secret, err = rabbitmqCluster.AdminSecret()
-			Expect(err).NotTo(HaveOccurred())
-		})
 
 		It("only creates the required labels", func() {
 			labels := secret.Labels
@@ -89,27 +76,18 @@ var _ = Describe("AdminSecret", func() {
 		})
 	})
 
-	When("instance labels are not empty", func() {
+	Context("Build with labels on CR", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "a name",
-					Namespace: "a namespace",
-					Labels: map[string]string{
-						"app.kubernetes.io/foo": "bar",
-						"foo":                   "bar",
-						"rabbitmq":              "is-great",
-						"foo/app.kubernetes.io": "edgecase",
-					},
-				},
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
 			}
-			var err error
 
-			rabbitmqCluster = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-			}
-			secret, err = rabbitmqCluster.AdminSecret()
+			obj, err := adminSecretBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
+			secret = obj.(*corev1.Secret)
 		})
 
 		It("has the labels from the CRD on the admin secret", func() {
@@ -121,6 +99,36 @@ var _ = Describe("AdminSecret", func() {
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+	})
+
+	Context("Update", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+
+			secret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app.kubernetes.io/name": "rabbit-labelled",
+					},
+				},
+			}
+			err := adminSecretBuilder.Update(secret)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("adds labels from the CRD on the erlang cookie secret", func() {
+			testLabels(secret.Labels)
+		})
+
+		It("persists the labels it had before Update", func() {
+			Expect(secret.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", "rabbit-labelled"))
 		})
 	})
 })

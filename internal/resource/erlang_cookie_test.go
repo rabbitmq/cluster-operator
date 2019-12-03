@@ -81,13 +81,18 @@ var _ = Describe("ErlangCookie", func() {
 		It("has the labels from the CRD on the erlang cookie secret", func() {
 			testLabels(secret.Labels)
 		})
+
+		It("also has the required labels", func() {
+			labels := secret.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
 	})
 
 	Context("Update", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{}
-			instance.Namespace = "rabbit-labelled"
-			instance.Name = "rabbit-labelled"
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
 				"foo":                   "bar",

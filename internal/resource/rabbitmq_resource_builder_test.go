@@ -51,17 +51,16 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				resources, err := rabbitmqCluster.Resources()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(len(resources)).To(Equal(6))
+				Expect(len(resources)).To(Equal(5))
 
 				resourceMap := checkForResources(resources)
 
 				expectedKeys := []string{
 					"0 - ConfigMap:test-rabbitmq-server-conf",
-					"1 - Secret:test-rabbitmq-admin",
-					"2 - Secret:test-registry-access",
-					"3 - ServiceAccount:test-rabbitmq-server",
-					"4 - Role:test-rabbitmq-endpoint-discovery",
-					"5 - RoleBinding:test-rabbitmq-server",
+					"1 - Secret:test-registry-access",
+					"2 - ServiceAccount:test-rabbitmq-server",
+					"3 - Role:test-rabbitmq-endpoint-discovery",
+					"4 - RoleBinding:test-rabbitmq-server",
 				}
 
 				for index := range expectedKeys {
@@ -85,16 +84,15 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			It("returns the required resources in the expected order", func() {
 				resources, err := rabbitmqCluster.Resources()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(resources)).To(Equal(5))
+				Expect(len(resources)).To(Equal(4))
 
 				resourceMap := checkForResources(resources)
 
 				expectedKeys := []string{
 					"0 - ConfigMap:test-rabbitmq-server-conf",
-					"1 - Secret:test-rabbitmq-admin",
-					"2 - ServiceAccount:test-rabbitmq-server",
-					"3 - Role:test-rabbitmq-endpoint-discovery",
-					"4 - RoleBinding:test-rabbitmq-server",
+					"1 - ServiceAccount:test-rabbitmq-server",
+					"2 - Role:test-rabbitmq-endpoint-discovery",
+					"3 - RoleBinding:test-rabbitmq-server",
 				}
 
 				for index := range expectedKeys {
@@ -134,7 +132,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(len(resourceBuilders)).To(Equal(3))
+			Expect(len(resourceBuilders)).To(Equal(4))
 
 			resourceMap := checkForResourceBuilders(resourceBuilders)
 
@@ -142,6 +140,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				"0 - Service:test-rabbitmq-headless",
 				"1 - Service:test-rabbitmq-ingress",
 				"2 - Secret:test-rabbitmq-erlang-cookie",
+				"3 - Secret:test-rabbitmq-admin",
 			}
 
 			for index := range expectedKeys {
