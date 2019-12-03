@@ -176,10 +176,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
-	if _, err = r.reconcileIngressService(resourceBuilder); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	if _, err = r.reconcileStatefulset(resourceBuilder); err != nil {
 		return reconcile.Result{}, err
 	}
