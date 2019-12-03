@@ -33,7 +33,7 @@ func (builder *ErlangCookieBuilder) Build() (runtime.Object, error) {
 		return nil, err
 	}
 
-	return &corev1.Secret{
+	erlangCookie := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(erlangCookieName),
 			Namespace: builder.Instance.Namespace,
@@ -43,7 +43,10 @@ func (builder *ErlangCookieBuilder) Build() (runtime.Object, error) {
 		Data: map[string][]byte{
 			".erlang.cookie": []byte(cookie),
 		},
-	}, nil
+	}
+
+	updateLabels(&erlangCookie.ObjectMeta, builder.Instance.Labels)
+	return erlangCookie, nil
 }
 
 func (builder *ErlangCookieBuilder) Update(object runtime.Object) error {
