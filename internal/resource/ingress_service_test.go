@@ -286,4 +286,34 @@ var _ = Context("IngressServices", func() {
 			testLabels(ingressService.Labels)
 		})
 	})
+
+	Context("Update", func() {
+		var (
+			serviceBuilder *resource.IngressServiceBuilder
+			ingressService *corev1.Service
+			annotations    = map[string]string{"service_annotation_123": "0.0.0.0/0"}
+		)
+
+		BeforeEach(func() {
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+			instance.Spec.Service.Annotations = annotations
+			serviceBuilder = rmqBuilder.IngressService()
+			ingressService = &corev1.Service{}
+		})
+
+		It("updates the labels on the ingress service", func() {
+			Expect(serviceBuilder.Update(ingressService)).To(Succeed())
+			testLabels(ingressService.Labels)
+		})
+
+		It("updates the service annotations", func() {
+			Expect(serviceBuilder.Update(ingressService)).To(Succeed())
+			Expect(ingressService.ObjectMeta.Annotations).To(Equal(annotations))
+		})
+	})
 })

@@ -2,7 +2,6 @@ package resource
 
 import (
 	"fmt"
-	"strings"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
@@ -58,10 +57,8 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 	}
 
 	builder.setServiceParams(service)
-	err := builder.Update(service)
-	if err != nil {
-		return nil, err
-	}
+	builder.setAnnotations(service)
+	updateLabels(&service.ObjectMeta, builder.Instance.Labels)
 
 	return service, nil
 }
@@ -81,23 +78,13 @@ func (builder *IngressServiceBuilder) setServiceParams(service *corev1.Service) 
 }
 
 func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
-	if builder.Instance.Spec.Service.Annotations != nil {
-		object.(*corev1.Service).Annotations = builder.Instance.Spec.Service.Annotations
-	}
+	builder.setAnnotations(object)
 	updateLabels(&object.(*corev1.Service).ObjectMeta, builder.Instance.Labels)
 	return nil
 }
 
-func (builder *IngressServiceBuilder) updateLabels(objectMeta *metav1.ObjectMeta) {
-	if builder.Instance.Labels != nil {
-		if objectMeta.Labels == nil {
-			objectMeta.Labels = make(map[string]string)
-		}
-		for label, value := range builder.Instance.Labels {
-			if !strings.HasPrefix(label, "app.kubernetes.io") {
-				// TODO if a label is in the StatefulSet and in the CR, the value in the CR will overwrite the value in STS
-				objectMeta.Labels[label] = value
-			}
-		}
+func (builder *IngressServiceBuilder) setAnnotations(object runtime.Object) {
+	if builder.Instance.Spec.Service.Annotations != nil {
+		object.(*corev1.Service).Annotations = builder.Instance.Spec.Service.Annotations
 	}
 }
