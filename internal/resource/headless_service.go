@@ -24,7 +24,8 @@ type HeadlessServiceBuilder struct {
 	DefaultConfiguration DefaultConfiguration
 }
 
-func (builder *HeadlessServiceBuilder) Update(runtime.Object) error {
+func (builder *HeadlessServiceBuilder) Update(service runtime.Object) error {
+	updateLabels(&service.(*corev1.Service).ObjectMeta, builder.Instance.Labels)
 	return nil
 }
 
