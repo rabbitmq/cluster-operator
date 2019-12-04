@@ -3,17 +3,35 @@ package resource
 import (
 	"strings"
 
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
 	serverConfigMapName = "server-conf"
 )
 
-func (builder *RabbitmqResourceBuilder) ServerConfigMap() *corev1.ConfigMap {
+type ServerConfigMapBuilder struct {
+	Instance             *rabbitmqv1beta1.RabbitmqCluster
+	DefaultConfiguration DefaultConfiguration
+}
 
+func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilder {
+	return &ServerConfigMapBuilder{
+		Instance:             builder.Instance,
+		DefaultConfiguration: builder.DefaultConfiguration,
+	}
+}
+
+func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
+	updateLabels(&object.(*corev1.ConfigMap).ObjectMeta, builder.Instance.Labels)
+	return nil
+}
+
+func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 	serverConfig := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(serverConfigMapName),
@@ -42,5 +60,5 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *corev1.ConfigMap {
 		},
 	}
 	updateLabels(&serverConfig.ObjectMeta, builder.Instance.Labels)
-	return serverConfig
+	return serverConfig, nil
 }

@@ -6,6 +6,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -19,23 +20,30 @@ queue_master_locator = min-masters`
 
 var _ = Describe("GenerateServerConfigMap", func() {
 	var (
-		confMap  *corev1.ConfigMap
-		instance rabbitmqv1beta1.RabbitmqCluster
-		builder  *resource.RabbitmqResourceBuilder
+		confMap          *corev1.ConfigMap
+		instance         rabbitmqv1beta1.RabbitmqCluster
+		configMapBuilder *resource.ServerConfigMapBuilder
+		builder          *resource.RabbitmqResourceBuilder
 	)
 
-	Context("Create", func() {
+	BeforeEach(func() {
+		instance = rabbitmqv1beta1.RabbitmqCluster{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "a name",
+				Namespace: "a namespace",
+			},
+		}
+		builder = &resource.RabbitmqResourceBuilder{
+			Instance: &instance,
+		}
+		configMapBuilder = builder.ServerConfigMap()
+	})
+
+	Context("Build", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "a name",
-					Namespace: "a namespace",
-				},
-			}
-			builder = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-			}
-			confMap = builder.ServerConfigMap()
+			obj, err := configMapBuilder.Build()
+			confMap = obj.(*corev1.ConfigMap)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("generates a ConfigMap with the correct name and namespace", func() {
@@ -70,22 +78,6 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			Expect(ok).To(BeTrue())
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
-	})
-
-	When("instance labels are empty", func() {
-		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "a name",
-					Namespace: "a namespace",
-				},
-			}
-
-			builder = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-			}
-			confMap = builder.ServerConfigMap()
-		})
 
 		It("only creates the required labels", func() {
 			labels := confMap.Labels
@@ -96,25 +88,18 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 	})
 
-	When("instance labels are not empty", func() {
+	Context("Build with instance that has labels", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "a name",
-					Namespace: "a namespace",
-					Labels: map[string]string{
-						"app.kubernetes.io/foo": "bar",
-						"foo":                   "bar",
-						"rabbitmq":              "is-great",
-						"foo/app.kubernetes.io": "edgecase",
-					},
-				},
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
 			}
 
-			builder = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-			}
-			confMap = builder.ServerConfigMap()
+			obj, err := configMapBuilder.Build()
+			confMap = obj.(*corev1.ConfigMap)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("has the labels from the CRD on the confMap", func() {
@@ -126,6 +111,34 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+	})
+
+	Context("Update", func() {
+		BeforeEach(func() {
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+
+			confMap = &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app.kubernetes.io/name": "rabbit-labelled",
+					},
+				},
+			}
+			Expect(configMapBuilder.Update(confMap)).To(Succeed())
+		})
+
+		It("adds labels from the CRD on the config Map", func() {
+			testLabels(confMap.Labels)
+		})
+
+		It("persists the labels it had before Update", func() {
+			Expect(confMap.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", "rabbit-labelled"))
 		})
 	})
 })

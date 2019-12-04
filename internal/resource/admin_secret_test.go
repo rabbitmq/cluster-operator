@@ -123,7 +123,7 @@ var _ = Describe("AdminSecret", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("adds labels from the CRD on the erlang cookie secret", func() {
+		It("adds labels from the CRD on the admin secret", func() {
 			testLabels(secret.Labels)
 		})
 

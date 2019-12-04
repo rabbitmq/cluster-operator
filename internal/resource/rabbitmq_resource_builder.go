@@ -36,14 +36,12 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceB
 	builders = append(builders, builder.IngressService())
 	builders = append(builders, builder.ErlangCookie())
 	builders = append(builders, builder.AdminSecret())
+	builders = append(builders, builder.ServerConfigMap())
 
 	return builders, nil
 }
 
 func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object, err error) {
-	serverConf := builder.ServerConfigMap()
-	resources = append(resources, serverConf)
-
 	if builder.DefaultConfiguration.OperatorRegistrySecret != nil {
 		clusterRegistrySecret := builder.RegistrySecret()
 		resources = append(resources, clusterRegistrySecret)
