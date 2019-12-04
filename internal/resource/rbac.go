@@ -8,28 +8,27 @@ import (
 )
 
 const (
-	roleName        = "endpoint-discovery"
 	roleBindingName = "server"
 )
 
-func (builder *RabbitmqResourceBuilder) Role() *rbacv1.Role {
-	role := &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: builder.Instance.Namespace,
-			Name:      builder.Instance.ChildResourceName(roleName),
-			Labels:    metadata.Label(builder.Instance.Name),
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups: []string{""},
-				Resources: []string{"endpoints"},
-				Verbs:     []string{"get"},
-			},
-		},
-	}
-	updateLabels(&role.ObjectMeta, builder.Instance.Labels)
-	return role
-}
+// func (builder *RabbitmqResourceBuilder) Role() *rbacv1.Role {
+// 	role := &rbacv1.Role{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Namespace: builder.Instance.Namespace,
+// 			Name:      builder.Instance.ChildResourceName(roleName),
+// 			Labels:    metadata.Label(builder.Instance.Name),
+// 		},
+// 		Rules: []rbacv1.PolicyRule{
+// 			{
+// 				APIGroups: []string{""},
+// 				Resources: []string{"endpoints"},
+// 				Verbs:     []string{"get"},
+// 			},
+// 		},
+// 	}
+// 	updateLabels(&role.ObjectMeta, builder.Instance.Labels)
+// 	return role
+// }
 
 func (builder *RabbitmqResourceBuilder) RoleBinding() *rbacv1.RoleBinding {
 	rolebinding := &rbacv1.RoleBinding{

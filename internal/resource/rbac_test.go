@@ -28,48 +28,6 @@ var _ = Describe("RBAC", func() {
 		}
 	})
 
-	Describe("GenerateRole", func() {
-		var role *rbacv1.Role
-		BeforeEach(func() {
-			cluster = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-			}
-			role = cluster.Role()
-		})
-		It("generates a correct service account", func() {
-			Expect(role.Namespace).To(Equal(cluster.Instance.Namespace))
-			Expect(role.Name).To(Equal(instance.ChildResourceName("endpoint-discovery")))
-
-			Expect(len(role.Rules)).To(Equal(1))
-
-			rule := role.Rules[0]
-			Expect(rule.APIGroups).To(Equal([]string{""}))
-			Expect(rule.Resources).To(Equal([]string{"endpoints"}))
-			Expect(rule.Verbs).To(Equal([]string{"get"}))
-		})
-		It("adds the required labels", func() {
-			labels := role.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(cluster.Instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-		Context("label inheritance", func() {
-			BeforeEach(func() {
-				instance.Labels = map[string]string{
-					"app.kubernetes.io/foo": "bar",
-					"foo":                   "bar",
-					"rabbitmq":              "is-great",
-					"foo/app.kubernetes.io": "edgecase",
-				}
-			})
-
-			It("has the labels from the CRD on the role", func() {
-				role := cluster.Role()
-				testLabels(role.Labels)
-			})
-		})
-	})
-
 	Describe("GenerateRoleBinding", func() {
 		var roleBinding *rbacv1.RoleBinding
 		BeforeEach(func() {

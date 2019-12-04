@@ -38,6 +38,7 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceB
 	builders = append(builders, builder.AdminSecret())
 	builders = append(builders, builder.ServerConfigMap())
 	builders = append(builders, builder.ServiceAccount())
+	builders = append(builders, builder.Role())
 
 	return builders, nil
 }
@@ -47,9 +48,6 @@ func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object,
 		clusterRegistrySecret := builder.RegistrySecret()
 		resources = append(resources, clusterRegistrySecret)
 	}
-
-	role := builder.Role()
-	resources = append(resources, role)
 
 	roleBinding := builder.RoleBinding()
 	resources = append(resources, roleBinding)
