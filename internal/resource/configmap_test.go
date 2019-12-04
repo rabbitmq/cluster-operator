@@ -51,13 +51,6 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			Expect(confMap.Namespace).To(Equal(builder.Instance.Namespace))
 		})
 
-		It("generates a ConfigMap with required labels", func() {
-			labels := confMap.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(builder.Instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-
 		It("generates a ConfigMap with required object fields", func() {
 			expectedEnabledPlugins := "[" +
 				"rabbitmq_management," +

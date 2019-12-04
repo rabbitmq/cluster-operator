@@ -4,7 +4,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -13,9 +12,8 @@ import (
 
 var _ = Describe("RBAC", func() {
 	var (
-		instance       rabbitmqv1beta1.RabbitmqCluster
-		serviceAccount *corev1.ServiceAccount
-		cluster        *resource.RabbitmqResourceBuilder
+		instance rabbitmqv1beta1.RabbitmqCluster
+		cluster  *resource.RabbitmqResourceBuilder
 	)
 
 	BeforeEach(func() {
@@ -28,37 +26,6 @@ var _ = Describe("RBAC", func() {
 		cluster = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
-		serviceAccount = cluster.ServiceAccount()
-	})
-
-	Describe("GenerateServiceAccount", func() {
-		It("generates a correct service account", func() {
-			Expect(serviceAccount.Namespace).To(Equal(cluster.Instance.Namespace))
-			Expect(serviceAccount.Name).To(Equal(instance.ChildResourceName("server")))
-		})
-
-		It("adds the required labels", func() {
-			labels := serviceAccount.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(cluster.Instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-
-		Context("label inheritance", func() {
-			BeforeEach(func() {
-				instance.Labels = map[string]string{
-					"app.kubernetes.io/foo": "bar",
-					"foo":                   "bar",
-					"rabbitmq":              "is-great",
-					"foo/app.kubernetes.io": "edgecase",
-				}
-			})
-
-			It("has the labels from the CRD on the service account", func() {
-				serviceAccount := cluster.ServiceAccount()
-				testLabels(serviceAccount.Labels)
-			})
-		})
 	})
 
 	Describe("GenerateRole", func() {

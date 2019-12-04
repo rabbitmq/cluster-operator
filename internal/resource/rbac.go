@@ -1,7 +1,6 @@
 package resource
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -9,23 +8,9 @@ import (
 )
 
 const (
-	serviceAccountName = "server"
-	roleName           = "endpoint-discovery"
-	roleBindingName    = "server"
+	roleName        = "endpoint-discovery"
+	roleBindingName = "server"
 )
-
-func (builder *RabbitmqResourceBuilder) ServiceAccount() *corev1.ServiceAccount {
-	serviceAccount := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: builder.Instance.Namespace,
-			Name:      builder.Instance.ChildResourceName(serviceAccountName),
-			Labels:    metadata.Label(builder.Instance.Name),
-		},
-	}
-
-	updateLabels(&serviceAccount.ObjectMeta, builder.Instance.Labels)
-	return serviceAccount
-}
 
 func (builder *RabbitmqResourceBuilder) Role() *rbacv1.Role {
 	role := &rbacv1.Role{
