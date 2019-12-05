@@ -815,7 +815,7 @@ var _ = Describe("StatefulSet", func() {
 	Context("Update", func() {
 		var (
 			statefulSet *appsv1.StatefulSet
-			stsBuilder  resource.StatefulSetBuilder
+			stsBuilder  *resource.StatefulSetBuilder
 		)
 
 		BeforeEach(func() {

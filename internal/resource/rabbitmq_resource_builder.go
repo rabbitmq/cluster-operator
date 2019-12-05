@@ -45,11 +45,8 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceB
 		builders = append(builders, builder.RegistrySecret())
 	}
 
+	builders = append(builders, builder.StatefulSet())
 	return builders, nil
-}
-
-func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object, err error) {
-	return nil, nil
 }
 
 func updateLabels(objectMeta *metav1.ObjectMeta, labels map[string]string) {

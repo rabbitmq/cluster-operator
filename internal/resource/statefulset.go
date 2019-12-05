@@ -6,6 +6,7 @@ import (
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -55,8 +56,8 @@ type StatefulSetConfiguration struct {
 	Scheme                     *runtime.Scheme
 }
 
-func (builder *RabbitmqResourceBuilder) StatefulSet() StatefulSetBuilder {
-	return StatefulSetBuilder{
+func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
+	return &StatefulSetBuilder{
 		Instance:             builder.Instance,
 		DefaultConfiguration: builder.DefaultConfiguration,
 	}
@@ -73,13 +74,16 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 	if err := builder.setStatefulSetParams(sts); err != nil {
 		return nil, err
 	}
-	if err := builder.Update(sts); err != nil {
-		return nil, err
-	}
 
 	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.DefaultConfiguration.Scheme); err != nil {
 		return nil, fmt.Errorf("failed setting controller reference: %v", err)
 	}
+
+	if sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory() != sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory() {
+		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
+		logger.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.GetName()))
+	}
+
 	return sts, nil
 }
 
@@ -141,42 +145,55 @@ func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet)
 			corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory,
 		},
 	}
+	err = builder.setResourceRequirementsFromInstance(sts)
+	if err != nil {
+		return err
+	}
+	updateLabels(&sts.ObjectMeta, builder.Instance.Labels)
+	updateLabels(&sts.Spec.Template.ObjectMeta, builder.Instance.Labels)
 	return nil
 }
 
 func (builder *StatefulSetBuilder) Update(sts runtime.Object) error {
+	err := builder.setResourceRequirementsFromInstance(sts.(*appsv1.StatefulSet))
+	if err != nil {
+		return err
+	}
+	updateLabels(&sts.(*appsv1.StatefulSet).ObjectMeta, builder.Instance.Labels)
+	updateLabels(&sts.(*appsv1.StatefulSet).Spec.Template.ObjectMeta, builder.Instance.Labels)
+
+	return nil
+}
+
+func (builder *StatefulSetBuilder) setResourceRequirementsFromInstance(sts *appsv1.StatefulSet) error {
 	if builder.Instance.Spec.Resource.Limit.CPU != "" {
 		cpuLimit, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Limit.CPU)
 		if err != nil {
 			return err
 		}
-		sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU] = cpuLimit
+		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU] = cpuLimit
 	}
 	if builder.Instance.Spec.Resource.Request.CPU != "" {
 		cpuRequest, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Request.CPU)
 		if err != nil {
 			return err
 		}
-		sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
+		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
 	}
 	if builder.Instance.Spec.Resource.Limit.Memory != "" {
 		memoryLimit, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Limit.Memory)
 		if err != nil {
 			return err
 		}
-		sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory] = memoryLimit
+		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory] = memoryLimit
 	}
 	if builder.Instance.Spec.Resource.Request.Memory != "" {
 		memoryRequest, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Request.Memory)
 		if err != nil {
 			return err
 		}
-		sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
+		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
 	}
-
-	updateLabels(&sts.(*appsv1.StatefulSet).ObjectMeta, builder.Instance.Labels)
-	updateLabels(&sts.(*appsv1.StatefulSet).Spec.Template.ObjectMeta, builder.Instance.Labels)
-
 	return nil
 }
 

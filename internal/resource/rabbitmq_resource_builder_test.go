@@ -50,7 +50,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(len(resourceBuilders)).To(Equal(8))
+				Expect(len(resourceBuilders)).To(Equal(9))
 
 				resourceMap := checkForResourceBuilders(resourceBuilders)
 
@@ -63,6 +63,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 					"5 - ServiceAccount:test-rabbitmq-server",
 					"6 - Role:test-rabbitmq-endpoint-discovery",
 					"7 - RoleBinding:test-rabbitmq-server",
+					"8 - StatefulSet:test-rabbitmq-server",
 				}
 
 				for index := range expectedKeys {
@@ -80,7 +81,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(len(resourceBuilders)).To(Equal(9))
+				Expect(len(resourceBuilders)).To(Equal(10))
 
 				resourceMap := checkForResourceBuilders(resourceBuilders)
 
@@ -94,6 +95,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 					"6 - Role:test-rabbitmq-endpoint-discovery",
 					"7 - RoleBinding:test-rabbitmq-server",
 					"8 - Secret:test-registry-access",
+					"9 - StatefulSet:test-rabbitmq-server",
 				}
 
 				for index := range expectedKeys {

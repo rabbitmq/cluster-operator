@@ -139,10 +139,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		Instance:             rabbitmqCluster,
 		DefaultConfiguration: defaultConfiguration,
 	}
-	resources, err := resourceBuilder.Resources()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
 
 	builders, err := resourceBuilder.ResourceBuilders()
 	if err != nil {
@@ -176,28 +172,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
-	if _, err = r.reconcileStatefulset(resourceBuilder); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	for _, re := range resources {
-		if err := controllerutil.SetControllerReference(rabbitmqCluster, re.(metav1.Object), r.Scheme); err != nil {
-			logger.Error(err, "Failed setting controller reference")
-			return reconcile.Result{}, err
-		}
-
-		operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, re, func() error { return nil })
-		logger.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type %T",
-			operationResult,
-			re.(metav1.Object).GetName(),
-			re.(metav1.Object)))
-
-		if err != nil {
-			logger.Error(err, "Failed to CreateOrUpdate")
-			return reconcile.Result{}, err
-		}
-	}
-
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 
 	if rabbitmqCluster.Status.ClusterStatus == "created" || rabbitmqCluster.Status.ClusterStatus == "running" {
@@ -210,55 +184,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
-}
-
-func (r *RabbitmqClusterReconciler) reconcileIngressService(builder resource.RabbitmqResourceBuilder) (reconcile.Result, error) {
-	ingressServiceBuilder := builder.IngressService()
-	ingressService, err := ingressServiceBuilder.Build()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, ingressService, func() error {
-
-		ingressServiceBuilder.Update(ingressService)
-		return nil
-	})
-
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	r.Log.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type Service",
-		operationResult,
-		ingressService.(metav1.Object).GetName()))
-
-	return reconcile.Result{}, nil
-}
-
-func (r *RabbitmqClusterReconciler) reconcileStatefulset(builder resource.RabbitmqResourceBuilder) (reconcile.Result, error) {
-	stsBuilder := builder.StatefulSet()
-	sts, err := stsBuilder.Build()
-	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("failed to generate StatefulSet: %v ", err)
-	}
-	if sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Limits.Memory() != sts.(*appsv1.StatefulSet).Spec.Template.Spec.Containers[0].Resources.Requests.Memory() {
-		r.Log.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.(*appsv1.StatefulSet).GetName()))
-	}
-
-	operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, sts, func() error {
-		return stsBuilder.Update(sts)
-	})
-
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	r.Log.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type StatefulSet",
-		operationResult,
-		sts.(*appsv1.StatefulSet).GetName()))
-
-	return reconcile.Result{}, nil
 }
 
 func (r *RabbitmqClusterReconciler) updateStatus(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, status string) {
