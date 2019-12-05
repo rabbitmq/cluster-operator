@@ -148,7 +148,7 @@ kind-unprepare:
 	@kubectl annotate storageclass standard storageclass.kubernetes.io/is-default-class=true
 
 system-tests:
-	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=4 --randomizeAllSpecs -r system_tests/
+	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
 
 DOCKER_REGISTRY_SECRET=p-rmq-registry-access
 DOCKER_REGISTRY_SERVER=registry.pivotal.io
