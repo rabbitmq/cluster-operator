@@ -134,7 +134,9 @@ var _ = Describe("Operator", func() {
 				Expect(configMap.Data["resources"]).NotTo(BeNil())
 
 				expectedConfigs, err := config.NewConfig([]byte(configMap.Data["config"]))
+				Expect(err).NotTo(HaveOccurred())
 				sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(cluster.ChildResourceName(statefulSetSuffix), metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
 
 				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(expectedConfigs.Resources.Limits.Memory)))
@@ -182,7 +184,7 @@ var _ = Describe("Operator", func() {
 					Expect(err).NotTo(HaveOccurred())
 					return output
 
-				}, 100, 1).Should(ContainSubstring("created"))
+				}, 120, 1).Should(ContainSubstring("created"))
 
 			})
 
@@ -297,6 +299,7 @@ var _ = Describe("Operator", func() {
 			Expect(configMap.Data["service"]).NotTo(BeNil())
 
 			expectedConfigurations, err = config.NewConfig([]byte(configMap.Data["config"]))
+			Expect(err).NotTo(HaveOccurred())
 
 			cluster = generateRabbitmqCluster(namespace, "nodeport-rabbit")
 			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
