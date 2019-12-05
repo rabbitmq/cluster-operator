@@ -41,16 +41,15 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceB
 	builders = append(builders, builder.Role())
 	builders = append(builders, builder.RoleBinding())
 
+	if builder.DefaultConfiguration.OperatorRegistrySecret != nil {
+		builders = append(builders, builder.RegistrySecret())
+	}
+
 	return builders, nil
 }
 
 func (builder *RabbitmqResourceBuilder) Resources() (resources []runtime.Object, err error) {
-	if builder.DefaultConfiguration.OperatorRegistrySecret != nil {
-		clusterRegistrySecret := builder.RegistrySecret()
-		resources = append(resources, clusterRegistrySecret)
-	}
-
-	return resources, nil
+	return nil, nil
 }
 
 func updateLabels(objectMeta *metav1.ObjectMeta, labels map[string]string) {

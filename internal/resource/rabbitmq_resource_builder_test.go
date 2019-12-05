@@ -16,75 +16,6 @@ import (
 )
 
 var _ = Describe("RabbitmqResourceBuilder", func() {
-
-	Context("Resources", func() {
-		var (
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "test",
-					Namespace: "namespace",
-				},
-			}
-
-			rabbitmqCluster *resource.RabbitmqResourceBuilder
-			scheme          *runtime.Scheme
-		)
-
-		BeforeEach(func() {
-			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
-			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-		})
-
-		When("an operator Registry secret is set in the default configuration", func() {
-			BeforeEach(func() {
-				rabbitmqCluster = &resource.RabbitmqResourceBuilder{
-					Instance: &instance,
-					DefaultConfiguration: resource.DefaultConfiguration{
-						OperatorRegistrySecret: &corev1.Secret{}, PersistentStorageClassName: "standard",
-						PersistentStorage: "10Gi",
-						Scheme:            scheme},
-				}
-			})
-
-			It("returns the required resources in the expected order", func() {
-				resources, err := rabbitmqCluster.Resources()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(len(resources)).To(Equal(1))
-
-				resourceMap := checkForResources(resources)
-
-				expectedKeys := []string{
-					"0 - Secret:test-registry-access",
-				}
-
-				for index := range expectedKeys {
-					Expect(resourceMap[expectedKeys[index]]).Should(BeTrue())
-				}
-			})
-		})
-
-		When("no operator registry secret is set in the default configuration", func() {
-			BeforeEach(func() {
-				rabbitmqCluster = &resource.RabbitmqResourceBuilder{
-					Instance: &instance,
-					DefaultConfiguration: resource.DefaultConfiguration{
-						PersistentStorageClassName: "standard",
-						PersistentStorage:          "10Gi",
-						Scheme:                     scheme,
-					},
-				}
-			})
-
-			It("returns an empty resource list", func() {
-				resources, err := rabbitmqCluster.Resources()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(resources).To(BeEmpty())
-			})
-		})
-	})
-
 	Context("ResourceBuilders", func() {
 		var (
 			instance = rabbitmqv1beta1.RabbitmqCluster{
@@ -105,34 +36,70 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			rabbitmqCluster = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				DefaultConfiguration: resource.DefaultConfiguration{
-					OperatorRegistrySecret: &corev1.Secret{}, PersistentStorageClassName: "standard",
-					PersistentStorage: "10Gi",
-					Scheme:            scheme},
+					PersistentStorageClassName: "standard",
+					PersistentStorage:          "10Gi",
+					Scheme:                     scheme},
 			}
 		})
 
-		It("returns the required resources in the expected order", func() {
-			resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
-			Expect(err).NotTo(HaveOccurred())
+		When("no operator registry secret is set in the default configuration", func() {
+			BeforeEach(func() {
+				rabbitmqCluster.DefaultConfiguration.OperatorRegistrySecret = nil
+			})
+			It("returns the required resource builders in the expected order", func() {
+				resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
+				Expect(err).NotTo(HaveOccurred())
 
-			Expect(len(resourceBuilders)).To(Equal(8))
+				Expect(len(resourceBuilders)).To(Equal(8))
 
-			resourceMap := checkForResourceBuilders(resourceBuilders)
+				resourceMap := checkForResourceBuilders(resourceBuilders)
 
-			expectedKeys := []string{
-				"0 - Service:test-rabbitmq-headless",
-				"1 - Service:test-rabbitmq-ingress",
-				"2 - Secret:test-rabbitmq-erlang-cookie",
-				"3 - Secret:test-rabbitmq-admin",
-				"4 - ConfigMap:test-rabbitmq-server-conf",
-				"5 - ServiceAccount:test-rabbitmq-server",
-				"6 - Role:test-rabbitmq-endpoint-discovery",
-				"7 - RoleBinding:test-rabbitmq-server",
-			}
+				expectedKeys := []string{
+					"0 - Service:test-rabbitmq-headless",
+					"1 - Service:test-rabbitmq-ingress",
+					"2 - Secret:test-rabbitmq-erlang-cookie",
+					"3 - Secret:test-rabbitmq-admin",
+					"4 - ConfigMap:test-rabbitmq-server-conf",
+					"5 - ServiceAccount:test-rabbitmq-server",
+					"6 - Role:test-rabbitmq-endpoint-discovery",
+					"7 - RoleBinding:test-rabbitmq-server",
+				}
 
-			for index := range expectedKeys {
-				Expect(resourceMap[expectedKeys[index]]).Should(BeTrue())
-			}
+				for index := range expectedKeys {
+					Expect(resourceMap[expectedKeys[index]]).Should(BeTrue())
+				}
+			})
+		})
+
+		When("an operator Registry secret is set in the default configuration", func() {
+			BeforeEach(func() {
+				rabbitmqCluster.DefaultConfiguration.OperatorRegistrySecret = &corev1.Secret{}
+			})
+
+			It("returns the registry secret resource builder in the expected order", func() {
+				resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(len(resourceBuilders)).To(Equal(9))
+
+				resourceMap := checkForResourceBuilders(resourceBuilders)
+
+				expectedKeys := []string{
+					"0 - Service:test-rabbitmq-headless",
+					"1 - Service:test-rabbitmq-ingress",
+					"2 - Secret:test-rabbitmq-erlang-cookie",
+					"3 - Secret:test-rabbitmq-admin",
+					"4 - ConfigMap:test-rabbitmq-server-conf",
+					"5 - ServiceAccount:test-rabbitmq-server",
+					"6 - Role:test-rabbitmq-endpoint-discovery",
+					"7 - RoleBinding:test-rabbitmq-server",
+					"8 - Secret:test-registry-access",
+				}
+
+				for index := range expectedKeys {
+					Expect(resourceMap[expectedKeys[index]]).Should(BeTrue())
+				}
+			})
 		})
 	})
 })
