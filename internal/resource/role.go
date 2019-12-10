@@ -25,16 +25,17 @@ func (builder *RabbitmqResourceBuilder) Role() *RoleBuilder {
 }
 
 func (builder *RoleBuilder) Update(object runtime.Object) error {
-	updateLabels(&object.(*rbacv1.Role).ObjectMeta, builder.Instance.Labels)
+	role := object.(*rbacv1.Role)
+	role.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	return nil
 }
 
 func (builder *RoleBuilder) Build() (runtime.Object, error) {
-	role := &rbacv1.Role{
+	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: builder.Instance.Namespace,
 			Name:      builder.Instance.ChildResourceName(roleName),
-			Labels:    metadata.Label(builder.Instance.Name),
+			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -43,7 +44,5 @@ func (builder *RoleBuilder) Build() (runtime.Object, error) {
 				Verbs:     []string{"get"},
 			},
 		},
-	}
-	updateLabels(&role.ObjectMeta, builder.Instance.Labels)
-	return role, nil
+	}, nil
 }

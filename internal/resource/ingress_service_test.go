@@ -6,6 +6,7 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -288,32 +289,67 @@ var _ = Context("IngressServices", func() {
 	})
 
 	Context("Update", func() {
+
 		var (
 			serviceBuilder *resource.IngressServiceBuilder
 			ingressService *corev1.Service
 			annotations    = map[string]string{"service_annotation_123": "0.0.0.0/0"}
 		)
 
-		BeforeEach(func() {
-			instance.Labels = map[string]string{
-				"app.kubernetes.io/foo": "bar",
-				"foo":                   "bar",
-				"rabbitmq":              "is-great",
-				"foo/app.kubernetes.io": "edgecase",
-			}
-			instance.Spec.Service.Annotations = annotations
-			serviceBuilder = rmqBuilder.IngressService()
-			ingressService = &corev1.Service{}
+		Context("Annotations", func() {
+			BeforeEach(func() {
+				instance.Spec.Service.Annotations = annotations
+				serviceBuilder = rmqBuilder.IngressService()
+				ingressService = &corev1.Service{}
+			})
+
+			It("updates the service annotations", func() {
+				Expect(serviceBuilder.Update(ingressService)).To(Succeed())
+				Expect(ingressService.ObjectMeta.Annotations).To(Equal(annotations))
+			})
 		})
 
-		It("updates the labels on the ingress service", func() {
-			Expect(serviceBuilder.Update(ingressService)).To(Succeed())
-			testLabels(ingressService.Labels)
-		})
+		Context("Labels", func() {
+			BeforeEach(func() {
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "rabbit-labelled",
+					},
+				}
+				instance.Labels = map[string]string{
+					"app.kubernetes.io/foo": "bar",
+					"foo":                   "bar",
+					"rabbitmq":              "is-great",
+					"foo/app.kubernetes.io": "edgecase",
+				}
 
-		It("updates the service annotations", func() {
-			Expect(serviceBuilder.Update(ingressService)).To(Succeed())
-			Expect(ingressService.ObjectMeta.Annotations).To(Equal(annotations))
+				ingressService = &corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"app.kubernetes.io/name":      instance.Name,
+							"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+							"this-was-the-previous-label": "should-be-deleted",
+						},
+					},
+				}
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("adds labels from the CR", func() {
+				testLabels(ingressService.Labels)
+			})
+
+			It("restores the default labels", func() {
+				labels := ingressService.Labels
+				Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+			})
+
+			It("deletes the labels that are removed from the CR", func() {
+				Expect(ingressService.Labels).NotTo(HaveKey("this-was-the-previous-label"))
+			})
 		})
 	})
 })

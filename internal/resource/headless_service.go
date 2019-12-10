@@ -24,17 +24,18 @@ type HeadlessServiceBuilder struct {
 	DefaultConfiguration DefaultConfiguration
 }
 
-func (builder *HeadlessServiceBuilder) Update(service runtime.Object) error {
-	updateLabels(&service.(*corev1.Service).ObjectMeta, builder.Instance.Labels)
+func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
+	service := object.(*corev1.Service)
+	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
 	return nil
 }
 
 func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
-	service := &corev1.Service{
+	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(headlessServiceName),
 			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.Label(builder.Instance.Name),
+			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
@@ -47,9 +48,5 @@ func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
 				},
 			},
 		},
-	}
-
-	updateLabels(&service.ObjectMeta, builder.Instance.Labels)
-
-	return service, nil
+	}, nil
 }

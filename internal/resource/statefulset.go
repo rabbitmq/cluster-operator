@@ -145,23 +145,22 @@ func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet)
 			corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory,
 		},
 	}
-	err = builder.setResourceRequirementsFromInstance(sts)
-	if err != nil {
-		return err
-	}
-	updateLabels(&sts.ObjectMeta, builder.Instance.Labels)
-	updateLabels(&sts.Spec.Template.ObjectMeta, builder.Instance.Labels)
-	return nil
+	return builder.setMutableFields(sts)
 }
 
-func (builder *StatefulSetBuilder) Update(sts runtime.Object) error {
-	err := builder.setResourceRequirementsFromInstance(sts.(*appsv1.StatefulSet))
+func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
+	return builder.setMutableFields(object.(*appsv1.StatefulSet))
+}
+
+func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) error {
+	err := builder.setResourceRequirementsFromInstance(sts)
 	if err != nil {
 		return err
 	}
-	updateLabels(&sts.(*appsv1.StatefulSet).ObjectMeta, builder.Instance.Labels)
-	updateLabels(&sts.(*appsv1.StatefulSet).Spec.Template.ObjectMeta, builder.Instance.Labels)
 
+	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
+	sts.Labels = updatedLabels
+	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
 	return nil
 }
 

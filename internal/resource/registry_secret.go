@@ -27,7 +27,8 @@ func (builder *RabbitmqResourceBuilder) RegistrySecret() *RegistrySecretBuilder 
 }
 
 func (builder *RegistrySecretBuilder) Update(object runtime.Object) error {
-	updateLabels(&object.(*corev1.Secret).ObjectMeta, builder.Instance.Labels)
+	secret := object.(*corev1.Secret)
+	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
 	return nil
 }
 
@@ -35,18 +36,15 @@ func (builder *RegistrySecretBuilder) Build() (runtime.Object, error) {
 	if builder.DefaultConfiguration.OperatorRegistrySecret == nil {
 		return nil, nil
 	}
-	registrySecret := &corev1.Secret{
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      RegistrySecretName(builder.Instance.Name),
 			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.Label(builder.Instance.Name),
+			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
 		},
 		Data: builder.DefaultConfiguration.OperatorRegistrySecret.Data,
 		Type: builder.DefaultConfiguration.OperatorRegistrySecret.Type,
-	}
-
-	updateLabels(&registrySecret.ObjectMeta, builder.Instance.Labels)
-	return registrySecret, nil
+	}, nil
 }
 
 func RegistrySecretName(instanceName string) string {

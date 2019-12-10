@@ -25,19 +25,17 @@ func (builder *RabbitmqResourceBuilder) ServiceAccount() *ServiceAccountBuilder 
 }
 
 func (builder *ServiceAccountBuilder) Update(object runtime.Object) error {
-	updateLabels(&object.(*corev1.ServiceAccount).ObjectMeta, builder.Instance.Labels)
+	serviceAccount := object.(*corev1.ServiceAccount)
+	serviceAccount.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	return nil
 }
 
 func (builder *ServiceAccountBuilder) Build() (runtime.Object, error) {
-	serviceAccount := &corev1.ServiceAccount{
+	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: builder.Instance.Namespace,
 			Name:      builder.Instance.ChildResourceName(serviceAccountName),
-			Labels:    metadata.Label(builder.Instance.Name),
+			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
 		},
-	}
-
-	updateLabels(&serviceAccount.ObjectMeta, builder.Instance.Labels)
-	return serviceAccount, nil
+	}, nil
 }

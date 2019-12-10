@@ -1,8 +1,6 @@
 package resource_test
 
 import (
-	"strings"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -814,8 +812,9 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("Update", func() {
 		var (
-			statefulSet *appsv1.StatefulSet
-			stsBuilder  *resource.StatefulSetBuilder
+			statefulSet    *appsv1.StatefulSet
+			stsBuilder     *resource.StatefulSetBuilder
+			existingLabels map[string]string
 		)
 
 		BeforeEach(func() {
@@ -840,51 +839,69 @@ var _ = Describe("StatefulSet", func() {
 				Instance:             &instance,
 				DefaultConfiguration: defaultConfiguration,
 			}
+			existingLabels = map[string]string{
+				"app.kubernetes.io/name":      instance.Name,
+				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+				"this-was-the-previous-label": "should-be-deleted",
+			}
 
 			stsBuilder = cluster.StatefulSet()
-			obj, _ := stsBuilder.Build()
-			statefulSet = obj.(*appsv1.StatefulSet)
-			statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
-				corev1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{Name: "pvc"},
+			statefulSet = &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: existingLabels,
 				},
 			}
 		})
 
-		It("adds labels from the CRD on the statefulset", func() {
-			err := stsBuilder.Update(statefulSet)
-			Expect(err).NotTo(HaveOccurred())
+		It("adds labels from the CR to the statefulset", func() {
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			testLabels(statefulSet.Labels)
 		})
 
-		It("adds labels from the CRD on the pod", func() {
-			err := stsBuilder.Update(statefulSet)
-			Expect(err).NotTo(HaveOccurred())
+		It("restores the default labels", func() {
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			podTemplate := statefulSet.Spec.Template
-			testLabels(podTemplate.Labels)
+			labels := statefulSet.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
 
-		It("sets nothing if the instance has no labels", func() {
-			stsBuilder = cluster.StatefulSet()
-			stsBuilder.Instance.Labels = nil
-			obj, _ := stsBuilder.Build()
-			statefulSet = obj.(*appsv1.StatefulSet)
-			err := stsBuilder.Update(statefulSet)
-			Expect(err).NotTo(HaveOccurred())
+		It("deletes the labels that are removed from the CR", func() {
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			Expect(statefulSet.Labels).NotTo(HaveKey("this-was-the-previous-label"))
+		})
 
-			for label := range statefulSet.Labels {
-				Expect(strings.HasPrefix(label, "app.kubernetes.io")).To(BeTrue())
-			}
-			pvcTemplate := statefulSet.Spec.VolumeClaimTemplates[0]
-			for label := range pvcTemplate.Labels {
-				Expect(strings.HasPrefix(label, "app.kubernetes.io")).To(BeTrue())
-			}
-			podTemplate := statefulSet.Spec.Template
-			for label := range podTemplate.Labels {
-				Expect(strings.HasPrefix(label, "app.kubernetes.io")).To(BeTrue())
-			}
+		Context("PodTemplate", func() {
+			BeforeEach(func() {
+				sts.Spec.Template = corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: existingLabels,
+					},
+				}
+			})
+
+			It("adds labels from the CR to the pod", func() {
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				testLabels(statefulSet.Spec.Template.Labels)
+			})
+
+			It("restores the default labels", func() {
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				labels := statefulSet.Spec.Template.Labels
+				Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+			})
+
+			It("deletes the labels that are removed from the CR", func() {
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				Expect(statefulSet.Spec.Template.Labels).NotTo(HaveKey("this-was-the-previous-label"))
+			})
 		})
 	})
 })

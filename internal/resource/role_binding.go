@@ -26,16 +26,17 @@ func (builder *RabbitmqResourceBuilder) RoleBinding() *RoleBindingBuilder {
 }
 
 func (builder *RoleBindingBuilder) Update(object runtime.Object) error {
-	updateLabels(&object.(*rbacv1.RoleBinding).ObjectMeta, builder.Instance.Labels)
+	roleBinding := object.(*rbacv1.RoleBinding)
+	roleBinding.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	return nil
 }
 
 func (builder *RoleBindingBuilder) Build() (runtime.Object, error) {
-	rolebinding := &rbacv1.RoleBinding{
+	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: builder.Instance.Namespace,
 			Name:      builder.Instance.ChildResourceName(roleBindingName),
-			Labels:    metadata.Label(builder.Instance.Name),
+			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
@@ -48,7 +49,5 @@ func (builder *RoleBindingBuilder) Build() (runtime.Object, error) {
 				Name: builder.Instance.ChildResourceName(serviceAccountName),
 			},
 		},
-	}
-	updateLabels(&rolebinding.ObjectMeta, builder.Instance.Labels)
-	return rolebinding, nil
+	}, nil
 }

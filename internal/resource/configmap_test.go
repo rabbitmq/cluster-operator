@@ -20,7 +20,7 @@ queue_master_locator = min-masters`
 
 var _ = Describe("GenerateServerConfigMap", func() {
 	var (
-		confMap          *corev1.ConfigMap
+		configMap        *corev1.ConfigMap
 		instance         rabbitmqv1beta1.RabbitmqCluster
 		configMapBuilder *resource.ServerConfigMapBuilder
 		builder          *resource.RabbitmqResourceBuilder
@@ -42,13 +42,13 @@ var _ = Describe("GenerateServerConfigMap", func() {
 	Context("Build", func() {
 		BeforeEach(func() {
 			obj, err := configMapBuilder.Build()
-			confMap = obj.(*corev1.ConfigMap)
+			configMap = obj.(*corev1.ConfigMap)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("generates a ConfigMap with the correct name and namespace", func() {
-			Expect(confMap.Name).To(Equal(builder.Instance.ChildResourceName("server-conf")))
-			Expect(confMap.Namespace).To(Equal(builder.Instance.Namespace))
+			Expect(configMap.Name).To(Equal(builder.Instance.ChildResourceName("server-conf")))
+			Expect(configMap.Namespace).To(Equal(builder.Instance.Namespace))
 		})
 
 		It("generates a ConfigMap with required object fields", func() {
@@ -61,19 +61,19 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				"rabbitmq_shovel_management," +
 				"rabbitmq_prometheus]."
 
-			plugins, ok := confMap.Data["enabled_plugins"]
+			plugins, ok := configMap.Data["enabled_plugins"]
 			Expect(ok).To(BeTrue())
 			Expect(plugins).To(Equal(expectedEnabledPlugins))
 		})
 
 		It("generates a rabbitmq conf with the required configurations", func() {
-			rabbitmqConf, ok := confMap.Data["rabbitmq.conf"]
+			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
 			Expect(ok).To(BeTrue())
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
 
 		It("only creates the required labels", func() {
-			labels := confMap.Labels
+			labels := configMap.Labels
 			Expect(len(labels)).To(Equal(3))
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
@@ -91,16 +91,16 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			}
 
 			obj, err := configMapBuilder.Build()
-			confMap = obj.(*corev1.ConfigMap)
+			configMap = obj.(*corev1.ConfigMap)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("has the labels from the CRD on the confMap", func() {
-			testLabels(confMap.Labels)
+		It("has the labels from the CRD on the configMap", func() {
+			testLabels(configMap.Labels)
 		})
 
 		It("also has the required labels", func() {
-			labels := confMap.Labels
+			labels := configMap.Labels
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
@@ -109,6 +109,11 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 	Context("Update", func() {
 		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-labelled",
+				},
+			}
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
 				"foo":                   "bar",
@@ -116,22 +121,32 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				"foo/app.kubernetes.io": "edgecase",
 			}
 
-			confMap = &corev1.ConfigMap{
+			configMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app.kubernetes.io/name": "rabbit-labelled",
+						"app.kubernetes.io/name":      instance.Name,
+						"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+						"this-was-the-previous-label": "should-be-deleted",
 					},
 				},
 			}
-			Expect(configMapBuilder.Update(confMap)).To(Succeed())
+			err := configMapBuilder.Update(configMap)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("adds labels from the CRD on the config Map", func() {
-			testLabels(confMap.Labels)
+		It("adds labels from the CR", func() {
+			testLabels(configMap.Labels)
 		})
 
-		It("persists the labels it had before Update", func() {
-			Expect(confMap.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", "rabbit-labelled"))
+		It("restores the default labels", func() {
+			labels := configMap.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+
+		It("deletes the labels that are removed from the CR", func() {
+			Expect(configMap.Labels).NotTo(HaveKey("this-was-the-previous-label"))
 		})
 	})
 })

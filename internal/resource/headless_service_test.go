@@ -85,9 +85,11 @@ var _ = Describe("HeadlessService", func() {
 
 	Context("Update", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{}
-			instance.Namespace = "rabbit-labelled"
-			instance.Name = "rabbit-labelled"
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-labelled",
+				},
+			}
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
 				"foo":                   "bar",
@@ -95,14 +97,12 @@ var _ = Describe("HeadlessService", func() {
 				"foo/app.kubernetes.io": "edgecase",
 			}
 
-			cluster = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-			}
-
 			service = &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app.kubernetes.io/name": "rabbit-labelled",
+						"app.kubernetes.io/name":      instance.Name,
+						"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+						"this-was-the-previous-label": "should-be-deleted",
 					},
 				},
 			}
@@ -110,12 +110,19 @@ var _ = Describe("HeadlessService", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("adds labels from the CRD on the headless service", func() {
+		It("adds labels from the CR", func() {
 			testLabels(service.Labels)
 		})
 
-		It("persists the labels it had before Update", func() {
-			Expect(service.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", "rabbit-labelled"))
+		It("restores the default labels", func() {
+			labels := service.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+
+		It("deletes the labels that are removed from the CR", func() {
+			Expect(service.Labels).NotTo(HaveKey("this-was-the-previous-label"))
 		})
 	})
 })

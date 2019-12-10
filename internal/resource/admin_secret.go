@@ -25,7 +25,8 @@ func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
 }
 
 func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
-	updateLabels(&object.(*corev1.Secret).ObjectMeta, builder.Instance.Labels)
+	secret := object.(*corev1.Secret)
+	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
 	return nil
 }
 
@@ -40,19 +41,16 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 		return nil, err
 	}
 
-	secret := &corev1.Secret{
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(adminSecretName),
 			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.Label(builder.Instance.Name),
+			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
 			"rabbitmq-username": []byte(username),
 			"rabbitmq-password": []byte(password),
 		},
-	}
-
-	updateLabels(&secret.ObjectMeta, builder.Instance.Labels)
-	return secret, nil
+	}, nil
 }

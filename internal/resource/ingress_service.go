@@ -28,7 +28,7 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName("ingress"),
 			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.Label(builder.Instance.Name),
+			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: metadata.LabelSelector(builder.Instance.Name),
@@ -58,7 +58,6 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 
 	builder.setServiceParams(service)
 	builder.setAnnotations(service)
-	updateLabels(&service.ObjectMeta, builder.Instance.Labels)
 
 	return service, nil
 }
@@ -78,13 +77,14 @@ func (builder *IngressServiceBuilder) setServiceParams(service *corev1.Service) 
 }
 
 func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
-	builder.setAnnotations(object)
-	updateLabels(&object.(*corev1.Service).ObjectMeta, builder.Instance.Labels)
+	service := object.(*corev1.Service)
+	builder.setAnnotations(service)
+	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
 	return nil
 }
 
-func (builder *IngressServiceBuilder) setAnnotations(object runtime.Object) {
+func (builder *IngressServiceBuilder) setAnnotations(service *corev1.Service) {
 	if builder.Instance.Spec.Service.Annotations != nil {
-		object.(*corev1.Service).Annotations = builder.Instance.Spec.Service.Annotations
+		service.Annotations = builder.Instance.Spec.Service.Annotations
 	}
 }

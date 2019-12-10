@@ -27,16 +27,17 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilde
 }
 
 func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
-	updateLabels(&object.(*corev1.ConfigMap).ObjectMeta, builder.Instance.Labels)
+	configMap := object.(*corev1.ConfigMap)
+	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
 	return nil
 }
 
 func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
-	serverConfig := &corev1.ConfigMap{
+	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(serverConfigMapName),
 			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.Label(builder.Instance.Name),
+			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
 		},
 		Data: map[string]string{
 			"enabled_plugins": "[" +
@@ -58,7 +59,5 @@ func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 				"queue_master_locator = min-masters",
 			}, "\n"),
 		},
-	}
-	updateLabels(&serverConfig.ObjectMeta, builder.Instance.Labels)
-	return serverConfig, nil
+	}, nil
 }

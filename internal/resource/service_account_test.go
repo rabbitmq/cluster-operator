@@ -80,6 +80,11 @@ var _ = Describe("ServiceAccount", func() {
 
 	Context("Update", func() {
 		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-labelled",
+				},
+			}
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
 				"foo":                   "bar",
@@ -90,19 +95,29 @@ var _ = Describe("ServiceAccount", func() {
 			serviceAccount = &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app.kubernetes.io/name": "rabbit-labelled",
+						"app.kubernetes.io/name":      instance.Name,
+						"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+						"this-was-the-previous-label": "should-be-deleted",
 					},
 				},
 			}
-			Expect(serviceAccountBuilder.Update(serviceAccount)).To(Succeed())
+			err := serviceAccountBuilder.Update(serviceAccount)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("adds labels from the CRD on the service account", func() {
+		It("adds labels from the CR", func() {
 			testLabels(serviceAccount.Labels)
 		})
 
-		It("persists the labels it had before Update", func() {
-			Expect(serviceAccount.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", "rabbit-labelled"))
+		It("restores the default labels", func() {
+			labels := serviceAccount.Labels
+			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+
+		It("deletes the labels that are removed from the CR", func() {
+			Expect(serviceAccount.Labels).NotTo(HaveKey("this-was-the-previous-label"))
 		})
 	})
 })
