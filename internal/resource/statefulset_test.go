@@ -256,7 +256,8 @@ var _ = Describe("StatefulSet", func() {
 
 			expectedPersistentVolumeClaim := corev1.PersistentVolumeClaim{
 				ObjectMeta: v1.ObjectMeta{
-					Name: "persistence",
+					Name:      "persistence",
+					Namespace: instance.Namespace,
 					Labels: map[string]string{
 						"app.kubernetes.io/name":      instance.Name,
 						"app.kubernetes.io/component": "rabbitmq",
