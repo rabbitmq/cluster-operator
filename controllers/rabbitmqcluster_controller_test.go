@@ -20,13 +20,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -44,7 +40,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 		rabbitmqCluster        *rabbitmqv1beta1.RabbitmqCluster
 		operatorRegistrySecret *corev1.Secret
 		secretName             = "rabbitmq-one-registry-access"
-		managerConfig          resource.DefaultConfiguration
 		scheme                 *runtime.Scheme
 	)
 
@@ -60,12 +55,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			statefulSetName    string
 		)
 		BeforeEach(func() {
-			managerConfig = resource.DefaultConfiguration{
-				ImagePullSecret: "pivotal-rmq-registry-access",
-			}
-
-			startManager(scheme, managerConfig)
-
 			operatorRegistrySecret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pivotal-rmq-registry-access",
@@ -94,7 +83,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-			stopManager()
 		})
 
 		It("reconciles an existing instance", func() {
@@ -173,12 +161,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
 			Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
 
-			managerConfig = resource.DefaultConfiguration{
-				ImagePullSecret: "pivotal-rmq-registry-access",
-			}
-
-			startManager(scheme, managerConfig)
-
 			operatorRegistrySecret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pivotal-rmq-registry-access",
@@ -190,8 +172,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
-			stopManager()
 		})
+
 		When("specified in config", func() {
 			BeforeEach(func() {
 				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
@@ -266,40 +248,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 })
-
-func startManager(scheme *runtime.Scheme, config resource.DefaultConfiguration) {
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
-	Expect(err).NotTo(HaveOccurred())
-	client = mgr.GetClient()
-
-	reconciler := &controllers.RabbitmqClusterReconciler{
-		Client:                     client,
-		Log:                        ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
-		Scheme:                     mgr.GetScheme(),
-		Namespace:                  "pivotal-rabbitmq-system",
-		ServiceType:                config.ServiceType,
-		ServiceAnnotations:         config.ServiceAnnotations,
-		Image:                      config.ImageReference,
-		ImagePullSecret:            config.ImagePullSecret,
-		PersistentStorage:          config.PersistentStorage,
-		PersistentStorageClassName: config.PersistentStorageClassName,
-		ResourceRequirements:       config.ResourceRequirements,
-	}
-	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
-
-	stopMgr = make(chan struct{})
-	mgrStopped = &sync.WaitGroup{}
-	mgrStopped.Add(1)
-	go func() {
-		defer mgrStopped.Done()
-		Expect(mgr.Start(stopMgr)).NotTo(HaveOccurred())
-	}()
-}
-
-func stopManager() {
-	close(stopMgr)
-	mgrStopped.Wait()
-}
 
 func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
 	Eventually(func() string {

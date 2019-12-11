@@ -23,11 +23,17 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 
 	// "github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -47,6 +53,7 @@ var (
 	requests   chan reconcile.Request
 	stopMgr    chan struct{}
 	mgrStopped *sync.WaitGroup
+	scheme     *runtime.Scheme
 )
 
 func TestControllers(t *testing.T) {
@@ -73,10 +80,51 @@ var _ = BeforeSuite(func() {
 	clientSet, err = kubernetes.NewForConfig(cfg)
 	Expect(err).NotTo(HaveOccurred())
 
+	managerConfig := resource.DefaultConfiguration{
+		ImagePullSecret: "pivotal-rmq-registry-access",
+	}
+
+	scheme = runtime.NewScheme()
+	Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+
+	startManager(scheme, managerConfig)
+
 })
 
 var _ = AfterSuite(func() {
+	close(stopMgr)
+	mgrStopped.Wait()
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+func startManager(scheme *runtime.Scheme, config resource.DefaultConfiguration) {
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
+	Expect(err).NotTo(HaveOccurred())
+	client = mgr.GetClient()
+
+	reconciler := &controllers.RabbitmqClusterReconciler{
+		Client:                     client,
+		Log:                        ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
+		Scheme:                     mgr.GetScheme(),
+		Namespace:                  "pivotal-rabbitmq-system",
+		ServiceType:                config.ServiceType,
+		ServiceAnnotations:         config.ServiceAnnotations,
+		Image:                      config.ImageReference,
+		ImagePullSecret:            config.ImagePullSecret,
+		PersistentStorage:          config.PersistentStorage,
+		PersistentStorageClassName: config.PersistentStorageClassName,
+		ResourceRequirements:       config.ResourceRequirements,
+	}
+	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
+
+	stopMgr = make(chan struct{})
+	mgrStopped = &sync.WaitGroup{}
+	mgrStopped.Add(1)
+	go func() {
+		defer mgrStopped.Done()
+		Expect(mgr.Start(stopMgr)).NotTo(HaveOccurred())
+	}()
+}
