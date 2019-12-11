@@ -42,7 +42,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	var (
 		rabbitmqCluster        *rabbitmqv1beta1.RabbitmqCluster
-		newRabbitmqCluster     *rabbitmqv1beta1.RabbitmqCluster
 		operatorRegistrySecret *corev1.Secret
 		secretName             = "rabbitmq-one-registry-access"
 		managerConfig          resource.DefaultConfiguration
@@ -53,107 +52,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 		scheme = runtime.NewScheme()
 		Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
 		Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
-	})
-
-	Context("Config updates", func() {
-		BeforeEach(func() {
-			managerConfig = resource.DefaultConfiguration{
-				ImagePullSecret: "pivotal-rmq-registry-access",
-			}
-
-			startManager(scheme, managerConfig)
-
-			operatorRegistrySecret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pivotal-rmq-registry-access",
-					Namespace: "pivotal-rabbitmq-system",
-				},
-			}
-			Expect(client.Create(context.TODO(), operatorRegistrySecret)).To(Succeed())
-
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-two",
-					Namespace: "rabbitmq-two",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
-					ImagePullSecret: "rabbit-two-secret",
-				},
-			}
-
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
-
-			stopManager()
-			resourceRequirements := resource.ResourceRequirements{
-				Limit: resource.ComputeResource{
-					CPU:    "6000m",
-					Memory: "3Mi",
-				},
-				Request: resource.ComputeResource{
-					CPU:    "5000m",
-					Memory: "1Mi",
-				},
-			}
-			managerConfig := resource.DefaultConfiguration{
-				ImagePullSecret:      "pivotal-rmq-registry-access",
-				ServiceAnnotations:   map[string]string{"test-key": "test-value"},
-				ResourceRequirements: resourceRequirements,
-			}
-			startManager(scheme, managerConfig)
-			// Doing this in beforeEach to trigger a reconcile after restarting the manager
-			newRabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-three",
-					Namespace: "rabbitmq-three",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
-					ImagePullSecret: "rabbit-two-secret",
-				},
-			}
-
-			Expect(client.Create(context.TODO(), newRabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(newRabbitmqCluster, client)
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-			Expect(client.Delete(context.TODO(), newRabbitmqCluster)).To(Succeed())
-			stopManager()
-		})
-
-		It("does not impact existing instances", func() {
-			ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
-			service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(service.Annotations).NotTo(HaveKeyWithValue("test-key", "test-value"))
-
-			statefulSetName := rabbitmqCluster.ChildResourceName("server")
-			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("2")))
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu()).To(Equal(k8sresource.MustParse("1")))
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory()).To(Equal(k8sresource.MustParse("2Gi")))
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()).To(Equal(k8sresource.MustParse("2Gi")))
-		})
-
-		It("impacts new instances", func() {
-			ingressServiceName := newRabbitmqCluster.ChildResourceName("ingress")
-			service, err := clientSet.CoreV1().Services(newRabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(service.Annotations).To(HaveKeyWithValue("test-key", "test-value"))
-
-			statefulSetName := newRabbitmqCluster.ChildResourceName("server")
-			sts, err := clientSet.AppsV1().StatefulSets(newRabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()).To(Equal(k8sresource.MustParse("6")))
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu()).To(Equal(k8sresource.MustParse("5")))
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory()).To(Equal(k8sresource.MustParse("3Mi")))
-			Expect(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()).To(Equal(k8sresource.MustParse("1Mi")))
-		})
 	})
 
 	Context("Custom Resource updates", func() {
