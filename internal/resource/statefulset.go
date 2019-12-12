@@ -145,6 +145,9 @@ func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet)
 			corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory,
 		},
 	}
+
+	sts.Spec.Template.Spec.Affinity = builder.Instance.Spec.Affinity
+
 	return builder.setMutableFields(sts)
 }
 

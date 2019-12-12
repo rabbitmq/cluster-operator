@@ -255,6 +255,55 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 		})
 	})
+
+	Context("Affinity settings", func() {
+		var affinity = &corev1.Affinity{
+			PodAffinity: &corev1.PodAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"affinity-label": "anti-affinity",
+							},
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		}
+		BeforeEach(func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-affinity",
+					Namespace: "rabbitmq-affinity",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas: 1,
+					Affinity: affinity,
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			waitForClusterCreation(rabbitmqCluster, client)
+
+		})
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+		})
+
+		It("adds the affinity rules to pod spec", func() {
+			stsName := rabbitmqCluster.ChildResourceName("server")
+			var sts *appsv1.StatefulSet
+			Eventually(func() error {
+				var err error
+				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				return err
+			}, 2).Should(Succeed())
+			podSpecAffinity := sts.Spec.Template.Spec.Affinity
+			Expect(podSpecAffinity).To(Equal(affinity))
+		})
+	})
+
 })
 
 func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {

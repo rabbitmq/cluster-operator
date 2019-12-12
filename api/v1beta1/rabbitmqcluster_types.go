@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -31,6 +32,7 @@ type RabbitmqClusterSpec struct {
 	Service         RabbitmqClusterServiceSpec     `json:"service,omitempty"`
 	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
 	Resource        RabbitmqClusterResourceSpec    `json:"resource,omitempty"`
+	Affinity        *corev1.Affinity               `json:"affinity,omitempty"`
 }
 
 type RabbitmqClusterResourceSpec struct {
