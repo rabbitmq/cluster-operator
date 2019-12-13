@@ -29,10 +29,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -42,14 +40,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		rabbitmqCluster        *rabbitmqv1beta1.RabbitmqCluster
 		operatorRegistrySecret *corev1.Secret
 		secretName             = "rabbitmq-one-registry-access"
-		scheme                 *runtime.Scheme
 	)
-
-	BeforeEach(func() {
-		scheme = runtime.NewScheme()
-		Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
-	})
 
 	Context("Custom Resource updates", func() {
 		var (
@@ -101,7 +92,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
 					service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
 					return service.Annotations
-				}, 10).Should(HaveKeyWithValue("test-key", "test-value"))
+				}, 1).Should(HaveKeyWithValue("test-key", "test-value"))
 			})
 
 			When("the CPU and memory requirements are updated", func() {
@@ -128,7 +119,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Expect(err).NotTo(HaveOccurred())
 					resourceRequirements = sts.Spec.Template.Spec.Containers[0].Resources
 					return resourceRequirements.Requests
-				}, 100).Should(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Requests[corev1.ResourceCPU]))
+				}, 1).Should(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Requests[corev1.ResourceCPU]))
 				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Limits[corev1.ResourceCPU]))
 
 				Expect(resourceRequirements.Requests).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Requests[corev1.ResourceMemory]))
@@ -145,23 +136,18 @@ var _ = Describe("RabbitmqclusterController", func() {
 					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return service.Labels
-				}, 5).Should(HaveKeyWithValue("foo", "bar"))
-
+				}, 1).Should(HaveKeyWithValue("foo", "bar"))
+				var sts *appsv1.StatefulSet
 				Eventually(func() map[string]string {
-					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
+					sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 					return sts.Labels
-				}, 10).Should(HaveKeyWithValue("foo", "bar"))
+				}, 1).Should(HaveKeyWithValue("foo", "bar"))
 			})
 		})
 	})
 
 	Context("ImagePullSecret", func() {
 		BeforeEach(func() {
-			scheme := runtime.NewScheme()
-			Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
-			Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
-
 			operatorRegistrySecret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pivotal-rmq-registry-access",
@@ -199,16 +185,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Eventually(func() error {
 					_, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
 					return err
-				}, 5).Should(Succeed())
+				}, 1).Should(Succeed())
 
 				stsName := rabbitmqCluster.ChildResourceName("server")
-				var sts *appsv1.StatefulSet
-				Eventually(func() error {
-					var err error
-					sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-					return err
-				}, 2).Should(Succeed())
-				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: secretName}))
+				Eventually(func() []corev1.LocalObjectReference {
+					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+					return sts.Spec.Template.Spec.ImagePullSecrets
+				}, 1).Should(ContainElement(corev1.LocalObjectReference{Name: secretName}))
 			})
 
 			It("reconciles", func() {
@@ -278,15 +261,15 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "rabbitmq-affinity",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
-					Affinity: affinity,
+					Replicas:        1,
+					Affinity:        affinity,
+					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
-
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
-
 		})
+
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 		})
@@ -298,12 +281,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 				var err error
 				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 				return err
-			}, 2).Should(Succeed())
+			}, 1).Should(Succeed())
 			podSpecAffinity := sts.Spec.Template.Spec.Affinity
 			Expect(podSpecAffinity).To(Equal(affinity))
 		})
 	})
-
 })
 
 func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
@@ -320,7 +302,7 @@ func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 
 		return rabbitmqClusterCreated.Status.ClusterStatus
 
-	}, 5, 1).Should(ContainSubstring("created"))
+	}, 1).Should(ContainSubstring("created"))
 }
 
 func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *kubernetes.Clientset, imagePullSecretName string) {
@@ -378,7 +360,7 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 			var err error
 			serviceAccount, err = clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
 			return err
-		}, 5).Should(Succeed())
+		}, 1).Should(Succeed())
 		Expect(serviceAccount.Name).To(Equal(name))
 	})
 
@@ -389,7 +371,7 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 			var err error
 			role, err = clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
 			return err
-		}, 5).Should(Succeed())
+		}, 1).Should(Succeed())
 		Expect(role.Name).To(Equal(name))
 	})
 
@@ -400,7 +382,7 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 			var err error
 			roleBinding, err = clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
 			return err
-		}, 5).Should(Succeed())
+		}, 1).Should(Succeed())
 		Expect(roleBinding.Name).To(Equal(name))
 	})
 }

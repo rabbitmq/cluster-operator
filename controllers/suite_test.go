@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -50,7 +49,6 @@ var (
 	testEnv    *envtest.Environment
 	client     runtimeClient.Client
 	clientSet  *kubernetes.Clientset
-	requests   chan reconcile.Request
 	stopMgr    chan struct{}
 	mgrStopped *sync.WaitGroup
 	scheme     *runtime.Scheme
@@ -89,7 +87,6 @@ var _ = BeforeSuite(func() {
 	Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
 
 	startManager(scheme, managerConfig)
-
 })
 
 var _ = AfterSuite(func() {
