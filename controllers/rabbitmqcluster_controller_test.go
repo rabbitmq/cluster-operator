@@ -97,7 +97,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			When("the CPU and memory requirements are updated", func() {
 				var resourceRequirements corev1.ResourceRequirements
-				expectedRequirements := corev1.ResourceRequirements{
+				expectedRequirements := &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceCPU:    k8sresource.MustParse("1100m"),
 						corev1.ResourceMemory: k8sresource.MustParse("5Gi"),
@@ -107,10 +107,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 						corev1.ResourceMemory: k8sresource.MustParse("6Gi"),
 					},
 				}
-				rabbitmqCluster.Spec.Resource.Request.CPU = "1100m"
-				rabbitmqCluster.Spec.Resource.Request.Memory = "5Gi"
-				rabbitmqCluster.Spec.Resource.Limit.CPU = "1200m"
-				rabbitmqCluster.Spec.Resource.Limit.Memory = "6Gi"
+				rabbitmqCluster.Spec.Resources = expectedRequirements
 				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
 
 				Eventually(func() corev1.ResourceList {

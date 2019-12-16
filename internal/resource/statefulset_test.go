@@ -509,166 +509,151 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
-		When("providing resources limits and requests", func() {
-			Context("CPU and memory limit are provided", func() {
-				BeforeEach(func() {
-					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
-						Limit: resource.ComputeResource{
-							CPU:    "3m",
-							Memory: "10Gi",
-						},
-						Request: resource.ComputeResource{
-							CPU:    "",
-							Memory: "",
-						},
-					}
-				})
+		Context("resources requirements", func() {
 
-				Context("by the config", func() {
-					It("generates a statefulSet with provided CPU and memory limits, with default CPU and memory requests", func() {
-						cluster = &resource.RabbitmqResourceBuilder{
-							Instance:             &instance,
-							DefaultConfiguration: defaultConfiguration,
-						}
-						stsBuilder := cluster.StatefulSet()
-						obj, _ := stsBuilder.Build()
-						sts = obj.(*appsv1.StatefulSet)
-						expectedCPULimit, _ := k8sresource.ParseQuantity("3m")
-						expectedMemoryLimit, _ := k8sresource.ParseQuantity("10Gi")
+			It("sets defaults if none are provided", func() {
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
+				}
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
 
-						container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-						Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
-						Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPURequest)))
+				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPULimit)))
+				Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPURequest)))
 
-						Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
-						Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryRequest)))
-					})
-				})
-
-				Context("both default resource requirements and CR resource requirements have been provided", func() {
-					BeforeEach(func() {
-						instance.Spec.Resource.Request = rabbitmqv1beta1.RabbitmqClusterComputeResource{
-							CPU:    "10m",
-							Memory: "3Gi",
-						}
-
-						instance.Spec.Resource.Limit = rabbitmqv1beta1.RabbitmqClusterComputeResource{
-							CPU:    "11m",
-							Memory: "4Gi",
-						}
-
-						defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
-							Request: resource.ComputeResource{
-								CPU:    "1m",
-								Memory: "1Mi",
-							},
-							Limit: resource.ComputeResource{
-								CPU:    "2m",
-								Memory: "2Mi",
-							},
-						}
-					})
-
-					It("overrides StatefulSet resource requirements with those provided by CR spec", func() {
-						cluster = &resource.RabbitmqResourceBuilder{
-							Instance:             &instance,
-							DefaultConfiguration: defaultConfiguration,
-						}
-
-						stsBuilder := cluster.StatefulSet()
-						obj, _ := stsBuilder.Build()
-						sts = obj.(*appsv1.StatefulSet)
-						expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
-						expectedMemoryRequest, _ := k8sresource.ParseQuantity("3Gi")
-						expectedCPULimit, _ := k8sresource.ParseQuantity("11m")
-						expectedMemoryLimit, _ := k8sresource.ParseQuantity("4Gi")
-
-						container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-						Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(expectedCPURequest))
-						Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
-						Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
-						Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
-					})
-				})
+				Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryLimit)))
+				Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryRequest)))
 			})
 
-			Context("CPU and memory requests are provided", func() {
-				BeforeEach(func() {
-					instance = rabbitmqv1beta1.RabbitmqCluster{}
-					instance.Namespace = "foo"
-					instance.Name = "foo"
-					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
-						Limit: resource.ComputeResource{
-							CPU:    "",
-							Memory: "",
-						},
-						Request: resource.ComputeResource{
-							CPU:    "10m",
-							Memory: "5Gi",
-						},
-					}
-				})
+			It("sets requirements from DefaultConfiguration", func() {
+				defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
+					Limit: resource.ComputeResource{
+						CPU:    "3m",
+						Memory: "10Gi",
+					},
+					Request: resource.ComputeResource{
+						CPU:    "30m",
+						Memory: "1Gi",
+					},
+				}
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
+				}
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				expectedCPULimit, _ := k8sresource.ParseQuantity("3m")
+				expectedCPURequest, _ := k8sresource.ParseQuantity("30m")
+				expectedMemoryRequest, _ := k8sresource.ParseQuantity("1Gi")
+				expectedMemoryLimit, _ := k8sresource.ParseQuantity("10Gi")
 
-				It("generates a statefulSet with default CPU and memory limits", func() {
-					cluster = &resource.RabbitmqResourceBuilder{
-						Instance:             &instance,
-						DefaultConfiguration: defaultConfiguration,
-					}
-					stsBuilder := cluster.StatefulSet()
-					obj, _ := stsBuilder.Build()
-					sts = obj.(*appsv1.StatefulSet)
-					expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
-					expectedMemoryRequest, _ := k8sresource.ParseQuantity("5Gi")
+				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
+				Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(expectedCPURequest))
 
-					container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-					Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryLimit)))
-					Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
-
-					Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPULimit)))
-					Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(expectedCPURequest))
-				})
+				Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
+				Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
 			})
 
-			Context("both CPU and memory's limits plus requests are provided", func() {
-				BeforeEach(func() {
-					instance = rabbitmqv1beta1.RabbitmqCluster{
-						ObjectMeta: v1.ObjectMeta{
-							Name:      "foo",
-							Namespace: "foo",
-						},
-					}
-					defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
-						Limit: resource.ComputeResource{
-							CPU:    "10m",
-							Memory: "5Gi",
-						},
-						Request: resource.ComputeResource{
-							CPU:    "1m",
-							Memory: "1Gi",
-						},
-					}
-				})
+			It("combines values from operator defaults and DefaultConfiguration", func() {
+				defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
+					Limit: resource.ComputeResource{
+						CPU:    "3m",
+						Memory: "",
+					},
+					Request: resource.ComputeResource{
+						CPU:    "",
+						Memory: "1Gi",
+					},
+				}
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
+				}
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				expectedCPULimit, _ := k8sresource.ParseQuantity("3m")
+				expectedMemoryRequest, _ := k8sresource.ParseQuantity("1Gi")
 
-				It("generates a statefulSet with provided memory limit/request and provided CPU limit/request", func() {
-					cluster = &resource.RabbitmqResourceBuilder{
-						Instance:             &instance,
-						DefaultConfiguration: defaultConfiguration,
-					}
-					stsBuilder := cluster.StatefulSet()
-					obj, _ := stsBuilder.Build()
-					sts = obj.(*appsv1.StatefulSet)
-					expectedCPULimit, _ := k8sresource.ParseQuantity("10m")
-					expectedCPURequest, _ := k8sresource.ParseQuantity("1m")
-					expectedMemoryLimit, _ := k8sresource.ParseQuantity("5Gi")
-					expectedMemoryRequest, _ := k8sresource.ParseQuantity("1Gi")
+				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
+				Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPURequest)))
 
-					container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-					Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
-					Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
+				Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryRequest)))
+				Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
+			})
 
-					Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
-					Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(expectedCPURequest))
-				})
+			It("overrides StatefulSet resource requirements with those provided by CR spec", func() {
+				instance.Spec.Resources = &corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    k8sresource.MustParse("10m"),
+						corev1.ResourceMemory: k8sresource.MustParse("3Gi"),
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    k8sresource.MustParse("11m"),
+						corev1.ResourceMemory: k8sresource.MustParse("4Gi"),
+					},
+				}
+
+				defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
+					Request: resource.ComputeResource{
+						CPU:    "1m",
+						Memory: "1Mi",
+					},
+					Limit: resource.ComputeResource{
+						CPU:    "2m",
+						Memory: "2Mi",
+					},
+				}
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
+				}
+
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
+				expectedMemoryRequest, _ := k8sresource.ParseQuantity("3Gi")
+				expectedCPULimit, _ := k8sresource.ParseQuantity("11m")
+				expectedMemoryLimit, _ := k8sresource.ParseQuantity("4Gi")
+
+				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(expectedCPURequest))
+				Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(expectedMemoryRequest))
+				Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(expectedCPULimit))
+				Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(expectedMemoryLimit))
+			})
+
+			It("does not set any resource requirements if empty maps are provided in the CR", func() {
+				instance.Spec.Resources = &corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{},
+					Limits:   corev1.ResourceList{},
+				}
+
+				defaultConfiguration.ResourceRequirements = resource.ResourceRequirements{
+					Limit: resource.ComputeResource{
+						CPU:    "2m",
+						Memory: "2Mi",
+					},
+				}
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
+				}
+
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+
+				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(len(container.Resources.Requests)).To(Equal(0))
+				Expect(len(container.Resources.Limits)).To(Equal(0))
 			})
 		})
 
@@ -763,22 +748,40 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("Update", func() {
 		var (
-			statefulSet    *appsv1.StatefulSet
-			stsBuilder     *resource.StatefulSetBuilder
-			existingLabels map[string]string
-			affinity       *corev1.Affinity
+			statefulSet          *appsv1.StatefulSet
+			stsBuilder           *resource.StatefulSetBuilder
+			existingLabels       map[string]string
+			affinity             *corev1.Affinity
+			resourceRequirements corev1.ResourceRequirements
 		)
 
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{}
-			instance.Namespace = "foo"
-			instance.Name = "foo"
-			instance.Labels = map[string]string{
-				"app.kubernetes.io/foo": "bar",
-				"foo":                   "bar",
-				"rabbitmq":              "is-great",
-				"foo/app.kubernetes.io": "edgecase",
+			scheme = runtime.NewScheme()
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
+
+			defaultConfiguration = resource.DefaultConfiguration{
+				Scheme: scheme,
 			}
+
+			cluster = &resource.RabbitmqResourceBuilder{
+				Instance:             &instance,
+				DefaultConfiguration: defaultConfiguration,
+			}
+			existingLabels = map[string]string{
+				"app.kubernetes.io/name":      instance.Name,
+				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+				"this-was-the-previous-label": "should-be-deleted",
+			}
+
+			stsBuilder = cluster.StatefulSet()
+			obj, _ := stsBuilder.Build()
+			statefulSet = obj.(*appsv1.StatefulSet)
+			statefulSet.Labels = existingLabels
+
+		})
+
+		It("creates the affinity rule as provided in the instance", func() {
 			affinity = &corev1.Affinity{
 				NodeAffinity: &corev1.NodeAffinity{
 					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
@@ -796,54 +799,43 @@ var _ = Describe("StatefulSet", func() {
 					},
 				},
 			}
-			instance.Spec.Affinity = affinity
+			stsBuilder.Instance.Spec.Affinity = affinity
 
-			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
-			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-
-			defaultConfiguration = resource.DefaultConfiguration{
-				Scheme: scheme,
-			}
-			cluster = &resource.RabbitmqResourceBuilder{
-				Instance:             &instance,
-				DefaultConfiguration: defaultConfiguration,
-			}
-			existingLabels = map[string]string{
-				"app.kubernetes.io/name":      instance.Name,
-				"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
-				"this-was-the-previous-label": "should-be-deleted",
-			}
-
-			stsBuilder = cluster.StatefulSet()
-			statefulSet = &appsv1.StatefulSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: existingLabels,
-				},
-			}
-		})
-
-		It("creates the affinity rule as provided in the instance", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(statefulSet.Spec.Template.Spec.Affinity).To(Equal(affinity))
 		})
 
-		It("adds labels from the CR to the statefulset", func() {
-			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+		It("adds the resource requirements", func() {
+			resourceRequirements = corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU: k8sresource.MustParse("300m"),
+				},
+			}
+			stsBuilder.Instance.Spec.Resources = &resourceRequirements
 
-			testLabels(statefulSet.Labels)
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Resources).To(Equal(resourceRequirements))
 		})
 
-		It("restores the default labels", func() {
+		It("formats labels", func() {
+			stsBuilder.Instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
+			By("adding labels from the CR to the statefulset")
+			testLabels(statefulSet.Labels)
+
+			By("restoring the default labels")
 			labels := statefulSet.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			Expect(labels["app.kubernetes.io/name"]).To(Equal("foo"))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
 
-		It("deletes the labels that are removed from the CR", func() {
+			By("deleting the labels that are removed from the CR")
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(statefulSet.Labels).NotTo(HaveKey("this-was-the-previous-label"))
 		})

@@ -154,47 +154,14 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 }
 
 func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) error {
-	err := builder.setResourceRequirementsFromInstance(sts)
-	if err != nil {
-		return err
+	if builder.Instance.Spec.Resources != nil {
+		sts.Spec.Template.Spec.Containers[0].Resources = *builder.Instance.Spec.Resources
 	}
 
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
 	sts.Labels = updatedLabels
 	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
 	sts.Spec.Template.Spec.Affinity = builder.Instance.Spec.Affinity
-	return nil
-}
-
-func (builder *StatefulSetBuilder) setResourceRequirementsFromInstance(sts *appsv1.StatefulSet) error {
-	if builder.Instance.Spec.Resource.Limit.CPU != "" {
-		cpuLimit, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Limit.CPU)
-		if err != nil {
-			return err
-		}
-		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceCPU] = cpuLimit
-	}
-	if builder.Instance.Spec.Resource.Request.CPU != "" {
-		cpuRequest, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Request.CPU)
-		if err != nil {
-			return err
-		}
-		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceCPU] = cpuRequest
-	}
-	if builder.Instance.Spec.Resource.Limit.Memory != "" {
-		memoryLimit, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Limit.Memory)
-		if err != nil {
-			return err
-		}
-		sts.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory] = memoryLimit
-	}
-	if builder.Instance.Spec.Resource.Request.Memory != "" {
-		memoryRequest, err := k8sresource.ParseQuantity(builder.Instance.Spec.Resource.Request.Memory)
-		if err != nil {
-			return err
-		}
-		sts.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory] = memoryRequest
-	}
 	return nil
 }
 
