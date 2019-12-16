@@ -766,6 +766,7 @@ var _ = Describe("StatefulSet", func() {
 			statefulSet    *appsv1.StatefulSet
 			stsBuilder     *resource.StatefulSetBuilder
 			existingLabels map[string]string
+			affinity       *corev1.Affinity
 		)
 
 		BeforeEach(func() {
@@ -778,6 +779,24 @@ var _ = Describe("StatefulSet", func() {
 				"rabbitmq":              "is-great",
 				"foo/app.kubernetes.io": "edgecase",
 			}
+			affinity = &corev1.Affinity{
+				NodeAffinity: &corev1.NodeAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+						NodeSelectorTerms: []corev1.NodeSelectorTerm{
+							{
+								MatchExpressions: []corev1.NodeSelectorRequirement{
+									{
+										Key:      "foo",
+										Operator: "Exists",
+										Values:   nil,
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			instance.Spec.Affinity = affinity
 
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
@@ -802,6 +821,11 @@ var _ = Describe("StatefulSet", func() {
 					Labels: existingLabels,
 				},
 			}
+		})
+
+		It("creates the affinity rule as provided in the instance", func() {
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			Expect(statefulSet.Spec.Template.Spec.Affinity).To(Equal(affinity))
 		})
 
 		It("adds labels from the CR to the statefulset", func() {

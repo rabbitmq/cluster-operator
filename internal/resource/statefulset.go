@@ -146,8 +146,6 @@ func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet)
 		},
 	}
 
-	sts.Spec.Template.Spec.Affinity = builder.Instance.Spec.Affinity
-
 	return builder.setMutableFields(sts)
 }
 
@@ -164,6 +162,7 @@ func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) err
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
 	sts.Labels = updatedLabels
 	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
+	sts.Spec.Template.Spec.Affinity = builder.Instance.Spec.Affinity
 	return nil
 }
 

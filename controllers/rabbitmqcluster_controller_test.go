@@ -143,6 +143,41 @@ var _ = Describe("RabbitmqclusterController", func() {
 					return sts.Labels
 				}, 1).Should(HaveKeyWithValue("foo", "bar"))
 			})
+
+			When("Affinity rules are updated", func() {
+				affinity := &corev1.Affinity{
+					NodeAffinity: &corev1.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+							NodeSelectorTerms: []corev1.NodeSelectorTerm{
+								{
+									MatchExpressions: []corev1.NodeSelectorRequirement{
+										{
+											Key:      "foo",
+											Operator: "Exists",
+											Values:   nil,
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+
+				rabbitmqCluster.Spec.Affinity = affinity
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+				Eventually(func() *corev1.Affinity {
+					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					return sts.Spec.Template.Spec.Affinity
+				}, 1).Should(Equal(affinity))
+
+				affinity = nil
+				rabbitmqCluster.Spec.Affinity = affinity
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+				Eventually(func() *corev1.Affinity {
+					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					return sts.Spec.Template.Spec.Affinity
+				}, 1).Should(BeNil())
+			})
 		})
 	})
 
