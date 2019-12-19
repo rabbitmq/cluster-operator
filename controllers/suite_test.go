@@ -92,6 +92,8 @@ var _ = BeforeSuite(func() {
 				Memory: "1Gi",
 			},
 		},
+		PersistentStorage:          "5Gi",
+		PersistentStorageClassName: "operator-storage-class",
 	}
 
 	scheme = runtime.NewScheme()

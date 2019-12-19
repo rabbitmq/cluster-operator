@@ -7,8 +7,6 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -90,6 +88,11 @@ var _ = Describe("Operator", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
+			By("publishing a message", func() {
+				err := rabbitmqPublishToNewQueue(hostname, username, password)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
 			By("updating the CR status correctly", func() {
 				Expect(clientSet.CoreV1().Pods(namespace).Delete(statefulSetPodName(cluster, 0), &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
@@ -110,6 +113,14 @@ var _ = Describe("Operator", func() {
 				waitForRabbitmqRunning(cluster)
 			})
 
+			By("consuming a message after RabbitMQ was restarted", func() {
+				assertHttpReady(hostname)
+
+				message, err := rabbitmqGetMessageFromQueue(hostname, username, password)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(message.Payload).To(Equal("hello"))
+			})
+
 			By("adding Prometheus annotations to the ingress service", func() {
 				expectedAnnotations := map[string]string{"prometheus.io/scrape": "true", "prometheus.io/port": "15692"}
 				Eventually(func() map[string]string {
@@ -122,6 +133,14 @@ var _ = Describe("Operator", func() {
 					annotations := map[string]string{"prometheus.io/scrape": svc.Annotations["prometheus.io/scrape"], "prometheus.io/port": svc.Annotations["prometheus.io/port"]}
 					return annotations
 				}, serviceCreationTimeout).Should(Equal(expectedAnnotations))
+			})
+
+			By("setting owner reference to persistence volume claim successfully", func() {
+				pvcName := "persistence-" + statefulSetPodName(cluster, 0)
+				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(pvcName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(pvc.OwnerReferences)).To(Equal(1))
+				Expect(pvc.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
 		})
 	})
@@ -241,118 +260,6 @@ var _ = Describe("Operator", func() {
 			}, 10).Should(Not(Equal(oldSts.UID)))
 
 			assertStatefulSetReady(cluster)
-		})
-	})
-
-	Context("persistence", func() {
-		var (
-			cluster *rabbitmqv1beta1.RabbitmqCluster
-			pvcName string
-		)
-
-		When("storage class name and storage is specified in the RabbitmqCluster Spec", func() {
-			BeforeEach(func() {
-				cluster = generateRabbitmqCluster(namespace, "persistence-storageclass-rabbit")
-				pvcName = "persistence-" + statefulSetPodName(cluster, 0)
-
-				// 'standard' is the default StorageClass in GCE
-				cluster.Spec.Persistence.StorageClassName = "standard"
-				cluster.Spec.Persistence.Storage = "2Gi"
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
-
-				waitForRabbitmqRunning(cluster)
-			})
-
-			AfterEach(func() {
-				err := rmqClusterClient.Delete(context.TODO(), cluster)
-				if !apierrors.IsNotFound(err) {
-					Expect(err).NotTo(HaveOccurred())
-				}
-			})
-
-			It("creates the RabbitmqCluster with the specified storage", func() {
-				pvList, err := clientSet.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				for _, pv := range pvList.Items {
-					if pv.Spec.ClaimRef.Name == pvcName {
-						storageCap := pv.Spec.Capacity["storage"]
-						storageCapPointer := &storageCap
-						Expect(pv.Spec.StorageClassName).To(Equal("standard"))
-						Expect(storageCapPointer.String()).To(Equal("2Gi"))
-					}
-				}
-			})
-		})
-
-		When("storage configuration is only specified in the operator configMap", func() {
-			var hostname, username, password string
-
-			BeforeEach(func() {
-				cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
-				pvcName = "persistence-" + statefulSetPodName(cluster, 0)
-
-				cluster.Spec.Service.Type = "LoadBalancer"
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
-
-				waitForRabbitmqRunning(cluster)
-
-				var err error
-				username, password, err = getRabbitmqUsernameAndPassword(clientSet, namespace, cluster.Name)
-				Expect(err).NotTo(HaveOccurred())
-
-				hostname = rabbitmqHostname(clientSet, cluster)
-				assertHttpReady(hostname)
-
-				response, err := rabbitmqAlivenessTest(hostname, username, password)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(response.Status).To(Equal("ok"))
-			})
-
-			AfterEach(func() {
-				err := rmqClusterClient.Delete(context.TODO(), cluster)
-				if !apierrors.IsNotFound(err) {
-					Expect(err).NotTo(HaveOccurred())
-				}
-			})
-
-			It("works as expected", func() {
-				By("creating the persistent volume using the configured storage class", func() {
-					pvList, err := clientSet.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					for _, pv := range pvList.Items {
-						if pv.Spec.ClaimRef.Name == pvcName {
-							Expect(pv.Spec.StorageClassName).To(Equal("persistent-test"))
-						}
-					}
-				})
-
-				By("successfully perserving messages after recreating a pod ", func() {
-					err := rabbitmqPublishToNewQueue(hostname, username, password)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = kubectlDelete(namespace, "pod", statefulSetPodName(cluster, 0))
-					Expect(err).NotTo(HaveOccurred())
-
-					waitForRabbitmqRunning(cluster)
-					assertHttpReady(hostname)
-
-					message, err := rabbitmqGetMessageFromQueue(hostname, username, password)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(message.Payload).To(Equal("hello"))
-				})
-
-				By("deleting the persistent volume and claim when CRD is deleted", func() {
-					Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
-
-					var err error
-					Eventually(func() error {
-						_, err = clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(pvcName, metav1.GetOptions{})
-						return err
-					}, 200).Should(HaveOccurred())
-
-					Expect(apierrors.IsNotFound(err)).To(BeTrue())
-				})
-			})
 		})
 	})
 

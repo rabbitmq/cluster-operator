@@ -19,6 +19,7 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -396,7 +397,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 
-	When("resource requirements configurations", func() {
+	Context("resource requirements configurations", func() {
 		BeforeEach(func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -473,6 +474,64 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Expect(actualResources).To(Equal(expectedResources))
 
+		})
+	})
+
+	Context("Persistence", func() {
+		BeforeEach(func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit-resource",
+					Namespace: "rabbit-resource",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-resource-secret",
+				},
+			}
+
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("server"), nil)).To(Succeed())
+		})
+
+		It("creates the RabbitmqCluster with the specified storage from instance spec", func() {
+			rabbitmqCluster.Spec.Persistence.StorageClassName = "my-storage-class"
+			rabbitmqCluster.Spec.Persistence.Storage = "100Gi"
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			waitForClusterCreation(rabbitmqCluster, client)
+
+			stsName := rabbitmqCluster.ChildResourceName("server")
+			var sts *appsv1.StatefulSet
+			Eventually(func() error {
+				var err error
+				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				return err
+			}, 1).Should(Succeed())
+			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
+			Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
+			actualStorageCapacity := sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests[corev1.ResourceStorage]
+			Expect(actualStorageCapacity).To(Equal(k8sresource.MustParse("100Gi")))
+		})
+
+		It("creates the RabbitmqCluster with the specified storage from operator config", func() {
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			waitForClusterCreation(rabbitmqCluster, client)
+
+			stsName := rabbitmqCluster.ChildResourceName("server")
+			var sts *appsv1.StatefulSet
+			Eventually(func() error {
+				var err error
+				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				return err
+			}, 1).Should(Succeed())
+			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
+			Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("operator-storage-class"))
+			actualStorageCapacity := sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests[corev1.ResourceStorage]
+			Expect(actualStorageCapacity).To(Equal(k8sresource.MustParse("5Gi")))
 		})
 	})
 
@@ -575,4 +634,9 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 		}, 1).Should(Succeed())
 		Expect(roleBinding.Name).To(Equal(name))
 	})
+
+}
+
+func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
+	return cluster.ChildResourceName(strings.Join([]string{"server", strconv.Itoa(index)}, "-"))
 }
