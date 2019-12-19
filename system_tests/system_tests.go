@@ -266,55 +266,6 @@ var _ = Describe("Operator", func() {
 		})
 	})
 
-	When("a service type and annotations is configured in the manager configMap", func() {
-		var (
-			cluster                *rabbitmqv1beta1.RabbitmqCluster
-			expectedConfigurations *config.Config
-			serviceName            string
-		)
-
-		BeforeEach(func() {
-			operatorConfigMapName := "p-rmq-operator-config"
-			configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(configMap.Data["service"]).NotTo(BeNil())
-
-			expectedConfigurations, err = config.NewConfig([]byte(configMap.Data["config"]))
-			Expect(err).NotTo(HaveOccurred())
-
-			cluster = generateRabbitmqCluster(namespace, "nodeport-rabbit")
-			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
-
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
-			waitForRabbitmqRunning(cluster)
-		})
-
-		AfterEach(func() {
-			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
-		})
-
-		It("creates the service type and annotations as configured in manager config", func() {
-			Eventually(func() string {
-				svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
-				if err != nil {
-					Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
-					return ""
-				}
-
-				return string(svc.Spec.Type)
-			}, serviceCreationTimeout).Should(Equal(expectedConfigurations.Service.Type))
-			Eventually(func() map[string]string {
-				svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
-				if err != nil {
-					Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
-					return nil
-				}
-
-				return svc.Annotations
-			}, serviceCreationTimeout).Should(Equal(expectedConfigurations.Service.Annotations))
-		})
-	})
-
 	Context("persistence", func() {
 		var (
 			cluster *rabbitmqv1beta1.RabbitmqCluster

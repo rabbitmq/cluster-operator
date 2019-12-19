@@ -318,6 +318,84 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(podSpecAffinity).To(Equal(affinity))
 		})
 	})
+
+	Context("Ingress service configuration", func() {
+		BeforeEach(func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit-service",
+					Namespace: "rabbit-service",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-service-secret",
+				},
+			}
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("ingress"), &metav1.DeleteOptions{}))
+		})
+
+		It("creates the service type and annotations as configured in manager config", func() {
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			waitForClusterCreation(rabbitmqCluster, client)
+
+			serviceName := rabbitmqCluster.ChildResourceName("ingress")
+			Eventually(func() string {
+				svc, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(serviceName, metav1.GetOptions{})
+				if err != nil {
+					Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
+					return fmt.Sprintf("service: %s not found \n", serviceName)
+				}
+				return string(svc.Spec.Type)
+			}, 1).Should(Equal("NodePort"))
+
+			Eventually(func() map[string]string {
+				svc, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(serviceName, metav1.GetOptions{})
+				if err != nil {
+					Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
+					return nil
+				}
+
+				return svc.Annotations
+			}, 1).Should(Equal(map[string]string{
+				"service_annotation": "1.2.3.4/0",
+			}))
+		})
+
+		It("creates the service type and annotations as configured in instance spec", func() {
+			rabbitmqCluster.Spec.Service.Type = "LoadBalancer"
+			rabbitmqCluster.Spec.Service.Annotations = map[string]string{"annotations": "cr-annotation"}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			waitForClusterCreation(rabbitmqCluster, client)
+
+			serviceName := rabbitmqCluster.ChildResourceName("ingress")
+			Eventually(func() string {
+				svc, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(serviceName, metav1.GetOptions{})
+				if err != nil {
+					Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
+					return fmt.Sprintf("service: %s not found \n", serviceName)
+				}
+				return string(svc.Spec.Type)
+			}, 1).Should(Equal("LoadBalancer"))
+
+			Eventually(func() map[string]string {
+				svc, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(serviceName, metav1.GetOptions{})
+				if err != nil {
+					Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", serviceName)))
+					return nil
+				}
+
+				return svc.Annotations
+			}, 1).Should(Equal(map[string]string{
+				"annotations": "cr-annotation",
+			}))
+		})
+	})
+
 })
 
 func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {

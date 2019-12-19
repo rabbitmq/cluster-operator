@@ -80,6 +80,10 @@ var _ = BeforeSuite(func() {
 
 	managerConfig := resource.DefaultConfiguration{
 		ImagePullSecret: "pivotal-rmq-registry-access",
+		ServiceAnnotations: map[string]string{
+			"service_annotation": "1.2.3.4/0",
+		},
+		ServiceType: "NodePort",
 	}
 
 	scheme = runtime.NewScheme()
