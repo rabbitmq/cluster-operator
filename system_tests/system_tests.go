@@ -145,57 +145,7 @@ var _ = Describe("Operator", func() {
 		})
 	})
 
-	Context("ReadinessProbe tests", func() {
-		var (
-			cluster *rabbitmqv1beta1.RabbitmqCluster
-			podName string
-		)
-
-		BeforeEach(func() {
-			cluster = generateRabbitmqCluster(namespace, "readiness-rabbit")
-			podName = statefulSetPodName(cluster, 0)
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
-
-			assertStatefulSetReady(cluster)
-		})
-
-		AfterEach(func() {
-			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
-		})
-
-		It("checks whether the rabbitmq cluster is ready to serve traffic", func() {
-			By("not publishing addresses after stopping Rabbitmq app", func() {
-				waitForRabbitmqRunning(cluster)
-
-				_, err := kubectlExec(namespace, podName, "rabbitmqctl", "stop_app")
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(func() []byte {
-					output, err := kubectl(
-						"-n",
-						cluster.Namespace,
-						"get",
-						"rabbitmqclusters",
-						cluster.Name,
-						"-o=jsonpath='{.status.clusterStatus}'",
-					)
-					Expect(err).NotTo(HaveOccurred())
-					return output
-
-				}, 120, 1).Should(ContainSubstring("created"))
-
-			})
-
-			By("publishing addresses after starting the Rabbitmq app", func() {
-				_, err := kubectlExec(namespace, podName, "rabbitmqctl", "start_app")
-				Expect(err).ToNot(HaveOccurred())
-
-				waitForRabbitmqRunning(cluster)
-			})
-		})
-	})
-
-	When("resources are deleted", func() {
+	When("Resources are deleted", func() {
 		var (
 			cluster       *rabbitmqv1beta1.RabbitmqCluster
 			configMapName string

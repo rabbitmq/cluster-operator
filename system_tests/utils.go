@@ -87,36 +87,6 @@ func kubectl(args ...string) ([]byte, error) {
 	return cmd.CombinedOutput()
 }
 
-func kubectlDelete(namespace, object, objectName string) error {
-	kubectlArgs := []string{
-		"-n",
-		namespace,
-		"delete",
-		object,
-		objectName,
-	}
-
-	kubectlCmd := exec.Command("kubectl", kubectlArgs...)
-	err := kubectlCmd.Run()
-	return err
-}
-
-func endpointPoller(clientSet *kubernetes.Clientset, namespace, endpointName string) int {
-	endpoints, err := clientSet.CoreV1().Endpoints(namespace).Get(endpointName, metav1.GetOptions{})
-
-	if err != nil {
-		fmt.Printf("Failed to Get endpoint %s: %v", endpointName, err)
-		return -1
-	}
-
-	ready := 0
-	for _, endpointSubset := range endpoints.Subsets {
-		ready = ready + len(endpointSubset.Addresses)
-	}
-
-	return ready
-}
-
 func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, body []byte) (responseBody []byte, err error) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	req, _ := http.NewRequest(httpMethod, url, bytes.NewReader(body))

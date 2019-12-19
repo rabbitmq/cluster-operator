@@ -142,7 +142,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				}, 1).Should(HaveKeyWithValue("foo", "bar"))
 			})
 
-			When("Affinity rules are updated", func() {
+			When("affinity rules are updated", func() {
 				affinity := &corev1.Affinity{
 					NodeAffinity: &corev1.NodeAffinity{
 						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
@@ -194,7 +194,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
 		})
 
-		When("specified in config", func() {
+		When("specified in operator config", func() {
 			BeforeEach(func() {
 				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -214,22 +214,25 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 			})
 
-			It("creates the registry secret", func() {
-				Eventually(func() error {
-					_, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
-					return err
-				}, 1).Should(Succeed())
+			It("works", func() {
+				By("creating the registry secret", func() {
+					Eventually(func() error {
+						_, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+						return err
+					}, 1).Should(Succeed())
 
-				stsName := rabbitmqCluster.ChildResourceName("server")
-				Eventually(func() []corev1.LocalObjectReference {
-					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-					return sts.Spec.Template.Spec.ImagePullSecrets
-				}, 1).Should(ContainElement(corev1.LocalObjectReference{Name: secretName}))
+					stsName := rabbitmqCluster.ChildResourceName("server")
+					Eventually(func() []corev1.LocalObjectReference {
+						sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+						return sts.Spec.Template.Spec.ImagePullSecrets
+					}, 1).Should(ContainElement(corev1.LocalObjectReference{Name: secretName}))
+				})
+
+				By("creating all child resources", func() {
+					resourceTests(rabbitmqCluster, clientSet, secretName)
+				})
 			})
 
-			It("reconciles", func() {
-				resourceTests(rabbitmqCluster, clientSet, secretName)
-			})
 		})
 
 		When("specified in the instance spec and config", func() {
@@ -253,26 +256,32 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 			})
 
-			It("does not create a new registry secret", func() {
-				imageSecretSuffix := "registry-access"
-				secretList, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).List(metav1.ListOptions{})
-				var secretsWithImagePullSecretSuffix []corev1.Secret
-				for _, i := range secretList.Items {
-					if strings.Contains(i.Name, imageSecretSuffix) {
-						secretsWithImagePullSecretSuffix = append(secretsWithImagePullSecretSuffix, i)
+			It("works", func() {
+				By("not creating a new registry secret", func() {
+					imageSecretSuffix := "registry-access"
+					secretList, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).List(metav1.ListOptions{})
+					var secretsWithImagePullSecretSuffix []corev1.Secret
+					for _, i := range secretList.Items {
+						if strings.Contains(i.Name, imageSecretSuffix) {
+							secretsWithImagePullSecretSuffix = append(secretsWithImagePullSecretSuffix, i)
+						}
 					}
-				}
-				Expect(secretsWithImagePullSecretSuffix).To(BeEmpty())
-				Expect(err).NotTo(HaveOccurred())
-			})
+					Expect(secretsWithImagePullSecretSuffix).To(BeEmpty())
+					Expect(err).NotTo(HaveOccurred())
 
-			It("reconciles", func() {
-				resourceTests(rabbitmqCluster, clientSet, "rabbit-two-secret")
+				})
+
+				By("using the instance spec secret", func() {
+					statefulSetName := rabbitmqCluster.ChildResourceName("server")
+					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
+				})
 			})
 		})
 	})
 
-	Context("Affinity settings", func() {
+	Context("Affinity configurations", func() {
 		var affinity = &corev1.Affinity{
 			PodAffinity: &corev1.PodAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -308,19 +317,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("adds the affinity rules to pod spec", func() {
-			stsName := rabbitmqCluster.ChildResourceName("server")
-			var sts *appsv1.StatefulSet
-			Eventually(func() error {
-				var err error
-				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-				return err
-			}, 1).Should(Succeed())
+			sts := statefulSet(rabbitmqCluster)
 			podSpecAffinity := sts.Spec.Template.Spec.Affinity
 			Expect(podSpecAffinity).To(Equal(affinity))
 		})
 	})
 
-	Context("Ingress service configuration", func() {
+	Context("Ingress service configurations", func() {
 		BeforeEach(func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -397,7 +400,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 
-	Context("resource requirements configurations", func() {
+	Context("Resource requirements configurations", func() {
 		BeforeEach(func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -420,13 +423,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
 
-			stsName := rabbitmqCluster.ChildResourceName("server")
-			var sts *appsv1.StatefulSet
-			Eventually(func() error {
-				var err error
-				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-				return err
-			}, 1).Should(Succeed())
+			sts := statefulSet(rabbitmqCluster)
+
 			actualResources := sts.Spec.Template.Spec.Containers[0].Resources
 			expectedResources := corev1.ResourceRequirements{
 				Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -455,13 +453,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
 
-			stsName := rabbitmqCluster.ChildResourceName("server")
-			var sts *appsv1.StatefulSet
-			Eventually(func() error {
-				var err error
-				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-				return err
-			}, 1).Should(Succeed())
+			sts := statefulSet(rabbitmqCluster)
+
 			actualResources := sts.Spec.Template.Spec.Containers[0].Resources
 			expectedResources := corev1.ResourceRequirements{
 				Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -477,7 +470,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 
-	Context("Persistence", func() {
+	Context("Persistence configurations", func() {
 		BeforeEach(func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -500,42 +493,41 @@ var _ = Describe("RabbitmqclusterController", func() {
 		It("creates the RabbitmqCluster with the specified storage from instance spec", func() {
 			rabbitmqCluster.Spec.Persistence.StorageClassName = "my-storage-class"
 			rabbitmqCluster.Spec.Persistence.Storage = "100Gi"
-
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
 
-			stsName := rabbitmqCluster.ChildResourceName("server")
-			var sts *appsv1.StatefulSet
-			Eventually(func() error {
-				var err error
-				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-				return err
-			}, 1).Should(Succeed())
-			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
-			Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
-			actualStorageCapacity := sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests[corev1.ResourceStorage]
-			Expect(actualStorageCapacity).To(Equal(k8sresource.MustParse("100Gi")))
+			verifyPersistenceConfigurations(rabbitmqCluster, "my-storage-class", "100Gi")
 		})
 
 		It("creates the RabbitmqCluster with the specified storage from operator config", func() {
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
 
-			stsName := rabbitmqCluster.ChildResourceName("server")
-			var sts *appsv1.StatefulSet
-			Eventually(func() error {
-				var err error
-				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-				return err
-			}, 1).Should(Succeed())
-			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
-			Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("operator-storage-class"))
-			actualStorageCapacity := sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests[corev1.ResourceStorage]
-			Expect(actualStorageCapacity).To(Equal(k8sresource.MustParse("5Gi")))
+			verifyPersistenceConfigurations(rabbitmqCluster, "operator-storage-class", "5Gi")
 		})
 	})
 
 })
+
+func statefulSet(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
+	stsName := rabbitmqCluster.ChildResourceName("server")
+	var sts *appsv1.StatefulSet
+	Eventually(func() error {
+		var err error
+		sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+		return err
+	}, 1).Should(Succeed())
+	return sts
+}
+
+func verifyPersistenceConfigurations(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, storageClassName, storageCapacity string) {
+	sts := statefulSet(rabbitmqCluster)
+
+	Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
+	Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal(storageClassName))
+	actualStorageCapacity := sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests[corev1.ResourceStorage]
+	Expect(actualStorageCapacity).To(Equal(k8sresource.MustParse(storageCapacity)))
+}
 
 func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
 	Eventually(func() string {
