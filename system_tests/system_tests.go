@@ -51,6 +51,8 @@ var _ = Describe("Operator", func() {
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
 			cluster.Spec.Service.Type = "LoadBalancer"
+			cluster.Spec.Image = "registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq:latest"
+			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 
 			waitForRabbitmqRunning(cluster)
@@ -60,7 +62,6 @@ var _ = Describe("Operator", func() {
 			var err error
 			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-
 			assertHttpReady(hostname)
 		})
 
@@ -265,26 +266,6 @@ var _ = Describe("Operator", func() {
 		})
 	})
 
-	When("using our pivnet registry", func() {
-		var cluster *rabbitmqv1beta1.RabbitmqCluster
-
-		BeforeEach(func() {
-			cluster = generateRabbitmqCluster(namespace, "image-rabbit")
-
-			cluster.Spec.Image = "registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq:latest"
-			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
-		})
-
-		It("successfully creates pods using private image and configured repository", func() {
-			waitForRabbitmqRunning(cluster)
-		})
-	})
-
 	When("a service type and annotations is configured in the manager configMap", func() {
 		var (
 			cluster                *rabbitmqv1beta1.RabbitmqCluster
@@ -455,7 +436,6 @@ var _ = Describe("Operator", func() {
 				cluster.Spec.Replicas = 3
 				cluster.Spec.Service.Type = "LoadBalancer"
 				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
-				waitForRabbitmqRunning(cluster)
 			})
 
 			AfterEach(func() {
@@ -463,23 +443,7 @@ var _ = Describe("Operator", func() {
 			})
 
 			It("works", func() {
-
-				By("updating the cluster status correctly")
 				waitForRabbitmqRunning(cluster)
-				output, err := statefulSetStatus(cluster)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(output)).To(ContainSubstring("3/3"))
-
-				By("forming a 3 nodes cluster")
-				pods := []string{
-					statefulSetPodName(cluster, 0),
-					statefulSetPodName(cluster, 1),
-					statefulSetPodName(cluster, 2),
-				}
-
-				verifyClusterNodes(cluster, pods, "Running")
-				verifyClusterNodes(cluster, pods, "Disk")
-
 				username, password, err := getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
 				hostname := rabbitmqHostname(clientSet, cluster)
 				Expect(err).NotTo(HaveOccurred())
