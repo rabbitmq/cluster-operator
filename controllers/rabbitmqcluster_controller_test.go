@@ -19,7 +19,6 @@ package controllers_test
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -627,8 +626,4 @@ func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *
 		Expect(roleBinding.Name).To(Equal(name))
 	})
 
-}
-
-func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
-	return cluster.ChildResourceName(strings.Join([]string{"server", strconv.Itoa(index)}, "-"))
 }

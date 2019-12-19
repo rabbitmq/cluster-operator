@@ -11,6 +11,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -47,6 +49,10 @@ var _ = Describe("Operator", func() {
 			cluster.Spec.Service.Type = "LoadBalancer"
 			cluster.Spec.Image = "registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq:latest"
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
+			cluster.Spec.Resources = &corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
+				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+			}
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 
 			waitForRabbitmqRunning(cluster)
@@ -155,6 +161,10 @@ var _ = Describe("Operator", func() {
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "delete-my-resources")
+			cluster.Spec.Resources = &corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
+				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+			}
 
 			configMapName = cluster.ChildResourceName(configMapSuffix)
 			serviceName = cluster.ChildResourceName(ingressServiceSuffix)
@@ -221,6 +231,10 @@ var _ = Describe("Operator", func() {
 				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
 				cluster.Spec.Replicas = 3
 				cluster.Spec.Service.Type = "LoadBalancer"
+				cluster.Spec.Resources = &corev1.ResourceRequirements{
+					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
+					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+				}
 				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 			})
 

@@ -14,7 +14,7 @@ require (
 	github.com/gophercloud/gophercloud v0.5.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/imdario/mergo v0.3.8 // indirect
-	github.com/onsi/ginkgo v1.10.2
+	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
 	github.com/prometheus/client_golang v1.2.1 // indirect
 	github.com/prometheus/procfs v0.0.8 // indirect
