@@ -396,6 +396,86 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 
+	When("resource requirements configurations", func() {
+		BeforeEach(func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit-resource",
+					Namespace: "rabbit-resource",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-resource-secret",
+				},
+			}
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("server"), nil)).To(Succeed())
+		})
+
+		It("uses resource requirements from manager config and defaults ", func() {
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			waitForClusterCreation(rabbitmqCluster, client)
+
+			stsName := rabbitmqCluster.ChildResourceName("server")
+			var sts *appsv1.StatefulSet
+			Eventually(func() error {
+				var err error
+				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				return err
+			}, 1).Should(Succeed())
+			actualResources := sts.Spec.Template.Spec.Containers[0].Resources
+			expectedResources := corev1.ResourceRequirements{
+				Limits: map[corev1.ResourceName]k8sresource.Quantity{
+					corev1.ResourceCPU:    k8sresource.MustParse("2"),
+					corev1.ResourceMemory: k8sresource.MustParse("1Gi"),
+				},
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{
+					corev1.ResourceCPU:    k8sresource.MustParse("1"),
+					corev1.ResourceMemory: k8sresource.MustParse("1Gi"),
+				},
+			}
+
+			Expect(actualResources).To(Equal(expectedResources))
+		})
+
+		It("uses resource requirements from instance spec when provided", func() {
+			rabbitmqCluster.Spec.Resources = &corev1.ResourceRequirements{
+				Limits: map[corev1.ResourceName]k8sresource.Quantity{
+					corev1.ResourceMemory: k8sresource.MustParse("4Gi"),
+				},
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{
+					corev1.ResourceMemory: k8sresource.MustParse("4Gi"),
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			waitForClusterCreation(rabbitmqCluster, client)
+
+			stsName := rabbitmqCluster.ChildResourceName("server")
+			var sts *appsv1.StatefulSet
+			Eventually(func() error {
+				var err error
+				sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				return err
+			}, 1).Should(Succeed())
+			actualResources := sts.Spec.Template.Spec.Containers[0].Resources
+			expectedResources := corev1.ResourceRequirements{
+				Limits: map[corev1.ResourceName]k8sresource.Quantity{
+					corev1.ResourceMemory: k8sresource.MustParse("4Gi"),
+				},
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{
+					corev1.ResourceMemory: k8sresource.MustParse("4Gi"),
+				},
+			}
+
+			Expect(actualResources).To(Equal(expectedResources))
+
+		})
+	})
+
 })
 
 func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {

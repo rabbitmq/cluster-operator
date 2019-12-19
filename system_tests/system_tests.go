@@ -9,14 +9,10 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -126,24 +122,6 @@ var _ = Describe("Operator", func() {
 					annotations := map[string]string{"prometheus.io/scrape": svc.Annotations["prometheus.io/scrape"], "prometheus.io/port": svc.Annotations["prometheus.io/port"]}
 					return annotations
 				}, serviceCreationTimeout).Should(Equal(expectedAnnotations))
-			})
-
-			By("creating rabbitmq containers with the default CPU request and limit, and provided memory request and limit", func() {
-				operatorConfigMapName := "p-rmq-operator-config"
-				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(configMap.Data["resources"]).NotTo(BeNil())
-
-				expectedConfigs, err := config.NewConfig([]byte(configMap.Data["config"]))
-				Expect(err).NotTo(HaveOccurred())
-				sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(cluster.ChildResourceName(statefulSetSuffix), metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-
-				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(expectedConfigs.Resources.Limits.Memory)))
-				Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(expectedConfigs.Resources.Requests.Memory)))
-				Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse("2")))
-				Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse("1")))
 			})
 		})
 	})

@@ -84,6 +84,14 @@ var _ = BeforeSuite(func() {
 			"service_annotation": "1.2.3.4/0",
 		},
 		ServiceType: "NodePort",
+		ResourceRequirements: resource.ResourceRequirements{
+			Limit: resource.ComputeResource{
+				Memory: "1Gi",
+			},
+			Request: resource.ComputeResource{
+				Memory: "1Gi",
+			},
+		},
 	}
 
 	scheme = runtime.NewScheme()
