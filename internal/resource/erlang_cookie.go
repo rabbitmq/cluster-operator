@@ -37,8 +37,8 @@ func (builder *ErlangCookieBuilder) Build() (runtime.Object, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        builder.Instance.ChildResourceName(erlangCookieName),
 			Namespace:   builder.Instance.Namespace,
-			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
-			Annotations: metadata.GetAnnotations(builder.Instance.ObjectMeta.Annotations),
+			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
+			Annotations: metadata.GetAnnotations(builder.Instance.Annotations),
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
@@ -49,7 +49,8 @@ func (builder *ErlangCookieBuilder) Build() (runtime.Object, error) {
 
 func (builder *ErlangCookieBuilder) Update(object runtime.Object) error {
 	secret := object.(*corev1.Secret)
-	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
+	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
+	secret.Annotations = metadata.GetAnnotations(builder.Instance.Annotations)
 	return nil
 }
 

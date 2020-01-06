@@ -41,7 +41,7 @@ var _ = Describe("RegistrySecret", func() {
 		registrySecretBuilder = rabbitmqCluster.RegistrySecret()
 	})
 
-	Context("Build", func() {
+	Context("Build with defaults", func() {
 		BeforeEach(func() {
 			obj, err := registrySecretBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -84,7 +84,7 @@ var _ = Describe("RegistrySecret", func() {
 		})
 	})
 
-	Context("Build with labels on CR", func() {
+	Context("Build with instance labels", func() {
 		BeforeEach(func() {
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
@@ -110,7 +110,7 @@ var _ = Describe("RegistrySecret", func() {
 		})
 	})
 
-	Context("Build with annotations on CR", func() {
+	Context("Build with instance annotations", func() {
 		BeforeEach(func() {
 			instance.Annotations = map[string]string{
 				"my-annotation":              "i-like-this",
@@ -129,7 +129,7 @@ var _ = Describe("RegistrySecret", func() {
 		})
 	})
 
-	Context("Update", func() {
+	Context("Update with instance labels", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -169,6 +169,36 @@ var _ = Describe("RegistrySecret", func() {
 
 		It("deletes the labels that are removed from the CR", func() {
 			Expect(secret.Labels).NotTo(HaveKey("this-was-the-previous-label"))
+		})
+	})
+
+	Context("Update with instance annotations", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-labelled",
+				},
+			}
+			instance.Annotations = map[string]string{
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
+			}
+
+			secret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"old-annotation": "old-value",
+					},
+				},
+			}
+			err := registrySecretBuilder.Update(secret)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("updates secret annotations", func() {
+			testAnnotations(secret.Annotations)
 		})
 	})
 })

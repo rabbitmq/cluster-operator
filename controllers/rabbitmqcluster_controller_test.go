@@ -162,8 +162,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 
 			When("CR labels are updated", func() {
-				labels := make(map[string]string)
-				rabbitmqCluster.Labels = labels
+				rabbitmqCluster.Labels = make(map[string]string)
 				rabbitmqCluster.Labels["foo"] = "bar"
 				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
 
@@ -177,6 +176,23 @@ var _ = Describe("RabbitmqclusterController", func() {
 					sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 					return sts.Labels
 				}, 1).Should(HaveKeyWithValue("foo", "bar"))
+			})
+
+			When("CR annotations are updated", func() {
+				rabbitmqCluster.Annotations = make(map[string]string)
+				rabbitmqCluster.Annotations["anno-key"] = "anno-value"
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				Eventually(func() map[string]string {
+					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("headless"), metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return service.Annotations
+				}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
+				var sts *appsv1.StatefulSet
+				Eventually(func() map[string]string {
+					sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					return sts.Annotations
+				}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
 			})
 
 			When("affinity rules are updated", func() {

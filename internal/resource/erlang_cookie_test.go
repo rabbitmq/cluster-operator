@@ -34,7 +34,7 @@ var _ = Describe("ErlangCookie", func() {
 		erlangCookieBuilder = rabbitmqCluster.ErlangCookie()
 	})
 
-	Context("Build", func() {
+	Context("Build with defaults", func() {
 		BeforeEach(func() {
 			obj, err := erlangCookieBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -66,7 +66,7 @@ var _ = Describe("ErlangCookie", func() {
 		})
 	})
 
-	Context("Build with labels on CR", func() {
+	Context("Build with instance labels", func() {
 		BeforeEach(func() {
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
@@ -90,7 +90,7 @@ var _ = Describe("ErlangCookie", func() {
 		})
 	})
 
-	Context("Build with annotations on CR", func() {
+	Context("Build with instance annotations", func() {
 		BeforeEach(func() {
 			instance.Annotations = map[string]string{
 				"my-annotation":              "i-like-this",
@@ -109,7 +109,7 @@ var _ = Describe("ErlangCookie", func() {
 		})
 	})
 
-	Context("Update", func() {
+	Context("Update with instance labels", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -152,4 +152,33 @@ var _ = Describe("ErlangCookie", func() {
 		})
 	})
 
+	Context("Update with instance annotations", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-labelled",
+				},
+			}
+			instance.Annotations = map[string]string{
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
+			}
+
+			secret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"old-annotation": "old-value",
+					},
+				},
+			}
+			err := erlangCookieBuilder.Update(secret)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("updates secret annotations", func() {
+			testAnnotations(secret.Annotations)
+		})
+	})
 })

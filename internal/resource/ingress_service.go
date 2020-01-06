@@ -28,7 +28,7 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName("ingress"),
 			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
+			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: metadata.LabelSelector(builder.Instance.Name),
@@ -79,7 +79,7 @@ func (builder *IngressServiceBuilder) setServiceParams(service *corev1.Service) 
 func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
 	service := object.(*corev1.Service)
 	builder.setAnnotations(service)
-	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
+	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	return nil
 }
 

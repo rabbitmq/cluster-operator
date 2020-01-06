@@ -28,16 +28,18 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilde
 
 func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
-	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels)
+	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
+	configMap.Annotations = metadata.GetAnnotations(builder.Instance.Annotations)
 	return nil
 }
 
 func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(serverConfigMapName),
-			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
+			Name:        builder.Instance.ChildResourceName(serverConfigMapName),
+			Namespace:   builder.Instance.Namespace,
+			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
+			Annotations: metadata.GetAnnotations(builder.Instance.Annotations),
 		},
 		Data: map[string]string{
 			"enabled_plugins": "[" +

@@ -706,7 +706,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 	})
 
-	Context("label inheritance", func() {
+	Context("Build with instance labels", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{}
 			instance.Namespace = "foo"
@@ -747,7 +747,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 	})
 
-	Context("Build with annotations on CR", func() {
+	Context("Build with instance annotations", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{}
 			instance.Namespace = "foo"
@@ -790,6 +790,7 @@ var _ = Describe("StatefulSet", func() {
 			statefulSet          *appsv1.StatefulSet
 			stsBuilder           *resource.StatefulSetBuilder
 			existingLabels       map[string]string
+			existingAnnotations  map[string]string
 			affinity             *corev1.Affinity
 			resourceRequirements corev1.ResourceRequirements
 		)
@@ -813,11 +814,30 @@ var _ = Describe("StatefulSet", func() {
 				"this-was-the-previous-label": "should-be-deleted",
 			}
 
-			stsBuilder = cluster.StatefulSet()
-			obj, _ := stsBuilder.Build()
-			statefulSet = obj.(*appsv1.StatefulSet)
-			statefulSet.Labels = existingLabels
+			existingAnnotations = map[string]string{
+				"this-was-the-previous-annotation": "should-be-deleted",
+			}
 
+			stsBuilder = cluster.StatefulSet()
+
+			statefulSet = &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      existingLabels,
+					Annotations: existingAnnotations,
+				},
+				Spec: appsv1.StatefulSetSpec{
+					Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: existingLabels,
+						},
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{},
+							},
+						},
+					},
+				},
+			}
 		})
 
 		It("creates the affinity rule as provided in the instance", func() {
@@ -856,7 +876,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(statefulSet.Spec.Template.Spec.Containers[0].Resources).To(Equal(resourceRequirements))
 		})
 
-		It("formats labels", func() {
+		It("updates labels", func() {
 			stsBuilder.Instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
 				"foo":                   "bar",
@@ -865,7 +885,7 @@ var _ = Describe("StatefulSet", func() {
 			}
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			By("adding labels from the CR to the statefulset")
+			By("updating labels from the CR to the statefulset")
 			testLabels(statefulSet.Labels)
 
 			By("restoring the default labels")
@@ -879,13 +899,21 @@ var _ = Describe("StatefulSet", func() {
 			Expect(statefulSet.Labels).NotTo(HaveKey("this-was-the-previous-label"))
 		})
 
-		Context("PodTemplate", func() {
+		It("updates annotations", func() {
+			stsBuilder.Instance.Annotations = map[string]string{
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
+			}
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+			testAnnotations(statefulSet.Annotations)
+		})
+
+		Context("updates labels on pod", func() {
 			BeforeEach(func() {
-				sts.Spec.Template = corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: existingLabels,
-					},
-				}
+				statefulSet.Spec.Template.Labels = existingLabels
 			})
 
 			It("adds labels from the CR to the pod", func() {
@@ -907,6 +935,24 @@ var _ = Describe("StatefulSet", func() {
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				Expect(statefulSet.Spec.Template.Labels).NotTo(HaveKey("this-was-the-previous-label"))
+			})
+		})
+
+		Context("updates annotations on pod", func() {
+			BeforeEach(func() {
+				statefulSet.Spec.Template.Annotations = existingAnnotations
+			})
+
+			It("update labels from the instance to the pod", func() {
+				stsBuilder.Instance.Annotations = map[string]string{
+					"my-annotation":              "i-like-this",
+					"kubernetes.io/name":         "i-do-not-like-this",
+					"kubectl.kubernetes.io/name": "i-do-not-like-this",
+					"k8s.io/name":                "i-do-not-like-this",
+				}
+
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				testAnnotations(statefulSet.Spec.Template.Annotations)
 			})
 		})
 	})

@@ -31,7 +31,7 @@ var _ = Describe("ServiceAccount", func() {
 		serviceAccountBuilder = builder.ServiceAccount()
 	})
 
-	Context("Build", func() {
+	Context("Build with defaults", func() {
 		BeforeEach(func() {
 			obj, err := serviceAccountBuilder.Build()
 			serviceAccount = obj.(*corev1.ServiceAccount)
@@ -52,7 +52,7 @@ var _ = Describe("ServiceAccount", func() {
 		})
 	})
 
-	Context("Build with instance that has labels", func() {
+	Context("Build with instance labels", func() {
 		BeforeEach(func() {
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
@@ -78,7 +78,7 @@ var _ = Describe("ServiceAccount", func() {
 		})
 	})
 
-	Context("Build with annotations on CR", func() {
+	Context("Build with instance annotations", func() {
 		BeforeEach(func() {
 			instance.Annotations = map[string]string{
 				"my-annotation":              "i-like-this",
@@ -97,7 +97,7 @@ var _ = Describe("ServiceAccount", func() {
 		})
 	})
 
-	Context("Update", func() {
+	Context("Update with instance labels", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -137,6 +137,36 @@ var _ = Describe("ServiceAccount", func() {
 
 		It("deletes the labels that are removed from the CR", func() {
 			Expect(serviceAccount.Labels).NotTo(HaveKey("this-was-the-previous-label"))
+		})
+	})
+
+	Context("Update with instance annotations", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-labelled",
+				},
+			}
+			instance.Annotations = map[string]string{
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
+			}
+
+			serviceAccount = &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"old-annotation": "old-value",
+					},
+				},
+			}
+			err := serviceAccountBuilder.Update(serviceAccount)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("updates serviceAccount annotations", func() {
+			testAnnotations(serviceAccount.Annotations)
 		})
 	})
 })
