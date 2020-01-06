@@ -33,9 +33,10 @@ func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
 func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(headlessServiceName),
-			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
+			Name:        builder.Instance.ChildResourceName(headlessServiceName),
+			Namespace:   builder.Instance.Namespace,
+			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
+			Annotations: metadata.GetAnnotations(builder.Instance.ObjectMeta.Annotations),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",

@@ -27,3 +27,6 @@ func testLabels(labels map[string]string) {
 		Not(HaveKey("app.kubernetes.io/foo")),
 	))
 }
+func testAnnotations(annotations map[string]string) {
+	ExpectWithOffset(1, annotations).To(Equal(map[string]string{"my-annotation": "i-like-this"}))
+}

@@ -168,9 +168,10 @@ func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) err
 func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSetConfigureation StatefulSetConfiguration) ([]corev1.PersistentVolumeClaim, error) {
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "persistence",
-			Namespace: instance.GetNamespace(),
-			Labels:    metadata.Label(instance.Name),
+			Name:        "persistence",
+			Namespace:   instance.GetNamespace(),
+			Labels:      metadata.Label(instance.Name),
+			Annotations: metadata.GetAnnotations(instance.ObjectMeta.Annotations),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.ResourceRequirements{
@@ -282,9 +283,10 @@ func (builder *StatefulSetBuilder) statefulSet() *appsv1.StatefulSet {
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName("server"),
-			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.Label(builder.Instance.Name),
+			Name:        builder.Instance.ChildResourceName("server"),
+			Namespace:   builder.Instance.Namespace,
+			Labels:      metadata.Label(builder.Instance.Name),
+			Annotations: metadata.GetAnnotations(builder.Instance.ObjectMeta.Annotations),
 		},
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: builder.Instance.ChildResourceName(headlessServiceName),
@@ -293,7 +295,8 @@ func (builder *StatefulSetBuilder) statefulSet() *appsv1.StatefulSet {
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: metadata.Label(builder.Instance.Name),
+					Labels:      metadata.Label(builder.Instance.Name),
+					Annotations: metadata.GetAnnotations(builder.Instance.ObjectMeta.Annotations),
 				},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{

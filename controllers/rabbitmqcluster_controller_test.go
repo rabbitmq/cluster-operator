@@ -42,6 +42,44 @@ var _ = Describe("RabbitmqclusterController", func() {
 		secretName             = "rabbitmq-one-registry-access"
 	)
 
+	Context("Annotations", func() {
+		BeforeEach(func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-annotations",
+					Namespace: "rabbitmq-annotations",
+					Annotations: map[string]string{
+						"my-annotation": "this-annotation",
+					},
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-two-secret",
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(rabbitmqCluster, client)
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+		})
+
+		It("adds annotations to child resources", func() {
+			Eventually(func() map[string]string {
+				service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("headless"), metav1.GetOptions{})
+				return service.Annotations
+			}, 1).Should(HaveKeyWithValue("my-annotation", "this-annotation"))
+			var sts *appsv1.StatefulSet
+			Eventually(func() map[string]string {
+				sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
+				return sts.Annotations
+			}, 1).Should(HaveKeyWithValue("my-annotation", "this-annotation"))
+		})
+
+	})
+
 	Context("Custom Resource updates", func() {
 		var (
 			ingressServiceName string
@@ -123,7 +161,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
 			})
 
-			When("CR labels are added", func() {
+			When("CR labels are updated", func() {
 				labels := make(map[string]string)
 				rabbitmqCluster.Labels = labels
 				rabbitmqCluster.Labels["foo"] = "bar"
@@ -231,7 +269,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 					resourceTests(rabbitmqCluster, clientSet, secretName)
 				})
 			})
-
 		})
 
 		When("specified in the instance spec and config", func() {

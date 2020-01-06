@@ -38,9 +38,10 @@ func (builder *RegistrySecretBuilder) Build() (runtime.Object, error) {
 	}
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      RegistrySecretName(builder.Instance.Name),
-			Namespace: builder.Instance.Namespace,
-			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
+			Name:        RegistrySecretName(builder.Instance.Name),
+			Namespace:   builder.Instance.Namespace,
+			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
+			Annotations: metadata.GetAnnotations(builder.Instance.ObjectMeta.Annotations),
 		},
 		Data: builder.DefaultConfiguration.OperatorRegistrySecret.Data,
 		Type: builder.DefaultConfiguration.OperatorRegistrySecret.Type,

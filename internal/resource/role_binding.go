@@ -34,9 +34,10 @@ func (builder *RoleBindingBuilder) Update(object runtime.Object) error {
 func (builder *RoleBindingBuilder) Build() (runtime.Object, error) {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: builder.Instance.Namespace,
-			Name:      builder.Instance.ChildResourceName(roleBindingName),
-			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
+			Namespace:   builder.Instance.Namespace,
+			Name:        builder.Instance.ChildResourceName(roleBindingName),
+			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.ObjectMeta.Labels),
+			Annotations: metadata.GetAnnotations(builder.Instance.ObjectMeta.Annotations),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",

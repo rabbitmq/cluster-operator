@@ -85,6 +85,25 @@ var _ = Describe("Role", func() {
 		})
 	})
 
+	Context("Build with annotations on CR", func() {
+		BeforeEach(func() {
+			instance.Annotations = map[string]string{
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
+			}
+
+			obj, err := roleBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			role = obj.(*rbacv1.Role)
+		})
+
+		It("has the annotations from the CRD on the role", func() {
+			testAnnotations(role.Annotations)
+		})
+	})
+
 	Context("Update", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{

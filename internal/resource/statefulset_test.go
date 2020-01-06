@@ -272,6 +272,7 @@ var _ = Describe("StatefulSet", func() {
 							BlockOwnerDeletion: &truth,
 						},
 					},
+					Annotations: map[string]string{},
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -743,6 +744,44 @@ var _ = Describe("StatefulSet", func() {
 			sts = obj.(*appsv1.StatefulSet)
 			podTemplate := sts.Spec.Template
 			testLabels(podTemplate.Labels)
+		})
+	})
+
+	Context("Build with annotations on CR", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance.Namespace = "foo"
+			instance.Name = "foo"
+			instance.Annotations = map[string]string{
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
+			}
+
+			scheme = runtime.NewScheme()
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
+
+			defaultConfiguration = resource.DefaultConfiguration{
+				Scheme: scheme,
+			}
+			cluster = &resource.RabbitmqResourceBuilder{
+				Instance:             &instance,
+				DefaultConfiguration: defaultConfiguration,
+			}
+			stsBuilder := cluster.StatefulSet()
+			obj, _ := stsBuilder.Build()
+			sts = obj.(*appsv1.StatefulSet)
+		})
+
+		It("has the annotations from the CRD on the StatefulSet", func() {
+			testAnnotations(sts.Annotations)
+		})
+
+		It("has the annotations from the CRD on the pod", func() {
+			podTemplate := sts.Spec.Template
+			testAnnotations(podTemplate.Annotations)
 		})
 	})
 

@@ -62,8 +62,8 @@ var _ = Describe("ServiceAccount", func() {
 			}
 
 			obj, err := serviceAccountBuilder.Build()
-			serviceAccount = obj.(*corev1.ServiceAccount)
 			Expect(err).NotTo(HaveOccurred())
+			serviceAccount = obj.(*corev1.ServiceAccount)
 		})
 
 		It("has the labels from the CRD on the serviceAccount", func() {
@@ -75,6 +75,25 @@ var _ = Describe("ServiceAccount", func() {
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+		})
+	})
+
+	Context("Build with annotations on CR", func() {
+		BeforeEach(func() {
+			instance.Annotations = map[string]string{
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
+			}
+
+			obj, err := serviceAccountBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			serviceAccount = obj.(*corev1.ServiceAccount)
+		})
+
+		It("has the annotations from the CRD on the serviceAccount", func() {
+			testAnnotations(serviceAccount.Annotations)
 		})
 	})
 

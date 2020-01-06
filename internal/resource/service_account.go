@@ -33,9 +33,10 @@ func (builder *ServiceAccountBuilder) Update(object runtime.Object) error {
 func (builder *ServiceAccountBuilder) Build() (runtime.Object, error) {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: builder.Instance.Namespace,
-			Name:      builder.Instance.ChildResourceName(serviceAccountName),
-			Labels:    metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
+			Namespace:   builder.Instance.Namespace,
+			Name:        builder.Instance.ChildResourceName(serviceAccountName),
+			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
+			Annotations: metadata.GetAnnotations(builder.Instance.ObjectMeta.Annotations),
 		},
 	}, nil
 }

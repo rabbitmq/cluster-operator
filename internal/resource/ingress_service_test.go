@@ -283,7 +283,6 @@ var _ = Context("IngressServices", func() {
 			obj, err := serviceBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			ingressService := obj.(*corev1.Service)
-			Expect(err).NotTo(HaveOccurred())
 			testLabels(ingressService.Labels)
 		})
 	})

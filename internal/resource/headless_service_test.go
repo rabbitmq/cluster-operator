@@ -83,6 +83,25 @@ var _ = Describe("HeadlessService", func() {
 		})
 	})
 
+	Context("Build with annotations on CR", func() {
+		BeforeEach(func() {
+			instance.Annotations = map[string]string{
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
+			}
+
+			obj, err := serviceBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			service = obj.(*corev1.Service)
+		})
+
+		It("has the annotations from the CRD on the service", func() {
+			testAnnotations(service.Annotations)
+		})
+	})
+
 	Context("Update", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{

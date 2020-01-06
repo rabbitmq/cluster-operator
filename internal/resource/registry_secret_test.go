@@ -110,6 +110,25 @@ var _ = Describe("RegistrySecret", func() {
 		})
 	})
 
+	Context("Build with annotations on CR", func() {
+		BeforeEach(func() {
+			instance.Annotations = map[string]string{
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
+			}
+
+			obj, err := registrySecretBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			secret = obj.(*corev1.Secret)
+		})
+
+		It("has the annotations from the CRD on the registry secret", func() {
+			testAnnotations(secret.Annotations)
+		})
+	})
+
 	Context("Update", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
