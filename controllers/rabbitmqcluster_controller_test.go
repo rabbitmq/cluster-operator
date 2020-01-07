@@ -96,8 +96,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-two",
-					Namespace: "rabbitmq-two",
+					Name:      "rabbitmq-cr-update",
+					Namespace: "rabbitmq-cr-update",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        1,
@@ -308,10 +308,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 				})
 
 				By("using the instance spec secret", func() {
-					statefulSetName := rabbitmqCluster.ChildResourceName("server")
-					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
+					stsName := rabbitmqCluster.ChildResourceName("server")
+					Eventually(func() []corev1.LocalObjectReference {
+						sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+						return sts.Spec.Template.Spec.ImagePullSecrets
+					}, 1).Should(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
 				})
 			})
 		})
@@ -360,25 +361,22 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 
 	Context("Ingress service configurations", func() {
-		BeforeEach(func() {
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbit-service",
-					Namespace: "rabbit-service",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
-					ImagePullSecret: "rabbit-service-secret",
-				},
-			}
-		})
-
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 			Expect(clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("ingress"), &metav1.DeleteOptions{}))
 		})
 
 		It("creates the service type and annotations as configured in manager config", func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit-service-1",
+					Namespace: "rabbit-service-1",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-service-secret",
+				},
+			}
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
 
@@ -406,6 +404,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("creates the service type and annotations as configured in instance spec", func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit-service-2",
+					Namespace: "rabbit-service-2",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-service-secret",
+				},
+			}
 			rabbitmqCluster.Spec.Service.Type = "LoadBalancer"
 			rabbitmqCluster.Spec.Service.Annotations = map[string]string{"annotations": "cr-annotation"}
 
@@ -437,25 +445,22 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 
 	Context("Resource requirements configurations", func() {
-		BeforeEach(func() {
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbit-resource",
-					Namespace: "rabbit-resource",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
-					ImagePullSecret: "rabbit-resource-secret",
-				},
-			}
-		})
-
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 			Expect(clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("server"), nil)).To(Succeed())
 		})
 
 		It("uses resource requirements from manager config and defaults ", func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit-resource-1",
+					Namespace: "rabbit-resource-1",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-resource-secret",
+				},
+			}
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
 
@@ -477,6 +482,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("uses resource requirements from instance spec when provided", func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit-resource-2",
+					Namespace: "rabbit-resource-2",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-resource-secret",
+				},
+			}
 			rabbitmqCluster.Spec.Resources = &corev1.ResourceRequirements{
 				Limits: map[corev1.ResourceName]k8sresource.Quantity{
 					corev1.ResourceMemory: k8sresource.MustParse("4Gi"),
@@ -507,26 +522,22 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 
 	Context("Persistence configurations", func() {
-		BeforeEach(func() {
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbit-resource",
-					Namespace: "rabbit-resource",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
-					ImagePullSecret: "rabbit-resource-secret",
-				},
-			}
-
-		})
-
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 			Expect(clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("server"), nil)).To(Succeed())
 		})
 
 		It("creates the RabbitmqCluster with the specified storage from instance spec", func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit-persistence-1",
+					Namespace: "rabbit-persistence-1",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-resource-secret",
+				},
+			}
 			rabbitmqCluster.Spec.Persistence.StorageClassName = "my-storage-class"
 			rabbitmqCluster.Spec.Persistence.Storage = "100Gi"
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
@@ -536,6 +547,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("creates the RabbitmqCluster with the specified storage from operator config", func() {
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbit-persistence-2",
+					Namespace: "rabbit-persistence-2",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-resource-secret",
+				},
+			}
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
 
