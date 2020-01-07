@@ -56,13 +56,13 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 		return nil, fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
-	builder.setServiceParams(service)
+	builder.setServiceType(service)
 	builder.setAnnotations(service)
 
 	return service, nil
 }
 
-func (builder *IngressServiceBuilder) setServiceParams(service *corev1.Service) {
+func (builder *IngressServiceBuilder) setServiceType(service *corev1.Service) {
 	var serviceType string
 	if builder.Instance.Spec.Service.Type != "" {
 		serviceType = builder.Instance.Spec.Service.Type
@@ -72,8 +72,6 @@ func (builder *IngressServiceBuilder) setServiceParams(service *corev1.Service) 
 		serviceType = "ClusterIP"
 	}
 	service.Spec.Type = corev1.ServiceType(serviceType)
-
-	service.Annotations = builder.DefaultConfiguration.ServiceAnnotations
 }
 
 func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
@@ -84,7 +82,20 @@ func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
 }
 
 func (builder *IngressServiceBuilder) setAnnotations(service *corev1.Service) {
-	if builder.Instance.Spec.Service.Annotations != nil {
-		service.Annotations = builder.Instance.Spec.Service.Annotations
+	service.Annotations = map[string]string{}
+	if builder.Instance.Annotations != nil {
+		service.Annotations = builder.Instance.Annotations
 	}
+
+	serviceAnnotations := builder.DefaultConfiguration.ServiceAnnotations
+
+	if builder.Instance.Spec.Service.Annotations != nil {
+		serviceAnnotations = builder.Instance.Spec.Service.Annotations
+	}
+
+	for k, v := range serviceAnnotations {
+		service.Annotations[k] = v
+	}
+
+	service.Annotations = metadata.GetAnnotations(service.Annotations)
 }
