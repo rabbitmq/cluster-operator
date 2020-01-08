@@ -164,6 +164,15 @@ func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) err
 		sts.Spec.Template.Spec.InitContainers[0].Image = builder.Instance.Spec.Image
 	}
 
+	if builder.Instance.Spec.ImagePullSecret != "" {
+		secret := []corev1.LocalObjectReference{
+			{
+				Name: builder.Instance.Spec.ImagePullSecret,
+			},
+		}
+		sts.Spec.Template.Spec.ImagePullSecrets = secret
+	}
+
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	sts.Labels = updatedLabels
 	sts.Spec.Template.ObjectMeta.Labels = updatedLabels

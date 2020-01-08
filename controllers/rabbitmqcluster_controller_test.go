@@ -515,10 +515,21 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 				Eventually(func() string {
 					stsName := rabbitmqCluster.ChildResourceName("server")
-					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
+					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 					return sts.Spec.Template.Spec.Containers[0].Image
 				}, 1).Should(Equal("rabbitmq:3.8.0"))
+			})
+
+			When("the rabbitmq ImagePullSecret is updated", func() {
+				rabbitmqCluster.Spec.ImagePullSecret = "my-new-secret"
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				Eventually(func() []corev1.LocalObjectReference {
+					stsName := rabbitmqCluster.ChildResourceName("server")
+					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+					Expect(len(sts.Spec.Template.Spec.ImagePullSecrets)).To(Equal(1))
+					return sts.Spec.Template.Spec.ImagePullSecrets
+				}, 1).Should(ConsistOf(corev1.LocalObjectReference{Name: "my-new-secret"}))
 			})
 
 			When("labels are updated", func() {

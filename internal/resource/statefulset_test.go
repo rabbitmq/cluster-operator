@@ -954,6 +954,12 @@ var _ = Describe("StatefulSet", func() {
 			Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Image).To(Equal("rabbitmq:3.8.0"))
 		})
 
+		It("updates the image pull secret", func() {
+			stsBuilder.Instance.Spec.ImagePullSecret = "my-shiny-new-secret"
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-shiny-new-secret"}))
+		})
+
 		Context("updates labels on pod", func() {
 			BeforeEach(func() {
 				statefulSet.Spec.Template.Labels = existingLabels
