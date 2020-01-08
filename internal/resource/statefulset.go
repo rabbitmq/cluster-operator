@@ -53,6 +53,7 @@ type StatefulSetConfiguration struct {
 	PersistentStorageClassName *string
 	PersistentStorage          k8sresource.Quantity
 	ResourceRequirementsConfig ResourceRequirementQuantities
+	Tolerations                []corev1.Toleration
 	Scheme                     *runtime.Scheme
 }
 
@@ -167,6 +168,7 @@ func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) err
 	sts.Spec.Template.ObjectMeta.Annotations = updatedAnnotations
 
 	sts.Spec.Template.Spec.Affinity = builder.Instance.Spec.Affinity
+	sts.Spec.Template.Spec.Tolerations = builder.Instance.Spec.Tolerations
 	return nil
 }
 

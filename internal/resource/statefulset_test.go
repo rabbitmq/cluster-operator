@@ -451,6 +451,29 @@ var _ = Describe("StatefulSet", func() {
 			Expect(sts.Spec.Template.Spec.Affinity).To(Equal(affinity))
 		})
 
+		Context("Tolerations", func() {
+			It("creates the tolerations specified", func() {
+				tolerations := []corev1.Toleration{
+					{
+						Key:      "key",
+						Operator: "equals",
+						Value:    "value",
+						Effect:   "NoSchedule",
+					},
+				}
+
+				instance.Spec.Tolerations = tolerations
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance:             &instance,
+					DefaultConfiguration: defaultConfiguration,
+				}
+				stsBuilder := cluster.StatefulSet()
+				obj, _ := stsBuilder.Build()
+				sts = obj.(*appsv1.StatefulSet)
+				Expect(sts.Spec.Template.Spec.Tolerations).To(Equal(tolerations))
+			})
+		})
+
 		Context("Storage class name", func() {
 			It("creates the PersistentVolume template according to configurations in the  instance if specified", func() {
 				instance.Spec.Persistence.StorageClassName = "my-storage-class"
@@ -909,6 +932,20 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			testAnnotations(statefulSet.Annotations)
+		})
+
+		It("updates tolerations", func() {
+			newToleration := corev1.Toleration{
+				Key:      "update",
+				Operator: "equals",
+				Value:    "works",
+				Effect:   "NoSchedule",
+			}
+			stsBuilder.Instance.Spec.Tolerations = []corev1.Toleration{newToleration}
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+			Expect(statefulSet.Spec.Template.Spec.Tolerations).
+				To(ConsistOf(newToleration))
 		})
 
 		Context("updates labels on pod", func() {

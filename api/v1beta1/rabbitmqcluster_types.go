@@ -33,6 +33,7 @@ type RabbitmqClusterSpec struct {
 	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
 	Resources       *corev1.ResourceRequirements   `json:"resources,omitempty"`
 	Affinity        *corev1.Affinity               `json:"affinity,omitempty"`
+	Tolerations     []corev1.Toleration            `json:"tolerations,omitempty"`
 }
 
 type RabbitmqClusterPersistenceSpec struct {
