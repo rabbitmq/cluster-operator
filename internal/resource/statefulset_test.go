@@ -947,17 +947,26 @@ var _ = Describe("StatefulSet", func() {
 				To(ConsistOf(newToleration))
 		})
 
-		It("updates the rabbitmq image and the init container image", func() {
+		It("updates the rabbitmq and the initContainer images; sets it back to default after deleting the configuration", func() {
 			stsBuilder.Instance.Spec.Image = "rabbitmq:3.8.0"
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(statefulSet.Spec.Template.Spec.Containers[0].Image).To(Equal("rabbitmq:3.8.0"))
 			Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Image).To(Equal("rabbitmq:3.8.0"))
+
+			stsBuilder.Instance.Spec.Image = ""
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Image).To(Equal("rabbitmq:3.8.1"))
+			Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Image).To(Equal("rabbitmq:3.8.1"))
 		})
 
-		It("updates the image pull secret", func() {
+		It("updates the image pull secret; sets it back to default after deleting the configuration", func() {
 			stsBuilder.Instance.Spec.ImagePullSecret = "my-shiny-new-secret"
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-shiny-new-secret"}))
+
+			stsBuilder.Instance.Spec.ImagePullSecret = ""
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 		})
 
 		Context("updates labels on pod", func() {

@@ -155,22 +155,20 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 }
 
 func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) error {
+	statefulSetConfiguration, err := builder.statefulSetConfigurations()
+	if err != nil {
+		return err
+	}
+	sts.Spec.Template.Spec.InitContainers[0].Image = statefulSetConfiguration.ImageReference
+	sts.Spec.Template.Spec.Containers[0].Image = statefulSetConfiguration.ImageReference
+
+	sts.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{}
+	if statefulSetConfiguration.ImagePullSecret != "" {
+		sts.Spec.Template.Spec.ImagePullSecrets = append(sts.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
+	}
+
 	if builder.Instance.Spec.Resources != nil {
 		sts.Spec.Template.Spec.Containers[0].Resources = *builder.Instance.Spec.Resources
-	}
-
-	if builder.Instance.Spec.Image != "" {
-		sts.Spec.Template.Spec.Containers[0].Image = builder.Instance.Spec.Image
-		sts.Spec.Template.Spec.InitContainers[0].Image = builder.Instance.Spec.Image
-	}
-
-	if builder.Instance.Spec.ImagePullSecret != "" {
-		secret := []corev1.LocalObjectReference{
-			{
-				Name: builder.Instance.Spec.ImagePullSecret,
-			},
-		}
-		sts.Spec.Template.Spec.ImagePullSecrets = secret
 	}
 
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
