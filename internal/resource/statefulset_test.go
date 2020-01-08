@@ -24,7 +24,7 @@ var _ = Describe("StatefulSet", func() {
 		sts                  *appsv1.StatefulSet
 	)
 
-	Context("when creating a working StatefulSet with default settings", func() {
+	Context("Build with default settings", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{
@@ -404,7 +404,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 	})
 
-	Context("when creating a StatefulSet with non-default settings", func() {
+	Context("Build with non-default settings", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{
@@ -754,14 +754,14 @@ var _ = Describe("StatefulSet", func() {
 			}
 		})
 
-		It("has the labels from the CRD on the statefulset", func() {
+		It("has the labels from the instance on the statefulset", func() {
 			stsBuilder := cluster.StatefulSet()
 			obj, _ := stsBuilder.Build()
 			sts = obj.(*appsv1.StatefulSet)
 			testLabels(sts.Labels)
 		})
 
-		It("has the labels from the CRD on the pod", func() {
+		It("has the labels from the instance on the pod", func() {
 			stsBuilder := cluster.StatefulSet()
 			obj, _ := stsBuilder.Build()
 			sts = obj.(*appsv1.StatefulSet)
@@ -798,11 +798,11 @@ var _ = Describe("StatefulSet", func() {
 			sts = obj.(*appsv1.StatefulSet)
 		})
 
-		It("has the annotations from the CRD on the StatefulSet", func() {
+		It("has the annotations from the instance on the StatefulSet", func() {
 			testAnnotations(sts.Annotations)
 		})
 
-		It("has the annotations from the CRD on the pod", func() {
+		It("has the annotations from the instance on the pod", func() {
 			podTemplate := sts.Spec.Template
 			testAnnotations(podTemplate.Annotations)
 		})
@@ -854,9 +854,8 @@ var _ = Describe("StatefulSet", func() {
 							Labels: existingLabels,
 						},
 						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{},
-							},
+							InitContainers: []corev1.Container{{}},
+							Containers:     []corev1.Container{{}},
 						},
 					},
 				},
@@ -946,6 +945,13 @@ var _ = Describe("StatefulSet", func() {
 
 			Expect(statefulSet.Spec.Template.Spec.Tolerations).
 				To(ConsistOf(newToleration))
+		})
+
+		It("updates the rabbitmq image and the init container image", func() {
+			stsBuilder.Instance.Spec.Image = "rabbitmq:3.8.0"
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Image).To(Equal("rabbitmq:3.8.0"))
+			Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Image).To(Equal("rabbitmq:3.8.0"))
 		})
 
 		Context("updates labels on pod", func() {

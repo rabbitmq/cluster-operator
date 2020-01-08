@@ -80,158 +80,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	})
 
-	Context("Custom Resource updates", func() {
-		var (
-			ingressServiceName string
-			statefulSetName    string
-		)
-		BeforeEach(func() {
-			operatorRegistrySecret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pivotal-rmq-registry-access",
-					Namespace: "pivotal-rabbitmq-system",
-				},
-			}
-			Expect(client.Create(context.TODO(), operatorRegistrySecret)).To(Succeed())
-
-			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-cr-update",
-					Namespace: "rabbitmq-cr-update",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
-					ImagePullSecret: "rabbit-two-secret",
-				},
-			}
-			ingressServiceName = rabbitmqCluster.ChildResourceName("ingress")
-			statefulSetName = rabbitmqCluster.ChildResourceName("server")
-
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-		})
-
-		It("reconciles an existing instance", func() {
-			Expect(client.Get(
-				context.TODO(),
-				types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
-				rabbitmqCluster,
-			)).To(Succeed())
-
-			When("the service annotations are updated", func() {
-				rabbitmqCluster.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
-				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
-				Eventually(func() map[string]string {
-					ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
-					service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
-					return service.Annotations
-				}, 1).Should(HaveKeyWithValue("test-key", "test-value"))
-			})
-
-			When("the CPU and memory requirements are updated", func() {
-				var resourceRequirements corev1.ResourceRequirements
-				expectedRequirements := &corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    k8sresource.MustParse("1100m"),
-						corev1.ResourceMemory: k8sresource.MustParse("5Gi"),
-					},
-					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    k8sresource.MustParse("1200m"),
-						corev1.ResourceMemory: k8sresource.MustParse("6Gi"),
-					},
-				}
-				rabbitmqCluster.Spec.Resources = expectedRequirements
-				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
-
-				Eventually(func() corev1.ResourceList {
-					stsName := rabbitmqCluster.ChildResourceName("server")
-					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					resourceRequirements = sts.Spec.Template.Spec.Containers[0].Resources
-					return resourceRequirements.Requests
-				}, 1).Should(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Requests[corev1.ResourceCPU]))
-				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Limits[corev1.ResourceCPU]))
-
-				Expect(resourceRequirements.Requests).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Requests[corev1.ResourceMemory]))
-				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
-			})
-
-			When("CR labels are updated", func() {
-				rabbitmqCluster.Labels = make(map[string]string)
-				rabbitmqCluster.Labels["foo"] = "bar"
-				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
-
-				Eventually(func() map[string]string {
-					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return service.Labels
-				}, 1).Should(HaveKeyWithValue("foo", "bar"))
-				var sts *appsv1.StatefulSet
-				Eventually(func() map[string]string {
-					sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
-					return sts.Labels
-				}, 1).Should(HaveKeyWithValue("foo", "bar"))
-			})
-
-			When("CR annotations are updated", func() {
-				rabbitmqCluster.Annotations = make(map[string]string)
-				rabbitmqCluster.Annotations["anno-key"] = "anno-value"
-				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
-
-				Eventually(func() map[string]string {
-					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("headless"), metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return service.Annotations
-				}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
-				var sts *appsv1.StatefulSet
-				Eventually(func() map[string]string {
-					sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
-					return sts.Annotations
-				}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
-			})
-
-			When("affinity rules are updated", func() {
-				affinity := &corev1.Affinity{
-					NodeAffinity: &corev1.NodeAffinity{
-						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-							NodeSelectorTerms: []corev1.NodeSelectorTerm{
-								{
-									MatchExpressions: []corev1.NodeSelectorRequirement{
-										{
-											Key:      "foo",
-											Operator: "Exists",
-											Values:   nil,
-										},
-									},
-								},
-							},
-						},
-					},
-				}
-
-				rabbitmqCluster.Spec.Affinity = affinity
-				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
-				Eventually(func() *corev1.Affinity {
-					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
-					return sts.Spec.Template.Spec.Affinity
-				}, 1).Should(Equal(affinity))
-
-				affinity = nil
-				rabbitmqCluster.Spec.Affinity = affinity
-				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
-				Eventually(func() *corev1.Affinity {
-					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
-					return sts.Spec.Template.Spec.Affinity
-				}, 1).Should(BeNil())
-			})
-		})
-	})
-
 	Context("ImagePullSecret", func() {
 		BeforeEach(func() {
 			operatorRegistrySecret = &corev1.Secret{
@@ -577,6 +425,170 @@ var _ = Describe("RabbitmqclusterController", func() {
 			waitForClusterCreation(rabbitmqCluster, client)
 
 			verifyPersistenceConfigurations(rabbitmqCluster, "operator-storage-class", "5Gi")
+		})
+	})
+
+	Context("Custom Resource updates", func() {
+		var (
+			ingressServiceName string
+			statefulSetName    string
+		)
+		BeforeEach(func() {
+			operatorRegistrySecret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pivotal-rmq-registry-access",
+					Namespace: "pivotal-rabbitmq-system",
+				},
+			}
+			Expect(client.Create(context.TODO(), operatorRegistrySecret)).To(Succeed())
+
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-cr-update",
+					Namespace: "rabbitmq-cr-update",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-two-secret",
+				},
+			}
+			ingressServiceName = rabbitmqCluster.ChildResourceName("ingress")
+			statefulSetName = rabbitmqCluster.ChildResourceName("server")
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(rabbitmqCluster, client)
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), operatorRegistrySecret)).To(Succeed())
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+		})
+
+		It("reconciles an existing instance", func() {
+			Expect(client.Get(
+				context.TODO(),
+				types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
+				rabbitmqCluster,
+			)).To(Succeed())
+
+			When("the service annotations are updated", func() {
+				rabbitmqCluster.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+				Eventually(func() map[string]string {
+					ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
+					service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+					return service.Annotations
+				}, 1).Should(HaveKeyWithValue("test-key", "test-value"))
+			})
+
+			When("the CPU and memory requirements are updated", func() {
+				var resourceRequirements corev1.ResourceRequirements
+				expectedRequirements := &corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    k8sresource.MustParse("1100m"),
+						corev1.ResourceMemory: k8sresource.MustParse("5Gi"),
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    k8sresource.MustParse("1200m"),
+						corev1.ResourceMemory: k8sresource.MustParse("6Gi"),
+					},
+				}
+				rabbitmqCluster.Spec.Resources = expectedRequirements
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				Eventually(func() corev1.ResourceList {
+					stsName := rabbitmqCluster.ChildResourceName("server")
+					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					resourceRequirements = sts.Spec.Template.Spec.Containers[0].Resources
+					return resourceRequirements.Requests
+				}, 1).Should(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Requests[corev1.ResourceCPU]))
+				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Limits[corev1.ResourceCPU]))
+
+				Expect(resourceRequirements.Requests).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Requests[corev1.ResourceMemory]))
+				Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
+			})
+
+			When("the rabbitmq image is updated", func() {
+				rabbitmqCluster.Spec.Image = "rabbitmq:3.8.0"
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				Eventually(func() string {
+					stsName := rabbitmqCluster.ChildResourceName("server")
+					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return sts.Spec.Template.Spec.Containers[0].Image
+				}, 1).Should(Equal("rabbitmq:3.8.0"))
+			})
+
+			When("labels are updated", func() {
+				rabbitmqCluster.Labels = make(map[string]string)
+				rabbitmqCluster.Labels["foo"] = "bar"
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				Eventually(func() map[string]string {
+					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return service.Labels
+				}, 1).Should(HaveKeyWithValue("foo", "bar"))
+				var sts *appsv1.StatefulSet
+				Eventually(func() map[string]string {
+					sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					return sts.Labels
+				}, 1).Should(HaveKeyWithValue("foo", "bar"))
+			})
+
+			When("instance annotations are updated", func() {
+				rabbitmqCluster.Annotations = make(map[string]string)
+				rabbitmqCluster.Annotations["anno-key"] = "anno-value"
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				Eventually(func() map[string]string {
+					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("headless"), metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return service.Annotations
+				}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
+				var sts *appsv1.StatefulSet
+				Eventually(func() map[string]string {
+					sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					return sts.Annotations
+				}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
+			})
+
+			When("affinity rules are updated", func() {
+				affinity := &corev1.Affinity{
+					NodeAffinity: &corev1.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+							NodeSelectorTerms: []corev1.NodeSelectorTerm{
+								{
+									MatchExpressions: []corev1.NodeSelectorRequirement{
+										{
+											Key:      "foo",
+											Operator: "Exists",
+											Values:   nil,
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+
+				rabbitmqCluster.Spec.Affinity = affinity
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+				Eventually(func() *corev1.Affinity {
+					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					return sts.Spec.Template.Spec.Affinity
+				}, 1).Should(Equal(affinity))
+
+				affinity = nil
+				rabbitmqCluster.Spec.Affinity = affinity
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+				Eventually(func() *corev1.Affinity {
+					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					return sts.Spec.Template.Spec.Affinity
+				}, 1).Should(BeNil())
+			})
 		})
 	})
 

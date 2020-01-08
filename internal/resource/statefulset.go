@@ -159,6 +159,11 @@ func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) err
 		sts.Spec.Template.Spec.Containers[0].Resources = *builder.Instance.Spec.Resources
 	}
 
+	if builder.Instance.Spec.Image != "" {
+		sts.Spec.Template.Spec.Containers[0].Image = builder.Instance.Spec.Image
+		sts.Spec.Template.Spec.InitContainers[0].Image = builder.Instance.Spec.Image
+	}
+
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	sts.Labels = updatedLabels
 	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
