@@ -24,7 +24,6 @@ spec:
       - command:
         - /manager
         image: controller:latest
-        imagePullPolicy: Always
         name: operator
         resources:
           limits:
