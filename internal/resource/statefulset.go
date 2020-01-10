@@ -52,7 +52,7 @@ type StatefulSetConfiguration struct {
 	ImagePullSecret            string
 	PersistentStorageClassName *string
 	PersistentStorage          k8sresource.Quantity
-	ResourceRequirementsConfig ResourceRequirementQuantities
+	Resources                  *corev1.ResourceRequirements
 	Tolerations                []corev1.Toleration
 	Scheme                     *runtime.Scheme
 }
@@ -136,16 +136,7 @@ func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet)
 
 	sts.Spec.Template.Spec.Containers[0].Image = statefulSetConfiguration.ImageReference
 
-	sts.Spec.Template.Spec.Containers[0].Resources = corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.Limit.CPU,
-			corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Limit.Memory,
-		},
-		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    statefulSetConfiguration.ResourceRequirementsConfig.Request.CPU,
-			corev1.ResourceMemory: statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory,
-		},
-	}
+	sts.Spec.Template.Spec.Containers[0].Resources = *statefulSetConfiguration.Resources
 
 	return builder.setMutableFields(sts)
 }
@@ -167,9 +158,7 @@ func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) err
 		sts.Spec.Template.Spec.ImagePullSecrets = append(sts.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
 	}
 
-	if builder.Instance.Spec.Resources != nil {
-		sts.Spec.Template.Spec.Containers[0].Resources = *builder.Instance.Spec.Resources
-	}
+	sts.Spec.Template.Spec.Containers[0].Resources = *statefulSetConfiguration.Resources
 
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	sts.Labels = updatedLabels
@@ -234,7 +223,7 @@ func (builder *StatefulSetBuilder) statefulSetConfigurations() (StatefulSetConfi
 	if builder.DefaultConfiguration.ResourceRequirements.Limit.CPU != "" {
 		cpuLimit = builder.DefaultConfiguration.ResourceRequirements.Limit.CPU
 	}
-	statefulSetConfiguration.ResourceRequirementsConfig.Limit.CPU, err = k8sresource.ParseQuantity(cpuLimit)
+	parsedCPULimit, err := k8sresource.ParseQuantity(cpuLimit)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
@@ -243,7 +232,7 @@ func (builder *StatefulSetBuilder) statefulSetConfigurations() (StatefulSetConfi
 	if builder.DefaultConfiguration.ResourceRequirements.Request.CPU != "" {
 		cpuRequest = builder.DefaultConfiguration.ResourceRequirements.Request.CPU
 	}
-	statefulSetConfiguration.ResourceRequirementsConfig.Request.CPU, err = k8sresource.ParseQuantity(cpuRequest)
+	parsedCPURequest, err := k8sresource.ParseQuantity(cpuRequest)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
@@ -252,7 +241,7 @@ func (builder *StatefulSetBuilder) statefulSetConfigurations() (StatefulSetConfi
 	if builder.DefaultConfiguration.ResourceRequirements.Limit.Memory != "" {
 		memoryLimit = builder.DefaultConfiguration.ResourceRequirements.Limit.Memory
 	}
-	statefulSetConfiguration.ResourceRequirementsConfig.Limit.Memory, err = k8sresource.ParseQuantity(memoryLimit)
+	parsedMemoryLimit, err := k8sresource.ParseQuantity(memoryLimit)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
@@ -261,9 +250,24 @@ func (builder *StatefulSetBuilder) statefulSetConfigurations() (StatefulSetConfi
 	if builder.DefaultConfiguration.ResourceRequirements.Request.Memory != "" {
 		memoryRequest = builder.DefaultConfiguration.ResourceRequirements.Request.Memory
 	}
-	statefulSetConfiguration.ResourceRequirementsConfig.Request.Memory, err = k8sresource.ParseQuantity(memoryRequest)
+	parsedMemoryRequest, err := k8sresource.ParseQuantity(memoryRequest)
 	if err != nil {
 		return statefulSetConfiguration, err
+	}
+
+	statefulSetConfiguration.Resources = &corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":    parsedCPULimit,
+			"memory": parsedMemoryLimit,
+		},
+		Requests: corev1.ResourceList{
+			"cpu":    parsedCPURequest,
+			"memory": parsedMemoryRequest,
+		},
+	}
+
+	if builder.Instance.Spec.Resources != nil {
+		statefulSetConfiguration.Resources = builder.Instance.Spec.Resources
 	}
 
 	statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(defaultPersistentCapacity)
