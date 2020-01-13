@@ -1,3 +1,8 @@
+# runs the target list by default
+.DEFAULT_GOAL = list
+
+.PHONY: list
+
 # Image URL to use all building/pushing image targets
 CONTROLLER_IMAGE=registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq-for-kubernetes-operator
 CI_IMAGE=us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
@@ -8,16 +13,19 @@ RABBITMQ_PASSWORD=guest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
-# Run unit tests
-unit-tests: generate fmt vet manifests
+# Insert a comment starting with '##' after a target, and it will be printed by 'make' and 'make list'
+list:    ## list Makefile targets
+	@echo "The most used targets: \n"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+unit-tests: generate fmt vet manifests ## Run unit tests
 	ginkgo -r api/ internal/
 
-# Run integration tests
-integration-tests: generate fmt vet manifests
+
+integration-tests: generate fmt vet manifests ## Run integration tests
 	ginkgo -r controllers/
 
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
+manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
 
 # Run go fmt against code
@@ -37,8 +45,7 @@ manager: generate fmt vet
 	go mod tidy
 	go build -o bin/manager main.go
 
-# Deploy manager
-deploy-manager:
+deploy-manager:  ## Deploy manager
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/base
 
@@ -47,18 +54,14 @@ deploy-manager-ci:
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/ci
 
-# Deploy local rabbitmqcluster
-deploy-sample:
+deploy-sample: ## Deploy local rabbitmqcluster
 	kubectl apply -k config/samples/base
-
-deploy-local: docker-build docker-push deploy
 
 configure-kubectl-ci: ci-cluster
 	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
 	gcloud container clusters get-credentials $(CI_CLUSTER) --region europe-west1 --project $(GCP_PROJECT)
 
-# Cleanup all controller artefacts
-destroy:
+destroy: ## Cleanup all controller artefacts
 	kubectl delete -k config/default/base --ignore-not-found=true
 	kubectl delete -k config/namespace/base --ignore-not-found=true
 	kubectl delete -k config/crd --ignore-not-found=true
@@ -68,8 +71,7 @@ destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/namespace/base --ignore-not-found=true
 	kubectl delete -k config/crd --ignore-not-found=true
 
-# Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate manifests fmt vet install deploy-namespace
+run: generate manifests fmt vet install deploy-namespace  ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./main.go
 
 # Install CRDs into a cluster
@@ -82,8 +84,7 @@ deploy-namespace:
 deploy-master: install deploy-namespace docker-registry-secret
 	kubectl apply -k config/default/base
 
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests deploy-namespace docker-registry-secret deploy-manager
+deploy: manifests deploy-namespace docker-registry-secret deploy-manager ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace docker-registry-secret-ci deploy-manager-ci
@@ -129,7 +130,7 @@ patch-dev: dev-tag
 
 deploy-dev: docker-build-dev patch-dev deploy
 
-kind-prepare:
+kind-prepare: ## Prepare KIND to support LoadBalancer services, and local-path StorageClass
 	# deploy and configure MetalLB to add support for LoadBalancer services
 	@kubectl apply -f https://raw.githubusercontent.com/danderson/metallb/v0.8.1/manifests/metallb.yaml
 	@kubectl apply -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
@@ -139,7 +140,7 @@ kind-prepare:
 	@kubectl annotate storageclass storageclass.beta.kubernetes.io/is-default-class- --all
 	@kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class=true
 
-kind-unprepare:
+kind-unprepare:  ## Remove KIND support for LoadBalancer services, and local-path StorageClass
 	# remove MetalLB
 	@kubectl delete -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
 	@kubectl delete -f https://raw.githubusercontent.com/danderson/metallb/v0.8.1/manifests/metallb.yaml
@@ -147,7 +148,7 @@ kind-unprepare:
 	@kubectl delete -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
 	@kubectl annotate storageclass standard storageclass.kubernetes.io/is-default-class=true
 
-system-tests:
+system-tests:  ## Run system tests
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
 
 DOCKER_REGISTRY_SECRET=p-rmq-registry-access
@@ -164,9 +165,7 @@ docker-registry-secret-ci: operator-namespace
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username="$$DOCKER_REGISTRY_USERNAME" --docker-password="$$DOCKER_REGISTRY_PASSWORD" || true
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
-# find or download controller-gen
-# download controller-gen if necessary
-controller-gen:
+controller-gen:  ## download controller-gen if not in $PATH
 ifeq (, $(shell which controller-gen))
 	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.4
 CONTROLLER_GEN=$(shell go env GOPATH)/bin/controller-gen
