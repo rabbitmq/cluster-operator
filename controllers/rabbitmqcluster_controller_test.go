@@ -639,7 +639,7 @@ func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 
 		return rabbitmqClusterCreated.Status.ClusterStatus
 
-	}, 2).Should(ContainSubstring("created"))
+	}, 2, 1).Should(ContainSubstring("created"))
 }
 
 func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *kubernetes.Clientset, imagePullSecretName string) {
