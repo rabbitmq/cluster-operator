@@ -306,10 +306,8 @@ func (builder *StatefulSetBuilder) statefulSet() *appsv1.StatefulSet {
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        builder.Instance.ChildResourceName("server"),
-			Namespace:   builder.Instance.Namespace,
-			Labels:      metadata.Label(builder.Instance.Name),
-			Annotations: metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil),
+			Name:      builder.Instance.ChildResourceName("server"),
+			Namespace: builder.Instance.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: builder.Instance.ChildResourceName(headlessServiceName),
@@ -317,10 +315,6 @@ func (builder *StatefulSetBuilder) statefulSet() *appsv1.StatefulSet {
 				MatchLabels: metadata.LabelSelector(builder.Instance.Name),
 			},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      metadata.Label(builder.Instance.Name),
-					Annotations: metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil),
-				},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{
 						FSGroup:    &rabbitmqGID,
