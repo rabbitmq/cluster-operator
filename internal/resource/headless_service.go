@@ -27,7 +27,7 @@ type HeadlessServiceBuilder struct {
 func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
 	service := object.(*corev1.Service)
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	service.Annotations = metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil)
+	service.Annotations = metadata.ReconcileAnnotations(service.GetAnnotations(), builder.Instance.Annotations)
 	return nil
 }
 
@@ -37,7 +37,7 @@ func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
 			Name:        builder.Instance.ChildResourceName(headlessServiceName),
 			Namespace:   builder.Instance.Namespace,
 			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil),
+			Annotations: metadata.ReconcileAnnotations(nil, builder.Instance.Annotations),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",

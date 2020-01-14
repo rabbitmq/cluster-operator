@@ -179,7 +179,7 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSe
 			Name:        "persistence",
 			Namespace:   instance.GetNamespace(),
 			Labels:      metadata.Label(instance.Name),
-			Annotations: metadata.FilterAndJoinAnnotations(instance.Annotations, nil),
+			Annotations: metadata.ReconcileAnnotations(nil, instance.Annotations),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.ResourceRequirements{
