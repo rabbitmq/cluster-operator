@@ -82,21 +82,10 @@ func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
 }
 
 func (builder *IngressServiceBuilder) setAnnotations(service *corev1.Service) {
-	mergedAnnotations := map[string]string{}
-
-	copyMap(mergedAnnotations, builder.Instance.Annotations)
-
 	if builder.Instance.Spec.Service.Annotations != nil {
-		copyMap(mergedAnnotations, builder.Instance.Spec.Service.Annotations)
+		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations, builder.Instance.Spec.Service.Annotations)
 	} else {
-		copyMap(mergedAnnotations, builder.DefaultConfiguration.ServiceAnnotations)
+		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations, builder.DefaultConfiguration.ServiceAnnotations)
 	}
 
-	service.Annotations = metadata.FilterAndJoinAnnotations(mergedAnnotations, nil)
-}
-
-func copyMap(destination, source map[string]string) {
-	for k, v := range source {
-		destination[k] = v
-	}
 }
