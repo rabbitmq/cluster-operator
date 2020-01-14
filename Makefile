@@ -134,19 +134,11 @@ kind-prepare: ## Prepare KIND to support LoadBalancer services, and local-path S
 	# deploy and configure MetalLB to add support for LoadBalancer services
 	@kubectl apply -f https://raw.githubusercontent.com/danderson/metallb/v0.8.1/manifests/metallb.yaml
 	@kubectl apply -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
-	# create alternative default storage class using Ranger local-path provisioner (fixes readonly mounts when using host-path provisioner)
-	@kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
-	@kubectl annotate storageclass storageclass.kubernetes.io/is-default-class- --all
-	@kubectl annotate storageclass storageclass.beta.kubernetes.io/is-default-class- --all
-	@kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class=true
 
 kind-unprepare:  ## Remove KIND support for LoadBalancer services, and local-path StorageClass
 	# remove MetalLB
 	@kubectl delete -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
 	@kubectl delete -f https://raw.githubusercontent.com/danderson/metallb/v0.8.1/manifests/metallb.yaml
-	# remove local-path provisioner and reset default storage class
-	@kubectl delete -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
-	@kubectl annotate storageclass standard storageclass.kubernetes.io/is-default-class=true
 
 system-tests:  ## Run system tests
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
