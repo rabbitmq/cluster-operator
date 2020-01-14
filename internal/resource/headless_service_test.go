@@ -98,7 +98,7 @@ var _ = Describe("HeadlessService", func() {
 		})
 
 		It("has the annotations from the CRD on the service", func() {
-			testAnnotations(service.Annotations)
+			testAnnotations(service.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 
@@ -171,7 +171,7 @@ var _ = Describe("HeadlessService", func() {
 		})
 
 		It("updates service annotations", func() {
-			testAnnotations(service.Annotations)
+			testAnnotations(service.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 })

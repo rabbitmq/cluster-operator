@@ -29,7 +29,7 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilde
 func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	configMap.Annotations = metadata.FilterAnnotations(builder.Instance.Annotations)
+	configMap.Annotations = metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil)
 	return nil
 }
 
@@ -39,7 +39,7 @@ func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 			Name:        builder.Instance.ChildResourceName(serverConfigMapName),
 			Namespace:   builder.Instance.Namespace,
 			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.FilterAnnotations(builder.Instance.Annotations),
+			Annotations: metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil),
 		},
 		Data: map[string]string{
 			"enabled_plugins": "[" +

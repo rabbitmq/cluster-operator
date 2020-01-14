@@ -125,7 +125,7 @@ var _ = Describe("RegistrySecret", func() {
 		})
 
 		It("has the annotations from the CRD on the registry secret", func() {
-			testAnnotations(secret.Annotations)
+			testAnnotations(secret.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 
@@ -198,7 +198,7 @@ var _ = Describe("RegistrySecret", func() {
 		})
 
 		It("updates secret annotations", func() {
-			testAnnotations(secret.Annotations)
+			testAnnotations(secret.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 })

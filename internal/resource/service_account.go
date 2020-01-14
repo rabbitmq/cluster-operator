@@ -27,7 +27,7 @@ func (builder *RabbitmqResourceBuilder) ServiceAccount() *ServiceAccountBuilder 
 func (builder *ServiceAccountBuilder) Update(object runtime.Object) error {
 	serviceAccount := object.(*corev1.ServiceAccount)
 	serviceAccount.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	serviceAccount.Annotations = metadata.FilterAnnotations(builder.Instance.Annotations)
+	serviceAccount.Annotations = metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil)
 	return nil
 }
 
@@ -37,7 +37,7 @@ func (builder *ServiceAccountBuilder) Build() (runtime.Object, error) {
 			Namespace:   builder.Instance.Namespace,
 			Name:        builder.Instance.ChildResourceName(serviceAccountName),
 			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.FilterAnnotations(builder.Instance.Annotations),
+			Annotations: metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil),
 		},
 	}, nil
 }

@@ -105,7 +105,7 @@ var _ = Describe("ErlangCookie", func() {
 		})
 
 		It("has the annotations from the CRD on the erlang cookie secret", func() {
-			testAnnotations(secret.Annotations)
+			testAnnotations(secret.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 
@@ -178,7 +178,7 @@ var _ = Describe("ErlangCookie", func() {
 		})
 
 		It("updates secret annotations", func() {
-			testAnnotations(secret.Annotations)
+			testAnnotations(secret.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 })

@@ -92,7 +92,7 @@ func (builder *IngressServiceBuilder) setAnnotations(service *corev1.Service) {
 		copyMap(mergedAnnotations, builder.DefaultConfiguration.ServiceAnnotations)
 	}
 
-	service.Annotations = metadata.FilterAnnotations(mergedAnnotations)
+	service.Annotations = metadata.FilterAndJoinAnnotations(mergedAnnotations, nil)
 }
 
 func copyMap(destination, source map[string]string) {

@@ -122,7 +122,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 
 		It("has the annotations from the instance on the configMap", func() {
-			testAnnotations(configMap.Annotations)
+			testAnnotations(configMap.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 
@@ -195,7 +195,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 
 		It("updates config map annotations", func() {
-			testAnnotations(configMap.Annotations)
+			testAnnotations(configMap.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 })

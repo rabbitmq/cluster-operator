@@ -100,7 +100,7 @@ var _ = Describe("Role", func() {
 		})
 
 		It("has the annotations from the CRD on the role", func() {
-			testAnnotations(role.Annotations)
+			testAnnotations(role.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 
@@ -173,7 +173,7 @@ var _ = Describe("Role", func() {
 		})
 
 		It("updates role annotations", func() {
-			testAnnotations(role.Annotations)
+			testAnnotations(role.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 })

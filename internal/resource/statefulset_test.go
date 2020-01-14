@@ -776,12 +776,15 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("has the annotations from the instance on the StatefulSet", func() {
-			testAnnotations(sts.Annotations)
+			testAnnotations(sts.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 
 		It("has the annotations from the instance on the pod", func() {
 			podTemplate := sts.Spec.Template
-			testAnnotations(podTemplate.Annotations)
+			expectedAnnotations := map[string]string{
+				"my-annotation": "i-like-this",
+			}
+			testAnnotations(podTemplate.Annotations, expectedAnnotations)
 		})
 	})
 
@@ -816,6 +819,8 @@ var _ = Describe("StatefulSet", func() {
 
 			existingAnnotations = map[string]string{
 				"this-was-the-previous-annotation": "should-be-deleted",
+				"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+				"app.k8s.io/something":             "something-amazing",
 			}
 
 			stsBuilder = cluster.StatefulSet()
@@ -828,7 +833,8 @@ var _ = Describe("StatefulSet", func() {
 				Spec: appsv1.StatefulSetSpec{
 					Template: corev1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
-							Labels: existingLabels,
+							Labels:      existingLabels,
+							Annotations: existingAnnotations,
 						},
 						Spec: corev1.PodSpec{
 							InitContainers: []corev1.Container{{}},
@@ -913,7 +919,12 @@ var _ = Describe("StatefulSet", func() {
 			}
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			testAnnotations(statefulSet.Annotations)
+			expectedAnnotations := map[string]string{
+				"my-annotation":             "i-like-this",
+				"app.kubernetes.io/part-of": "pivotal-rabbitmq",
+				"app.k8s.io/something":      "something-amazing",
+			}
+			testAnnotations(statefulSet.Annotations, expectedAnnotations)
 		})
 
 		It("updates tolerations", func() {
@@ -993,7 +1004,12 @@ var _ = Describe("StatefulSet", func() {
 				}
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-				testAnnotations(statefulSet.Spec.Template.Annotations)
+				expectedAnnotations := map[string]string{
+					"my-annotation":             "i-like-this",
+					"app.kubernetes.io/part-of": "pivotal-rabbitmq",
+					"app.k8s.io/something":      "something-amazing",
+				}
+				testAnnotations(statefulSet.Spec.Template.Annotations, expectedAnnotations)
 			})
 		})
 	})

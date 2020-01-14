@@ -93,7 +93,7 @@ var _ = Describe("ServiceAccount", func() {
 		})
 
 		It("has the annotations from the CRD on the serviceAccount", func() {
-			testAnnotations(serviceAccount.Annotations)
+			testAnnotations(serviceAccount.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 
@@ -166,7 +166,7 @@ var _ = Describe("ServiceAccount", func() {
 		})
 
 		It("updates serviceAccount annotations", func() {
-			testAnnotations(serviceAccount.Annotations)
+			testAnnotations(serviceAccount.Annotations, map[string]string{"my-annotation": "i-like-this"})
 		})
 	})
 })

@@ -27,7 +27,7 @@ func (builder *RabbitmqResourceBuilder) Role() *RoleBuilder {
 func (builder *RoleBuilder) Update(object runtime.Object) error {
 	role := object.(*rbacv1.Role)
 	role.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	role.Annotations = metadata.FilterAnnotations(builder.Instance.Annotations)
+	role.Annotations = metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil)
 	return nil
 }
 
@@ -37,7 +37,7 @@ func (builder *RoleBuilder) Build() (runtime.Object, error) {
 			Namespace:   builder.Instance.Namespace,
 			Name:        builder.Instance.ChildResourceName(roleName),
 			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.FilterAnnotations(builder.Instance.Annotations),
+			Annotations: metadata.FilterAndJoinAnnotations(builder.Instance.Annotations, nil),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
