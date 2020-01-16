@@ -1,15 +1,11 @@
 package resource_test
 
 import (
-	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -52,23 +48,25 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 
 				Expect(len(resourceBuilders)).To(Equal(9))
 
-				resourceMap := checkForResourceBuilders(resourceBuilders)
-
-				expectedKeys := []string{
-					"0 - Service:test-rabbitmq-headless",
-					"1 - Service:test-rabbitmq-ingress",
-					"2 - Secret:test-rabbitmq-erlang-cookie",
-					"3 - Secret:test-rabbitmq-admin",
-					"4 - ConfigMap:test-rabbitmq-server-conf",
-					"5 - ServiceAccount:test-rabbitmq-server",
-					"6 - Role:test-rabbitmq-endpoint-discovery",
-					"7 - RoleBinding:test-rabbitmq-server",
-					"8 - StatefulSet:test-rabbitmq-server",
-				}
-
-				for index := range expectedKeys {
-					Expect(resourceMap[expectedKeys[index]]).Should(BeTrue())
-				}
+				var ok bool
+				_, ok = resourceBuilders[0].(*resource.HeadlessServiceBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[1].(*resource.IngressServiceBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[2].(*resource.ErlangCookieBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[3].(*resource.AdminSecretBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[4].(*resource.ServerConfigMapBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[5].(*resource.ServiceAccountBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[6].(*resource.RoleBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[7].(*resource.RoleBindingBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[8].(*resource.StatefulSetBuilder)
+				Expect(ok).Should(BeTrue())
 			})
 		})
 
@@ -83,118 +81,28 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 
 				Expect(len(resourceBuilders)).To(Equal(10))
 
-				resourceMap := checkForResourceBuilders(resourceBuilders)
-
-				expectedKeys := []string{
-					"0 - Service:test-rabbitmq-headless",
-					"1 - Service:test-rabbitmq-ingress",
-					"2 - Secret:test-rabbitmq-erlang-cookie",
-					"3 - Secret:test-rabbitmq-admin",
-					"4 - ConfigMap:test-rabbitmq-server-conf",
-					"5 - ServiceAccount:test-rabbitmq-server",
-					"6 - Role:test-rabbitmq-endpoint-discovery",
-					"7 - RoleBinding:test-rabbitmq-server",
-					"8 - Secret:test-registry-access",
-					"9 - StatefulSet:test-rabbitmq-server",
-				}
-
-				for index := range expectedKeys {
-					Expect(resourceMap[expectedKeys[index]]).Should(BeTrue())
-				}
+				var ok bool
+				_, ok = resourceBuilders[0].(*resource.HeadlessServiceBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[1].(*resource.IngressServiceBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[2].(*resource.ErlangCookieBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[3].(*resource.AdminSecretBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[4].(*resource.ServerConfigMapBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[5].(*resource.ServiceAccountBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[6].(*resource.RoleBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[7].(*resource.RoleBindingBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[8].(*resource.RegistrySecretBuilder)
+				Expect(ok).Should(BeTrue())
+				_, ok = resourceBuilders[9].(*resource.StatefulSetBuilder)
+				Expect(ok).Should(BeTrue())
 			})
 		})
 	})
 })
-
-func checkForResources(resources []runtime.Object) (resourceMap map[string]bool) {
-	resourceMap = make(map[string]bool)
-	for i, resource := range resources {
-		switch r := resource.(type) {
-		case *corev1.Secret:
-			if r.Name == "test-rabbitmq-admin" {
-				resourceMap[fmt.Sprintf("%d - Secret:%s", i, r.Name)] = true
-			}
-			if r.Name == "test-rabbitmq-erlang-cookie" {
-				resourceMap[fmt.Sprintf("%d - Secret:%s", i, r.Name)] = true
-			}
-			if r.Name == "test-registry-access" {
-				resourceMap[fmt.Sprintf("%d - Secret:%s", i, r.Name)] = true
-			}
-		case *corev1.Service:
-			if r.Name == "test-rabbitmq-headless" {
-				resourceMap[fmt.Sprintf("%d - Service:%s", i, r.Name)] = true
-			}
-			if r.Name == "test-rabbitmq-ingress" {
-				resourceMap[fmt.Sprintf("%d - Service:%s", i, r.Name)] = true
-			}
-		case *corev1.ConfigMap:
-			if r.Name == "test-rabbitmq-server-conf" {
-				resourceMap[fmt.Sprintf("%d - ConfigMap:%s", i, r.Name)] = true
-			}
-		case *corev1.ServiceAccount:
-			if r.Name == "test-rabbitmq-server" {
-				resourceMap[fmt.Sprintf("%d - ServiceAccount:%s", i, r.Name)] = true
-			}
-		case *rbacv1.Role:
-			if r.Name == "test-rabbitmq-endpoint-discovery" {
-				resourceMap[fmt.Sprintf("%d - Role:%s", i, r.Name)] = true
-			}
-		case *rbacv1.RoleBinding:
-			if r.Name == "test-rabbitmq-server" {
-				resourceMap[fmt.Sprintf("%d - RoleBinding:%s", i, r.Name)] = true
-			}
-		case *appsv1.StatefulSet:
-			if r.Name == "test-rabbitmq-server" {
-				resourceMap[fmt.Sprintf("%d - StatefulSet:%s", i, r.Name)] = true
-			}
-		}
-	}
-	return resourceMap
-}
-
-func checkForResourceBuilders(builders []resource.ResourceBuilder) (resourceMap map[string]bool) {
-	resourceMap = make(map[string]bool)
-	for i, builder := range builders {
-		resource, _ := builder.Build()
-		switch r := resource.(type) {
-		case *corev1.Secret:
-			if r.Name == "test-rabbitmq-admin" {
-				resourceMap[fmt.Sprintf("%d - Secret:%s", i, r.Name)] = true
-			}
-			if r.Name == "test-rabbitmq-erlang-cookie" {
-				resourceMap[fmt.Sprintf("%d - Secret:%s", i, r.Name)] = true
-			}
-			if r.Name == "test-registry-access" {
-				resourceMap[fmt.Sprintf("%d - Secret:%s", i, r.Name)] = true
-			}
-		case *corev1.Service:
-			if r.Name == "test-rabbitmq-headless" {
-				resourceMap[fmt.Sprintf("%d - Service:%s", i, r.Name)] = true
-			}
-			if r.Name == "test-rabbitmq-ingress" {
-				resourceMap[fmt.Sprintf("%d - Service:%s", i, r.Name)] = true
-			}
-		case *corev1.ConfigMap:
-			if r.Name == "test-rabbitmq-server-conf" {
-				resourceMap[fmt.Sprintf("%d - ConfigMap:%s", i, r.Name)] = true
-			}
-		case *corev1.ServiceAccount:
-			if r.Name == "test-rabbitmq-server" {
-				resourceMap[fmt.Sprintf("%d - ServiceAccount:%s", i, r.Name)] = true
-			}
-		case *rbacv1.Role:
-			if r.Name == "test-rabbitmq-endpoint-discovery" {
-				resourceMap[fmt.Sprintf("%d - Role:%s", i, r.Name)] = true
-			}
-		case *rbacv1.RoleBinding:
-			if r.Name == "test-rabbitmq-server" {
-				resourceMap[fmt.Sprintf("%d - RoleBinding:%s", i, r.Name)] = true
-			}
-		case *appsv1.StatefulSet:
-			if r.Name == "test-rabbitmq-server" {
-				resourceMap[fmt.Sprintf("%d - StatefulSet:%s", i, r.Name)] = true
-			}
-		}
-	}
-	return resourceMap
-}
