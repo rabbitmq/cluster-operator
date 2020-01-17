@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -31,78 +30,35 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			rabbitmqCluster = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
-				DefaultConfiguration: resource.DefaultConfiguration{
-					PersistentStorageClassName: "standard",
-					PersistentStorage:          "10Gi",
-					Scheme:                     scheme},
+				Scheme:   scheme,
 			}
 		})
 
-		When("no operator registry secret is set in the default configuration", func() {
-			BeforeEach(func() {
-				rabbitmqCluster.DefaultConfiguration.OperatorRegistrySecret = nil
-			})
-			It("returns the required resource builders in the expected order", func() {
-				resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
-				Expect(err).NotTo(HaveOccurred())
+		It("returns the required resource builders in the expected order", func() {
+			resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
+			Expect(err).NotTo(HaveOccurred())
 
-				Expect(len(resourceBuilders)).To(Equal(9))
+			Expect(len(resourceBuilders)).To(Equal(9))
 
-				var ok bool
-				_, ok = resourceBuilders[0].(*resource.HeadlessServiceBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[1].(*resource.IngressServiceBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[2].(*resource.ErlangCookieBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[3].(*resource.AdminSecretBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[4].(*resource.ServerConfigMapBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[5].(*resource.ServiceAccountBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[6].(*resource.RoleBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[7].(*resource.RoleBindingBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[8].(*resource.StatefulSetBuilder)
-				Expect(ok).Should(BeTrue())
-			})
-		})
-
-		When("an operator Registry secret is set in the default configuration", func() {
-			BeforeEach(func() {
-				rabbitmqCluster.DefaultConfiguration.OperatorRegistrySecret = &corev1.Secret{}
-			})
-
-			It("returns the registry secret resource builder in the expected order", func() {
-				resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(len(resourceBuilders)).To(Equal(10))
-
-				var ok bool
-				_, ok = resourceBuilders[0].(*resource.HeadlessServiceBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[1].(*resource.IngressServiceBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[2].(*resource.ErlangCookieBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[3].(*resource.AdminSecretBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[4].(*resource.ServerConfigMapBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[5].(*resource.ServiceAccountBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[6].(*resource.RoleBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[7].(*resource.RoleBindingBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[8].(*resource.RegistrySecretBuilder)
-				Expect(ok).Should(BeTrue())
-				_, ok = resourceBuilders[9].(*resource.StatefulSetBuilder)
-				Expect(ok).Should(BeTrue())
-			})
+			var ok bool
+			_, ok = resourceBuilders[0].(*resource.HeadlessServiceBuilder)
+			Expect(ok).Should(BeTrue())
+			_, ok = resourceBuilders[1].(*resource.IngressServiceBuilder)
+			Expect(ok).Should(BeTrue())
+			_, ok = resourceBuilders[2].(*resource.ErlangCookieBuilder)
+			Expect(ok).Should(BeTrue())
+			_, ok = resourceBuilders[3].(*resource.AdminSecretBuilder)
+			Expect(ok).Should(BeTrue())
+			_, ok = resourceBuilders[4].(*resource.ServerConfigMapBuilder)
+			Expect(ok).Should(BeTrue())
+			_, ok = resourceBuilders[5].(*resource.ServiceAccountBuilder)
+			Expect(ok).Should(BeTrue())
+			_, ok = resourceBuilders[6].(*resource.RoleBuilder)
+			Expect(ok).Should(BeTrue())
+			_, ok = resourceBuilders[7].(*resource.RoleBindingBuilder)
+			Expect(ok).Should(BeTrue())
+			_, ok = resourceBuilders[8].(*resource.StatefulSetBuilder)
+			Expect(ok).Should(BeTrue())
 		})
 	})
 })

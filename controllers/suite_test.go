@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 
 	// "github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 
@@ -75,29 +74,11 @@ var _ = BeforeSuite(func() {
 	clientSet, err = kubernetes.NewForConfig(cfg)
 	Expect(err).NotTo(HaveOccurred())
 
-	managerConfig := resource.DefaultConfiguration{
-		ImagePullSecret: "pivotal-rmq-registry-access",
-		ServiceAnnotations: map[string]string{
-			"service_annotation": "1.2.3.4/0",
-		},
-		ServiceType: "NodePort",
-		ResourceRequirements: resource.ResourceRequirements{
-			Limit: resource.ComputeResource{
-				Memory: "1Gi",
-			},
-			Request: resource.ComputeResource{
-				Memory: "1Gi",
-			},
-		},
-		PersistentStorage:          "5Gi",
-		PersistentStorageClassName: "operator-storage-class",
-	}
-
 	scheme = runtime.NewScheme()
 	Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
 	Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
 
-	startManager(scheme, managerConfig)
+	startManager(scheme)
 })
 
 var _ = AfterSuite(func() {
@@ -108,23 +89,16 @@ var _ = AfterSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 })
 
-func startManager(scheme *runtime.Scheme, config resource.DefaultConfiguration) {
+func startManager(scheme *runtime.Scheme) {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
 	client = mgr.GetClient()
 
 	reconciler := &controllers.RabbitmqClusterReconciler{
-		Client:                     client,
-		Log:                        ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
-		Scheme:                     mgr.GetScheme(),
-		Namespace:                  "pivotal-rabbitmq-system",
-		ServiceType:                config.ServiceType,
-		ServiceAnnotations:         config.ServiceAnnotations,
-		Image:                      config.ImageReference,
-		ImagePullSecret:            config.ImagePullSecret,
-		PersistentStorage:          config.PersistentStorage,
-		PersistentStorageClassName: config.PersistentStorageClassName,
-		ResourceRequirements:       config.ResourceRequirements,
+		Client:    client,
+		Log:       ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
+		Scheme:    mgr.GetScheme(),
+		Namespace: "pivotal-rabbitmq-system",
 	}
 	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
 

@@ -1,7 +1,6 @@
 package system_tests
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -16,13 +15,9 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -255,87 +250,8 @@ func createRabbitmqCluster(client client.Client, rabbitmqCluster *rabbitmqv1beta
 	return client.Create(context.TODO(), rabbitmqCluster)
 }
 
-func toYamlBytes(c *config.Config) ([]byte, error) {
-	configBytes, err := yaml.Marshal(c)
-	if err != nil {
-		return nil, err
-	}
-
-	return configBytes, nil
-}
-
-func verifyClusterNodes(cluster *rabbitmqv1beta1.RabbitmqCluster, pods []string, nodeType string) {
-	for _, pod := range pods {
-		output, err := kubectlExec(
-			cluster.Namespace,
-			pod,
-			"sh",
-			"-c",
-			fmt.Sprintf(
-				"rabbitmqctl cluster_status | grep '%s Nodes' -A4 | grep %s",
-				nodeType,
-				cluster.ChildResourceName(statefulSetSuffix),
-			),
-		)
-
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		nodes := make([]string, 3)
-		s := bufio.NewScanner(bytes.NewBuffer(output))
-		for s.Scan() {
-			nodes = append(nodes, s.Text())
-		}
-
-		Expect(nodes).To(ConsistOf(rabbitmqNodeNames(cluster, pods)))
-	}
-}
-
-func assertConfigMapExist(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) {
-	Eventually(func() error {
-		_, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(cluster.ChildResourceName(configMapSuffix), metav1.GetOptions{})
-		if err != nil {
-			Expect(err.Error()).To(ContainSubstring("not found"))
-		}
-		return err
-	}, 10).ShouldNot(HaveOccurred())
-
-}
-
-func assertIngressExist(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) {
-	Eventually(func() error {
-		_, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
-		if err != nil {
-			Expect(err.Error()).To(ContainSubstring("not found"))
-		}
-		return err
-	}, 10).ShouldNot(HaveOccurred())
-}
-
-func extractContainer(containers []corev1.Container, containerName string) corev1.Container {
-	for _, container := range containers {
-		if container.Name == containerName {
-			return container
-		}
-	}
-
-	return corev1.Container{}
-}
-
 func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
 	return cluster.ChildResourceName(strings.Join([]string{statefulSetSuffix, strconv.Itoa(index)}, "-"))
-}
-
-func rabbitmqNodeNames(cluster *rabbitmqv1beta1.RabbitmqCluster, pods []string) []string {
-	nodes := make([]string, len(pods))
-	for _, pod := range pods {
-		nodes = append(nodes, fmt.Sprintf(
-			"rabbit@%s.%s.%s.svc.cluster.local",
-			pod,
-			cluster.ChildResourceName("headless"),
-			cluster.Namespace),
-		)
-	}
-	return nodes
 }
 
 func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {

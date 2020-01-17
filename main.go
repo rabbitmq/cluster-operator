@@ -18,11 +18,7 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"os"
-
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
@@ -73,51 +69,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	configPath := os.Getenv("CONFIG_FILEPATH")
-	if configPath == "" {
-		setupLog.Error(err, "unable to find config file")
-		os.Exit(1)
-	}
-	rawConfig, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		setupLog.Error(err, "unable to read config file")
-		os.Exit(1)
-	}
-
-	config, err := config.NewConfig(rawConfig)
-	if err != nil {
-		setupLog.Error(err, "unable to parse config")
-		os.Exit(1)
-	}
-
-	resourceRequirements := resource.ResourceRequirements{
-		Limit: resource.ComputeResource{
-			CPU:    config.Resources.Limits.CPU,
-			Memory: config.Resources.Limits.Memory,
-		},
-		Request: resource.ComputeResource{
-			CPU:    config.Resources.Requests.CPU,
-			Memory: config.Resources.Requests.Memory,
-		},
-	}
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client:                     mgr.GetClient(),
-		Log:                        ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
-		Scheme:                     mgr.GetScheme(),
-		ServiceType:                config.Service.Type,
-		ServiceAnnotations:         config.Service.Annotations,
-		Image:                      config.Image,
-		ImagePullSecret:            config.ImagePullSecret,
-		PersistentStorage:          config.Persistence.Storage,
-		PersistentStorageClassName: config.Persistence.StorageClassName,
-		ResourceRequirements:       resourceRequirements,
-		Namespace:                  operatorNamespace,
+		Client:    mgr.GetClient(),
+		Log:       ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
+		Scheme:    mgr.GetScheme(),
+		Namespace: operatorNamespace,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")
 		os.Exit(1)
 	}
-	setupLog.Info("Started controller with ServiceType %s and ServiceAnnotation %s", config.Service.Type, config.Service.Annotations)
+	setupLog.Info("Started controller")
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

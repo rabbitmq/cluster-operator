@@ -59,14 +59,14 @@ type StatefulSetConfiguration struct {
 
 func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
 	return &StatefulSetBuilder{
-		Instance:             builder.Instance,
-		DefaultConfiguration: builder.DefaultConfiguration,
+		Instance: builder.Instance,
+		Scheme:   builder.Scheme,
 	}
 }
 
 type StatefulSetBuilder struct {
-	Instance             *rabbitmqv1beta1.RabbitmqCluster
-	DefaultConfiguration DefaultConfiguration
+	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
 }
 
 func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
@@ -76,7 +76,7 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 		return nil, err
 	}
 
-	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.DefaultConfiguration.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
 		return nil, fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
@@ -204,53 +204,33 @@ func (builder *StatefulSetBuilder) statefulSetConfigurations() (StatefulSetConfi
 	statefulSetConfiguration := StatefulSetConfiguration{
 		ImageReference:  rabbitmqImage,
 		ImagePullSecret: "",
-		Scheme:          builder.DefaultConfiguration.Scheme,
+		Scheme:          builder.Scheme,
 	}
 
 	if builder.Instance.Spec.Image != "" {
 		statefulSetConfiguration.ImageReference = builder.Instance.Spec.Image
-	} else if builder.DefaultConfiguration.ImageReference != "" {
-		statefulSetConfiguration.ImageReference = builder.DefaultConfiguration.ImageReference
 	}
 
 	if builder.Instance.Spec.ImagePullSecret != "" {
 		statefulSetConfiguration.ImagePullSecret = builder.Instance.Spec.ImagePullSecret
-	} else if builder.DefaultConfiguration.ImagePullSecret != "" {
-		statefulSetConfiguration.ImagePullSecret = RegistrySecretName(builder.Instance.Name)
 	}
 
-	cpuLimit := defaultCPULimit
-	if builder.DefaultConfiguration.ResourceRequirements.Limit.CPU != "" {
-		cpuLimit = builder.DefaultConfiguration.ResourceRequirements.Limit.CPU
-	}
-	parsedCPULimit, err := k8sresource.ParseQuantity(cpuLimit)
+	parsedCPULimit, err := k8sresource.ParseQuantity(defaultCPULimit)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
 
-	cpuRequest := defaultCPURequest
-	if builder.DefaultConfiguration.ResourceRequirements.Request.CPU != "" {
-		cpuRequest = builder.DefaultConfiguration.ResourceRequirements.Request.CPU
-	}
-	parsedCPURequest, err := k8sresource.ParseQuantity(cpuRequest)
+	parsedCPURequest, err := k8sresource.ParseQuantity(defaultCPURequest)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
 
-	memoryLimit := defaultMemoryLimit
-	if builder.DefaultConfiguration.ResourceRequirements.Limit.Memory != "" {
-		memoryLimit = builder.DefaultConfiguration.ResourceRequirements.Limit.Memory
-	}
-	parsedMemoryLimit, err := k8sresource.ParseQuantity(memoryLimit)
+	parsedMemoryLimit, err := k8sresource.ParseQuantity(defaultMemoryLimit)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
 
-	memoryRequest := defaultMemoryRequest
-	if builder.DefaultConfiguration.ResourceRequirements.Request.Memory != "" {
-		memoryRequest = builder.DefaultConfiguration.ResourceRequirements.Request.Memory
-	}
-	parsedMemoryRequest, err := k8sresource.ParseQuantity(memoryRequest)
+	parsedMemoryRequest, err := k8sresource.ParseQuantity(defaultMemoryRequest)
 	if err != nil {
 		return statefulSetConfiguration, err
 	}
@@ -280,18 +260,11 @@ func (builder *StatefulSetBuilder) statefulSetConfigurations() (StatefulSetConfi
 		if err != nil {
 			return statefulSetConfiguration, err
 		}
-	} else if builder.DefaultConfiguration.PersistentStorage != "" {
-		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(builder.DefaultConfiguration.PersistentStorage)
-		if err != nil {
-			return statefulSetConfiguration, err
-		}
 	}
 
 	statefulSetConfiguration.PersistentStorageClassName = nil
 	if builder.Instance.Spec.Persistence.StorageClassName != "" {
 		statefulSetConfiguration.PersistentStorageClassName = &builder.Instance.Spec.Persistence.StorageClassName
-	} else if builder.DefaultConfiguration.PersistentStorageClassName != "" {
-		statefulSetConfiguration.PersistentStorageClassName = &builder.DefaultConfiguration.PersistentStorageClassName
 	}
 
 	return statefulSetConfiguration, nil

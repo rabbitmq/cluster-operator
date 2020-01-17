@@ -13,14 +13,12 @@ const (
 )
 
 type ServiceAccountBuilder struct {
-	Instance             *rabbitmqv1beta1.RabbitmqCluster
-	DefaultConfiguration DefaultConfiguration
+	Instance *rabbitmqv1beta1.RabbitmqCluster
 }
 
 func (builder *RabbitmqResourceBuilder) ServiceAccount() *ServiceAccountBuilder {
 	return &ServiceAccountBuilder{
-		Instance:             builder.Instance,
-		DefaultConfiguration: builder.DefaultConfiguration,
+		Instance: builder.Instance,
 	}
 }
 

@@ -2,10 +2,8 @@ package system_tests
 
 import (
 	"context"
-	"strings"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -13,7 +11,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,38 +59,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	if !apierrors.IsAlreadyExists(err) {
 		Expect(err).NotTo(HaveOccurred())
 	}
-
-	// Patch/update configMap
-	operatorConfigMapName := "p-rmq-operator-config"
-	configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(operatorConfigMapName, metav1.GetOptions{})
-	Expect(err).NotTo(HaveOccurred())
-
-	operatorConMap, err := config.NewConfig([]byte(configMap.Data["config"]))
-	Expect(err).NotTo(HaveOccurred())
-
-	operatorConMap.Persistence.StorageClassName = specifiedStorageClassName
-	operatorConMap.Persistence.Storage = specifiedStorageCapacity
-	configBytes, err := toYamlBytes(operatorConMap)
-	Expect(err).NotTo(HaveOccurred())
-	configMap.Data["config"] = string(configBytes)
-
-	_, err = clientSet.CoreV1().ConfigMaps(namespace).Update(configMap)
-	Expect(err).NotTo(HaveOccurred())
-
-	// Delete Operator pod
-	var operatorPod *corev1.Pod
-	pods, err := clientSet.CoreV1().Pods(namespace).List(metav1.ListOptions{})
-	Expect(err).NotTo(HaveOccurred())
-	for _, pod := range pods.Items {
-		if strings.Contains(pod.Name, "operator") {
-			operatorPod = &pod
-		}
-	}
-	if operatorPod == nil {
-		Fail("Operator pod cannot be found")
-	}
-
-	Expect(clientSet.CoreV1().Pods(namespace).Delete(operatorPod.Name, &metav1.DeleteOptions{})).To(Succeed())
 
 	Eventually(func() []byte {
 		output, err := kubectl(

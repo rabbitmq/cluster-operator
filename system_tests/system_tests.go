@@ -2,7 +2,6 @@ package system_tests
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -125,20 +124,6 @@ var _ = Describe("Operator", func() {
 				message, err := rabbitmqGetMessageFromQueue(hostname, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(message.Payload).To(Equal("hello"))
-			})
-
-			By("adding Prometheus annotations to the ingress service", func() {
-				expectedAnnotations := map[string]string{"prometheus.io/scrape": "true", "prometheus.io/port": "15692"}
-				Eventually(func() map[string]string {
-					svc, err := clientSet.CoreV1().Services(namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
-					if err != nil {
-						Expect(err).To(MatchError(fmt.Sprintf("services \"%s\" not found", cluster.ChildResourceName(ingressServiceSuffix))))
-						return nil
-					}
-
-					annotations := map[string]string{"prometheus.io/scrape": svc.Annotations["prometheus.io/scrape"], "prometheus.io/port": svc.Annotations["prometheus.io/port"]}
-					return annotations
-				}, serviceCreationTimeout).Should(Equal(expectedAnnotations))
 			})
 
 			By("setting owner reference to persistence volume claim successfully", func() {

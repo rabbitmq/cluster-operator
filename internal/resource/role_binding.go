@@ -14,14 +14,12 @@ const (
 )
 
 type RoleBindingBuilder struct {
-	Instance             *rabbitmqv1beta1.RabbitmqCluster
-	DefaultConfiguration DefaultConfiguration
+	Instance *rabbitmqv1beta1.RabbitmqCluster
 }
 
 func (builder *RabbitmqResourceBuilder) RoleBinding() *RoleBindingBuilder {
 	return &RoleBindingBuilder{
-		Instance:             builder.Instance,
-		DefaultConfiguration: builder.DefaultConfiguration,
+		Instance: builder.Instance,
 	}
 }
 

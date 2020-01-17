@@ -28,9 +28,7 @@ var _ = Context("IngressServices", func() {
 		instance.Name = "foo"
 		rmqBuilder = resource.RabbitmqResourceBuilder{
 			Instance: &instance,
-			DefaultConfiguration: resource.DefaultConfiguration{
-				Scheme: scheme,
-			},
+			Scheme:   scheme,
 		}
 	})
 
@@ -153,64 +151,8 @@ var _ = Context("IngressServices", func() {
 		})
 	})
 
-	When("service type is specified on the rmqBuilder struct", func() {
-		It("generates the service type as specified", func() {
-			instance := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "name",
-					Namespace: "mynamespace",
-				},
-			}
-			rmqBuilder.Instance = instance
-			rmqBuilder.DefaultConfiguration.ServiceType = "NodePort"
-			serviceBuilder := rmqBuilder.IngressService()
-			obj, err := serviceBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			nodePortService := obj.(*corev1.Service)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
-
-		})
-
-		It("generates the service type specified in the RabbitmqCluster spec", func() {
-			loadBalancerInstance := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "name",
-					Namespace: "mynamespace",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type: "LoadBalancer",
-					},
-				},
-			}
-			rmqBuilder.Instance = loadBalancerInstance
-			rmqBuilder.DefaultConfiguration.ServiceType = "ClusterIP"
-			serviceBuilder := rmqBuilder.IngressService()
-			obj, err := serviceBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			loadBalancerService := obj.(*corev1.Service)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
-		})
-	})
-
 	Context("Annotations", func() {
-		When("service annotations on instance specified, no default", func() {
-			It("generates a service object with the annotations as specified", func() {
-				serviceAnno := map[string]string{
-					"service_annotation_a":       "0.0.0.0/0",
-					"kubernetes.io/name":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/name": "i-do-not-like-this",
-					"k8s.io/name":                "i-do-not-like-this",
-				}
-				expectedAnnotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
-				service := getServiceWithAnnotations(rmqBuilder, nil, nil, serviceAnno)
-				Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
-			})
-		})
-
-		When("service annotations have default value set and are specified on the instance", func() {
+		When("service annotations are specified on the instance", func() {
 			It("generates the service annotations as specified in the RabbitmqCluster spec", func() {
 				serviceAnno := map[string]string{
 					"service_annotation_a":       "0.0.0.0/0",
@@ -218,28 +160,13 @@ var _ = Context("IngressServices", func() {
 					"kubectl.kubernetes.io/name": "i-do-not-like-this",
 					"k8s.io/name":                "i-do-not-like-this",
 				}
-				defaultAnno := map[string]string{"service_annotation_b": "0.0.0.0/1"}
 				expectedAnnotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
-				service := getServiceWithAnnotations(rmqBuilder, nil, defaultAnno, serviceAnno)
+				service := getServiceWithAnnotations(rmqBuilder, nil, serviceAnno)
 				Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 			})
 		})
 
-		When("service annotations have default value set, not overriden on the instance", func() {
-			It("generates the service annotations as specified", func() {
-				defaultAnno := map[string]string{
-					"service_annotation_a":       "0.0.0.0/0",
-					"kubernetes.io/name":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/name": "i-do-not-like-this",
-					"k8s.io/name":                "i-do-not-like-this",
-				}
-				expectedAnnotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
-				service := getServiceWithAnnotations(rmqBuilder, nil, defaultAnno, nil)
-				Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
-			})
-		})
-
-		When("instance annotations set on the instance, service annotations have no defaults, not set on instance", func() {
+		When("instance annotations set on the instance, service annotations are not set on instance", func() {
 			It("sets the instance annotations on the service", func() {
 				instanceAnno := map[string]string{
 					"my-annotation":              "i-like-this",
@@ -247,12 +174,12 @@ var _ = Context("IngressServices", func() {
 					"kubectl.kubernetes.io/name": "i-do-not-like-this",
 					"k8s.io/name":                "i-do-not-like-this",
 				}
-				service := getServiceWithAnnotations(rmqBuilder, instanceAnno, nil, nil)
+				service := getServiceWithAnnotations(rmqBuilder, instanceAnno, nil)
 				Expect(service.ObjectMeta.Annotations).To(Equal(map[string]string{"my-annotation": "i-like-this"}))
 			})
 		})
 
-		When("instance annotations set on the instance, service annotations have defaults and set on instance", func() {
+		When("instance annotations set on the instance, service annotations set on instance", func() {
 			It("merges the annotations", func() {
 				serviceAnno := map[string]string{
 					"service_annotation_a":       "0.0.0.0/0",
@@ -269,9 +196,7 @@ var _ = Context("IngressServices", func() {
 					"k8s.io/name":                "i-do-not-like-this",
 				}
 
-				defaultAnno := map[string]string{"service_annotation_a": "0.0.0.0/1"}
-
-				service := getServiceWithAnnotations(rmqBuilder, instanceAnno, defaultAnno, serviceAnno)
+				service := getServiceWithAnnotations(rmqBuilder, instanceAnno, serviceAnno)
 				Expect(service.ObjectMeta.Annotations).To(Equal(map[string]string{
 					"my-annotation":        "i-like-this-more",
 					"my-second-annotation": "i-like-this-also",
@@ -303,7 +228,7 @@ var _ = Context("IngressServices", func() {
 
 	Context("Update", func() {
 		Context("Annotations", func() {
-			When("service annotations on instance specified, no default", func() {
+			When("service annotations on instance specified", func() {
 				It("generates a service object with the annotations as specified", func() {
 					serviceAnno := map[string]string{
 						"service_annotation_a":       "0.0.0.0/0",
@@ -316,12 +241,12 @@ var _ = Context("IngressServices", func() {
 						"app.kubernetes.io/part-of": "pivotal-rabbitmq",
 						"app.k8s.io/something":      "something-amazing",
 					}
-					service := updateServiceWithAnnotations(rmqBuilder, nil, nil, serviceAnno)
+					service := updateServiceWithAnnotations(rmqBuilder, nil, serviceAnno)
 					Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 				})
 			})
 
-			When("service annotations have default value set and are specified on the instance", func() {
+			When("service annotations are specified on the instance", func() {
 				It("generates the service annotations as specified in the RabbitmqCluster spec", func() {
 					serviceAnno := map[string]string{
 						"service_annotation_a":       "0.0.0.0/0",
@@ -329,36 +254,28 @@ var _ = Context("IngressServices", func() {
 						"kubectl.kubernetes.io/name": "i-do-not-like-this",
 						"k8s.io/name":                "i-do-not-like-this",
 					}
-					defaultAnno := map[string]string{"service_annotation_b": "0.0.0.0/1"}
 					expectedAnnotations := map[string]string{
 						"service_annotation_a":      "0.0.0.0/0",
 						"app.kubernetes.io/part-of": "pivotal-rabbitmq",
 						"app.k8s.io/something":      "something-amazing",
 					}
-					service := updateServiceWithAnnotations(rmqBuilder, nil, defaultAnno, serviceAnno)
+					service := updateServiceWithAnnotations(rmqBuilder, nil, serviceAnno)
 					Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 				})
 			})
 
-			When("service annotations have default value set, not overriden on the instance", func() {
+			When("service annotations are not set on the instance", func() {
 				It("generates the service annotations as specified", func() {
-					defaultAnno := map[string]string{
-						"service_annotation_a":       "0.0.0.0/0",
-						"kubernetes.io/name":         "i-do-not-like-this",
-						"kubectl.kubernetes.io/name": "i-do-not-like-this",
-						"k8s.io/name":                "i-do-not-like-this",
-					}
 					expectedAnnotations := map[string]string{
-						"service_annotation_a":      "0.0.0.0/0",
 						"app.kubernetes.io/part-of": "pivotal-rabbitmq",
 						"app.k8s.io/something":      "something-amazing",
 					}
-					service := updateServiceWithAnnotations(rmqBuilder, nil, defaultAnno, nil)
+					service := updateServiceWithAnnotations(rmqBuilder, nil, nil)
 					Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 				})
 			})
 
-			When("instance annotations set on the instance, service annotations have no defaults, not set on instance", func() {
+			When("instance annotations set on the instance, service annotations are not set on instance", func() {
 				It("sets the instance annotations on the service", func() {
 					instanceAnno := map[string]string{
 						"my-annotation":              "i-like-this",
@@ -366,7 +283,7 @@ var _ = Context("IngressServices", func() {
 						"kubectl.kubernetes.io/name": "i-do-not-like-this",
 						"k8s.io/name":                "i-do-not-like-this",
 					}
-					service := updateServiceWithAnnotations(rmqBuilder, instanceAnno, nil, nil)
+					service := updateServiceWithAnnotations(rmqBuilder, instanceAnno, nil)
 					expectedAnnotations := map[string]string{
 						"my-annotation":             "i-like-this",
 						"app.kubernetes.io/part-of": "pivotal-rabbitmq",
@@ -376,7 +293,7 @@ var _ = Context("IngressServices", func() {
 				})
 			})
 
-			When("CR has annotations on resource, CR has annotations in spec, and configMap has annotations", func() {
+			When("instance annotations set on the instance, service annotations are set on instance", func() {
 				It("merges the annotations", func() {
 					serviceAnno := map[string]string{
 						"service_annotation_a":       "0.0.0.0/0",
@@ -393,12 +310,7 @@ var _ = Context("IngressServices", func() {
 						"k8s.io/name":                "i-do-not-like-this",
 					}
 
-					defaultAnno := map[string]string{
-						"service_annotation_a": "0.0.0.0/1",
-						"default-annotation":   "not-applied",
-					}
-
-					service := updateServiceWithAnnotations(rmqBuilder, instanceAnno, defaultAnno, serviceAnno)
+					service := updateServiceWithAnnotations(rmqBuilder, instanceAnno, serviceAnno)
 					Expect(service.ObjectMeta.Annotations).To(Equal(map[string]string{
 						"my-annotation":             "i-like-this-more",
 						"my-second-annotation":      "i-like-this-also",
@@ -407,32 +319,6 @@ var _ = Context("IngressServices", func() {
 						"app.k8s.io/something":      "something-amazing",
 					},
 					))
-				})
-			})
-			When("CR has annotations on resource, and configMap has annotations", func() {
-				It("merges the annotations", func() {
-					instanceAnno := map[string]string{
-						"my-annotation":              "i-like-this",
-						"my-second-annotation":       "i-like-this-also",
-						"kubernetes.io/name":         "i-do-not-like-this",
-						"kubectl.kubernetes.io/name": "i-do-not-like-this",
-						"k8s.io/name":                "i-do-not-like-this",
-					}
-
-					defaultAnno := map[string]string{
-						"service_annotation_a": "0.0.0.0/1",
-						"default-annotation":   "applied",
-					}
-
-					service := updateServiceWithAnnotations(rmqBuilder, instanceAnno, defaultAnno, nil)
-					Expect(service.ObjectMeta.Annotations).To(Equal(map[string]string{
-						"my-annotation":             "i-like-this",
-						"my-second-annotation":      "i-like-this-also",
-						"service_annotation_a":      "0.0.0.0/1",
-						"default-annotation":        "applied",
-						"app.kubernetes.io/part-of": "pivotal-rabbitmq",
-						"app.k8s.io/something":      "something-amazing",
-					}))
 				})
 			})
 		})
@@ -487,7 +373,7 @@ var _ = Context("IngressServices", func() {
 	})
 })
 
-func getServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnno, defaultAnno, serviceAnno map[string]string) *corev1.Service {
+func getServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnno, serviceAnno map[string]string) *corev1.Service {
 	instance := &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:        "name",
@@ -502,7 +388,6 @@ func getServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, inst
 	}
 
 	rmqBuilder.Instance = instance
-	rmqBuilder.DefaultConfiguration.ServiceAnnotations = defaultAnno
 	serviceBuilder := rmqBuilder.IngressService()
 	obj, err := serviceBuilder.Build()
 	Expect(err).NotTo(HaveOccurred())
@@ -511,7 +396,7 @@ func getServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, inst
 	return service
 }
 
-func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnno, defaultAnno, serviceAnno map[string]string) *corev1.Service {
+func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnno, serviceAnno map[string]string) *corev1.Service {
 	instance := &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:        "name",
@@ -526,7 +411,6 @@ func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, i
 	}
 
 	rmqBuilder.Instance = instance
-	rmqBuilder.DefaultConfiguration.ServiceAnnotations = defaultAnno
 	serviceBuilder := rmqBuilder.IngressService()
 	ingressService := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{

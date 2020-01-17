@@ -13,14 +13,14 @@ import (
 
 func (builder *RabbitmqResourceBuilder) IngressService() *IngressServiceBuilder {
 	return &IngressServiceBuilder{
-		Instance:             builder.Instance,
-		DefaultConfiguration: builder.DefaultConfiguration,
+		Instance: builder.Instance,
+		Scheme:   builder.Scheme,
 	}
 }
 
 type IngressServiceBuilder struct {
-	Instance             *rabbitmqv1beta1.RabbitmqCluster
-	DefaultConfiguration DefaultConfiguration
+	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
 }
 
 func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
@@ -52,7 +52,7 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(builder.Instance, service, builder.DefaultConfiguration.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(builder.Instance, service, builder.Scheme); err != nil {
 		return nil, fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
@@ -63,13 +63,9 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 }
 
 func (builder *IngressServiceBuilder) setServiceType(service *corev1.Service) {
-	var serviceType string
+	var serviceType = "ClusterIP"
 	if builder.Instance.Spec.Service.Type != "" {
 		serviceType = builder.Instance.Spec.Service.Type
-	} else if builder.DefaultConfiguration.ServiceType != "" {
-		serviceType = builder.DefaultConfiguration.ServiceType
-	} else {
-		serviceType = "ClusterIP"
 	}
 	service.Spec.Type = corev1.ServiceType(serviceType)
 }
@@ -85,7 +81,7 @@ func (builder *IngressServiceBuilder) setAnnotations(service *corev1.Service) {
 	if builder.Instance.Spec.Service.Annotations != nil {
 		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations, builder.Instance.Spec.Service.Annotations)
 	} else {
-		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations, builder.DefaultConfiguration.ServiceAnnotations)
+		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations)
 	}
 
 }

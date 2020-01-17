@@ -15,14 +15,12 @@ const (
 )
 
 type ServerConfigMapBuilder struct {
-	Instance             *rabbitmqv1beta1.RabbitmqCluster
-	DefaultConfiguration DefaultConfiguration
+	Instance *rabbitmqv1beta1.RabbitmqCluster
 }
 
 func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilder {
 	return &ServerConfigMapBuilder{
-		Instance:             builder.Instance,
-		DefaultConfiguration: builder.DefaultConfiguration,
+		Instance: builder.Instance,
 	}
 }
 

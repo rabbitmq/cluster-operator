@@ -52,16 +52,9 @@ var (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
-	Log                        logr.Logger
-	Scheme                     *runtime.Scheme
-	ServiceType                string
-	ServiceAnnotations         map[string]string
-	Image                      string
-	ImagePullSecret            string
-	PersistentStorageClassName string
-	PersistentStorage          string
-	Namespace                  string
-	ResourceRequirements       resource.ResourceRequirements
+	Log       logr.Logger
+	Scheme    *runtime.Scheme
+	Namespace string
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -112,32 +105,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		r.updateStatus(rabbitmqCluster, "created")
 	}
 
-	// TODO refactor operatorRegistrySecret generation based on configured valued (stick it in config!)
-	// https://www.pivotaltracker.com/story/show/169947561
-	var operatorRegistrySecret *corev1.Secret
-	if r.ImagePullSecret != "" && rabbitmqCluster.Spec.ImagePullSecret == "" {
-		var err error
-		operatorRegistrySecret, err = r.getImagePullSecret(types.NamespacedName{Namespace: r.Namespace, Name: r.ImagePullSecret})
-		if err != nil {
-			return reconcile.Result{}, fmt.Errorf("failed to find operator image pull secret: %v", err)
-		}
-	}
-
-	defaultConfiguration := resource.DefaultConfiguration{
-		ServiceAnnotations:         r.ServiceAnnotations,
-		ServiceType:                r.ServiceType,
-		Scheme:                     r.Scheme,
-		OperatorRegistrySecret:     operatorRegistrySecret,
-		ImageReference:             r.Image,
-		ImagePullSecret:            r.ImagePullSecret,
-		PersistentStorage:          r.PersistentStorage,
-		PersistentStorageClassName: r.PersistentStorageClassName,
-		ResourceRequirements:       r.ResourceRequirements,
-	}
-
 	resourceBuilder := resource.RabbitmqResourceBuilder{
-		Instance:             rabbitmqCluster,
-		DefaultConfiguration: defaultConfiguration,
+		Instance: rabbitmqCluster,
+		Scheme:   r.Scheme,
 	}
 
 	builders, err := resourceBuilder.ResourceBuilders()

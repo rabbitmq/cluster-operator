@@ -2,25 +2,12 @@ package resource
 
 import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type RabbitmqResourceBuilder struct {
-	Instance             *rabbitmqv1beta1.RabbitmqCluster
-	DefaultConfiguration DefaultConfiguration
-}
-
-type DefaultConfiguration struct {
-	ServiceAnnotations         map[string]string
-	ServiceType                string
-	Scheme                     *runtime.Scheme
-	ImageReference             string
-	ImagePullSecret            string
-	PersistentStorage          string
-	PersistentStorageClassName string
-	ResourceRequirements       ResourceRequirements
-	OperatorRegistrySecret     *corev1.Secret
+	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
 }
 
 type ResourceBuilder interface {
@@ -37,11 +24,6 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceB
 	builders = append(builders, builder.ServiceAccount())
 	builders = append(builders, builder.Role())
 	builders = append(builders, builder.RoleBinding())
-
-	if builder.DefaultConfiguration.OperatorRegistrySecret != nil {
-		builders = append(builders, builder.RegistrySecret())
-	}
-
 	builders = append(builders, builder.StatefulSet())
 	return builders, nil
 }

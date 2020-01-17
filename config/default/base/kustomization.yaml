@@ -19,8 +19,6 @@ bases:
 #- ../webhook
 # [CERTMANAGER] Uncomment next line to enable cert-manager
 #- ../certmanager
-resources:
-- manager_config_map.yaml
 
 patches:
 - manager_image_patch.yaml

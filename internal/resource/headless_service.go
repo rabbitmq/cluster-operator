@@ -14,14 +14,12 @@ const (
 
 func (builder *RabbitmqResourceBuilder) HeadlessService() *HeadlessServiceBuilder {
 	return &HeadlessServiceBuilder{
-		Instance:             builder.Instance,
-		DefaultConfiguration: builder.DefaultConfiguration,
+		Instance: builder.Instance,
 	}
 }
 
 type HeadlessServiceBuilder struct {
-	Instance             *rabbitmqv1beta1.RabbitmqCluster
-	DefaultConfiguration DefaultConfiguration
+	Instance *rabbitmqv1beta1.RabbitmqCluster
 }
 
 func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {

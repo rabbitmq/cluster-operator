@@ -13,14 +13,12 @@ const (
 )
 
 type AdminSecretBuilder struct {
-	Instance             *rabbitmqv1beta1.RabbitmqCluster
-	DefaultConfiguration DefaultConfiguration
+	Instance *rabbitmqv1beta1.RabbitmqCluster
 }
 
 func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
 	return &AdminSecretBuilder{
-		Instance:             builder.Instance,
-		DefaultConfiguration: builder.DefaultConfiguration,
+		Instance: builder.Instance,
 	}
 }
 
