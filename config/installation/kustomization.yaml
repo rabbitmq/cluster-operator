@@ -4,4 +4,4 @@ bases:
 namespace: pivotal-rabbitmq-system
 
 patches:
-- manager_config_map_patch.yaml
+- manager_deployment_patch.yaml

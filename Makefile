@@ -95,12 +95,6 @@ generate-installation-manifests:
 	kustomize build config/crd/ > installation/crd.yaml
 	kustomize build config/installation > installation/operator.yaml
 
-generate-cnab-manifests:
-	mkdir -p installation
-	kustomize build config/namespace/base/ > installation/namespace.yaml
-	kustomize build config/crd/ > installation/crd.yaml
-	kustomize build config/default/overlays/cnab/ > installation/operator.yaml
-
 # Build the docker image
 docker-build:
 	docker build . -t $(CONTROLLER_IMAGE):latest

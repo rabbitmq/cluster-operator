@@ -1,0 +1,5 @@
+bases:
+- ../../../default/base
+
+namespace: pivotal-rabbitmq-system
+
