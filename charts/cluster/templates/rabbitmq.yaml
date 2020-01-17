@@ -1,0 +1,59 @@
+apiVersion: rabbitmq.pivotal.io/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+  {{- if .Values.labels }}
+  labels:
+{{ toYaml .Values.labels | indent 4 }}
+  {{- end }}
+
+  {{- if .Values.annotations }}
+  annotations:
+{{ toYaml .Values.annotations | indent 4 }}
+  {{- end }}
+
+spec:
+
+  {{- if .Values.image }}
+  image: {{ .Values.image }}
+  {{- end }}
+
+  {{- if .Values.imagePullSecret }}
+  imagePullSecret: {{ .Values.imagePullSecret }}
+  {{- end }}
+
+  replicas: {{ .Values.replicas }}
+
+  {{- if .Values.service }}
+  service:
+    type: {{ .Values.service.type }}
+    {{- if .Values.service.annotations }}
+    annotations:
+{{ toYaml .Values.service.annotations | indent 6 }}
+    {{- end }}
+  {{- end }}
+
+  {{- if .Values.persistence }}
+  persistence:
+    {{- if .Values.persistence.storageClassName }}
+    storageClassName: {{ .Values.persistence.storageClassName }}
+    {{- end }}
+    {{- if .Values.persistence.storage }}
+    storage: {{ .Values.persistence.storage }}
+    {{- end }}
+  {{- end }}
+
+  {{- if .Values.tolerations }}
+  tolerations:
+{{ toYaml .Values.tolerations | indent 2 }}
+  {{- end }}
+
+  {{- if .Values.affinity }}
+  affinity:
+{{ toYaml .Values.affinity | indent 4 }}
+  {{- end }}
+
+  {{- if .Values.resources }}
+  resources:
+{{ toYaml .Values.resources | indent 4 }}
+  {{- end }}

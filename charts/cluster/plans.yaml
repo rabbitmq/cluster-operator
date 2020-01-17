@@ -1,0 +1,6 @@
+- name: "single"
+  description: "single-node RabbitMQ"
+  file: "single.yaml"
+- name: "ha"
+  description: "3-node RabbitMQ"
+  file: "ha.yaml"
