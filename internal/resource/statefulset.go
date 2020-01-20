@@ -164,12 +164,13 @@ func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) err
 	sts.Labels = updatedLabels
 	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
 
-	updatedAnnotations := metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
-	sts.Annotations = updatedAnnotations
-	sts.Spec.Template.ObjectMeta.Annotations = updatedAnnotations
+	sts.Annotations = metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
+
+	sts.Spec.Template.ObjectMeta.Annotations = metadata.ReconcileAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations)
 
 	sts.Spec.Template.Spec.Affinity = builder.Instance.Spec.Affinity
 	sts.Spec.Template.Spec.Tolerations = builder.Instance.Spec.Tolerations
+
 	return nil
 }
 
