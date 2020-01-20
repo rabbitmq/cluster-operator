@@ -164,7 +164,11 @@ func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) err
 	sts.Labels = updatedLabels
 	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
 
-	updatedAnnotations := metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
+	var stsAnnotations = map[string]string{}
+	if sts.Annotations != nil {
+		stsAnnotations = sts.Annotations
+	}
+	updatedAnnotations := metadata.ReconcileAnnotations(stsAnnotations, builder.Instance.Annotations)
 	sts.Annotations = updatedAnnotations
 	sts.Spec.Template.ObjectMeta.Annotations = updatedAnnotations
 
@@ -179,7 +183,7 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSe
 			Name:        "persistence",
 			Namespace:   instance.GetNamespace(),
 			Labels:      metadata.Label(instance.Name),
-			Annotations: metadata.ReconcileAnnotations(nil, instance.Annotations),
+			Annotations: metadata.ReconcileAnnotations(map[string]string{}, instance.Annotations),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.ResourceRequirements{

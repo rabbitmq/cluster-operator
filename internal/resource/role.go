@@ -35,7 +35,7 @@ func (builder *RoleBuilder) Build() (runtime.Object, error) {
 			Namespace:   builder.Instance.Namespace,
 			Name:        builder.Instance.ChildResourceName(roleName),
 			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.ReconcileAnnotations(nil, builder.Instance.Annotations),
+			Annotations: metadata.ReconcileAnnotations(map[string]string{}, builder.Instance.Annotations),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{

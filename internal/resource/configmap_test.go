@@ -122,7 +122,11 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 
 		It("has the annotations from the instance on the configMap", func() {
-			testAnnotations(configMap.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{
+				"my-annotation": "i-like-this",
+			}
+
+			Expect(configMap.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 
@@ -186,7 +190,9 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			configMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"old-annotations": "old-value",
+						"my-annotation":                 "i-will-not-stay",
+						"old-annotation":                "old-value",
+						"im-here-to-stay.kubernetes.io": "for-a-while",
 					},
 				},
 			}
@@ -195,7 +201,13 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 
 		It("updates config map annotations", func() {
-			testAnnotations(configMap.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{
+				"my-annotation":                 "i-like-this",
+				"old-annotation":                "old-value",
+				"im-here-to-stay.kubernetes.io": "for-a-while",
+			}
+
+			Expect(configMap.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 })

@@ -97,8 +97,12 @@ var _ = Describe("HeadlessService", func() {
 			service = obj.(*corev1.Service)
 		})
 
-		It("has the annotations from the CRD on the service", func() {
-			testAnnotations(service.Annotations, map[string]string{"my-annotation": "i-like-this"})
+		It("has the annotations from the CRD on the headless service", func() {
+			expectedAnnotations := map[string]string{
+				"my-annotation": "i-like-this",
+			}
+
+			Expect(service.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 
@@ -162,7 +166,8 @@ var _ = Describe("HeadlessService", func() {
 			service = &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"old-annotation": "old-value",
+						"i-was-here-already":            "please-dont-delete-me",
+						"im-here-to-stay.kubernetes.io": "for-a-while",
 					},
 				},
 			}
@@ -171,7 +176,13 @@ var _ = Describe("HeadlessService", func() {
 		})
 
 		It("updates service annotations", func() {
-			testAnnotations(service.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{
+				"i-was-here-already":            "please-dont-delete-me",
+				"im-here-to-stay.kubernetes.io": "for-a-while",
+				"my-annotation":                 "i-like-this",
+			}
+
+			Expect(service.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 })

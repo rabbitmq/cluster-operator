@@ -6,7 +6,7 @@ func ReconcileAnnotations(existing map[string]string, defaults ...map[string]str
 	if len(defaults) == 0 {
 		return existing
 	}
-	return mergeWithFilter(isKubernetesAnnotation, mergeWithFilter(isNotKubernetesAnnotation, map[string]string{}, defaults...), existing)
+	return mergeWithFilter(isNotKubernetesAnnotation, existing, defaults...)
 }
 
 func mergeWithFilter(filterFn func(string) bool, base map[string]string, maps ...map[string]string) map[string]string {

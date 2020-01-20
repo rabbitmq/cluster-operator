@@ -117,7 +117,10 @@ var _ = Describe("AdminSecret", func() {
 		})
 
 		It("has the annotations from the CRD on the admin secret", func() {
-			testAnnotations(secret.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{
+				"my-annotation": "i-like-this",
+			}
+			Expect(secret.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 
@@ -181,7 +184,8 @@ var _ = Describe("AdminSecret", func() {
 			secret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"old-annotation": "old-value",
+						"i-was-here-already":     "please-dont-delete-me",
+						"im-here-to-stay.k8s.io": "dont-delete-me",
 					},
 				},
 			}
@@ -189,8 +193,14 @@ var _ = Describe("AdminSecret", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("updates secret annotations", func() {
-			testAnnotations(secret.Annotations, map[string]string{"my-annotation": "i-like-this"})
+		It("updates secret annotations on admin secret", func() {
+			expectedAnnotations := map[string]string{
+				"my-annotation":          "i-like-this",
+				"i-was-here-already":     "please-dont-delete-me",
+				"im-here-to-stay.k8s.io": "dont-delete-me",
+			}
+
+			Expect(secret.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 })

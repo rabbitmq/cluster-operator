@@ -103,7 +103,8 @@ var _ = Describe("RoleBinding", func() {
 		})
 
 		It("has the annotations from the CRD on the role binding", func() {
-			testAnnotations(roleBinding.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{"my-annotation": "i-like-this"}
+			Expect(roleBinding.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 
@@ -167,7 +168,8 @@ var _ = Describe("RoleBinding", func() {
 			roleBinding = &rbacv1.RoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"old-annotation": "old-value",
+						"old-annotation":                "old-value",
+						"im-here-to-stay.kubernetes.io": "for-a-while",
 					},
 				},
 			}
@@ -176,7 +178,12 @@ var _ = Describe("RoleBinding", func() {
 		})
 
 		It("updates roleBinding annotations", func() {
-			testAnnotations(roleBinding.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{
+				"my-annotation":                 "i-like-this",
+				"old-annotation":                "old-value",
+				"im-here-to-stay.kubernetes.io": "for-a-while",
+			}
+			Expect(roleBinding.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 })

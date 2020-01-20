@@ -35,7 +35,7 @@ func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
 			Name:        builder.Instance.ChildResourceName(headlessServiceName),
 			Namespace:   builder.Instance.Namespace,
 			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.ReconcileAnnotations(nil, builder.Instance.Annotations),
+			Annotations: metadata.ReconcileAnnotations(map[string]string{}, builder.Instance.Annotations),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",

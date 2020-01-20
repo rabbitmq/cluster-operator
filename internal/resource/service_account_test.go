@@ -93,7 +93,11 @@ var _ = Describe("ServiceAccount", func() {
 		})
 
 		It("has the annotations from the CRD on the serviceAccount", func() {
-			testAnnotations(serviceAccount.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{
+				"my-annotation": "i-like-this",
+			}
+
+			Expect(serviceAccount.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 
@@ -157,7 +161,8 @@ var _ = Describe("ServiceAccount", func() {
 			serviceAccount = &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"old-annotation": "old-value",
+						"old-annotation":                "old-value",
+						"im-here-to-stay.kubernetes.io": "for-a-while",
 					},
 				},
 			}
@@ -165,8 +170,13 @@ var _ = Describe("ServiceAccount", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("updates serviceAccount annotations", func() {
-			testAnnotations(serviceAccount.Annotations, map[string]string{"my-annotation": "i-like-this"})
+		It("updates annotations on service account", func() {
+			expectedAnnotations := map[string]string{
+				"my-annotation":                 "i-like-this",
+				"old-annotation":                "old-value",
+				"im-here-to-stay.kubernetes.io": "for-a-while",
+			}
+			Expect(serviceAccount.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 })

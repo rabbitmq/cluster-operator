@@ -100,7 +100,9 @@ var _ = Describe("Role", func() {
 		})
 
 		It("has the annotations from the CRD on the role", func() {
-			testAnnotations(role.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{"my-annotation": "i-like-this"}
+
+			Expect(role.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 
@@ -164,7 +166,8 @@ var _ = Describe("Role", func() {
 			role = &rbacv1.Role{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"old-annotation": "old-value",
+						"old-annotation":                "old-value",
+						"im-here-to-stay.kubernetes.io": "for-a-while",
 					},
 				},
 			}
@@ -173,7 +176,12 @@ var _ = Describe("Role", func() {
 		})
 
 		It("updates role annotations", func() {
-			testAnnotations(role.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{
+				"my-annotation":                 "i-like-this",
+				"old-annotation":                "old-value",
+				"im-here-to-stay.kubernetes.io": "for-a-while",
+			}
+			Expect(role.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 })

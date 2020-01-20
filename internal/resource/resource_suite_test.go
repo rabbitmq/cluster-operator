@@ -27,8 +27,3 @@ func testLabels(labels map[string]string) {
 		Not(HaveKey("app.kubernetes.io/foo")),
 	))
 }
-func testAnnotations(actualAnnotations, expectedAnnotations map[string]string) {
-	for k, v := range expectedAnnotations {
-		ExpectWithOffset(1, actualAnnotations).To(HaveKeyWithValue(k, v))
-	}
-}

@@ -623,7 +623,11 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("has the annotations from the instance on the StatefulSet", func() {
-			testAnnotations(sts.Annotations, map[string]string{"my-annotation": "i-like-this"})
+			expectedAnnotations := map[string]string{
+				"my-annotation": "i-like-this",
+			}
+
+			Expect(sts.Annotations).To(Equal(expectedAnnotations))
 		})
 
 		It("has the annotations from the instance on the pod", func() {
@@ -631,7 +635,7 @@ var _ = Describe("StatefulSet", func() {
 			expectedAnnotations := map[string]string{
 				"my-annotation": "i-like-this",
 			}
-			testAnnotations(podTemplate.Annotations, expectedAnnotations)
+			Expect(podTemplate.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 
@@ -661,7 +665,7 @@ var _ = Describe("StatefulSet", func() {
 			}
 
 			existingAnnotations = map[string]string{
-				"this-was-the-previous-annotation": "should-be-deleted",
+				"this-was-the-previous-annotation": "should-be-preserved",
 				"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
 				"app.k8s.io/something":             "something-amazing",
 			}
@@ -763,11 +767,13 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			expectedAnnotations := map[string]string{
-				"my-annotation":             "i-like-this",
-				"app.kubernetes.io/part-of": "pivotal-rabbitmq",
-				"app.k8s.io/something":      "something-amazing",
+				"my-annotation":                    "i-like-this",
+				"this-was-the-previous-annotation": "should-be-preserved",
+				"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+				"app.k8s.io/something":             "something-amazing",
 			}
-			testAnnotations(statefulSet.Annotations, expectedAnnotations)
+
+			Expect(statefulSet.Annotations).To(Equal(expectedAnnotations))
 		})
 
 		It("updates tolerations", func() {
@@ -848,11 +854,13 @@ var _ = Describe("StatefulSet", func() {
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				expectedAnnotations := map[string]string{
-					"my-annotation":             "i-like-this",
-					"app.kubernetes.io/part-of": "pivotal-rabbitmq",
-					"app.k8s.io/something":      "something-amazing",
+					"my-annotation":                    "i-like-this",
+					"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+					"this-was-the-previous-annotation": "should-be-preserved",
+					"app.k8s.io/something":             "something-amazing",
 				}
-				testAnnotations(statefulSet.Spec.Template.Annotations, expectedAnnotations)
+
+				Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedAnnotations))
 			})
 		})
 	})

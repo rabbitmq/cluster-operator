@@ -36,7 +36,7 @@ func (builder *RoleBindingBuilder) Build() (runtime.Object, error) {
 			Namespace:   builder.Instance.Namespace,
 			Name:        builder.Instance.ChildResourceName(roleBindingName),
 			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.ReconcileAnnotations(nil, builder.Instance.Annotations),
+			Annotations: metadata.ReconcileAnnotations(map[string]string{}, builder.Instance.Annotations),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
