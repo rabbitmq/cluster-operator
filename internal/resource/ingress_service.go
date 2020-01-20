@@ -78,15 +78,9 @@ func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
 }
 
 func (builder *IngressServiceBuilder) setAnnotations(service *corev1.Service) {
-	actualServiceAnnotations := map[string]string{}
-
-	if service.Annotations != nil {
-		actualServiceAnnotations = service.Annotations
-	}
-
 	if builder.Instance.Spec.Service.Annotations != nil {
-		service.Annotations = metadata.ReconcileAnnotations(actualServiceAnnotations, builder.Instance.Annotations, builder.Instance.Spec.Service.Annotations)
+		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations, builder.Instance.Spec.Service.Annotations)
 	} else {
-		service.Annotations = metadata.ReconcileAnnotations(actualServiceAnnotations, builder.Instance.Annotations)
+		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations)
 	}
 }
