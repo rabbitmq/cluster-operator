@@ -117,7 +117,7 @@ dev-tag:
 ifeq ("", git diff --stat)
 DEV_TAG="$(shell git rev-parse --short HEAD)"
 else
-DEV_TAG="$(shell git rev-parse --short HEAD)-"
+DEV_TAG="$(shell printf "%.5s" $(shell uuidgen))-$(shell git rev-parse --short HEAD)-"
 endif
 
 docker-build-dev: dev-tag
