@@ -54,6 +54,10 @@ deploy-manager-ci:
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/ci
 
+deploy-manager-dev:
+	kubectl apply -k config/crd
+	kubectl apply -k config/default/overlays/dev
+
 deploy-sample: ## Deploy local rabbitmqcluster
 	kubectl apply -k config/samples/base
 
@@ -85,6 +89,8 @@ deploy-master: install deploy-namespace docker-registry-secret
 	kubectl apply -k config/default/base
 
 deploy: manifests deploy-namespace docker-registry-secret deploy-manager ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+
+deploy-dev: docker-build-dev patch-dev manifests deploy-namespace docker-registry-secret deploy-manager-dev ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace docker-registry-secret-ci deploy-manager-ci
@@ -120,9 +126,7 @@ docker-build-dev: dev-tag
 
 patch-dev: dev-tag
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(DEV_TAG)"'@' ./config/default/base/manager_image_patch.yaml
-
-deploy-dev: docker-build-dev patch-dev deploy
+	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(DEV_TAG)"'@' ./config/default/overlays/dev/manager_image_patch.yaml
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services, and local-path StorageClass
 	# deploy and configure MetalLB to add support for LoadBalancer services
