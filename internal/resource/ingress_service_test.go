@@ -365,6 +365,39 @@ var _ = Context("IngressServices", func() {
 				Expect(ingressService.Labels).NotTo(HaveKey("this-was-the-previous-label"))
 			})
 		})
+
+		Context("Service Type", func() {
+			var (
+				ingressService *corev1.Service
+			)
+
+			BeforeEach(func() {
+				serviceBuilder := rmqBuilder.IngressService()
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "rabbit-service-type-update",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+							Type: "NodePort",
+						},
+					},
+				}
+
+				ingressService = &corev1.Service{
+					Spec: corev1.ServiceSpec{
+						Type: corev1.ServiceTypeClusterIP,
+					},
+				}
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("updates the service type", func() {
+				expectedServiceType := "NodePort"
+				Expect(string(ingressService.Spec.Type)).To(Equal(expectedServiceType))
+			})
+		})
 	})
 })
 

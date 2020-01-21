@@ -531,6 +531,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 				}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
 			})
 
+			When("service type is updated", func() {
+				rabbitmqCluster.Spec.Service.Type = "NodePort"
+				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+				Eventually(func() string {
+					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("ingress"), metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return string(service.Spec.Type)
+				}, 1).Should(Equal("NodePort"))
+			})
+
 			When("affinity rules are updated", func() {
 				affinity := &corev1.Affinity{
 					NodeAffinity: &corev1.NodeAffinity{
