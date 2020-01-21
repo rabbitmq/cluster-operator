@@ -32,7 +32,23 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: metadata.LabelSelector(builder.Instance.Name),
-			Ports:    servicePorts(),
+			Ports: []corev1.ServicePort{
+				{
+					Protocol: corev1.ProtocolTCP,
+					Port:     5672,
+					Name:     "amqp",
+				},
+				{
+					Protocol: corev1.ProtocolTCP,
+					Port:     15672,
+					Name:     "http",
+				},
+				{
+					Protocol: corev1.ProtocolTCP,
+					Port:     15692,
+					Name:     "prometheus",
+				},
+			},
 		},
 	}
 
@@ -59,7 +75,11 @@ func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
 	builder.setAnnotations(service)
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	service.Spec.Type = corev1.ServiceType(builder.Instance.Spec.Service.Type)
-	service.Spec.Ports = servicePorts()
+	if builder.Instance.Spec.Service.Type == "ClusterIP" || builder.Instance.Spec.Service.Type == "" {
+		for i := range service.Spec.Ports {
+			service.Spec.Ports[i].NodePort = int32(0)
+		}
+	}
 	return nil
 }
 
@@ -68,25 +88,5 @@ func (builder *IngressServiceBuilder) setAnnotations(service *corev1.Service) {
 		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations, builder.Instance.Spec.Service.Annotations)
 	} else {
 		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations)
-	}
-}
-
-func servicePorts() []corev1.ServicePort {
-	return []corev1.ServicePort{
-		{
-			Protocol: corev1.ProtocolTCP,
-			Port:     5672,
-			Name:     "amqp",
-		},
-		{
-			Protocol: corev1.ProtocolTCP,
-			Port:     15672,
-			Name:     "http",
-		},
-		{
-			Protocol: corev1.ProtocolTCP,
-			Port:     15692,
-			Name:     "prometheus",
-		},
 	}
 }

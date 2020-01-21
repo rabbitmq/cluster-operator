@@ -369,33 +369,110 @@ var _ = Context("IngressServices", func() {
 		Context("Service Type", func() {
 			var (
 				ingressService *corev1.Service
+				serviceBuilder *resource.IngressServiceBuilder
 			)
 
 			BeforeEach(func() {
-				serviceBuilder := rmqBuilder.IngressService()
+				serviceBuilder = rmqBuilder.IngressService()
 				instance = rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-service-type-update",
 					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-							Type: "NodePort",
-						},
-					},
 				}
 
 				ingressService = &corev1.Service{
-					Spec: corev1.ServiceSpec{
-						Type: corev1.ServiceTypeClusterIP,
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rabbit-service-type-update-service",
+						Namespace: "namespace",
 					},
 				}
-				err := serviceBuilder.Update(ingressService)
-				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("updates the service type", func() {
+			It("updates the service type from ClusterIP to NodePort", func() {
+				ingressService.Spec.Type = corev1.ServiceTypeClusterIP
+				serviceBuilder.Instance.Spec.Service.Type = "NodePort"
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+
 				expectedServiceType := "NodePort"
 				Expect(string(ingressService.Spec.Type)).To(Equal(expectedServiceType))
+			})
+
+			It("preserves the same node ports after updating from LoadBalancer to NodePort", func() {
+				ingressService.Spec.Type = corev1.ServiceTypeLoadBalancer
+				ingressService.Spec.Ports = []corev1.ServicePort{
+					corev1.ServicePort{
+						Protocol: corev1.ProtocolTCP,
+						Port:     5672,
+						Name:     "amqp",
+						NodePort: 12345,
+					},
+				}
+
+				serviceBuilder.Instance.Spec.Service.Type = "NodePort"
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectedServicePort := corev1.ServicePort{
+					Name:     "amqp",
+					Protocol: corev1.ProtocolTCP,
+					Port:     5672,
+					NodePort: 12345,
+				}
+
+				Expect(ingressService.Spec.Ports).To(ContainElement(expectedServicePort))
+			})
+
+			It("unsets nodePort after updating from NodePort to ClusterIP", func() {
+				ingressService.Spec.Type = corev1.ServiceTypeNodePort
+				ingressService.Spec.Ports = []corev1.ServicePort{
+					corev1.ServicePort{
+						Protocol: corev1.ProtocolTCP,
+						Port:     5672,
+						Name:     "amqp",
+						NodePort: 12345,
+					},
+				}
+
+				serviceBuilder.Instance.Spec.Service.Type = "ClusterIP"
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+
+				// We cant set nodePort to nil because its a primitive
+				// For Kubernetes API, setting it to 0 is the same as not setting it at all
+				expectedServicePort := corev1.ServicePort{
+					Name:     "amqp",
+					Protocol: corev1.ProtocolTCP,
+					Port:     5672,
+					NodePort: 0,
+				}
+
+				Expect(ingressService.Spec.Ports).To(ContainElement(expectedServicePort))
+			})
+
+			It("unsets the service type and node ports when service type is deleted from CR spec", func() {
+				ingressService.Spec.Type = corev1.ServiceTypeNodePort
+				ingressService.Spec.Ports = []corev1.ServicePort{
+					corev1.ServicePort{
+						Protocol: corev1.ProtocolTCP,
+						Port:     5672,
+						Name:     "amqp",
+						NodePort: 12345,
+					},
+				}
+
+				serviceBuilder.Instance.Spec.Service.Type = ""
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectedServicePort := corev1.ServicePort{
+					Name:     "amqp",
+					Protocol: corev1.ProtocolTCP,
+					Port:     5672,
+					NodePort: 0,
+				}
+
+				Expect(ingressService.Spec.Ports).To(ContainElement(expectedServicePort))
 			})
 		})
 	})
