@@ -168,6 +168,9 @@ var _ = Describe("HeadlessService", func() {
 					Annotations: map[string]string{
 						"i-was-here-already":            "please-dont-delete-me",
 						"im-here-to-stay.kubernetes.io": "for-a-while",
+						"kubernetes.io/name":            "should-stay",
+						"kubectl.kubernetes.io/name":    "should-stay",
+						"k8s.io/name":                   "should-stay",
 					},
 				},
 			}
@@ -179,6 +182,9 @@ var _ = Describe("HeadlessService", func() {
 			expectedAnnotations := map[string]string{
 				"i-was-here-already":            "please-dont-delete-me",
 				"im-here-to-stay.kubernetes.io": "for-a-while",
+				"kubernetes.io/name":            "should-stay",
+				"kubectl.kubernetes.io/name":    "should-stay",
+				"k8s.io/name":                   "should-stay",
 				"my-annotation":                 "i-like-this",
 			}
 

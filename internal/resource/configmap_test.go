@@ -193,6 +193,9 @@ var _ = Describe("GenerateServerConfigMap", func() {
 						"my-annotation":                 "i-will-not-stay",
 						"old-annotation":                "old-value",
 						"im-here-to-stay.kubernetes.io": "for-a-while",
+						"kubernetes.io/name":            "should-stay",
+						"kubectl.kubernetes.io/name":    "should-stay",
+						"k8s.io/name":                   "should-stay",
 					},
 				},
 			}
@@ -205,6 +208,9 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				"my-annotation":                 "i-like-this",
 				"old-annotation":                "old-value",
 				"im-here-to-stay.kubernetes.io": "for-a-while",
+				"kubernetes.io/name":            "should-stay",
+				"kubectl.kubernetes.io/name":    "should-stay",
+				"k8s.io/name":                   "should-stay",
 			}
 
 			Expect(configMap.Annotations).To(Equal(expectedAnnotations))

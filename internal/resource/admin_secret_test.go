@@ -184,8 +184,11 @@ var _ = Describe("AdminSecret", func() {
 			secret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"i-was-here-already":     "please-dont-delete-me",
-						"im-here-to-stay.k8s.io": "dont-delete-me",
+						"i-was-here-already":            "please-dont-delete-me",
+						"im-here-to-stay.kubernetes.io": "for-a-while",
+						"kubernetes.io/name":            "should-stay",
+						"kubectl.kubernetes.io/name":    "should-stay",
+						"k8s.io/name":                   "should-stay",
 					},
 				},
 			}
@@ -195,9 +198,12 @@ var _ = Describe("AdminSecret", func() {
 
 		It("updates secret annotations on admin secret", func() {
 			expectedAnnotations := map[string]string{
-				"my-annotation":          "i-like-this",
-				"i-was-here-already":     "please-dont-delete-me",
-				"im-here-to-stay.k8s.io": "dont-delete-me",
+				"my-annotation":                 "i-like-this",
+				"i-was-here-already":            "please-dont-delete-me",
+				"im-here-to-stay.kubernetes.io": "for-a-while",
+				"kubernetes.io/name":            "should-stay",
+				"kubectl.kubernetes.io/name":    "should-stay",
+				"k8s.io/name":                   "should-stay",
 			}
 
 			Expect(secret.Annotations).To(Equal(expectedAnnotations))

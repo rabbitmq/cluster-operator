@@ -168,6 +168,9 @@ var _ = Describe("Role", func() {
 					Annotations: map[string]string{
 						"old-annotation":                "old-value",
 						"im-here-to-stay.kubernetes.io": "for-a-while",
+						"kubernetes.io/name":            "should-stay",
+						"kubectl.kubernetes.io/name":    "should-stay",
+						"k8s.io/name":                   "should-stay",
 					},
 				},
 			}
@@ -180,6 +183,9 @@ var _ = Describe("Role", func() {
 				"my-annotation":                 "i-like-this",
 				"old-annotation":                "old-value",
 				"im-here-to-stay.kubernetes.io": "for-a-while",
+				"kubernetes.io/name":            "should-stay",
+				"kubectl.kubernetes.io/name":    "should-stay",
+				"k8s.io/name":                   "should-stay",
 			}
 			Expect(role.Annotations).To(Equal(expectedAnnotations))
 		})
