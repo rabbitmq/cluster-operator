@@ -641,12 +641,13 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("Update", func() {
 		var (
-			statefulSet          *appsv1.StatefulSet
-			stsBuilder           *resource.StatefulSetBuilder
-			existingLabels       map[string]string
-			existingAnnotations  map[string]string
-			affinity             *corev1.Affinity
-			resourceRequirements corev1.ResourceRequirements
+			statefulSet                    *appsv1.StatefulSet
+			stsBuilder                     *resource.StatefulSetBuilder
+			existingLabels                 map[string]string
+			existingAnnotations            map[string]string
+			existingPodTemplateAnnotations map[string]string
+			affinity                       *corev1.Affinity
+			resourceRequirements           corev1.ResourceRequirements
 		)
 
 		BeforeEach(func() {
@@ -670,6 +671,12 @@ var _ = Describe("StatefulSet", func() {
 				"app.k8s.io/something":             "something-amazing",
 			}
 
+			existingPodTemplateAnnotations = map[string]string{
+				"this-was-the-previous-pod-anno": "should-be-preserved",
+				"app.kubernetes.io/part-of":      "pivotal-rabbitmq-pod",
+				"app.k8s.io/something":           "something-amazing-on-pod",
+			}
+
 			stsBuilder = cluster.StatefulSet()
 
 			statefulSet = &appsv1.StatefulSet{
@@ -681,7 +688,7 @@ var _ = Describe("StatefulSet", func() {
 					Template: corev1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels:      existingLabels,
-							Annotations: existingAnnotations,
+							Annotations: existingPodTemplateAnnotations,
 						},
 						Spec: corev1.PodSpec{
 							InitContainers: []corev1.Container{{}},
@@ -841,10 +848,11 @@ var _ = Describe("StatefulSet", func() {
 
 		Context("updates annotations on pod", func() {
 			BeforeEach(func() {
-				statefulSet.Spec.Template.Annotations = existingAnnotations
+				statefulSet.Annotations = existingAnnotations
+				statefulSet.Spec.Template.Annotations = existingPodTemplateAnnotations
 			})
 
-			It("update labels from the instance to the pod", func() {
+			It("update annotations from the instance to the pod", func() {
 				stsBuilder.Instance.Annotations = map[string]string{
 					"my-annotation":              "i-like-this",
 					"kubernetes.io/name":         "i-do-not-like-this",
@@ -854,10 +862,10 @@ var _ = Describe("StatefulSet", func() {
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				expectedAnnotations := map[string]string{
-					"my-annotation":                    "i-like-this",
-					"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
-					"this-was-the-previous-annotation": "should-be-preserved",
-					"app.k8s.io/something":             "something-amazing",
+					"my-annotation":                  "i-like-this",
+					"app.kubernetes.io/part-of":      "pivotal-rabbitmq-pod",
+					"this-was-the-previous-pod-anno": "should-be-preserved",
+					"app.k8s.io/something":           "something-amazing-on-pod",
 				}
 
 				Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedAnnotations))
