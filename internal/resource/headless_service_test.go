@@ -199,16 +199,10 @@ var _ = Describe("HeadlessService", func() {
 					Name: "rabbit-spec",
 				},
 			}
-			instance.Labels = map[string]string{
-				"app.kubernetes.io/foo": "bar",
-				"foo":                   "bar",
-				"rabbitmq":              "is-great",
-				"foo/app.kubernetes.io": "edgecase",
-			}
 
 			service = &corev1.Service{
 				Spec: corev1.ServiceSpec{
-					ClusterIP: "None",
+					ClusterIP: "1.2.3.4",
 					Selector: map[string]string{
 						"some-selector": "some-tag",
 					},
