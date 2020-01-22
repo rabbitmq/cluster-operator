@@ -267,6 +267,25 @@ func addResourceToIndex(rawObj runtime.Object) []string {
 			return nil
 		}
 		return []string{owner.Name}
+	case *rbacv1.Role:
+		owner := metav1.GetControllerOf(resourceObject)
+		if owner == nil {
+			return nil
+		}
+		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
+			return nil
+		}
+		return []string{owner.Name}
+	case *rbacv1.RoleBinding:
+		owner := metav1.GetControllerOf(resourceObject)
+		if owner == nil {
+			return nil
+		}
+		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
+			return nil
+		}
+		return []string{owner.Name}
+
 	default:
 		return nil
 	}
