@@ -26,6 +26,14 @@ func (builder *RoleBuilder) Update(object runtime.Object) error {
 	role := object.(*rbacv1.Role)
 	role.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	role.Annotations = metadata.ReconcileAnnotations(role.GetAnnotations(), builder.Instance.Annotations)
+	role.Rules = []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{""},
+			Resources: []string{"endpoints"},
+			Verbs:     []string{"get"},
+		},
+	}
+
 	return nil
 }
 

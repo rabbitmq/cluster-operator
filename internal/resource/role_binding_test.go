@@ -151,6 +151,50 @@ var _ = Describe("RoleBinding", func() {
 		})
 	})
 
+	Context("Update with required rules", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-rolebinding",
+				},
+			}
+			builder.Instance = &instance
+			roleBinding = &rbacv1.RoleBinding{
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "RoleRoleRole",
+					Name:     "NameNameName",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind: "AccountService",
+						Name: "this-account-is-not-right",
+					},
+				},
+			}
+
+			err := roleBindingBuilder.Update(roleBinding)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("sets the required role ref and subjects", func() {
+			expectedRoleRef := rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "Role",
+				Name:     "rabbit-rolebinding-rabbitmq-endpoint-discovery",
+			}
+			expectedSubjects := []rbacv1.Subject{
+				{
+					Kind: "ServiceAccount",
+					Name: "rabbit-rolebinding-rabbitmq-server",
+				},
+			}
+
+			Expect(roleBinding.RoleRef).To(Equal(expectedRoleRef))
+			Expect(roleBinding.Subjects).To(Equal(expectedSubjects))
+		})
+	})
+
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{

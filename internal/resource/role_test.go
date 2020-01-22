@@ -149,6 +149,41 @@ var _ = Describe("Role", func() {
 		})
 	})
 
+	Context("Update Rules", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-labelled",
+				},
+			}
+			role = &rbacv1.Role{
+				Rules: []rbacv1.PolicyRule{
+					{
+						APIGroups: []string{"foo"},
+						Resources: []string{"endpoints", "bar"},
+						Verbs:     []string{},
+					},
+				},
+			}
+
+			err := roleBuilder.Update(role)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("overwrites the modified rules", func() {
+			expectedRules := []rbacv1.PolicyRule{
+				{
+					APIGroups: []string{""},
+					Resources: []string{"endpoints"},
+					Verbs:     []string{"get"},
+				},
+			}
+
+			Expect(role.Rules).To(Equal(expectedRules))
+
+		})
+	})
+
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
