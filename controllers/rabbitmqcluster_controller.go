@@ -235,6 +235,7 @@ func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
+		Owns(&corev1.ServiceAccount{}).
 		Complete(r)
 }
 
@@ -277,6 +278,15 @@ func addResourceToIndex(rawObj runtime.Object) []string {
 		}
 		return []string{owner.Name}
 	case *rbacv1.RoleBinding:
+		owner := metav1.GetControllerOf(resourceObject)
+		if owner == nil {
+			return nil
+		}
+		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
+			return nil
+		}
+		return []string{owner.Name}
+	case *corev1.ServiceAccount:
 		owner := metav1.GetControllerOf(resourceObject)
 		if owner == nil {
 			return nil
