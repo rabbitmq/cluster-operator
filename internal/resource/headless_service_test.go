@@ -191,4 +191,56 @@ var _ = Describe("HeadlessService", func() {
 			Expect(service.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
+
+	Context("Update Spec", func() {
+		BeforeEach(func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-spec",
+				},
+			}
+			instance.Labels = map[string]string{
+				"app.kubernetes.io/foo": "bar",
+				"foo":                   "bar",
+				"rabbitmq":              "is-great",
+				"foo/app.kubernetes.io": "edgecase",
+			}
+
+			service = &corev1.Service{
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "None",
+					Selector: map[string]string{
+						"some-selector": "some-tag",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Protocol: corev1.ProtocolTCP,
+							Port:     43691,
+							Name:     "epmdf",
+						},
+					},
+				},
+			}
+			err := serviceBuilder.Update(service)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("sets the required Spec", func() {
+			expectedSpec := corev1.ServiceSpec{
+				ClusterIP: "None",
+				Selector: map[string]string{
+					"app.kubernetes.io/name": "rabbit-spec",
+				},
+				Ports: []corev1.ServicePort{
+					{
+						Protocol: corev1.ProtocolTCP,
+						Port:     4369,
+						Name:     "epmd",
+					},
+				},
+			}
+
+			Expect(service.Spec).To(Equal(expectedSpec))
+		})
+	})
 })

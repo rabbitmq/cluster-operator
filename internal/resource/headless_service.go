@@ -26,6 +26,18 @@ func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
 	service := object.(*corev1.Service)
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	service.Annotations = metadata.ReconcileAnnotations(service.GetAnnotations(), builder.Instance.Annotations)
+	service.Spec = corev1.ServiceSpec{
+		ClusterIP: "None",
+		Selector:  metadata.LabelSelector(builder.Instance.Name),
+		Ports: []corev1.ServicePort{
+			{
+				Protocol: corev1.ProtocolTCP,
+				Port:     4369,
+				Name:     "epmd",
+			},
+		},
+	}
+
 	return nil
 }
 
