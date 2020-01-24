@@ -63,11 +63,11 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 }
 
 func (builder *IngressServiceBuilder) setServiceType(service *corev1.Service) {
-	var serviceType = "ClusterIP"
+	var serviceType = corev1.ServiceTypeClusterIP
 	if builder.Instance.Spec.Service.Type != "" {
 		serviceType = builder.Instance.Spec.Service.Type
 	}
-	service.Spec.Type = corev1.ServiceType(serviceType)
+	service.Spec.Type = serviceType
 }
 
 func (builder *IngressServiceBuilder) Update(object runtime.Object) error {

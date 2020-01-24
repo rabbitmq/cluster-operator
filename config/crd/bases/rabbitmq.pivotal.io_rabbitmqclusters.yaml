@@ -656,6 +656,8 @@ spec:
                     type: string
                   type: object
                 type:
+                  description: Service Type string describes ingress methods for a
+                    service
                   enum:
                   - ClusterIP
                   - LoadBalancer
