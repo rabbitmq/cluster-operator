@@ -17,11 +17,27 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// +kubebuilder:object:root=true
+
+// RabbitmqCluster is the Schema for the rabbitmqclusters API
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.clusterStatus"
+type RabbitmqCluster struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   RabbitmqClusterSpec   `json:"spec,omitempty"`
+	Status RabbitmqClusterStatus `json:"status,omitempty"`
+}
 
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
 type RabbitmqClusterSpec struct {
@@ -54,20 +70,6 @@ type RabbitmqClusterStatus struct {
 
 // +kubebuilder:object:root=true
 
-// RabbitmqCluster is the Schema for the rabbitmqclusters API
-// +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.clusterStatus"
-type RabbitmqCluster struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   RabbitmqClusterSpec   `json:"spec,omitempty"`
-	Status RabbitmqClusterStatus `json:"status,omitempty"`
-}
-
-// +kubebuilder:object:root=true
-
 // RabbitmqClusterList contains a list of RabbitmqCluster
 type RabbitmqClusterList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -81,4 +83,84 @@ func (r RabbitmqCluster) ChildResourceName(name string) string {
 
 func init() {
 	SchemeBuilder.Register(&RabbitmqCluster{}, &RabbitmqClusterList{})
+}
+
+var RabbitmqClusterDefaults RabbitmqCluster = RabbitmqCluster{
+	Spec: RabbitmqClusterSpec{
+		Replicas:        1,
+		Image:           rabbitmqImage,
+		ImagePullSecret: "",
+		Service: RabbitmqClusterServiceSpec{
+			Type:        defaultServiceType,
+			Annotations: map[string]string{},
+		},
+		Persistence: RabbitmqClusterPersistenceSpec{
+			StorageClassName: "",
+			Storage:          defaultPersistentCapacity,
+		},
+		Resources: &corev1.ResourceRequirements{
+			Limits: map[corev1.ResourceName]k8sresource.Quantity{
+				"cpu":    k8sresource.MustParse(defaultCPULimit),
+				"memory": k8sresource.MustParse(defaultMemoryLimit),
+			},
+			Requests: map[corev1.ResourceName]k8sresource.Quantity{
+				"cpu":    k8sresource.MustParse(defaultCPURequest),
+				"memory": k8sresource.MustParse(defaultMemoryRequest),
+			},
+		},
+	},
+}
+
+const (
+	rabbitmqImage             string             = "rabbitmq:3.8.1"
+	defaultPersistentCapacity string             = "10Gi"
+	defaultMemoryLimit        string             = "2Gi"
+	defaultCPULimit           string             = "2000m"
+	defaultMemoryRequest      string             = "2Gi"
+	defaultCPURequest         string             = "1000m"
+	defaultServiceType        corev1.ServiceType = corev1.ServiceTypeClusterIP
+)
+
+func MergeDefaults(current, template RabbitmqCluster) *RabbitmqCluster {
+	var mergedRabbitmq RabbitmqCluster = current
+
+	emptyRabbitmq := RabbitmqCluster{}
+
+	if reflect.DeepEqual(current, emptyRabbitmq) {
+		mergedRabbitmq.Spec = template.Spec
+		return &mergedRabbitmq
+	}
+
+	if mergedRabbitmq.Spec.Replicas == emptyRabbitmq.Spec.Replicas {
+		mergedRabbitmq.Spec.Replicas = template.Spec.Replicas
+	}
+
+	if mergedRabbitmq.Spec.Image == emptyRabbitmq.Spec.Image {
+		mergedRabbitmq.Spec.Image = template.Spec.Image
+	}
+	if mergedRabbitmq.Spec.ImagePullSecret == emptyRabbitmq.Spec.ImagePullSecret {
+		mergedRabbitmq.Spec.ImagePullSecret = template.Spec.ImagePullSecret
+	}
+
+	if mergedRabbitmq.Spec.Service.Type == emptyRabbitmq.Spec.Service.Type {
+		mergedRabbitmq.Spec.Service.Type = template.Spec.Service.Type
+	}
+
+	if reflect.DeepEqual(mergedRabbitmq.Spec.Service.Annotations, emptyRabbitmq.Spec.Service.Annotations) {
+		mergedRabbitmq.Spec.Service.Annotations = template.Spec.Service.Annotations
+	}
+
+	if mergedRabbitmq.Spec.Persistence.StorageClassName == emptyRabbitmq.Spec.Persistence.StorageClassName {
+		mergedRabbitmq.Spec.Persistence.StorageClassName = template.Spec.Persistence.StorageClassName
+	}
+
+	if mergedRabbitmq.Spec.Persistence.Storage == emptyRabbitmq.Spec.Persistence.Storage {
+		mergedRabbitmq.Spec.Persistence.Storage = template.Spec.Persistence.Storage
+	}
+
+	if reflect.DeepEqual(mergedRabbitmq.Spec.Resources, emptyRabbitmq.Spec.Resources) {
+		mergedRabbitmq.Spec.Resources = template.Spec.Resources
+	}
+
+	return &mergedRabbitmq
 }

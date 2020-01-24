@@ -93,6 +93,131 @@ var _ = Describe("RabbitmqCluster spec", func() {
 			Expect(resource.ChildResourceName("great")).To(Equal("iam-rabbitmq-great"))
 		})
 	})
+
+	Context("Default settings", func() {
+		var (
+			rmqClusterInstance RabbitmqCluster
+			rmqClusterTemplate RabbitmqCluster
+		)
+		BeforeEach(func() {
+			rmqClusterInstance = RabbitmqCluster{}
+			rmqClusterTemplate = RabbitmqCluster{
+				Spec: RabbitmqClusterSpec{
+					Replicas:        1,
+					Image:           "some-rabbit",
+					ImagePullSecret: "is-very-secret",
+					Service: RabbitmqClusterServiceSpec{
+						Type:        corev1.ServiceType("some-type"),
+						Annotations: map[string]string{"myannotation": "has-a-value"},
+					},
+					Persistence: RabbitmqClusterPersistenceSpec{
+						Storage: "12345Gi",
+					},
+					Resources: &corev1.ResourceRequirements{
+						Limits: map[corev1.ResourceName]k8sresource.Quantity{
+							"cpu":    k8sresource.MustParse("123"),
+							"memory": k8sresource.MustParse("123Gi"),
+						},
+						Requests: map[corev1.ResourceName]k8sresource.Quantity{
+							"cpu":    k8sresource.MustParse("321"),
+							"memory": k8sresource.MustParse("321Gi"),
+						},
+					},
+				},
+			}
+		})
+
+		When("CR is empty", func() {
+			It("outputs the template", func() {
+				instance := MergeDefaults(rmqClusterInstance, rmqClusterTemplate)
+
+				Expect(instance.Spec).To(Equal(rmqClusterTemplate.Spec))
+			})
+		})
+
+		When("CR is fully populated", func() {
+			It("outputs the CR", func() {
+				rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					Replicas:        3,
+					Image:           "rabbitmq-image-from-cr",
+					ImagePullSecret: "my-super-secret",
+					Service: RabbitmqClusterServiceSpec{
+						Type: corev1.ServiceType("this-is-a-service"),
+						Annotations: map[string]string{
+							"myannotation": "is-set",
+						},
+					},
+					Persistence: RabbitmqClusterPersistenceSpec{
+						StorageClassName: "some-class",
+						Storage:          "987Gi",
+					},
+					Resources: &corev1.ResourceRequirements{
+						Limits: map[corev1.ResourceName]k8sresource.Quantity{
+							"cpu":    k8sresource.MustParse("16"),
+							"memory": k8sresource.MustParse("16Gi"),
+						},
+						Requests: map[corev1.ResourceName]k8sresource.Quantity{
+							"cpu":    k8sresource.MustParse("15"),
+							"memory": k8sresource.MustParse("15Gi"),
+						},
+					},
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									corev1.NodeSelectorTerm{
+										MatchExpressions: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "somekey",
+												Operator: "Equal",
+												Values:   []string{"this-value"},
+											},
+										},
+										MatchFields: nil,
+									},
+								},
+							},
+						},
+					},
+					Tolerations: []corev1.Toleration{
+						corev1.Toleration{
+							Key:      "mykey",
+							Operator: "NotEqual",
+							Value:    "myvalue",
+							Effect:   "NoSchedule",
+						},
+					},
+				}
+				instance := MergeDefaults(rmqClusterInstance, rmqClusterTemplate)
+
+				Expect(instance.Spec).To(Equal(rmqClusterInstance.Spec))
+			})
+		})
+
+		When("CR is partially set", func() {
+			It("applies default values to missing properties if replicas is set", func() {
+				rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					Replicas: 3,
+				}
+				expectedClusterInstance := rmqClusterTemplate.DeepCopy()
+				expectedClusterInstance.Spec.Replicas = 3
+
+				instance := MergeDefaults(rmqClusterInstance, rmqClusterTemplate)
+				Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
+			})
+
+			It("applies default values to missing properties if image is set", func() {
+				rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					Image: "test-image",
+				}
+				expectedClusterInstance := rmqClusterTemplate.DeepCopy()
+				expectedClusterInstance.Spec.Image = "test-image"
+
+				instance := MergeDefaults(rmqClusterInstance, rmqClusterTemplate)
+				Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
+			})
+		})
+	})
 })
 
 func getKey(cluster *RabbitmqCluster) types.NamespacedName {
