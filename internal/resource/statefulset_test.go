@@ -85,11 +85,11 @@ var _ = Describe("StatefulSet", func() {
 				},
 				{
 					Name:  "RABBITMQ_DEFAULT_PASS_FILE",
-					Value: "/opt/rabbitmq-secret/rabbitmq-password",
+					Value: "/opt/rabbitmq-secret/password",
 				},
 				{
 					Name:  "RABBITMQ_DEFAULT_USER_FILE",
-					Value: "/opt/rabbitmq-secret/rabbitmq-username",
+					Value: "/opt/rabbitmq-secret/username",
 				},
 				{
 					Name:  "RABBITMQ_MNESIA_BASE",
@@ -170,12 +170,12 @@ var _ = Describe("StatefulSet", func() {
 							SecretName: instance.ChildResourceName("admin"),
 							Items: []corev1.KeyToPath{
 								{
-									Key:  "rabbitmq-username",
-									Path: "rabbitmq-username",
+									Key:  "username",
+									Path: "username",
 								},
 								{
-									Key:  "rabbitmq-password",
-									Path: "rabbitmq-password",
+									Key:  "password",
+									Path: "password",
 								},
 							},
 						},

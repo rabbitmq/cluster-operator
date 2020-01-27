@@ -222,14 +222,14 @@ func getRabbitmqUsernameAndPassword(clientset *kubernetes.Clientset, namespace, 
 		return "", "", err
 	}
 
-	username, ok := secret.Data["rabbitmq-username"]
+	username, ok := secret.Data["username"]
 	if !ok {
-		return "", "", fmt.Errorf("cannot find 'rabbitmq-username' in %s-rabbitmq-admin", instanceName)
+		return "", "", fmt.Errorf("cannot find 'username' in %s-rabbitmq-admin", instanceName)
 	}
 
-	password, ok := secret.Data["rabbitmq-password"]
+	password, ok := secret.Data["password"]
 	if !ok {
-		return "", "", fmt.Errorf("cannot find 'rabbitmq-password' in %s-rabbitmq-admin", instanceName)
+		return "", "", fmt.Errorf("cannot find 'password' in %s-rabbitmq-admin", instanceName)
 	}
 	return string(username), string(password), nil
 }

@@ -49,8 +49,8 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			"rabbitmq-username": []byte(username),
-			"rabbitmq-password": []byte(password),
+			"username": []byte(username),
+			"password": []byte(password),
 		},
 	}, nil
 }
