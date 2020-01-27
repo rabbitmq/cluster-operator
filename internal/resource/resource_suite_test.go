@@ -12,13 +12,6 @@ func TestResource(t *testing.T) {
 	RunSpecs(t, "Resource Suite")
 }
 
-const (
-	defaultMemoryRequest string = "2Gi"
-	defaultCPURequest    string = "1000m"
-	defaultMemoryLimit   string = "2Gi"
-	defaultCPULimit      string = "2000m"
-)
-
 func testLabels(labels map[string]string) {
 	ExpectWithOffset(1, labels).To(SatisfyAll(
 		HaveKeyWithValue("foo", "bar"),

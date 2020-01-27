@@ -135,6 +135,7 @@ var _ = Describe("RabbitmqCluster spec", func() {
 
 		When("CR is fully populated", func() {
 			It("outputs the CR", func() {
+				storageClassName := "some-class"
 				rmqClusterInstance.Spec = RabbitmqClusterSpec{
 					Replicas:        3,
 					Image:           "rabbitmq-image-from-cr",
@@ -146,7 +147,7 @@ var _ = Describe("RabbitmqCluster spec", func() {
 						},
 					},
 					Persistence: RabbitmqClusterPersistenceSpec{
-						StorageClassName: "some-class",
+						StorageClassName: &storageClassName,
 						Storage:          "987Gi",
 					},
 					Resources: &corev1.ResourceRequirements{
@@ -254,6 +255,7 @@ func getKey(cluster *RabbitmqCluster) types.NamespacedName {
 }
 
 func generateRabbitmqClusterObject(clusterName string, numReplicas int) *RabbitmqCluster {
+	storageClassName := "some-storage-class-name"
 	return &RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
@@ -268,7 +270,7 @@ func generateRabbitmqClusterObject(clusterName string, numReplicas int) *Rabbitm
 			},
 			Persistence: RabbitmqClusterPersistenceSpec{
 				Storage:          "some-storage",
-				StorageClassName: "some-storage-class-name",
+				StorageClassName: &storageClassName,
 			},
 		},
 	}

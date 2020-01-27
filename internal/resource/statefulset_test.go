@@ -22,18 +22,13 @@ var _ = Describe("StatefulSet", func() {
 		sts      *appsv1.StatefulSet
 	)
 
-	Context("Build with default settings", func() {
+	Context("Build", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "foo",
-				},
-			}
+			instance = generateRabbitmqCluster()
+
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-
 			cluster = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
@@ -46,8 +41,7 @@ var _ = Describe("StatefulSet", func() {
 		It("sets the right service name", func() {
 			Expect(sts.Spec.ServiceName).To(Equal(instance.ChildResourceName("headless")))
 		})
-
-		It("sets replicas to be '1' by default", func() {
+		It("sets replicas", func() {
 			Expect(*sts.Spec.Replicas).To(Equal(int32(1)))
 		})
 
@@ -228,45 +222,6 @@ var _ = Describe("StatefulSet", func() {
 			Expect(*sts.Spec.Template.Spec.AutomountServiceAccountToken).To(BeTrue())
 		})
 
-		It("creates the required PersistentVolumeClaim", func() {
-			truth := true
-			q, _ := k8sresource.ParseQuantity("10Gi")
-
-			expectedPersistentVolumeClaim := corev1.PersistentVolumeClaim{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "persistence",
-					Namespace: instance.Namespace,
-					Labels: map[string]string{
-						"app.kubernetes.io/name":      instance.Name,
-						"app.kubernetes.io/component": "rabbitmq",
-						"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
-					},
-					OwnerReferences: []v1.OwnerReference{
-						{
-							APIVersion:         "rabbitmq.pivotal.io/v1beta1",
-							Kind:               "RabbitmqCluster",
-							Name:               instance.Name,
-							UID:                "",
-							Controller:         &truth,
-							BlockOwnerDeletion: &truth,
-						},
-					},
-					Annotations: map[string]string{},
-				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-					Resources: corev1.ResourceRequirements{
-						Requests: map[corev1.ResourceName]k8sresource.Quantity{
-							corev1.ResourceStorage: q,
-						},
-					},
-				},
-			}
-
-			actualPersistentVolumeClaim := sts.Spec.VolumeClaimTemplates[0]
-			Expect(actualPersistentVolumeClaim).To(Equal(expectedPersistentVolumeClaim))
-		})
-
 		It("creates the required SecurityContext", func() {
 			rmqGID, rmqUID := int64(999), int64(999)
 
@@ -283,12 +238,6 @@ var _ = Describe("StatefulSet", func() {
 			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
 			actualProbeCommand := container.ReadinessProbe.Handler.Exec.Command
 			Expect(actualProbeCommand).To(Equal([]string{"/bin/sh", "-c", "rabbitmq-diagnostics check_port_connectivity"}))
-		})
-
-		It("templates the image string and the imagePullSecrets with default values", func() {
-			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-			Expect(container.Image).To(Equal("rabbitmq:3.8.1"))
-			Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 		})
 
 		It("templates the correct InitContainer", func() {
@@ -322,14 +271,7 @@ var _ = Describe("StatefulSet", func() {
 				},
 			))
 
-			Expect(container.Image).To(Equal("rabbitmq:3.8.1"))
-		})
-
-		It("templates the correct resource requirements for the Rabbitmq container", func() {
-			container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-
-			expectedResourceRequirements := defaultResourceRequirements()
-			Expect(container.Resources).To(Equal(expectedResourceRequirements))
+			Expect(container.Image).To(Equal("rabbitmq-image-from-cr"))
 		})
 
 		It("adds the correct labels on the rabbitmq pods", func() {
@@ -348,30 +290,6 @@ var _ = Describe("StatefulSet", func() {
 			gracePeriodSeconds := sts.Spec.Template.Spec.TerminationGracePeriodSeconds
 			expectedGracePeriodSeconds := int64(150)
 			Expect(gracePeriodSeconds).To(Equal(&expectedGracePeriodSeconds))
-		})
-
-		It("creates the PersistentVolume template with empty class so it defaults to default StorageClass", func() {
-			Expect(sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
-		})
-
-		It("creates the PersistentVolume template with default capacity", func() {
-			q, _ := k8sresource.ParseQuantity("10Gi")
-			Expect(sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
-		})
-	})
-
-	Context("Build with non-default settings, values set on Instance", func() {
-		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "foo",
-				},
-			}
-
-			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
-			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		})
 
 		It("creates the affinity rule as provided in the instance", func() {
@@ -426,9 +344,49 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
-		Context("Storage class name", func() {
-			It("creates the PersistentVolume template according to configurations in the  instance if specified", func() {
-				instance.Spec.Persistence.StorageClassName = "my-storage-class"
+		Context("PVC template", func() {
+			It("creates the required PersistentVolumeClaim", func() {
+				truth := true
+				q, _ := k8sresource.ParseQuantity("10Gi")
+
+				expectedPersistentVolumeClaim := corev1.PersistentVolumeClaim{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "persistence",
+						Namespace: instance.Namespace,
+						Labels: map[string]string{
+							"app.kubernetes.io/name":      instance.Name,
+							"app.kubernetes.io/component": "rabbitmq",
+							"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+						},
+						OwnerReferences: []v1.OwnerReference{
+							{
+								APIVersion:         "rabbitmq.pivotal.io/v1beta1",
+								Kind:               "RabbitmqCluster",
+								Name:               instance.Name,
+								UID:                "",
+								Controller:         &truth,
+								BlockOwnerDeletion: &truth,
+							},
+						},
+						Annotations: map[string]string{},
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+						Resources: corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]k8sresource.Quantity{
+								corev1.ResourceStorage: q,
+							},
+						},
+					},
+				}
+
+				actualPersistentVolumeClaim := sts.Spec.VolumeClaimTemplates[0]
+				Expect(actualPersistentVolumeClaim).To(Equal(expectedPersistentVolumeClaim))
+			})
+
+			It("references the storageclassname when specified", func() {
+				storageClassName := "my-storage-class"
+				instance.Spec.Persistence.StorageClassName = &storageClassName
 				cluster = &resource.RabbitmqResourceBuilder{
 					Instance: &instance,
 					Scheme:   scheme,
@@ -438,9 +396,6 @@ var _ = Describe("StatefulSet", func() {
 				sts = obj.(*appsv1.StatefulSet)
 				Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 			})
-		})
-
-		Context("Storage capacity", func() {
 
 			It("creates the PersistentVolume template according to configurations in the  instance", func() {
 				instance.Spec.Persistence.Storage = "21Gi"
@@ -458,24 +413,7 @@ var _ = Describe("StatefulSet", func() {
 
 		Context("resources requirements", func() {
 
-			It("sets defaults if none are provided", func() {
-				cluster = &resource.RabbitmqResourceBuilder{
-					Instance: &instance,
-					Scheme:   scheme,
-				}
-				stsBuilder := cluster.StatefulSet()
-				obj, _ := stsBuilder.Build()
-				sts = obj.(*appsv1.StatefulSet)
-
-				container := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(container.Resources.Limits[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPULimit)))
-				Expect(container.Resources.Requests[corev1.ResourceCPU]).To(Equal(k8sresource.MustParse(defaultCPURequest)))
-
-				Expect(container.Resources.Limits[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryLimit)))
-				Expect(container.Resources.Requests[corev1.ResourceMemory]).To(Equal(k8sresource.MustParse(defaultMemoryRequest)))
-			})
-
-			It("overrides StatefulSet resource requirements with those provided by CR spec", func() {
+			It("sets StatefulSet resource requirements", func() {
 				instance.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceCPU:    k8sresource.MustParse("10m"),
@@ -561,7 +499,7 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("Build with instance labels", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance = generateRabbitmqCluster()
 			instance.Namespace = "foo"
 			instance.Name = "foo"
 			instance.Labels = map[string]string{
@@ -599,7 +537,7 @@ var _ = Describe("StatefulSet", func() {
 
 	Context("Build with instance annotations", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{}
+			instance = generateRabbitmqCluster()
 			instance.Namespace = "foo"
 			instance.Name = "foo"
 			instance.Annotations = map[string]string{
@@ -647,7 +585,6 @@ var _ = Describe("StatefulSet", func() {
 			existingAnnotations            map[string]string
 			existingPodTemplateAnnotations map[string]string
 			affinity                       *corev1.Affinity
-			resourceRequirements           corev1.ResourceRequirements
 		)
 
 		BeforeEach(func() {
@@ -723,24 +660,6 @@ var _ = Describe("StatefulSet", func() {
 			Expect(statefulSet.Spec.Template.Spec.Affinity).To(Equal(affinity))
 		})
 
-		It("adds the resource requirements, sets it back to default after deleting the configuration", func() {
-			resourceRequirements = corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceCPU: k8sresource.MustParse("300m"),
-				},
-			}
-			stsBuilder.Instance.Spec.Resources = &resourceRequirements
-
-			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-			Expect(statefulSet.Spec.Template.Spec.Containers[0].Resources).To(Equal(resourceRequirements))
-
-			stsBuilder.Instance.Spec.Resources = nil
-			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-			defaultResourceReq := defaultResourceRequirements()
-			Expect(statefulSet.Spec.Template.Spec.Containers[0].Resources).To(Equal(defaultResourceReq))
-		})
-
 		It("updates labels", func() {
 			stsBuilder.Instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
@@ -795,18 +714,6 @@ var _ = Describe("StatefulSet", func() {
 
 			Expect(statefulSet.Spec.Template.Spec.Tolerations).
 				To(ConsistOf(newToleration))
-		})
-
-		It("updates the rabbitmq and the initContainer images; sets it back to default after deleting the configuration", func() {
-			stsBuilder.Instance.Spec.Image = "rabbitmq:3.8.0"
-			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-			Expect(statefulSet.Spec.Template.Spec.Containers[0].Image).To(Equal("rabbitmq:3.8.0"))
-			Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Image).To(Equal("rabbitmq:3.8.0"))
-
-			stsBuilder.Instance.Spec.Image = ""
-			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-			Expect(statefulSet.Spec.Template.Spec.Containers[0].Image).To(Equal("rabbitmq:3.8.1"))
-			Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Image).To(Equal("rabbitmq:3.8.1"))
 		})
 
 		It("updates the image pull secret; sets it back to default after deleting the configuration", func() {
@@ -884,25 +791,62 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 	return corev1.Container{}
 }
 
-func defaultResourceRequirements() corev1.ResourceRequirements {
-	cpuLimit, err := k8sresource.ParseQuantity(defaultCPULimit)
-	Expect(err).NotTo(HaveOccurred())
-	memoryLimit, err := k8sresource.ParseQuantity(defaultMemoryLimit)
-	Expect(err).NotTo(HaveOccurred())
-
-	cpuRequest, err := k8sresource.ParseQuantity(defaultCPURequest)
-	Expect(err).NotTo(HaveOccurred())
-	memoryRequest, err := k8sresource.ParseQuantity(defaultMemoryRequest)
-	Expect(err).NotTo(HaveOccurred())
-
-	return corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    cpuLimit,
-			corev1.ResourceMemory: memoryLimit,
+func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
+	return rabbitmqv1beta1.RabbitmqCluster{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "foo",
 		},
-		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    cpuRequest,
-			corev1.ResourceMemory: memoryRequest,
+		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+			Replicas:        1,
+			Image:           "rabbitmq-image-from-cr",
+			ImagePullSecret: "my-super-secret",
+			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+				Type: corev1.ServiceType("this-is-a-service"),
+				Annotations: map[string]string{
+					"myannotation": "is-set",
+				},
+			},
+			Persistence: rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
+				StorageClassName: nil,
+				Storage:          "10Gi",
+			},
+			Resources: &corev1.ResourceRequirements{
+				Limits: map[corev1.ResourceName]k8sresource.Quantity{
+					"cpu":    k8sresource.MustParse("16"),
+					"memory": k8sresource.MustParse("16Gi"),
+				},
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{
+					"cpu":    k8sresource.MustParse("15"),
+					"memory": k8sresource.MustParse("15Gi"),
+				},
+			},
+			Affinity: &corev1.Affinity{
+				NodeAffinity: &corev1.NodeAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+						NodeSelectorTerms: []corev1.NodeSelectorTerm{
+							corev1.NodeSelectorTerm{
+								MatchExpressions: []corev1.NodeSelectorRequirement{
+									{
+										Key:      "somekey",
+										Operator: "Equal",
+										Values:   []string{"this-value"},
+									},
+								},
+								MatchFields: nil,
+							},
+						},
+					},
+				},
+			},
+			Tolerations: []corev1.Toleration{
+				corev1.Toleration{
+					Key:      "mykey",
+					Operator: "NotEqual",
+					Value:    "myvalue",
+					Effect:   "NoSchedule",
+				},
+			},
 		},
 	}
 }

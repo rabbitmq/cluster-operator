@@ -29,7 +29,6 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -388,7 +387,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 					ImagePullSecret: "rabbit-resource-secret",
 				},
 			}
-			rabbitmqCluster.Spec.Persistence.StorageClassName = "my-storage-class"
+			storageClassName := "my-storage-class"
+			rabbitmqCluster.Spec.Persistence.StorageClassName = &storageClassName
 			rabbitmqCluster.Spec.Persistence.Storage = "100Gi"
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
@@ -606,8 +606,4 @@ func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 		return rabbitmqClusterCreated.Status.ClusterStatus
 
 	}, 2, 1).Should(ContainSubstring("created"))
-}
-
-func resourceTests(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, clientset *kubernetes.Clientset) {
-
 }

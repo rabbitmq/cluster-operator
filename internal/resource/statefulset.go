@@ -16,36 +16,10 @@ import (
 )
 
 const (
-	rabbitmqImage                    string = "rabbitmq:3.8.1"
-	defaultPersistentCapacity        string = "10Gi"
-	defaultMemoryLimit               string = "2Gi"
-	defaultCPULimit                  string = "2000m"
-	defaultMemoryRequest             string = "2Gi"
-	defaultCPURequest                string = "1000m"
 	defaultGracePeriodTimeoutSeconds int64  = 150
 	initContainerCPU                 string = "100m"
 	initContainerMemory              string = "500Mi"
 )
-
-type ComputeResourceQuantities struct {
-	CPU    k8sresource.Quantity
-	Memory k8sresource.Quantity
-}
-
-type ResourceRequirementQuantities struct {
-	Limit   ComputeResourceQuantities
-	Request ComputeResourceQuantities
-}
-
-type ComputeResource struct {
-	CPU    string
-	Memory string
-}
-
-type ResourceRequirements struct {
-	Limit   ComputeResource
-	Request ComputeResource
-}
 
 type StatefulSetConfiguration struct {
 	ImageReference             string
@@ -202,70 +176,16 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSe
 
 func (builder *StatefulSetBuilder) statefulSetConfigurations() (StatefulSetConfiguration, error) {
 	var err error
-	statefulSetConfiguration := StatefulSetConfiguration{
-		ImageReference:  rabbitmqImage,
-		ImagePullSecret: "",
-		Scheme:          builder.Scheme,
-	}
 
-	if builder.Instance.Spec.Image != "" {
-		statefulSetConfiguration.ImageReference = builder.Instance.Spec.Image
-	}
-
-	if builder.Instance.Spec.ImagePullSecret != "" {
-		statefulSetConfiguration.ImagePullSecret = builder.Instance.Spec.ImagePullSecret
-	}
-
-	parsedCPULimit, err := k8sresource.ParseQuantity(defaultCPULimit)
+	statefulSetConfiguration := StatefulSetConfiguration{}
+	statefulSetConfiguration.Scheme = builder.Scheme
+	statefulSetConfiguration.ImageReference = builder.Instance.Spec.Image
+	statefulSetConfiguration.ImagePullSecret = builder.Instance.Spec.ImagePullSecret
+	statefulSetConfiguration.Resources = builder.Instance.Spec.Resources
+	statefulSetConfiguration.PersistentStorageClassName = builder.Instance.Spec.Persistence.StorageClassName
+	statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(builder.Instance.Spec.Persistence.Storage)
 	if err != nil {
 		return statefulSetConfiguration, err
-	}
-
-	parsedCPURequest, err := k8sresource.ParseQuantity(defaultCPURequest)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	parsedMemoryLimit, err := k8sresource.ParseQuantity(defaultMemoryLimit)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	parsedMemoryRequest, err := k8sresource.ParseQuantity(defaultMemoryRequest)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	statefulSetConfiguration.Resources = &corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			"cpu":    parsedCPULimit,
-			"memory": parsedMemoryLimit,
-		},
-		Requests: corev1.ResourceList{
-			"cpu":    parsedCPURequest,
-			"memory": parsedMemoryRequest,
-		},
-	}
-
-	if builder.Instance.Spec.Resources != nil {
-		statefulSetConfiguration.Resources = builder.Instance.Spec.Resources
-	}
-
-	statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(defaultPersistentCapacity)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	if builder.Instance.Spec.Persistence.Storage != "" {
-		statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(builder.Instance.Spec.Persistence.Storage)
-		if err != nil {
-			return statefulSetConfiguration, err
-		}
-	}
-
-	statefulSetConfiguration.PersistentStorageClassName = nil
-	if builder.Instance.Spec.Persistence.StorageClassName != "" {
-		statefulSetConfiguration.PersistentStorageClassName = &builder.Instance.Spec.Persistence.StorageClassName
 	}
 
 	return statefulSetConfiguration, nil
