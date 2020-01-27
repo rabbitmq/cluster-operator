@@ -87,16 +87,13 @@ func init() {
 
 var RabbitmqClusterDefaults RabbitmqCluster = RabbitmqCluster{
 	Spec: RabbitmqClusterSpec{
-		Replicas:        1,
-		Image:           rabbitmqImage,
-		ImagePullSecret: "",
+		Replicas: 1,
+		Image:    rabbitmqImage,
 		Service: RabbitmqClusterServiceSpec{
-			Type:        defaultServiceType,
-			Annotations: map[string]string{},
+			Type: defaultServiceType,
 		},
 		Persistence: RabbitmqClusterPersistenceSpec{
-			StorageClassName: "",
-			Storage:          defaultPersistentCapacity,
+			Storage: defaultPersistentCapacity,
 		},
 		Resources: &corev1.ResourceRequirements{
 			Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -125,11 +122,9 @@ func MergeDefaults(current, template RabbitmqCluster) *RabbitmqCluster {
 	var mergedRabbitmq RabbitmqCluster = current
 
 	emptyRabbitmq := RabbitmqCluster{}
-
-	if reflect.DeepEqual(current, emptyRabbitmq) {
-		mergedRabbitmq.Spec = template.Spec
-		return &mergedRabbitmq
-	}
+	// Note: we do not check for ImagePullSecret or StorageClassName since the default and nil value are both "".
+	// The logic of the check would be 'if actual is an empty string, then set to an empty string'
+	// We also do not check for Annotations as the nil value will be the empty map.
 
 	if mergedRabbitmq.Spec.Replicas == emptyRabbitmq.Spec.Replicas {
 		mergedRabbitmq.Spec.Replicas = template.Spec.Replicas
@@ -138,20 +133,9 @@ func MergeDefaults(current, template RabbitmqCluster) *RabbitmqCluster {
 	if mergedRabbitmq.Spec.Image == emptyRabbitmq.Spec.Image {
 		mergedRabbitmq.Spec.Image = template.Spec.Image
 	}
-	if mergedRabbitmq.Spec.ImagePullSecret == emptyRabbitmq.Spec.ImagePullSecret {
-		mergedRabbitmq.Spec.ImagePullSecret = template.Spec.ImagePullSecret
-	}
 
 	if mergedRabbitmq.Spec.Service.Type == emptyRabbitmq.Spec.Service.Type {
 		mergedRabbitmq.Spec.Service.Type = template.Spec.Service.Type
-	}
-
-	if reflect.DeepEqual(mergedRabbitmq.Spec.Service.Annotations, emptyRabbitmq.Spec.Service.Annotations) {
-		mergedRabbitmq.Spec.Service.Annotations = template.Spec.Service.Annotations
-	}
-
-	if mergedRabbitmq.Spec.Persistence.StorageClassName == emptyRabbitmq.Spec.Persistence.StorageClassName {
-		mergedRabbitmq.Spec.Persistence.StorageClassName = template.Spec.Persistence.StorageClassName
 	}
 
 	if mergedRabbitmq.Spec.Persistence.Storage == emptyRabbitmq.Spec.Persistence.Storage {

@@ -103,12 +103,10 @@ var _ = Describe("RabbitmqCluster spec", func() {
 			rmqClusterInstance = RabbitmqCluster{}
 			rmqClusterTemplate = RabbitmqCluster{
 				Spec: RabbitmqClusterSpec{
-					Replicas:        1,
-					Image:           "some-rabbit",
-					ImagePullSecret: "is-very-secret",
+					Replicas: 1,
+					Image:    "some-rabbit",
 					Service: RabbitmqClusterServiceSpec{
-						Type:        corev1.ServiceType("some-type"),
-						Annotations: map[string]string{"myannotation": "has-a-value"},
+						Type: corev1.ServiceType("some-type"),
 					},
 					Persistence: RabbitmqClusterPersistenceSpec{
 						Storage: "12345Gi",
@@ -189,7 +187,6 @@ var _ = Describe("RabbitmqCluster spec", func() {
 					},
 				}
 				instance := MergeDefaults(rmqClusterInstance, rmqClusterTemplate)
-
 				Expect(instance.Spec).To(Equal(rmqClusterInstance.Spec))
 			})
 		})
@@ -215,6 +212,35 @@ var _ = Describe("RabbitmqCluster spec", func() {
 
 				instance := MergeDefaults(rmqClusterInstance, rmqClusterTemplate)
 				Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
+			})
+
+			It("does not apply resource defaults if the resource object is an empty non-nil struct", func() {
+				expectedResources := &corev1.ResourceRequirements{}
+				rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					Resources: expectedResources,
+				}
+				expectedClusterInstance := rmqClusterTemplate.DeepCopy()
+				expectedClusterInstance.Spec.Resources = expectedResources
+
+				instance := MergeDefaults(rmqClusterInstance, rmqClusterTemplate)
+				Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
+
+			})
+			It("does not apply resource defaults if the resource object is partially set", func() {
+				expectedResources := &corev1.ResourceRequirements{
+					Limits: map[corev1.ResourceName]k8sresource.Quantity{
+						"cpu": k8sresource.MustParse("6"),
+					},
+				}
+				rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					Resources: expectedResources,
+				}
+				expectedClusterInstance := rmqClusterTemplate.DeepCopy()
+				expectedClusterInstance.Spec.Resources = expectedResources
+
+				instance := MergeDefaults(rmqClusterInstance, rmqClusterTemplate)
+				Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
+
 			})
 		})
 	})

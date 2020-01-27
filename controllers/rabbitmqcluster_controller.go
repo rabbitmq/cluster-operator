@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -80,7 +81,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	_ = context.Background()
 	logger := r.Log
 
-	rabbitmqCluster, err := r.getRabbitmqCluster(req.NamespacedName)
+	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(req.NamespacedName)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -88,6 +89,16 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 		logger.Error(err, "Failed getting Rabbitmq cluster object")
 		return reconcile.Result{}, err
+	}
+
+	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster, rabbitmqv1beta1.RabbitmqClusterDefaults)
+
+	if !reflect.DeepEqual(fetchedRabbitmqCluster.Spec, rabbitmqCluster.Spec) {
+		err := r.Client.Update(context.TODO(), rabbitmqCluster)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
 	}
 
 	instanceSpec, err := json.Marshal(rabbitmqCluster.Spec)
