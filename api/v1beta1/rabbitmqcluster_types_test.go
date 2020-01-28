@@ -103,7 +103,7 @@ var _ = Describe("RabbitmqCluster spec", func() {
 			rmqClusterInstance = RabbitmqCluster{}
 			rmqClusterTemplate = RabbitmqCluster{
 				Spec: RabbitmqClusterSpec{
-					Replicas: 1,
+					Replicas: int32(1),
 					Image:    "some-rabbit",
 					Service: RabbitmqClusterServiceSpec{
 						Type: corev1.ServiceType("some-type"),
@@ -137,7 +137,7 @@ var _ = Describe("RabbitmqCluster spec", func() {
 			It("outputs the CR", func() {
 				storageClassName := "some-class"
 				rmqClusterInstance.Spec = RabbitmqClusterSpec{
-					Replicas:        3,
+					Replicas:        int32(3),
 					Image:           "rabbitmq-image-from-cr",
 					ImagePullSecret: "my-super-secret",
 					Service: RabbitmqClusterServiceSpec{
@@ -254,7 +254,7 @@ func getKey(cluster *RabbitmqCluster) types.NamespacedName {
 	}
 }
 
-func generateRabbitmqClusterObject(clusterName string, numReplicas int) *RabbitmqCluster {
+func generateRabbitmqClusterObject(clusterName string, numReplicas int32) *RabbitmqCluster {
 	storageClassName := "some-storage-class-name"
 	return &RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{

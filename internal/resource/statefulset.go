@@ -53,12 +53,8 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 }
 
 func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet) error {
-	one := int32(1)
-	sts.Spec.Replicas = &one
-	replicas := int32(builder.Instance.Spec.Replicas)
-	if replicas != 0 {
-		sts.Spec.Replicas = &replicas
-	}
+	replicas := builder.Instance.Spec.Replicas
+	sts.Spec.Replicas = &replicas
 
 	pvc, err := persistentVolumeClaim(builder.Instance, builder.Scheme)
 	if err != nil {

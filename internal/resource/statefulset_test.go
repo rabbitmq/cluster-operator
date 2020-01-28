@@ -798,7 +798,7 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 			Namespace: "foo",
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas:        1,
+			Replicas:        int32(1),
 			Image:           "rabbitmq-image-from-cr",
 			ImagePullSecret: "my-super-secret",
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{

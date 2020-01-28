@@ -52,7 +52,7 @@ type RabbitmqCluster struct {
 // RabbitmqClusterSpec defines the desired state of RabbitmqCluster
 type RabbitmqClusterSpec struct {
 	// +kubebuilder:validation:Enum=1;3
-	Replicas        int                            `json:"replicas"`
+	Replicas        int32                          `json:"replicas"`
 	Image           string                         `json:"image,omitempty"`
 	ImagePullSecret string                         `json:"imagePullSecret,omitempty"`
 	Service         RabbitmqClusterServiceSpec     `json:"service,omitempty"`

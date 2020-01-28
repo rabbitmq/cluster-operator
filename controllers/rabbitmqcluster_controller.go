@@ -187,7 +187,7 @@ func (r *RabbitmqClusterReconciler) ready(rabbitmqCluster *rabbitmqv1beta1.Rabbi
 	return r.endpointsReady(name, rabbitmqCluster.Spec.Replicas)
 }
 
-func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName, replicas int) bool {
+func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName, replicas int32) bool {
 	endpoints := &corev1.Endpoints{}
 
 	err := r.Get(context.TODO(), name, endpoints)
@@ -197,7 +197,7 @@ func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName, re
 	}
 
 	for _, e := range endpoints.Subsets {
-		if len(e.NotReadyAddresses) == 0 && len(e.Addresses) == replicas {
+		if len(e.NotReadyAddresses) == 0 && int32(len(e.Addresses)) == replicas {
 			return true
 		}
 	}
