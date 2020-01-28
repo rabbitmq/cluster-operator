@@ -21,16 +21,6 @@ const (
 	initContainerMemory              string = "500Mi"
 )
 
-type StatefulSetConfiguration struct {
-	ImageReference             string
-	ImagePullSecret            string
-	PersistentStorageClassName *string
-	PersistentStorage          k8sresource.Quantity
-	Resources                  *corev1.ResourceRequirements
-	Tolerations                []corev1.Toleration
-	Scheme                     *runtime.Scheme
-}
-
 func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
 	return &StatefulSetBuilder{
 		Instance: builder.Instance,
@@ -70,18 +60,7 @@ func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet)
 		sts.Spec.Replicas = &replicas
 	}
 
-	statefulSetConfiguration, err := builder.statefulSetConfigurations()
-	if err != nil {
-		return err
-	}
-	sts.Spec.Template.Spec.InitContainers[0].Image = statefulSetConfiguration.ImageReference
-
-	sts.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{}
-	if statefulSetConfiguration.ImagePullSecret != "" {
-		sts.Spec.Template.Spec.ImagePullSecrets = append(sts.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
-	}
-
-	pvc, err := persistentVolumeClaim(builder.Instance, statefulSetConfiguration)
+	pvc, err := persistentVolumeClaim(builder.Instance, builder.Scheme)
 	if err != nil {
 		return err
 	}
@@ -108,10 +87,6 @@ func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet)
 		},
 	}
 
-	sts.Spec.Template.Spec.Containers[0].Image = statefulSetConfiguration.ImageReference
-
-	sts.Spec.Template.Spec.Containers[0].Resources = *statefulSetConfiguration.Resources
-
 	return builder.setMutableFields(sts)
 }
 
@@ -120,26 +95,22 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 }
 
 func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) error {
-	statefulSetConfiguration, err := builder.statefulSetConfigurations()
-	if err != nil {
-		return err
-	}
-	sts.Spec.Template.Spec.InitContainers[0].Image = statefulSetConfiguration.ImageReference
-	sts.Spec.Template.Spec.Containers[0].Image = statefulSetConfiguration.ImageReference
+	sts.Spec.Template.Spec.InitContainers[0].Image = builder.Instance.Spec.Image
+
+	sts.Spec.Template.Spec.Containers[0].Image = builder.Instance.Spec.Image
 
 	sts.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{}
-	if statefulSetConfiguration.ImagePullSecret != "" {
-		sts.Spec.Template.Spec.ImagePullSecrets = append(sts.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: statefulSetConfiguration.ImagePullSecret})
+	if builder.Instance.Spec.ImagePullSecret != "" {
+		sts.Spec.Template.Spec.ImagePullSecrets = append(sts.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: builder.Instance.Spec.ImagePullSecret})
 	}
 
-	sts.Spec.Template.Spec.Containers[0].Resources = *statefulSetConfiguration.Resources
+	sts.Spec.Template.Spec.Containers[0].Resources = *builder.Instance.Spec.Resources
 
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	sts.Labels = updatedLabels
 	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
 
 	sts.Annotations = metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
-
 	sts.Spec.Template.ObjectMeta.Annotations = metadata.ReconcileAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations)
 
 	sts.Spec.Template.Spec.Affinity = builder.Instance.Spec.Affinity
@@ -148,7 +119,11 @@ func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) err
 	return nil
 }
 
-func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSetConfigureation StatefulSetConfiguration) ([]corev1.PersistentVolumeClaim, error) {
+func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
+	persistentStorage, err := k8sresource.ParseQuantity(instance.Spec.Persistence.Storage)
+	if err != nil {
+		return nil, err
+	}
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "persistence",
@@ -159,36 +134,19 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, statefulSe
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: statefulSetConfigureation.PersistentStorage,
+					corev1.ResourceStorage: persistentStorage,
 				},
 			},
 			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			StorageClassName: statefulSetConfigureation.PersistentStorageClassName,
+			StorageClassName: instance.Spec.Persistence.StorageClassName,
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(instance, &pvc, statefulSetConfigureation.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(instance, &pvc, scheme); err != nil {
 		return []corev1.PersistentVolumeClaim{}, fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
 	return []corev1.PersistentVolumeClaim{pvc}, nil
-}
-
-func (builder *StatefulSetBuilder) statefulSetConfigurations() (StatefulSetConfiguration, error) {
-	var err error
-
-	statefulSetConfiguration := StatefulSetConfiguration{}
-	statefulSetConfiguration.Scheme = builder.Scheme
-	statefulSetConfiguration.ImageReference = builder.Instance.Spec.Image
-	statefulSetConfiguration.ImagePullSecret = builder.Instance.Spec.ImagePullSecret
-	statefulSetConfiguration.Resources = builder.Instance.Spec.Resources
-	statefulSetConfiguration.PersistentStorageClassName = builder.Instance.Spec.Persistence.StorageClassName
-	statefulSetConfiguration.PersistentStorage, err = k8sresource.ParseQuantity(builder.Instance.Spec.Persistence.Storage)
-	if err != nil {
-		return statefulSetConfiguration, err
-	}
-
-	return statefulSetConfiguration, nil
 }
 
 func (builder *StatefulSetBuilder) statefulSet() *appsv1.StatefulSet {
