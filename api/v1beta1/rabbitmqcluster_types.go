@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"math"
 	"reflect"
 	"strings"
 
@@ -28,7 +27,7 @@ import (
 
 const (
 	rabbitmqImage             string             = "rabbitmq:3.8.2"
-	defaultPersistentCapacity int64              = 10
+	defaultPersistentCapacity string             = "10Gi"
 	defaultMemoryLimit        string             = "2Gi"
 	defaultCPULimit           string             = "2000m"
 	defaultMemoryRequest      string             = "2Gi"
@@ -96,7 +95,12 @@ func init() {
 	SchemeBuilder.Register(&RabbitmqCluster{}, &RabbitmqClusterList{})
 }
 
-var RabbitmqClusterDefaults RabbitmqCluster = RabbitmqCluster{
+func getDefaultPersistenceStorageQuantity() *k8sresource.Quantity {
+	tenGi := k8sresource.MustParse(defaultPersistentCapacity)
+	return &tenGi
+}
+
+var rabbitmqClusterDefaults = RabbitmqCluster{
 	Spec: RabbitmqClusterSpec{
 		Replicas: 1,
 		Image:    rabbitmqImage,
@@ -104,7 +108,7 @@ var RabbitmqClusterDefaults RabbitmqCluster = RabbitmqCluster{
 			Type: defaultServiceType,
 		},
 		Persistence: RabbitmqClusterPersistenceSpec{
-			Storage: k8sresource.NewQuantity(defaultPersistentCapacity*int64(math.Pow(2, 30)), k8sresource.BinarySI),
+			Storage: getDefaultPersistenceStorageQuantity(),
 		},
 		Resources: &corev1.ResourceRequirements{
 			Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -119,7 +123,7 @@ var RabbitmqClusterDefaults RabbitmqCluster = RabbitmqCluster{
 	},
 }
 
-func MergeDefaults(current, template RabbitmqCluster) *RabbitmqCluster {
+func MergeDefaults(current RabbitmqCluster) *RabbitmqCluster {
 	var mergedRabbitmq RabbitmqCluster = current
 
 	emptyRabbitmq := RabbitmqCluster{}
@@ -128,23 +132,23 @@ func MergeDefaults(current, template RabbitmqCluster) *RabbitmqCluster {
 	// We also do not check for Annotations as the nil value will be the empty map.
 
 	if mergedRabbitmq.Spec.Replicas == emptyRabbitmq.Spec.Replicas {
-		mergedRabbitmq.Spec.Replicas = template.Spec.Replicas
+		mergedRabbitmq.Spec.Replicas = rabbitmqClusterDefaults.Spec.Replicas
 	}
 
 	if mergedRabbitmq.Spec.Image == emptyRabbitmq.Spec.Image {
-		mergedRabbitmq.Spec.Image = template.Spec.Image
+		mergedRabbitmq.Spec.Image = rabbitmqClusterDefaults.Spec.Image
 	}
 
 	if mergedRabbitmq.Spec.Service.Type == emptyRabbitmq.Spec.Service.Type {
-		mergedRabbitmq.Spec.Service.Type = template.Spec.Service.Type
+		mergedRabbitmq.Spec.Service.Type = rabbitmqClusterDefaults.Spec.Service.Type
 	}
 
 	if reflect.DeepEqual(mergedRabbitmq.Spec.Persistence.Storage, emptyRabbitmq.Spec.Persistence.Storage) {
-		mergedRabbitmq.Spec.Persistence.Storage = template.Spec.Persistence.Storage
+		mergedRabbitmq.Spec.Persistence.Storage = rabbitmqClusterDefaults.Spec.Persistence.Storage
 	}
 
 	if reflect.DeepEqual(mergedRabbitmq.Spec.Resources, emptyRabbitmq.Spec.Resources) {
-		mergedRabbitmq.Spec.Resources = template.Spec.Resources
+		mergedRabbitmq.Spec.Resources = rabbitmqClusterDefaults.Spec.Resources
 	}
 
 	return &mergedRabbitmq
