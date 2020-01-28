@@ -1,0 +1,7 @@
+namespace: pivotal-rabbitmq-system
+
+bases:
+- ../../base
+
+patches:
+- manager_image_patch.yaml

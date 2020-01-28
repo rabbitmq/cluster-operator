@@ -92,6 +92,12 @@ deploy: manifests deploy-namespace docker-registry-secret deploy-manager ## Depl
 
 deploy-dev: docker-build-dev patch-dev manifests deploy-namespace docker-registry-secret deploy-manager-dev ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
+deploy-kind: dev-tag patch-kind manifests deploy-namespace
+	docker build . -t $(CONTROLLER_IMAGE):$(DEV_TAG)
+	kind load docker-image $(CONTROLLER_IMAGE):$(DEV_TAG)
+	kubectl apply -k config/crd
+	kubectl apply -k config/default/overlays/kind
+
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace docker-registry-secret-ci deploy-manager-ci
 
@@ -127,6 +133,10 @@ docker-build-dev: dev-tag
 patch-dev: dev-tag
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(DEV_TAG)"'@' ./config/default/overlays/dev/manager_image_patch.yaml
+
+patch-kind: dev-tag
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(DEV_TAG)"'@' ./config/default/overlays/kind/manager_image_patch.yaml
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services, and local-path StorageClass
 	# deploy and configure MetalLB to add support for LoadBalancer services
