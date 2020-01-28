@@ -100,6 +100,7 @@ var _ = Describe("RabbitmqCluster spec", func() {
 			rmqClusterTemplate RabbitmqCluster
 		)
 		BeforeEach(func() {
+			storage := k8sresource.MustParse("12345Gi")
 			rmqClusterInstance = RabbitmqCluster{}
 			rmqClusterTemplate = RabbitmqCluster{
 				Spec: RabbitmqClusterSpec{
@@ -109,7 +110,7 @@ var _ = Describe("RabbitmqCluster spec", func() {
 						Type: corev1.ServiceType("some-type"),
 					},
 					Persistence: RabbitmqClusterPersistenceSpec{
-						Storage: "12345Gi",
+						Storage: &storage,
 					},
 					Resources: &corev1.ResourceRequirements{
 						Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -128,13 +129,13 @@ var _ = Describe("RabbitmqCluster spec", func() {
 		When("CR is empty", func() {
 			It("outputs the template", func() {
 				instance := MergeDefaults(rmqClusterInstance, rmqClusterTemplate)
-
 				Expect(instance.Spec).To(Equal(rmqClusterTemplate.Spec))
 			})
 		})
 
 		When("CR is fully populated", func() {
 			It("outputs the CR", func() {
+				storage := k8sresource.MustParse("987Gi")
 				storageClassName := "some-class"
 				rmqClusterInstance.Spec = RabbitmqClusterSpec{
 					Replicas:        int32(3),
@@ -148,7 +149,7 @@ var _ = Describe("RabbitmqCluster spec", func() {
 					},
 					Persistence: RabbitmqClusterPersistenceSpec{
 						StorageClassName: &storageClassName,
-						Storage:          "987Gi",
+						Storage:          &storage,
 					},
 					Resources: &corev1.ResourceRequirements{
 						Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -227,6 +228,7 @@ var _ = Describe("RabbitmqCluster spec", func() {
 				Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
 
 			})
+
 			It("does not apply resource defaults if the resource object is partially set", func() {
 				expectedResources := &corev1.ResourceRequirements{
 					Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -255,6 +257,7 @@ func getKey(cluster *RabbitmqCluster) types.NamespacedName {
 }
 
 func generateRabbitmqClusterObject(clusterName string, numReplicas int32) *RabbitmqCluster {
+	storage := k8sresource.MustParse("4Gi")
 	storageClassName := "some-storage-class-name"
 	return &RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -269,7 +272,7 @@ func generateRabbitmqClusterObject(clusterName string, numReplicas int32) *Rabbi
 				Type: "LoadBalancer",
 			},
 			Persistence: RabbitmqClusterPersistenceSpec{
-				Storage:          "some-storage",
+				Storage:          &storage,
 				StorageClassName: &storageClassName,
 			},
 		},

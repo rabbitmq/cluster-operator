@@ -389,7 +389,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 			storageClassName := "my-storage-class"
 			rabbitmqCluster.Spec.Persistence.StorageClassName = &storageClassName
-			rabbitmqCluster.Spec.Persistence.Storage = "100Gi"
+			storage := k8sresource.MustParse("100Gi")
+			rabbitmqCluster.Spec.Persistence.Storage = &storage
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
 			waitForClusterCreation(rabbitmqCluster, client)
 

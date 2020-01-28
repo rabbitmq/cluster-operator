@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"math"
 	"reflect"
 	"strings"
 
@@ -27,7 +28,7 @@ import (
 
 const (
 	rabbitmqImage             string             = "rabbitmq:3.8.1"
-	defaultPersistentCapacity string             = "10Gi"
+	defaultPersistentCapacity int64              = 10
 	defaultMemoryLimit        string             = "2Gi"
 	defaultCPULimit           string             = "2000m"
 	defaultMemoryRequest      string             = "2Gi"
@@ -63,8 +64,8 @@ type RabbitmqClusterSpec struct {
 }
 
 type RabbitmqClusterPersistenceSpec struct {
-	StorageClassName *string `json:"storageClassName,omitempty"`
-	Storage          string  `json:"storage,omitempty"`
+	StorageClassName *string               `json:"storageClassName,omitempty"`
+	Storage          *k8sresource.Quantity `json:"storage,omitempty"`
 }
 
 type RabbitmqClusterServiceSpec struct {
@@ -103,7 +104,7 @@ var RabbitmqClusterDefaults RabbitmqCluster = RabbitmqCluster{
 			Type: defaultServiceType,
 		},
 		Persistence: RabbitmqClusterPersistenceSpec{
-			Storage: defaultPersistentCapacity,
+			Storage: k8sresource.NewQuantity(defaultPersistentCapacity*int64(math.Pow(2, 30)), k8sresource.BinarySI),
 		},
 		Resources: &corev1.ResourceRequirements{
 			Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -138,7 +139,7 @@ func MergeDefaults(current, template RabbitmqCluster) *RabbitmqCluster {
 		mergedRabbitmq.Spec.Service.Type = template.Spec.Service.Type
 	}
 
-	if mergedRabbitmq.Spec.Persistence.Storage == emptyRabbitmq.Spec.Persistence.Storage {
+	if reflect.DeepEqual(mergedRabbitmq.Spec.Persistence.Storage, emptyRabbitmq.Spec.Persistence.Storage) {
 		mergedRabbitmq.Spec.Persistence.Storage = template.Spec.Persistence.Storage
 	}
 

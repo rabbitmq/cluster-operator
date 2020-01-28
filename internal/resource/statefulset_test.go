@@ -398,7 +398,8 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("creates the PersistentVolume template according to configurations in the  instance", func() {
-				instance.Spec.Persistence.Storage = "21Gi"
+				storage := k8sresource.MustParse("21Gi")
+				instance.Spec.Persistence.Storage = &storage
 				cluster = &resource.RabbitmqResourceBuilder{
 					Instance: &instance,
 					Scheme:   scheme,
@@ -792,6 +793,7 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 }
 
 func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
+	storage := k8sresource.MustParse("10Gi")
 	return rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "foo",
@@ -807,7 +809,7 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 			},
 			Persistence: rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
 				StorageClassName: nil,
-				Storage:          "10Gi",
+				Storage:          &storage,
 			},
 			Resources: &corev1.ResourceRequirements{
 				Limits: map[corev1.ResourceName]k8sresource.Quantity{
