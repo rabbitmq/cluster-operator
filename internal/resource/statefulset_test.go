@@ -802,10 +802,8 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 			Image:           "rabbitmq-image-from-cr",
 			ImagePullSecret: "my-super-secret",
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-				Type: corev1.ServiceType("this-is-a-service"),
-				Annotations: map[string]string{
-					"myannotation": "is-set",
-				},
+				Type:        corev1.ServiceType("this-is-a-service"),
+				Annotations: map[string]string{},
 			},
 			Persistence: rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
 				StorageClassName: nil,

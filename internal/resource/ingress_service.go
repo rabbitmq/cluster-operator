@@ -56,18 +56,10 @@ func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
 		return nil, fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
-	builder.setServiceType(service)
+	service.Spec.Type = builder.Instance.Spec.Service.Type
 	builder.setAnnotations(service)
 
 	return service, nil
-}
-
-func (builder *IngressServiceBuilder) setServiceType(service *corev1.Service) {
-	var serviceType = corev1.ServiceTypeClusterIP
-	if builder.Instance.Spec.Service.Type != "" {
-		serviceType = builder.Instance.Spec.Service.Type
-	}
-	service.Spec.Type = serviceType
 }
 
 func (builder *IngressServiceBuilder) Update(object runtime.Object) error {

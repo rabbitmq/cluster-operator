@@ -23,16 +23,14 @@ var _ = Context("IngressServices", func() {
 		scheme = runtime.NewScheme()
 		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-		instance = rabbitmqv1beta1.RabbitmqCluster{}
-		instance.Namespace = "foo"
-		instance.Name = "foo"
+		instance = generateRabbitmqCluster()
 		rmqBuilder = resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 			Scheme:   scheme,
 		}
 	})
 
-	It("generates Ingress Service with defaults", func() {
+	It("Builds using the values from the CR", func() {
 		serviceBuilder := rmqBuilder.IngressService()
 		obj, err := serviceBuilder.Build()
 		Expect(err).NotTo(HaveOccurred())
@@ -52,7 +50,7 @@ var _ = Context("IngressServices", func() {
 		})
 
 		By("generates a ClusterIP type service by default", func() {
-			Expect(service.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
+			Expect(service.Spec.Type).To(Equal(corev1.ServiceType("this-is-a-service")))
 		})
 
 		By("generates a service object with the correct selector", func() {
@@ -84,70 +82,6 @@ var _ = Context("IngressServices", func() {
 
 		By("setting the ownerreference", func() {
 			Expect(service.ObjectMeta.OwnerReferences[0].Name).To(Equal("foo"))
-		})
-	})
-
-	When("service type is specified in the RabbitmqCluster spec", func() {
-		It("generates a service object of type LoadBalancer", func() {
-			loadBalancerInstance := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "name",
-					Namespace: "mynamespace",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type: "LoadBalancer",
-					},
-				},
-			}
-			rmqBuilder.Instance = loadBalancerInstance
-			serviceBuilder := rmqBuilder.IngressService()
-			obj, err := serviceBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			loadBalancerService := obj.(*corev1.Service)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(loadBalancerService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
-		})
-
-		It("generates a service object of type ClusterIP", func() {
-			clusterIPInstance := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "name",
-					Namespace: "mynamespace",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type: "ClusterIP",
-					},
-				},
-			}
-			rmqBuilder.Instance = clusterIPInstance
-			serviceBuilder := rmqBuilder.IngressService()
-			obj, err := serviceBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			clusterIPService := obj.(*corev1.Service)
-			Expect(clusterIPService.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
-		})
-
-		It("generates a service object of type NodePort", func() {
-			nodePortInstance := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "name",
-					Namespace: "mynamespace",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-						Type: "NodePort",
-					},
-				},
-			}
-			rmqBuilder.Instance = nodePortInstance
-			serviceBuilder := rmqBuilder.IngressService()
-			obj, err := serviceBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			nodePortService := obj.(*corev1.Service)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(nodePortService.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 		})
 	})
 
