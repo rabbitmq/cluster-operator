@@ -68,6 +68,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 					return err
 				}, 1).Should(Succeed())
 				Expect(sts.Name).To(Equal(statefulSetName))
+
+				Expect(sts.Spec.Template.Spec.Containers[0].Image).To(Equal("rabbitmq:3.8.2"))
 				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 				Expect(sts.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 
