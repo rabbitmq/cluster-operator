@@ -8,6 +8,8 @@ annotations:
 
 replicas: 3
 
+image: "rabbitmq:3.8.1"
+
 imagePullSecret: foo
 
 service:
