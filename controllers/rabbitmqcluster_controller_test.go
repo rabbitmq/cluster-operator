@@ -69,28 +69,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 				}, 1).Should(Succeed())
 				Expect(sts.Name).To(Equal(statefulSetName))
 
-				Expect(sts.Spec.Template.Spec.Containers[0].Image).To(Equal("rabbitmq:3.8.2"))
 				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
-				Expect(sts.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
-
-				actualResources := sts.Spec.Template.Spec.Containers[0].Resources
-				expectedResources := corev1.ResourceRequirements{
-					Limits: map[corev1.ResourceName]k8sresource.Quantity{
-						corev1.ResourceCPU:    k8sresource.MustParse("2"),
-						corev1.ResourceMemory: k8sresource.MustParse("2Gi"),
-					},
-					Requests: map[corev1.ResourceName]k8sresource.Quantity{
-						corev1.ResourceCPU:    k8sresource.MustParse("1"),
-						corev1.ResourceMemory: k8sresource.MustParse("2Gi"),
-					},
-				}
-
-				Expect(actualResources).To(Equal(expectedResources))
 
 				Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
 				Expect(sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
-				actualStorageCapacity := sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests[corev1.ResourceStorage]
-				Expect(actualStorageCapacity).To(Equal(k8sresource.MustParse("10Gi")))
 			})
 
 			By("creating the server conf configmap", func() {

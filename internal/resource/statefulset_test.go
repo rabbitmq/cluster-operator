@@ -44,6 +44,10 @@ var _ = Describe("StatefulSet", func() {
 		It("sets replicas", func() {
 			Expect(*sts.Spec.Replicas).To(Equal(int32(1)))
 		})
+		It("sets the owner reference", func() {
+			Expect(len(sts.OwnerReferences)).To(Equal(1))
+			Expect(sts.OwnerReferences[0].Name).To(Equal(cluster.Instance.Name))
+		})
 
 		It("adds the correct labels on the statefulset", func() {
 			labels := sts.Labels
