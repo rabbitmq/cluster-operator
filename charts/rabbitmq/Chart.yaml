@@ -10,5 +10,5 @@ home: https://pivotal.io/rabbitmq
 icon: https://bitnami.com/assets/stacks/rabbitmq/img/rabbitmq-stack-220x234.png
 maintainers:
 - name: Pivotal
-  email: rabbitmq-for-k8s@vmware.com
+  email: rabbitmq-for-k8s@pivotal.com
 engine: gotpl
