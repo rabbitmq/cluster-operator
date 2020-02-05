@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	defaultGracePeriodTimeoutSeconds int64  = 150
+	defaultGracePeriodTimeoutSeconds int64  = 60 * 60 * 24 * 7
 	initContainerCPU                 string = "100m"
 	initContainerMemory              string = "500Mi"
 )
@@ -303,6 +303,15 @@ func (builder *StatefulSetBuilder) statefulSet() *appsv1.StatefulSet {
 								PeriodSeconds:       30,
 								SuccessThreshold:    1,
 								FailureThreshold:    3,
+							},
+							Lifecycle: &corev1.Lifecycle{
+								PreStop: &corev1.Handler{
+									Exec: &corev1.ExecAction{
+										Command: []string{
+											"/bin/sh", "-c", "rabbitmq-queues check_if_node_is_quorum_critical && rabbitmq-queues check_if_node_is_mirror_sync_critical",
+										},
+									},
+								},
 							},
 						},
 					},

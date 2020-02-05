@@ -292,8 +292,14 @@ var _ = Describe("StatefulSet", func() {
 
 		It("adds the required terminationGracePeriodSeconds", func() {
 			gracePeriodSeconds := sts.Spec.Template.Spec.TerminationGracePeriodSeconds
-			expectedGracePeriodSeconds := int64(150)
+			expectedGracePeriodSeconds := int64(60 * 60 * 24 * 7)
 			Expect(gracePeriodSeconds).To(Equal(&expectedGracePeriodSeconds))
+		})
+
+		It("checks mirror and querum queue status in preStop hook", func() {
+			expectedPreStopCommand := []string{"/bin/sh", "-c", "rabbitmq-queues check_if_node_is_quorum_critical && rabbitmq-queues check_if_node_is_mirror_sync_critical"}
+			Expect(sts.Spec.Template.Spec.Containers[0].Lifecycle.PreStop.Exec.Command).To(Equal(expectedPreStopCommand))
+
 		})
 
 		It("creates the affinity rule as provided in the instance", func() {
