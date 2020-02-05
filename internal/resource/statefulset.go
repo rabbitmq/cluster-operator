@@ -308,7 +308,11 @@ func (builder *StatefulSetBuilder) statefulSet() *appsv1.StatefulSet {
 								PreStop: &corev1.Handler{
 									Exec: &corev1.ExecAction{
 										Command: []string{
-											"/bin/sh", "-c", "rabbitmq-queues check_if_node_is_quorum_critical && rabbitmq-queues check_if_node_is_mirror_sync_critical",
+											"/bin/bash", "-c", "while true; do rabbitmq-queues check_if_node_is_quorum_critical" +
+												" 2>&1; if [ $(echo $?) -ne 0 ]; then sleep 2; continue; fi;" +
+												" rabbitmq-queues check_if_node_is_mirror_sync_critical" +
+												" 2>&1; if [ $(echo $?) -ne 0 ]; then sleep 2; continue; fi; break;" +
+												" done",
 										},
 									},
 								},
