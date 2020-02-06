@@ -13,7 +13,7 @@ namePrefix: p-rmq-
 #  someName: someValue
 
 bases:
-- ../../rbac
+# - ../../rbac
 - ../../manager
 # [WEBHOOK] Uncomment all the sections with [WEBHOOK] prefix to enable webhook.
 #- ../webhook

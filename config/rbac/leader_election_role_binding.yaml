@@ -12,5 +12,5 @@ roleRef:
   name: leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: default
-  namespace: system
+  name: p-rmq-operator
+  namespace: pivotal-rabbitmq-system

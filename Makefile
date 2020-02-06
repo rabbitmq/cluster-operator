@@ -75,36 +75,38 @@ destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/namespace/base --ignore-not-found=true
 	kubectl delete -k config/crd --ignore-not-found=true
 
-run: generate manifests fmt vet install deploy-namespace  ## Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate manifests fmt vet install deploy-namespace-rbac  ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./main.go
 
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -f config/crd/bases
 
-deploy-namespace:
+deploy-namespace-rbac:
 	kubectl apply -k config/namespace/base
+	kubectl apply -k config/rbac
 
-deploy-master: install deploy-namespace docker-registry-secret
+deploy-master: install deploy-namespace-rbac docker-registry-secret
 	kubectl apply -k config/default/base
 
-deploy: manifests deploy-namespace docker-registry-secret deploy-manager ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy: manifests deploy-namespace-rbac docker-registry-secret deploy-manager ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 
-deploy-dev: docker-build-dev patch-dev manifests deploy-namespace docker-registry-secret deploy-manager-dev ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config, with local changes
+deploy-dev: docker-build-dev patch-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
-deploy-kind: dev-tag patch-kind manifests deploy-namespace
+deploy-kind: dev-tag patch-kind manifests deploy-namespace-rbac
 	docker build . -t $(CONTROLLER_IMAGE):$(DEV_TAG)
 	kind load docker-image $(CONTROLLER_IMAGE):$(DEV_TAG)
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/kind
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace docker-registry-secret-ci deploy-manager-ci
+deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace-rbac docker-registry-secret-ci deploy-manager-ci
 
 generate-installation-manifests:
 	mkdir -p installation
 	kustomize build config/namespace/base/ > installation/namespace.yaml
 	kustomize build config/crd/ > installation/crd.yaml
+	kustomize build config/rbac/ > installation/rbac.yaml
 	kustomize build config/installation > installation/operator.yaml
 
 # Build the docker image
@@ -158,12 +160,12 @@ DOCKER_REGISTRY_PASSWORD_LOCAL=$(shell lpassd show "Shared-RabbitMQ for Kubernet
 docker-registry-secret: operator-namespace
 	echo "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username='$(DOCKER_REGISTRY_USERNAME_LOCAL)' --docker-password='$(DOCKER_REGISTRY_PASSWORD_LOCAL)' || true
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount p-rmq-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
 docker-registry-secret-ci: operator-namespace
 	echo "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username="$$DOCKER_REGISTRY_USERNAME" --docker-password="$$DOCKER_REGISTRY_PASSWORD" || true
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount default -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount p-rmq-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
 controller-gen:  ## download controller-gen if not in $PATH
 ifeq (, $(shell which controller-gen))

@@ -3,3 +3,4 @@ resources:
 
 patches:
 - security_context_patch.yaml
+- service_account_patch.yaml

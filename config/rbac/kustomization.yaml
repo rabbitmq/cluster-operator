@@ -1,4 +1,15 @@
+# Adds namespace to all resources.
+namespace: pivotal-rabbitmq-system
+
+# Value of this field is prepended to the
+# names of all resources, e.g. a deployment named
+# "wordpress" becomes "alices-wordpress".
+# Note that it should also match with the prefix (text before '-') of the namespace
+# field above.
+namePrefix: p-rmq-
+
 resources:
+- service_account.yaml
 - role.yaml
 - role_binding.yaml
 - leader_election_role.yaml
