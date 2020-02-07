@@ -19,6 +19,8 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -27,8 +29,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("RabbitmqclusterController", func() {
@@ -50,8 +50,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			waitForClusterCreation(rabbitmqCluster, client)
-
+			time.Sleep(500 * time.Millisecond)
 		})
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
@@ -165,7 +164,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
 		})
 
 		AfterEach(func() {
@@ -200,7 +198,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
 		})
 
 		AfterEach(func() {
@@ -246,7 +243,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			waitForClusterCreation(rabbitmqCluster, client)
 		})
 
 		AfterEach(func() {
@@ -281,7 +277,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster.Spec.Service.Annotations = map[string]string{"annotations": "cr-annotation"}
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			waitForClusterCreation(rabbitmqCluster, client)
 
 			serviceName := rabbitmqCluster.ChildResourceName("ingress")
 			Eventually(func() string {
@@ -334,7 +329,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			waitForClusterCreation(rabbitmqCluster, client)
 
 			sts := statefulSet(rabbitmqCluster)
 
@@ -375,7 +369,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			storage := k8sresource.MustParse("100Gi")
 			rabbitmqCluster.Spec.Persistence.Storage = &storage
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
-			waitForClusterCreation(rabbitmqCluster, client)
 
 			sts := statefulSet(rabbitmqCluster)
 
@@ -406,7 +399,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			statefulSetName = rabbitmqCluster.ChildResourceName("server")
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
+			time.Sleep(500 * time.Millisecond)
 		})
 
 		AfterEach(func() {
@@ -582,7 +575,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			configMapName = rabbitmqCluster.ChildResourceName("server-conf")
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
+			time.Sleep(500 * time.Millisecond)
 		})
 
 		AfterEach(func() {
@@ -653,20 +646,4 @@ func statefulSet(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 		return err
 	}, 1).Should(Succeed())
 	return sts
-}
-
-func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
-	Eventually(func() string {
-		err := client.Get(
-			context.TODO(),
-			types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
-			rabbitmqCluster,
-		)
-		if err != nil {
-			return fmt.Sprintf("%v+", err)
-		}
-
-		return rabbitmqCluster.Status.ClusterStatus
-
-	}, 2, 1).Should(ContainSubstring("created"))
 }
