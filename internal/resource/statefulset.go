@@ -34,35 +34,59 @@ type StatefulSetBuilder struct {
 }
 
 func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
+	return builder.statefulSet()
+}
 
-	sts := builder.statefulSet()
-	if err := builder.setStatefulSetParams(sts); err != nil {
+func (builder *StatefulSetBuilder) statefulSet() (*appsv1.StatefulSet, error) {
+	// PVC, ServiceName & Selector: can't be updated without deleting the statefulset
+	pvc, err := persistentVolumeClaim(builder.Instance, builder.Scheme)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
-		return nil, fmt.Errorf("failed setting controller reference: %v", err)
-	}
+	return &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      builder.Instance.ChildResourceName("server"),
+			Namespace: builder.Instance.Namespace,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			ServiceName: builder.Instance.ChildResourceName(headlessServiceName),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: metadata.LabelSelector(builder.Instance.Name),
+			},
+			VolumeClaimTemplates: pvc,
+		},
+	}, nil
+}
 
-	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
-		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
-		logger.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.GetName()))
-	}
-
-	return sts, nil
+func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
+	sts := object.(*appsv1.StatefulSet)
+	podAnnotations := metadata.ReconcileAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations)
+	annotations := metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
+	sts.Spec.Template = builder.podTemplateSpec()
+	sts.Spec.Template.ObjectMeta.Annotations = podAnnotations
+	sts.Annotations = annotations
+	return builder.setStatefulSetParams(sts)
 }
 
 func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet) error {
+
+	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
+
+	//Labels
+	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
+	sts.Labels = updatedLabels
+	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
+
+	//Spec
+
+	//Replicas
 	replicas := builder.Instance.Spec.Replicas
 	sts.Spec.Replicas = &replicas
 
-	pvc, err := persistentVolumeClaim(builder.Instance, builder.Scheme)
-	if err != nil {
-		return err
-	}
-
-	sts.Spec.VolumeClaimTemplates = pvc
-
+	//Init Container resources
 	cpuRequest, err := k8sresource.ParseQuantity(initContainerCPU)
 	if err != nil {
 		return err
@@ -72,6 +96,9 @@ func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet)
 		return err
 	}
 
+	//Template
+
+	//Container resources
 	sts.Spec.Template.Spec.InitContainers[0].Resources = corev1.ResourceRequirements{
 		Limits: map[corev1.ResourceName]k8sresource.Quantity{
 			"cpu":    cpuRequest,
@@ -83,32 +110,23 @@ func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet)
 		},
 	}
 
-	return builder.setMutableFields(sts)
-}
+	sts.Spec.Template.Spec.Containers[0].Resources = *builder.Instance.Spec.Resources
+	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
+		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
+		logger.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.GetName()))
+	}
 
-func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
-	return builder.setMutableFields(object.(*appsv1.StatefulSet))
-}
-
-func (builder *StatefulSetBuilder) setMutableFields(sts *appsv1.StatefulSet) error {
+	// Container images
 	sts.Spec.Template.Spec.InitContainers[0].Image = builder.Instance.Spec.Image
-
 	sts.Spec.Template.Spec.Containers[0].Image = builder.Instance.Spec.Image
 
+	//Image Pull Secret
 	sts.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{}
 	if builder.Instance.Spec.ImagePullSecret != "" {
 		sts.Spec.Template.Spec.ImagePullSecrets = append(sts.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: builder.Instance.Spec.ImagePullSecret})
 	}
 
-	sts.Spec.Template.Spec.Containers[0].Resources = *builder.Instance.Spec.Resources
-
-	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	sts.Labels = updatedLabels
-	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
-
-	sts.Annotations = metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
-	sts.Spec.Template.ObjectMeta.Annotations = metadata.ReconcileAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations)
-
+	//Affinity & Tolerations
 	sts.Spec.Template.Spec.Affinity = builder.Instance.Spec.Affinity
 	sts.Spec.Template.Spec.Tolerations = builder.Instance.Spec.Tolerations
 
@@ -141,232 +159,219 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 	return []corev1.PersistentVolumeClaim{pvc}, nil
 }
 
-func (builder *StatefulSetBuilder) statefulSet() *appsv1.StatefulSet {
+func (builder *StatefulSetBuilder) podTemplateSpec() corev1.PodTemplateSpec {
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
 	terminationGracePeriod := defaultGracePeriodTimeoutSeconds
-
-	return &appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName("server"),
-			Namespace: builder.Instance.Namespace,
-		},
-		Spec: appsv1.StatefulSetSpec{
-			ServiceName: builder.Instance.ChildResourceName(headlessServiceName),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: metadata.LabelSelector(builder.Instance.Name),
+	return corev1.PodTemplateSpec{
+		Spec: corev1.PodSpec{
+			SecurityContext: &corev1.PodSecurityContext{
+				FSGroup:    &rabbitmqGID,
+				RunAsGroup: &rabbitmqGID,
+				RunAsUser:  &rabbitmqUID,
 			},
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					SecurityContext: &corev1.PodSecurityContext{
-						FSGroup:    &rabbitmqGID,
-						RunAsGroup: &rabbitmqGID,
-						RunAsUser:  &rabbitmqUID,
+			TerminationGracePeriodSeconds: &terminationGracePeriod,
+			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
+			AutomountServiceAccountToken:  &automountServiceAccountToken,
+			InitContainers: []corev1.Container{
+				{
+					Name: "copy-config",
+					Command: []string{
+						"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
+							"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
+							"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
+							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
 					},
-					TerminationGracePeriodSeconds: &terminationGracePeriod,
-					ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
-					AutomountServiceAccountToken:  &automountServiceAccountToken,
-					InitContainers: []corev1.Container{
+					VolumeMounts: []corev1.VolumeMount{
 						{
-							Name: "copy-config",
-							Command: []string{
-								"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
-									"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
-									"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
-									"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "server-conf",
-									MountPath: "/tmp/rabbitmq/",
-								},
-								{
-									Name:      "rabbitmq-etc",
-									MountPath: "/etc/rabbitmq/",
-								},
-								{
-									Name:      "rabbitmq-erlang-cookie",
-									MountPath: "/var/lib/rabbitmq/",
-								},
-								{
-									Name:      "erlang-cookie-secret",
-									MountPath: "/tmp/erlang-cookie-secret/",
+							Name:      "server-conf",
+							MountPath: "/tmp/rabbitmq/",
+						},
+						{
+							Name:      "rabbitmq-etc",
+							MountPath: "/etc/rabbitmq/",
+						},
+						{
+							Name:      "rabbitmq-erlang-cookie",
+							MountPath: "/var/lib/rabbitmq/",
+						},
+						{
+							Name:      "erlang-cookie-secret",
+							MountPath: "/tmp/erlang-cookie-secret/",
+						},
+					},
+				},
+			},
+			Containers: []corev1.Container{
+				{
+					Name: "rabbitmq",
+					Env: []corev1.EnvVar{
+						{
+							Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+							Value: "/opt/server-conf/enabled_plugins",
+						},
+						{
+							Name:  "RABBITMQ_DEFAULT_PASS_FILE",
+							Value: "/opt/rabbitmq-secret/password",
+						},
+						{
+							Name:  "RABBITMQ_DEFAULT_USER_FILE",
+							Value: "/opt/rabbitmq-secret/username",
+						},
+						{
+							Name:  "RABBITMQ_MNESIA_BASE",
+							Value: "/var/lib/rabbitmq/db",
+						},
+						{
+							Name: "MY_POD_NAME",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath:  "metadata.name",
+									APIVersion: "v1",
 								},
 							},
 						},
-					},
-					Containers: []corev1.Container{
 						{
-							Name: "rabbitmq",
-							Env: []corev1.EnvVar{
-								{
-									Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
-									Value: "/opt/server-conf/enabled_plugins",
-								},
-								{
-									Name:  "RABBITMQ_DEFAULT_PASS_FILE",
-									Value: "/opt/rabbitmq-secret/password",
-								},
-								{
-									Name:  "RABBITMQ_DEFAULT_USER_FILE",
-									Value: "/opt/rabbitmq-secret/username",
-								},
-								{
-									Name:  "RABBITMQ_MNESIA_BASE",
-									Value: "/var/lib/rabbitmq/db",
-								},
-								{
-									Name: "MY_POD_NAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath:  "metadata.name",
-											APIVersion: "v1",
-										},
-									},
-								},
-								{
-									Name: "MY_POD_NAMESPACE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath:  "metadata.namespace",
-											APIVersion: "v1",
-										},
-									},
-								},
-								{
-									Name:  "K8S_SERVICE_NAME",
-									Value: builder.Instance.ChildResourceName("headless"),
-								},
-								{
-									Name:  "RABBITMQ_USE_LONGNAME",
-									Value: "true",
-								},
-								{
-									Name:  "RABBITMQ_NODENAME",
-									Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
-								},
-								{
-									Name:  "K8S_HOSTNAME_SUFFIX",
-									Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
+							Name: "MY_POD_NAMESPACE",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath:  "metadata.namespace",
+									APIVersion: "v1",
 								},
 							},
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          "epmd",
-									ContainerPort: 4369,
-								},
-								{
-									Name:          "amqp",
-									ContainerPort: 5672,
-								},
-								{
-									Name:          "http",
-									ContainerPort: 15672,
-								},
-								{
-									Name:          "prometheus",
-									ContainerPort: 15692,
-								},
+						},
+						{
+							Name:  "K8S_SERVICE_NAME",
+							Value: builder.Instance.ChildResourceName("headless"),
+						},
+						{
+							Name:  "RABBITMQ_USE_LONGNAME",
+							Value: "true",
+						},
+						{
+							Name:  "RABBITMQ_NODENAME",
+							Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
+						},
+						{
+							Name:  "K8S_HOSTNAME_SUFFIX",
+							Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
+						},
+					},
+					Ports: []corev1.ContainerPort{
+						{
+							Name:          "epmd",
+							ContainerPort: 4369,
+						},
+						{
+							Name:          "amqp",
+							ContainerPort: 5672,
+						},
+						{
+							Name:          "http",
+							ContainerPort: 15672,
+						},
+						{
+							Name:          "prometheus",
+							ContainerPort: 15692,
+						},
+					},
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      "server-conf",
+							MountPath: "/opt/server-conf/",
+						},
+						{
+							Name:      "rabbitmq-admin",
+							MountPath: "/opt/rabbitmq-secret/",
+						},
+						{
+							Name:      "persistence",
+							MountPath: "/var/lib/rabbitmq/db/",
+						},
+						{
+							Name:      "rabbitmq-etc",
+							MountPath: "/etc/rabbitmq/",
+						},
+						{
+							Name:      "rabbitmq-erlang-cookie",
+							MountPath: "/var/lib/rabbitmq/",
+						},
+					},
+					ReadinessProbe: &corev1.Probe{
+						Handler: corev1.Handler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"/bin/sh", "-c", "rabbitmq-diagnostics check_port_connectivity"},
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "server-conf",
-									MountPath: "/opt/server-conf/",
-								},
-								{
-									Name:      "rabbitmq-admin",
-									MountPath: "/opt/rabbitmq-secret/",
-								},
-								{
-									Name:      "persistence",
-									MountPath: "/var/lib/rabbitmq/db/",
-								},
-								{
-									Name:      "rabbitmq-etc",
-									MountPath: "/etc/rabbitmq/",
-								},
-								{
-									Name:      "rabbitmq-erlang-cookie",
-									MountPath: "/var/lib/rabbitmq/",
-								},
-							},
-							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									Exec: &corev1.ExecAction{
-										Command: []string{"/bin/sh", "-c", "rabbitmq-diagnostics check_port_connectivity"},
-									},
-								},
-								InitialDelaySeconds: 10,
-								TimeoutSeconds:      5,
-								PeriodSeconds:       30,
-								SuccessThreshold:    1,
-								FailureThreshold:    3,
-							},
-							Lifecycle: &corev1.Lifecycle{
-								PreStop: &corev1.Handler{
-									Exec: &corev1.ExecAction{
-										Command: []string{
-											"/bin/bash", "-c", "while true; do rabbitmq-queues check_if_node_is_quorum_critical" +
-												" 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi;" +
-												" rabbitmq-queues check_if_node_is_mirror_sync_critical" +
-												" 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break;" +
-												" done",
-										},
-									},
+						},
+						InitialDelaySeconds: 10,
+						TimeoutSeconds:      5,
+						PeriodSeconds:       30,
+						SuccessThreshold:    1,
+						FailureThreshold:    3,
+					},
+					Lifecycle: &corev1.Lifecycle{
+						PreStop: &corev1.Handler{
+							Exec: &corev1.ExecAction{
+								Command: []string{
+									"/bin/bash", "-c", "while true; do rabbitmq-queues check_if_node_is_quorum_critical" +
+										" 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi;" +
+										" rabbitmq-queues check_if_node_is_mirror_sync_critical" +
+										" 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break;" +
+										" done",
 								},
 							},
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "rabbitmq-admin",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: builder.Instance.ChildResourceName(adminSecretName),
-									Items: []corev1.KeyToPath{
-										{
-											Key:  "username",
-											Path: "username",
-										},
-										{
-											Key:  "password",
-											Path: "password",
-										},
-									},
+				},
+			},
+			Volumes: []corev1.Volume{
+				{
+					Name: "rabbitmq-admin",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: builder.Instance.ChildResourceName(adminSecretName),
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "username",
+									Path: "username",
+								},
+								{
+									Key:  "password",
+									Path: "password",
 								},
 							},
 						},
-						{
-							Name: "server-conf",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: builder.Instance.ChildResourceName(serverConfigMapName),
-									},
-								},
+					},
+				},
+				{
+					Name: "server-conf",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: builder.Instance.ChildResourceName(serverConfigMapName),
 							},
 						},
-						{
-							Name: "rabbitmq-etc",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
-						},
-						{
-							Name: "rabbitmq-erlang-cookie",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
-						},
-						{
-							Name: "erlang-cookie-secret",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: builder.Instance.ChildResourceName(erlangCookieName),
-								},
-							},
+					},
+				},
+				{
+					Name: "rabbitmq-etc",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+				{
+					Name: "rabbitmq-erlang-cookie",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+				{
+					Name: "erlang-cookie-secret",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: builder.Instance.ChildResourceName(erlangCookieName),
 						},
 					},
 				},
