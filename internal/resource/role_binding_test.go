@@ -31,7 +31,7 @@ var _ = Describe("RoleBinding", func() {
 		roleBindingBuilder = builder.RoleBinding()
 	})
 
-	Context("Build with defaults", func() {
+	Context("Build", func() {
 		BeforeEach(func() {
 			obj, err := roleBindingBuilder.Build()
 			roleBinding = obj.(*rbacv1.RoleBinding)
@@ -41,74 +41,10 @@ var _ = Describe("RoleBinding", func() {
 		It("generates a correct roleBinding", func() {
 			Expect(roleBinding.Namespace).To(Equal(builder.Instance.Namespace))
 			Expect(roleBinding.Name).To(Equal(builder.Instance.ChildResourceName("server")))
-
-			Expect(len(roleBinding.Subjects)).To(Equal(1))
-			subject := roleBinding.Subjects[0]
-
-			Expect(subject.Kind).To(Equal("ServiceAccount"))
-			Expect(subject.Name).To(Equal(builder.Instance.ChildResourceName("server")))
-
-			Expect(roleBinding.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
-			Expect(roleBinding.RoleRef.Kind).To(Equal("Role"))
-			Expect(roleBinding.RoleRef.Name).To(Equal(builder.Instance.ChildResourceName("endpoint-discovery")))
-		})
-
-		It("only creates the required labels", func() {
-			labels := roleBinding.Labels
-			Expect(len(labels)).To(Equal(3))
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
 		})
 	})
 
-	Context("Build with instance labels", func() {
-		BeforeEach(func() {
-			instance.Labels = map[string]string{
-				"app.kubernetes.io/foo": "bar",
-				"foo":                   "bar",
-				"rabbitmq":              "is-great",
-				"foo/app.kubernetes.io": "edgecase",
-			}
-
-			obj, err := roleBindingBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			roleBinding = obj.(*rbacv1.RoleBinding)
-		})
-
-		It("has the labels from the CRD on the roleBinding", func() {
-			testLabels(roleBinding.Labels)
-		})
-
-		It("also has the required labels", func() {
-			labels := roleBinding.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-	})
-
-	Context("Build with instance annotations", func() {
-		BeforeEach(func() {
-			instance.Annotations = map[string]string{
-				"my-annotation":              "i-like-this",
-				"kubernetes.io/name":         "i-do-not-like-this",
-				"kubectl.kubernetes.io/name": "i-do-not-like-this",
-				"k8s.io/name":                "i-do-not-like-this",
-			}
-
-			obj, err := roleBindingBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			roleBinding = obj.(*rbacv1.RoleBinding)
-		})
-
-		It("has the annotations from the CRD on the role binding", func() {
-			expectedAnnotations := map[string]string{"my-annotation": "i-like-this"}
-			Expect(roleBinding.Annotations).To(Equal(expectedAnnotations))
-		})
-	})
-
-	Context("Update with instance labels", func() {
+	Context("Update", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
