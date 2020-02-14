@@ -265,23 +265,51 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	var err error
 
-	EventuallyWithOffset(1, func() []byte {
+	EventuallyWithOffset(1, func() string {
 		output, err := kubectl(
 			"-n",
 			cluster.Namespace,
 			"get",
 			"rabbitmqclusters",
 			cluster.Name,
-			"-o=jsonpath='{.status.clusterStatus}'",
+			"-ojsonpath='{.status.conditions[?(@.type==\"AllNodesAvailable\")].status}'",
 		)
 
 		if err != nil {
 			Expect(string(output)).To(ContainSubstring("not found"))
 		}
 
-		return output
+		return string(output)
+	}, podCreationTimeout, 1).Should(Equal("'True'"))
 
-	}, podCreationTimeout, 1).Should(ContainSubstring("running"))
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+}
+
+func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	var err error
+
+	EventuallyWithOffset(1, func() string {
+		svc, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
+
+		if err != nil {
+			Expect(err).To(MatchError("not found"))
+			return ""
+		}
+
+		if len(svc.Status.LoadBalancer.Ingress) == 0 || svc.Status.LoadBalancer.Ingress[0].IP == "" {
+			return ""
+		}
+
+		endpoints, _ := clientSet.CoreV1().Endpoints(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
+
+		for _, e := range endpoints.Subsets {
+			if len(e.NotReadyAddresses) > 0 || int32(len(e.Addresses)) != cluster.Spec.Replicas {
+				return ""
+			}
+		}
+
+		return svc.Status.LoadBalancer.Ingress[0].IP
+	}, podCreationTimeout, 1).ShouldNot(BeEmpty())
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 }

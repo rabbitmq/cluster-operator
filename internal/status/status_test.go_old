@@ -1,0 +1,158 @@
+package status_test
+
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+)
+
+var _ = XDescribe("Status", func() {
+
+	Context("Build", func() {
+		var (
+			statusBuilder status.StatusBuilder
+			clusterStatus rabbitmqv1beta1.RabbitmqClusterStatus
+			resources     []runtime.Object
+		)
+
+		BeforeEach(func() {
+			sts := &appsv1.StatefulSet{
+				Status: appsv1.StatefulSetStatus{
+					Replicas:        3,
+					ReadyReplicas:   3,
+					CurrentReplicas: 3,
+					UpdatedReplicas: 3,
+				},
+			}
+
+			endpoints := &corev1.Endpoints{
+				Subsets: []corev1.EndpointSubset{
+					{
+						Addresses: []corev1.EndpointAddress{
+							{
+								IP: "1.2.3.4",
+							},
+							{
+								IP: "5.6.7.8",
+							},
+							{
+								IP: "9.8.7.6",
+							},
+						},
+					},
+				},
+			}
+
+			resources = []runtime.Object{
+				sts,
+				endpoints,
+			}
+
+		})
+
+		It("works", func() {
+			var err error
+			statusBuilder = status.NewStatusBuilder(resources)
+
+			clusterStatus, err = statusBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+
+			conditions := clusterStatus.Conditions
+
+			By("having the required length", func() {
+				Expect(conditions).To(HaveLen(2))
+			})
+
+			By("having the expected order", func() {
+				Expect(string(conditions[0].Type)).To(Equal("AllNodesAvailable"))
+				Expect(string(conditions[1].Type)).To(Equal("ClusterAvailable"))
+			})
+
+			// By("having a transition time", func() {
+			// 	Expect(conditions[0].LastTransitionTime).ToNot(Equal(metav1.Time{}))
+			// 	Expect(conditions[1].LastTransitionTime).ToNot(Equal(metav1.Time{}))
+			// })
+
+			By("having a reason", func() {
+				Expect(conditions[0].Reason).NotTo(BeEmpty())
+				Expect(conditions[1].Reason).NotTo(BeEmpty())
+			})
+		})
+
+		XWhen("one replica is not ready", func() {
+			BeforeEach(func() {
+				sts := &appsv1.StatefulSet{
+					Status: appsv1.StatefulSetStatus{
+						Replicas:        3,
+						ReadyReplicas:   2,
+						CurrentReplicas: 2,
+						UpdatedReplicas: 2,
+					},
+				}
+
+				endpoints := &corev1.Endpoints{
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{
+								{
+									IP: "1.2.3.4",
+								},
+								{
+									IP: "5.6.7.8",
+								},
+							},
+						},
+					},
+				}
+
+				resources := []runtime.Object{
+					sts,
+					endpoints,
+				}
+
+				var err error
+				statusBuilder = status.NewStatusBuilder(resources)
+				Expect(err).NotTo(HaveOccurred())
+				clusterStatus, err = statusBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("sets all nodes available condition", func() {
+				conditions := clusterStatus.Conditions
+
+				By("setting false status and non-empty message", func() {
+					Expect(conditions[0].Status).To(Equal(corev1.ConditionFalse))
+					Expect(conditions[0].Message).ToNot(BeEmpty())
+				})
+
+				By("setting a reason", func() {
+					expectedReason := "OneOrMoreNodesUnavailable"
+					Expect(conditions[0].Reason).To(Equal(expectedReason))
+				})
+			})
+
+			It("sets cluster available condition", func() {
+				conditions := clusterStatus.Conditions
+
+				By("setting 'true' status and empty message", func() {
+					Expect(conditions[1].Status).To(Equal(corev1.ConditionTrue))
+					Expect(conditions[1].Message).To(BeEmpty())
+				})
+
+				By("setting a reason", func() {
+					// TODO revisit
+					expectedReason := "EnoughQuorumAvailable"
+					Expect(conditions[1].Reason).To(Equal(expectedReason))
+				})
+
+			})
+
+		})
+	})
+
+})
