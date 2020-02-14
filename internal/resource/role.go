@@ -40,17 +40,8 @@ func (builder *RoleBuilder) Update(object runtime.Object) error {
 func (builder *RoleBuilder) Build() (runtime.Object, error) {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   builder.Instance.Namespace,
-			Name:        builder.Instance.ChildResourceName(roleName),
-			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.ReconcileAnnotations(map[string]string{}, builder.Instance.Annotations),
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups: []string{""},
-				Resources: []string{"endpoints"},
-				Verbs:     []string{"get"},
-			},
+			Namespace: builder.Instance.Namespace,
+			Name:      builder.Instance.ChildResourceName(roleName),
 		},
 	}, nil
 }

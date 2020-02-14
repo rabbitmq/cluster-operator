@@ -41,68 +41,6 @@ var _ = Describe("Role", func() {
 		It("generates a correct role", func() {
 			Expect(role.Namespace).To(Equal(builder.Instance.Namespace))
 			Expect(role.Name).To(Equal(instance.ChildResourceName("endpoint-discovery")))
-
-			Expect(len(role.Rules)).To(Equal(1))
-
-			rule := role.Rules[0]
-			Expect(rule.APIGroups).To(Equal([]string{""}))
-			Expect(rule.Resources).To(Equal([]string{"endpoints"}))
-			Expect(rule.Verbs).To(Equal([]string{"get"}))
-		})
-
-		It("only creates the required labels", func() {
-			labels := role.Labels
-			Expect(len(labels)).To(Equal(3))
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-	})
-
-	Context("Build with instance labels", func() {
-		BeforeEach(func() {
-			instance.Labels = map[string]string{
-				"app.kubernetes.io/foo": "bar",
-				"foo":                   "bar",
-				"rabbitmq":              "is-great",
-				"foo/app.kubernetes.io": "edgecase",
-			}
-
-			obj, err := roleBuilder.Build()
-			role = obj.(*rbacv1.Role)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("has the labels from the CRD on the role", func() {
-			testLabels(role.Labels)
-		})
-
-		It("also has the required labels", func() {
-			labels := role.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-	})
-
-	Context("Build with instance annotations", func() {
-		BeforeEach(func() {
-			instance.Annotations = map[string]string{
-				"my-annotation":              "i-like-this",
-				"kubernetes.io/name":         "i-do-not-like-this",
-				"kubectl.kubernetes.io/name": "i-do-not-like-this",
-				"k8s.io/name":                "i-do-not-like-this",
-			}
-
-			obj, err := roleBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			role = obj.(*rbacv1.Role)
-		})
-
-		It("has the annotations from the CRD on the role", func() {
-			expectedAnnotations := map[string]string{"my-annotation": "i-like-this"}
-
-			Expect(role.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 
