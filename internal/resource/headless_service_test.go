@@ -27,7 +27,7 @@ var _ = Describe("HeadlessService", func() {
 		serviceBuilder = cluster.HeadlessService()
 	})
 
-	Context("Build with defaults", func() {
+	Context("Build", func() {
 		BeforeEach(func() {
 			obj, _ := serviceBuilder.Build()
 			service = obj.(*corev1.Service)
@@ -38,71 +38,6 @@ var _ = Describe("HeadlessService", func() {
 
 		It("generates a service object with the correct namespace", func() {
 			Expect(service.Namespace).To(Equal(instance.Namespace))
-		})
-
-		It("generates a service object with the correct label", func() {
-			labels := service.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-
-		It("generates a service object with the correct selector", func() {
-			Expect(service.Spec.Selector["app.kubernetes.io/name"]).To(Equal(instance.Name))
-		})
-
-		It("generates a headless service object", func() {
-			Expect(service.Spec.ClusterIP).To(Equal("None"))
-		})
-
-		It("generates a service object with the right ports exposed", func() {
-			epmdPort := corev1.ServicePort{
-				Name:     "epmd",
-				Port:     4369,
-				Protocol: corev1.ProtocolTCP,
-			}
-			Expect(service.Spec.Ports).Should(ConsistOf(epmdPort))
-		})
-
-	})
-
-	Context("Build with instance labels", func() {
-		BeforeEach(func() {
-			instance.Labels = map[string]string{
-				"app.kubernetes.io/foo": "bar",
-				"foo":                   "bar",
-				"rabbitmq":              "is-great",
-				"foo/app.kubernetes.io": "edgecase",
-			}
-			obj, _ := serviceBuilder.Build()
-			service = obj.(*corev1.Service)
-		})
-
-		It("has the labels from the CRD on the headless service", func() {
-			testLabels(service.Labels)
-		})
-	})
-
-	Context("Build with instance annotations", func() {
-		BeforeEach(func() {
-			instance.Annotations = map[string]string{
-				"my-annotation":              "i-like-this",
-				"kubernetes.io/name":         "i-do-not-like-this",
-				"kubectl.kubernetes.io/name": "i-do-not-like-this",
-				"k8s.io/name":                "i-do-not-like-this",
-			}
-
-			obj, err := serviceBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			service = obj.(*corev1.Service)
-		})
-
-		It("has the annotations from the CRD on the headless service", func() {
-			expectedAnnotations := map[string]string{
-				"my-annotation": "i-like-this",
-			}
-
-			Expect(service.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 

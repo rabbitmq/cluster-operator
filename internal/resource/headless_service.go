@@ -44,21 +44,8 @@ func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
 func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        builder.Instance.ChildResourceName(headlessServiceName),
-			Namespace:   builder.Instance.Namespace,
-			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.ReconcileAnnotations(map[string]string{}, builder.Instance.Annotations),
-		},
-		Spec: corev1.ServiceSpec{
-			ClusterIP: "None",
-			Selector:  metadata.LabelSelector(builder.Instance.Name),
-			Ports: []corev1.ServicePort{
-				{
-					Protocol: corev1.ProtocolTCP,
-					Port:     4369,
-					Name:     "epmd",
-				},
-			},
+			Name:      builder.Instance.ChildResourceName(headlessServiceName),
+			Namespace: builder.Instance.Namespace,
 		},
 	}, nil
 }
