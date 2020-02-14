@@ -78,6 +78,16 @@ var _ = Describe("StatefulSet", func() {
 			Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 		})
 
+		It("sets the owner reference", func() {
+			stsBuilder := cluster.StatefulSet()
+			obj, err := stsBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			statefulSet := obj.(*appsv1.StatefulSet)
+
+			Expect(len(statefulSet.OwnerReferences)).To(Equal(1))
+			Expect(statefulSet.OwnerReferences[0].Name).To(Equal(cluster.Instance.Name))
+		})
+
 		It("creates the PersistentVolume template according to configurations in the  instance", func() {
 			storage := k8sresource.MustParse("21Gi")
 			instance.Spec.Persistence.Storage = &storage
@@ -383,14 +393,6 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(1)))
-		})
-
-		It("sets the owner reference", func() {
-			stsBuilder := cluster.StatefulSet()
-			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-			Expect(len(statefulSet.OwnerReferences)).To(Equal(1))
-			Expect(statefulSet.OwnerReferences[0].Name).To(Equal(cluster.Instance.Name))
 		})
 
 		It("has resources requirements on the init container", func() {

@@ -43,7 +43,7 @@ func (builder *StatefulSetBuilder) statefulSet() (*appsv1.StatefulSet, error) {
 		return nil, err
 	}
 
-	return &appsv1.StatefulSet{
+	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName("server"),
 			Namespace: builder.Instance.Namespace,
@@ -55,7 +55,13 @@ func (builder *StatefulSetBuilder) statefulSet() (*appsv1.StatefulSet, error) {
 			},
 			VolumeClaimTemplates: pvc,
 		},
-	}, nil
+	}
+
+	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
+		return nil, fmt.Errorf("failed setting controller reference: %v", err)
+	}
+
+	return sts, nil
 }
 
 func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
@@ -85,13 +91,9 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 }
 
 func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
-	var err error
 	sts := object.(*appsv1.StatefulSet)
 
 	// TODO Shouldn't have to do on update
-	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
-	}
 	//Replicas
 	replicas := builder.Instance.Spec.Replicas
 	sts.Spec.Replicas = &replicas
@@ -104,10 +106,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	sts.Labels = updatedLabels
 
-	sts.Spec.Template, err = builder.podTemplateSpec(podAnnotations, updatedLabels)
-	if err != nil {
-		return err
-	}
+	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels)
 
 	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
 		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
@@ -117,16 +116,10 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) (corev1.PodTemplateSpec, error) {
+func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) corev1.PodTemplateSpec {
 	//Init Container resources
-	cpuRequest, err := k8sresource.ParseQuantity(initContainerCPU)
-	if err != nil {
-		return corev1.PodTemplateSpec{}, err
-	}
-	memoryRequest, err := k8sresource.ParseQuantity(initContainerMemory)
-	if err != nil {
-		return corev1.PodTemplateSpec{}, err
-	}
+	cpuRequest := k8sresource.MustParse(initContainerCPU)
+	memoryRequest := k8sresource.MustParse(initContainerMemory)
 
 	//Image Pull Secret
 	imagePullSecrets := []corev1.LocalObjectReference{}
@@ -372,5 +365,5 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				},
 			},
 		},
-	}, nil
+	}
 }
