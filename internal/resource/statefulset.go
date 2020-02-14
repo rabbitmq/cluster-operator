@@ -3,16 +3,15 @@ package resource
 import (
 	"fmt"
 
+	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -59,80 +58,6 @@ func (builder *StatefulSetBuilder) statefulSet() (*appsv1.StatefulSet, error) {
 	}, nil
 }
 
-func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
-	sts := object.(*appsv1.StatefulSet)
-	podAnnotations := metadata.ReconcileAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations)
-	annotations := metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
-	sts.Spec.Template = builder.podTemplateSpec()
-	sts.Spec.Template.ObjectMeta.Annotations = podAnnotations
-	sts.Annotations = annotations
-	return builder.setStatefulSetParams(sts)
-}
-
-func (builder *StatefulSetBuilder) setStatefulSetParams(sts *appsv1.StatefulSet) error {
-
-	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
-	}
-
-	//Labels
-	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	sts.Labels = updatedLabels
-	sts.Spec.Template.ObjectMeta.Labels = updatedLabels
-
-	//Spec
-
-	//Replicas
-	replicas := builder.Instance.Spec.Replicas
-	sts.Spec.Replicas = &replicas
-
-	//Init Container resources
-	cpuRequest, err := k8sresource.ParseQuantity(initContainerCPU)
-	if err != nil {
-		return err
-	}
-	memoryRequest, err := k8sresource.ParseQuantity(initContainerMemory)
-	if err != nil {
-		return err
-	}
-
-	//Template
-
-	//Container resources
-	sts.Spec.Template.Spec.InitContainers[0].Resources = corev1.ResourceRequirements{
-		Limits: map[corev1.ResourceName]k8sresource.Quantity{
-			"cpu":    cpuRequest,
-			"memory": memoryRequest,
-		},
-		Requests: map[corev1.ResourceName]k8sresource.Quantity{
-			"cpu":    cpuRequest,
-			"memory": memoryRequest,
-		},
-	}
-
-	sts.Spec.Template.Spec.Containers[0].Resources = *builder.Instance.Spec.Resources
-	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
-		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
-		logger.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.GetName()))
-	}
-
-	// Container images
-	sts.Spec.Template.Spec.InitContainers[0].Image = builder.Instance.Spec.Image
-	sts.Spec.Template.Spec.Containers[0].Image = builder.Instance.Spec.Image
-
-	//Image Pull Secret
-	sts.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{}
-	if builder.Instance.Spec.ImagePullSecret != "" {
-		sts.Spec.Template.Spec.ImagePullSecrets = append(sts.Spec.Template.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: builder.Instance.Spec.ImagePullSecret})
-	}
-
-	//Affinity & Tolerations
-	sts.Spec.Template.Spec.Affinity = builder.Instance.Spec.Affinity
-	sts.Spec.Template.Spec.Tolerations = builder.Instance.Spec.Tolerations
-
-	return nil
-}
-
 func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -159,30 +84,98 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 	return []corev1.PersistentVolumeClaim{pvc}, nil
 }
 
-func (builder *StatefulSetBuilder) podTemplateSpec() corev1.PodTemplateSpec {
+func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
+	var err error
+	sts := object.(*appsv1.StatefulSet)
+
+	// TODO Shouldn't have to do on update
+	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
+	//Replicas
+	replicas := builder.Instance.Spec.Replicas
+	sts.Spec.Replicas = &replicas
+
+	//Annotations
+	sts.Annotations = metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
+	podAnnotations := metadata.ReconcileAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations)
+
+	//Labels
+	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
+	sts.Labels = updatedLabels
+
+	sts.Spec.Template, err = builder.podTemplateSpec(podAnnotations, updatedLabels)
+	if err != nil {
+		return err
+	}
+
+	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
+		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
+		logger.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.GetName()))
+	}
+
+	return nil
+}
+
+func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) (corev1.PodTemplateSpec, error) {
+	//Init Container resources
+	cpuRequest, err := k8sresource.ParseQuantity(initContainerCPU)
+	if err != nil {
+		return corev1.PodTemplateSpec{}, err
+	}
+	memoryRequest, err := k8sresource.ParseQuantity(initContainerMemory)
+	if err != nil {
+		return corev1.PodTemplateSpec{}, err
+	}
+
+	//Image Pull Secret
+	imagePullSecrets := []corev1.LocalObjectReference{}
+	if builder.Instance.Spec.ImagePullSecret != "" {
+		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: builder.Instance.Spec.ImagePullSecret})
+	}
+
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
 	terminationGracePeriod := defaultGracePeriodTimeoutSeconds
+
 	return corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: annotations,
+			Labels:      labels,
+		},
 		Spec: corev1.PodSpec{
 			SecurityContext: &corev1.PodSecurityContext{
 				FSGroup:    &rabbitmqGID,
 				RunAsGroup: &rabbitmqGID,
 				RunAsUser:  &rabbitmqUID,
 			},
+			ImagePullSecrets:              imagePullSecrets,
 			TerminationGracePeriodSeconds: &terminationGracePeriod,
 			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
 			AutomountServiceAccountToken:  &automountServiceAccountToken,
+			Affinity:                      builder.Instance.Spec.Affinity,
+			Tolerations:                   builder.Instance.Spec.Tolerations,
 			InitContainers: []corev1.Container{
 				{
-					Name: "copy-config",
+					Name:  "copy-config",
+					Image: builder.Instance.Spec.Image,
 					Command: []string{
 						"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
 							"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
+					},
+					Resources: corev1.ResourceRequirements{
+						Limits: map[corev1.ResourceName]k8sresource.Quantity{
+							"cpu":    cpuRequest,
+							"memory": memoryRequest,
+						},
+						Requests: map[corev1.ResourceName]k8sresource.Quantity{
+							"cpu":    cpuRequest,
+							"memory": memoryRequest,
+						},
 					},
 					VolumeMounts: []corev1.VolumeMount{
 						{
@@ -206,7 +199,9 @@ func (builder *StatefulSetBuilder) podTemplateSpec() corev1.PodTemplateSpec {
 			},
 			Containers: []corev1.Container{
 				{
-					Name: "rabbitmq",
+					Name:      "rabbitmq",
+					Resources: *builder.Instance.Spec.Resources,
+					Image:     builder.Instance.Spec.Image,
 					Env: []corev1.EnvVar{
 						{
 							Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
@@ -377,5 +372,5 @@ func (builder *StatefulSetBuilder) podTemplateSpec() corev1.PodTemplateSpec {
 				},
 			},
 		},
-	}
+	}, nil
 }
