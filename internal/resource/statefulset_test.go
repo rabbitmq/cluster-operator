@@ -203,6 +203,20 @@ var _ = Describe("StatefulSet", func() {
 			Expect(statefulSet.Spec.Template.Spec.Affinity).To(Equal(affinity))
 		})
 
+		It("specifies the upgrade policy", func() {
+			stsBuilder := cluster.StatefulSet()
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			zero := int32(0)
+			updateStrategy := appsv1.StatefulSetUpdateStrategy{
+				RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+					Partition: &zero,
+				},
+				Type: appsv1.RollingUpdateStatefulSetStrategyType,
+			}
+
+			Expect(statefulSet.Spec.UpdateStrategy).To(Equal(updateStrategy))
+		})
+
 		It("updates tolerations", func() {
 			newToleration := corev1.Toleration{
 				Key:      "update",

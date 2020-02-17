@@ -93,10 +93,18 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	sts := object.(*appsv1.StatefulSet)
 
-	// TODO Shouldn't have to do on update
 	//Replicas
 	replicas := builder.Instance.Spec.Replicas
 	sts.Spec.Replicas = &replicas
+
+	//Update Strategy
+	zero := int32(0)
+	sts.Spec.UpdateStrategy = appsv1.StatefulSetUpdateStrategy{
+		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+			Partition: &zero,
+		},
+		Type: appsv1.RollingUpdateStatefulSetStrategyType,
+	}
 
 	//Annotations
 	sts.Annotations = metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
