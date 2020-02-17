@@ -150,8 +150,11 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services, and local-pat
 	@kubectl delete -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
 	@kubectl delete -f https://raw.githubusercontent.com/danderson/metallb/v0.8.1/manifests/metallb.yaml
 
-system-tests:  ## Run system tests
+system-tests:
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
+
+smoke-test:
+	NAMESPACE="pivotal-rabbitmq-system" ginkgo --focus="Publish and consume a message" -r system_tests/
 
 DOCKER_REGISTRY_SECRET=p-rmq-registry-access
 DOCKER_REGISTRY_SERVER=registry.pivotal.io

@@ -16,11 +16,9 @@ import (
 )
 
 const (
-	podCreationTimeout     = 360 * time.Second
-	serviceCreationTimeout = 10 * time.Second
-	ingressServiceSuffix   = "ingress"
-	statefulSetSuffix      = "server"
-	configMapSuffix        = "server-conf"
+	podCreationTimeout   = 360 * time.Second
+	ingressServiceSuffix = "ingress"
+	statefulSetSuffix    = "server"
 )
 
 var _ = Describe("Operator", func() {
@@ -35,7 +33,7 @@ var _ = Describe("Operator", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("Initial RabbitmqCluster setup", func() {
+	Context("Publish and consume a message", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
@@ -92,30 +90,46 @@ var _ = Describe("Operator", func() {
 
 				Expect(err).NotTo(HaveOccurred())
 			})
+		})
+	})
 
+	Context("Persistence", func() {
+		var (
+			cluster  *rabbitmqv1beta1.RabbitmqCluster
+			hostname string
+			username string
+			password string
+		)
+
+		BeforeEach(func() {
+			cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
+			cluster.Spec.Service.Type = "LoadBalancer"
+			cluster.Spec.Image = "registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq:latest"
+			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
+			cluster.Spec.Resources = &corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
+				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+			}
+			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
+
+			waitForRabbitmqRunning(cluster)
+
+			hostname = rabbitmqHostname(clientSet, cluster)
+
+			var err error
+			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+			assertHttpReady(hostname)
+		})
+
+		AfterEach(func() {
+			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
+		})
+
+		It("persists messages after pod deletion", func() {
 			By("publishing a message", func() {
 				err := rabbitmqPublishToNewQueue(hostname, username, password)
 				Expect(err).NotTo(HaveOccurred())
-			})
-
-			By("updating the CR status correctly", func() {
-				Expect(clientSet.CoreV1().Pods(namespace).Delete(statefulSetPodName(cluster, 0), &metav1.DeleteOptions{})).NotTo(HaveOccurred())
-
-				Eventually(func() []byte {
-					output, err := kubectl(
-						"-n",
-						cluster.Namespace,
-						"get",
-						"rabbitmqclusters",
-						cluster.Name,
-						"-o=jsonpath='{.status.clusterStatus}'",
-					)
-					Expect(err).NotTo(HaveOccurred())
-					return output
-
-				}, 20, 1).Should(ContainSubstring("created"))
-
-				waitForRabbitmqRunning(cluster)
 			})
 
 			By("consuming a message after RabbitMQ was restarted", func() {
