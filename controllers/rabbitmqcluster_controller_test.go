@@ -19,7 +19,6 @@ package controllers_test
 import (
 	"context"
 	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -560,6 +559,92 @@ var _ = Describe("RabbitmqclusterController", func() {
 					return sts.Spec.Template.Spec.Affinity
 				}, 1).Should(BeNil())
 			})
+		})
+	})
+
+	Context("Recreate child resources after deletion", func() {
+		var (
+			ingressServiceName  string
+			headlessServiceName string
+			stsName             string
+			configMapName       string
+			namespace           string
+		)
+		BeforeEach(func() {
+			namespace = "rabbitmq-delete"
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-delete",
+					Namespace: namespace,
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas:        1,
+					ImagePullSecret: "rabbit-two-secret",
+				},
+			}
+			ingressServiceName = rabbitmqCluster.ChildResourceName("ingress")
+			headlessServiceName = rabbitmqCluster.ChildResourceName("headless")
+			stsName = rabbitmqCluster.ChildResourceName("server")
+			configMapName = rabbitmqCluster.ChildResourceName("server-conf")
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(rabbitmqCluster, client)
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+		})
+
+		It("recreates child resources after deletion", func() {
+			oldConfMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			oldIngressSvc, err := clientSet.CoreV1().Services(namespace).Get(ingressServiceName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			oldHeadlessSvc, err := clientSet.CoreV1().Services(namespace).Get(headlessServiceName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			oldSts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(clientSet.AppsV1().StatefulSets(namespace).Delete(stsName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().Services(namespace).Delete(ingressServiceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().Services(namespace).Delete(headlessServiceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+
+			Eventually(func() string {
+				sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
+				if err != nil {
+					return err.Error()
+				}
+				return string(sts.UID)
+			}, 10).Should(Not(Equal(oldSts.UID)))
+
+			Eventually(func() string {
+				ingressSvc, err := clientSet.CoreV1().Services(namespace).Get(ingressServiceName, metav1.GetOptions{})
+				if err != nil {
+					return err.Error()
+				}
+				return string(ingressSvc.UID)
+			}, 10).Should(Not(Equal(oldIngressSvc.UID)))
+
+			Eventually(func() string {
+				headlessSvc, err := clientSet.CoreV1().Services(namespace).Get(headlessServiceName, metav1.GetOptions{})
+				if err != nil {
+					return err.Error()
+				}
+				return string(headlessSvc.UID)
+			}, 10).Should(Not(Equal(oldHeadlessSvc.UID)))
+
+			Eventually(func() string {
+				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+				if err != nil {
+					return err.Error()
+				}
+				return string(configMap.UID)
+			}, 10).Should(Not(Equal(oldConfMap.UID)))
+
 		})
 	})
 
