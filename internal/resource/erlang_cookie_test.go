@@ -46,13 +46,6 @@ var _ = Describe("ErlangCookie", func() {
 			Expect(secret.Namespace).To(Equal(instance.Namespace))
 		})
 
-		It("creates the secret required labels", func() {
-			labels := secret.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-
 		It("creates a 'opaque' secret ", func() {
 			Expect(secret.Type).To(Equal(corev1.SecretTypeOpaque))
 		})
@@ -63,52 +56,6 @@ var _ = Describe("ErlangCookie", func() {
 			decodedCookie, err := b64.URLEncoding.DecodeString(string(cookie))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(decodedCookie)).To(Equal(24))
-		})
-	})
-
-	Context("Build with instance labels", func() {
-		BeforeEach(func() {
-			instance.Labels = map[string]string{
-				"app.kubernetes.io/foo": "bar",
-				"foo":                   "bar",
-				"rabbitmq":              "is-great",
-				"foo/app.kubernetes.io": "edgecase",
-			}
-			obj, _ := erlangCookieBuilder.Build()
-			secret = obj.(*corev1.Secret)
-		})
-
-		It("has the labels from the CRD on the erlang cookie secret", func() {
-			testLabels(secret.Labels)
-		})
-
-		It("also has the required labels", func() {
-			labels := secret.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-	})
-
-	Context("Build with instance annotations", func() {
-		BeforeEach(func() {
-			instance.Annotations = map[string]string{
-				"my-annotation":              "i-like-this",
-				"kubernetes.io/name":         "i-do-not-like-this",
-				"kubectl.kubernetes.io/name": "i-do-not-like-this",
-				"k8s.io/name":                "i-do-not-like-this",
-			}
-
-			obj, err := erlangCookieBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			secret = obj.(*corev1.Secret)
-		})
-
-		It("has the annotations from the CRD on the erlang cookie secret", func() {
-			expectedAnnotations := map[string]string{
-				"my-annotation": "i-like-this",
-			}
-			Expect(secret.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
 

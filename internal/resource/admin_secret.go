@@ -42,10 +42,8 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        builder.Instance.ChildResourceName(adminSecretName),
-			Namespace:   builder.Instance.Namespace,
-			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.ReconcileAnnotations(map[string]string{}, builder.Instance.Annotations),
+			Name:      builder.Instance.ChildResourceName(adminSecretName),
+			Namespace: builder.Instance.Namespace,
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{

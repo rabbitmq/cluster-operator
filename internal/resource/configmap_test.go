@@ -71,63 +71,6 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			Expect(ok).To(BeTrue())
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
-
-		It("only creates the required labels", func() {
-			labels := configMap.Labels
-			Expect(len(labels)).To(Equal(3))
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-	})
-
-	Context("Build with instance labels", func() {
-		BeforeEach(func() {
-			instance.Labels = map[string]string{
-				"app.kubernetes.io/foo": "bar",
-				"foo":                   "bar",
-				"rabbitmq":              "is-great",
-				"foo/app.kubernetes.io": "edgecase",
-			}
-
-			obj, err := configMapBuilder.Build()
-			configMap = obj.(*corev1.ConfigMap)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("has the labels from the CRD on the configMap", func() {
-			testLabels(configMap.Labels)
-		})
-
-		It("also has the required labels", func() {
-			labels := configMap.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-	})
-
-	Context("Build with instance annotations", func() {
-		BeforeEach(func() {
-			instance.Annotations = map[string]string{
-				"my-annotation":              "i-like-this",
-				"kubernetes.io/name":         "i-do-not-like-this",
-				"kubectl.kubernetes.io/name": "i-do-not-like-this",
-				"k8s.io/name":                "i-do-not-like-this",
-			}
-
-			obj, err := configMapBuilder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			configMap = obj.(*corev1.ConfigMap)
-		})
-
-		It("has the annotations from the instance on the configMap", func() {
-			expectedAnnotations := map[string]string{
-				"my-annotation": "i-like-this",
-			}
-
-			Expect(configMap.Annotations).To(Equal(expectedAnnotations))
-		})
 	})
 
 	Context("Update", func() {

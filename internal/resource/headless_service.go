@@ -12,14 +12,23 @@ const (
 	headlessServiceName = "headless"
 )
 
+type HeadlessServiceBuilder struct {
+	Instance *rabbitmqv1beta1.RabbitmqCluster
+}
+
 func (builder *RabbitmqResourceBuilder) HeadlessService() *HeadlessServiceBuilder {
 	return &HeadlessServiceBuilder{
 		Instance: builder.Instance,
 	}
 }
 
-type HeadlessServiceBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
+func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      builder.Instance.ChildResourceName(headlessServiceName),
+			Namespace: builder.Instance.Namespace,
+		},
+	}, nil
 }
 
 func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
@@ -39,13 +48,4 @@ func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
 	}
 
 	return nil
-}
-
-func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(headlessServiceName),
-			Namespace: builder.Instance.Namespace,
-		},
-	}, nil
 }
