@@ -19,148 +19,47 @@ var _ = Context("IngressServices", func() {
 		scheme     *runtime.Scheme
 	)
 
-	BeforeEach(func() {
-		scheme = runtime.NewScheme()
-		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
-		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-		instance = generateRabbitmqCluster()
-		rmqBuilder = resource.RabbitmqResourceBuilder{
-			Instance: &instance,
-			Scheme:   scheme,
-		}
-	})
-
-	It("Builds using the values from the CR", func() {
-		serviceBuilder := rmqBuilder.IngressService()
-		obj, err := serviceBuilder.Build()
-		Expect(err).NotTo(HaveOccurred())
-		service := obj.(*corev1.Service)
-
-		By("generates a service object with the correct name and labels", func() {
-			expectedName := instance.ChildResourceName("ingress")
-			Expect(service.Name).To(Equal(expectedName))
-			labels := service.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
-		})
-
-		By("generates a service object with the correct namespace", func() {
-			Expect(service.Namespace).To(Equal(instance.Namespace))
-		})
-
-		By("generates a ClusterIP type service by default", func() {
-			Expect(service.Spec.Type).To(Equal(corev1.ServiceType("this-is-a-service")))
-		})
-
-		By("generates a service object with the correct selector", func() {
-			Expect(service.Spec.Selector["app.kubernetes.io/name"]).To(Equal(instance.Name))
-		})
-
-		By("generates a service object with the correct ports exposed", func() {
-			amqpPort := corev1.ServicePort{
-				Name:     "amqp",
-				Port:     5672,
-				Protocol: corev1.ProtocolTCP,
-			}
-			httpPort := corev1.ServicePort{
-				Name:     "http",
-				Port:     15672,
-				Protocol: corev1.ProtocolTCP,
-			}
-			prometheusPort := corev1.ServicePort{
-				Name:     "prometheus",
-				Port:     15692,
-				Protocol: corev1.ProtocolTCP,
-			}
-			Expect(service.Spec.Ports).Should(ConsistOf(amqpPort, httpPort, prometheusPort))
-		})
-
-		By("generates the service without any annotation", func() {
-			Expect(service.ObjectMeta.Annotations).To(BeEmpty())
-		})
-
-		By("setting the ownerreference", func() {
-			Expect(service.ObjectMeta.OwnerReferences[0].Name).To(Equal("foo"))
-		})
-	})
-
-	Context("Annotations", func() {
-		When("service annotations are specified on the instance", func() {
-			It("generates the service annotations as specified in the RabbitmqCluster spec", func() {
-				serviceAnno := map[string]string{
-					"service_annotation_a":       "0.0.0.0/0",
-					"kubernetes.io/name":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/name": "i-do-not-like-this",
-					"k8s.io/name":                "i-do-not-like-this",
-				}
-				expectedAnnotations := map[string]string{"service_annotation_a": "0.0.0.0/0"}
-				service := getServiceWithAnnotations(rmqBuilder, nil, serviceAnno)
-				Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
-			})
-		})
-
-		When("instance annotations set on the instance, service annotations are not set on instance", func() {
-			It("sets the instance annotations on the service", func() {
-				instanceAnno := map[string]string{
-					"my-annotation":              "i-like-this",
-					"kubernetes.io/name":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/name": "i-do-not-like-this",
-					"k8s.io/name":                "i-do-not-like-this",
-				}
-				service := getServiceWithAnnotations(rmqBuilder, instanceAnno, nil)
-				Expect(service.ObjectMeta.Annotations).To(Equal(map[string]string{"my-annotation": "i-like-this"}))
-			})
-		})
-
-		When("instance annotations set on the instance, service annotations set on instance", func() {
-			It("merges the annotations", func() {
-				serviceAnno := map[string]string{
-					"service_annotation_a":       "0.0.0.0/0",
-					"my-annotation":              "i-like-this-more",
-					"kubernetes.io/name":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/name": "i-do-not-like-this",
-					"k8s.io/name":                "i-do-not-like-this",
-				}
-				instanceAnno := map[string]string{
-					"my-annotation":              "i-like-this",
-					"my-second-annotation":       "i-like-this-also",
-					"kubernetes.io/name":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/name": "i-do-not-like-this",
-					"k8s.io/name":                "i-do-not-like-this",
-				}
-
-				service := getServiceWithAnnotations(rmqBuilder, instanceAnno, serviceAnno)
-				Expect(service.ObjectMeta.Annotations).To(Equal(map[string]string{
-					"my-annotation":        "i-like-this-more",
-					"my-second-annotation": "i-like-this-also",
-					"service_annotation_a": "0.0.0.0/0",
-				},
-				))
-			})
-		})
-	})
-
-	Context("label inheritance", func() {
+	Context("Build", func() {
 		BeforeEach(func() {
-			instance.Labels = map[string]string{
-				"app.kubernetes.io/foo": "bar",
-				"foo":                   "bar",
-				"rabbitmq":              "is-great",
-				"foo/app.kubernetes.io": "edgecase",
+			scheme = runtime.NewScheme()
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
+			instance = generateRabbitmqCluster()
+			rmqBuilder = resource.RabbitmqResourceBuilder{
+				Instance: &instance,
+				Scheme:   scheme,
 			}
 		})
 
-		It("has the labels from the CRD on the ingress service", func() {
+		It("Builds using the values from the CR", func() {
 			serviceBuilder := rmqBuilder.IngressService()
 			obj, err := serviceBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
-			ingressService := obj.(*corev1.Service)
-			testLabels(ingressService.Labels)
+			service := obj.(*corev1.Service)
+
+			By("generates a service object with the correct name and labels", func() {
+				expectedName := instance.ChildResourceName("ingress")
+				Expect(service.Name).To(Equal(expectedName))
+			})
+
+			By("generates a service object with the correct namespace", func() {
+				Expect(service.Namespace).To(Equal(instance.Namespace))
+			})
 		})
 	})
 
 	Context("Update", func() {
+		BeforeEach(func() {
+			scheme = runtime.NewScheme()
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
+			instance = generateRabbitmqCluster()
+			rmqBuilder = resource.RabbitmqResourceBuilder{
+				Instance: &instance,
+				Scheme:   scheme,
+			}
+		})
+
 		Context("Annotations", func() {
 			When("CR instance does have service annotations specified", func() {
 				It("generates a service object with the annotations as specified", func() {
@@ -308,18 +207,58 @@ var _ = Context("IngressServices", func() {
 
 			BeforeEach(func() {
 				serviceBuilder = rmqBuilder.IngressService()
-				instance = rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "rabbit-service-type-update",
-					},
-				}
+				instance = generateRabbitmqCluster()
 
 				ingressService = &corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "rabbit-service-type-update-service",
-						Namespace: "namespace",
+						Namespace: "foo-namespace",
 					},
 				}
+			})
+
+			It("sets the service type to the value specified in the CR instance by default", func() {
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectedServiceType := "this-is-a-service"
+				Expect(string(ingressService.Spec.Type)).To(Equal(expectedServiceType))
+			})
+
+			It("adds a label selector with the instance name", func() {
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(ingressService.Spec.Selector["app.kubernetes.io/name"]).To(Equal(instance.Name))
+			})
+
+			It("sets the onwer reference", func() {
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(ingressService.ObjectMeta.OwnerReferences[0].Name).To(Equal("foo"))
+			})
+
+			It("exposes the required ports", func() {
+				err := serviceBuilder.Update(ingressService)
+				Expect(err).NotTo(HaveOccurred())
+
+				amqpPort := corev1.ServicePort{
+					Name:     "amqp",
+					Port:     5672,
+					Protocol: corev1.ProtocolTCP,
+				}
+				httpPort := corev1.ServicePort{
+					Name:     "http",
+					Port:     15672,
+					Protocol: corev1.ProtocolTCP,
+				}
+				prometheusPort := corev1.ServicePort{
+					Name:     "prometheus",
+					Port:     15692,
+					Protocol: corev1.ProtocolTCP,
+				}
+				Expect(ingressService.Spec.Ports).Should(ConsistOf(amqpPort, httpPort, prometheusPort))
 			})
 
 			It("updates the service type from ClusterIP to NodePort", func() {
@@ -341,21 +280,49 @@ var _ = Context("IngressServices", func() {
 						Name:     "amqp",
 						NodePort: 12345,
 					},
+					corev1.ServicePort{
+						Protocol: corev1.ProtocolTCP,
+						Port:     15672,
+						Name:     "http",
+						NodePort: 1234,
+					},
+					corev1.ServicePort{
+						Protocol: corev1.ProtocolTCP,
+						Port:     15692,
+						Name:     "prometheus",
+						NodePort: 2345,
+					},
 				}
 
 				serviceBuilder.Instance.Spec.Service.Type = "NodePort"
 				err := serviceBuilder.Update(ingressService)
 				Expect(err).NotTo(HaveOccurred())
 
-				expectedServicePort := corev1.ServicePort{
+				expectedAmqpServicePort := corev1.ServicePort{
 					Name:     "amqp",
 					Protocol: corev1.ProtocolTCP,
 					Port:     5672,
 					NodePort: 12345,
 				}
+				expectedHttpServicePort := corev1.ServicePort{
+					Protocol: corev1.ProtocolTCP,
+					Port:     15672,
+					Name:     "http",
+					NodePort: 1234,
+				}
+				expectedPrometheusServicePort := corev1.ServicePort{
+					Protocol: corev1.ProtocolTCP,
+					Port:     15692,
+					Name:     "prometheus",
+					NodePort: 2345,
+				}
 
-				Expect(ingressService.Spec.Ports).To(ContainElement(expectedServicePort))
+				Expect(ingressService.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
+				Expect(ingressService.Spec.Ports).To(ContainElement(expectedHttpServicePort))
+				Expect(ingressService.Spec.Ports).To(ContainElement(expectedPrometheusServicePort))
 			})
+
+			It("resets ports", func() {})
 
 			It("unsets nodePort after updating from NodePort to ClusterIP", func() {
 				ingressService.Spec.Type = corev1.ServiceTypeNodePort
@@ -412,34 +379,11 @@ var _ = Context("IngressServices", func() {
 	})
 })
 
-func getServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnno, serviceAnno map[string]string) *corev1.Service {
-	instance := &rabbitmqv1beta1.RabbitmqCluster{
-		ObjectMeta: v1.ObjectMeta{
-			Name:        "name",
-			Namespace:   "mynamespace",
-			Annotations: instanceAnno,
-		},
-		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-				Annotations: serviceAnno,
-			},
-		},
-	}
-
-	rmqBuilder.Instance = instance
-	serviceBuilder := rmqBuilder.IngressService()
-	obj, err := serviceBuilder.Build()
-	Expect(err).NotTo(HaveOccurred())
-	service := obj.(*corev1.Service)
-	Expect(err).NotTo(HaveOccurred())
-	return service
-}
-
 func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnnotations, serviceAnnotations map[string]string) *corev1.Service {
 	instance := &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: v1.ObjectMeta{
-			Name:        "name",
-			Namespace:   "mynamespace",
+			Name:        "foo",
+			Namespace:   "foo-namespace",
 			Annotations: instanceAnnotations,
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -453,6 +397,8 @@ func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, i
 	serviceBuilder := rmqBuilder.IngressService()
 	ingressService := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo-service",
+			Namespace: "foo-namespace",
 			Annotations: map[string]string{
 				"this-was-the-previous-annotation": "should-be-preserved",
 				"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
