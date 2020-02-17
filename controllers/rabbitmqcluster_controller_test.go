@@ -414,12 +414,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("reconciles an existing instance", func() {
-			Expect(client.Get(
-				context.TODO(),
-				types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
-				rabbitmqCluster,
-			)).To(Succeed())
-
 			When("the service annotations are updated", func() {
 				rabbitmqCluster.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
 				Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
@@ -663,17 +657,16 @@ func statefulSet(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 
 func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
 	Eventually(func() string {
-		rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
 		err := client.Get(
 			context.TODO(),
 			types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
-			&rabbitmqClusterCreated,
+			rabbitmqCluster,
 		)
 		if err != nil {
 			return fmt.Sprintf("%v+", err)
 		}
 
-		return rabbitmqClusterCreated.Status.ClusterStatus
+		return rabbitmqCluster.Status.ClusterStatus
 
 	}, 2, 1).Should(ContainSubstring("created"))
 }
