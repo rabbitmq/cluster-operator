@@ -57,10 +57,6 @@ func (builder *StatefulSetBuilder) statefulSet() (*appsv1.StatefulSet, error) {
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
-		return nil, fmt.Errorf("failed setting controller reference: %v", err)
-	}
-
 	return sts, nil
 }
 
@@ -119,6 +115,10 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
 		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
 		logger.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.GetName()))
+	}
+
+	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
 	return nil
