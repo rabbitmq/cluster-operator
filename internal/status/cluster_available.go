@@ -24,9 +24,6 @@ func (manager *ClusterAvailableConditionManager) Condition() rabbitmqv1beta1.Rab
 	manager.condition.LastTransitionTime = metav1.Time{
 		Time: time.Unix(0, 0),
 	}
-	manager.condition.LastProbeTime = metav1.Time{
-		Time: time.Now(),
-	}
 
 	if manager.serviceEndpoints == nil {
 		manager.condition.Status = corev1.ConditionFalse

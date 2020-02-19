@@ -6,7 +6,6 @@ import (
 	rabbitmqstatus "github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("AllNodesAvailable", func() {
@@ -39,10 +38,6 @@ var _ = Describe("AllNodesAvailable", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
 				Expect(condition.Reason).To(Equal("AllPodsAreReady"))
 			})
-
-			By("having a probe time", func() {
-				Expect(condition.LastProbeTime).NotTo(Equal(metav1.Time{}))
-			})
 		})
 	})
 
@@ -65,10 +60,6 @@ var _ = Describe("AllNodesAvailable", func() {
 				Expect(condition.Reason).To(Equal("OneOrMorePodsAreNotReady"))
 				Expect(condition.Message).ToNot(BeEmpty())
 			})
-
-			By("having a probe time", func() {
-				Expect(condition.LastProbeTime).NotTo(Equal(metav1.Time{}))
-			})
 		})
 	})
 
@@ -89,10 +80,6 @@ var _ = Describe("AllNodesAvailable", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
 				Expect(condition.Reason).To(Equal("CouldNotAccessStatefulSetStatus"))
 				Expect(condition.Message).ToNot(BeEmpty())
-			})
-
-			By("having a probe time", func() {
-				Expect(condition.LastProbeTime).NotTo(Equal(metav1.Time{}))
 			})
 		})
 	})

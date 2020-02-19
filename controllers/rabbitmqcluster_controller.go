@@ -81,7 +81,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	logger := r.Log
 
 	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(req.NamespacedName)
-	logger.Info(fmt.Sprintf("Fetched rmq ---------- %+v\n", fetchedRabbitmqCluster))
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -94,29 +93,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
 
 	if !reflect.DeepEqual(fetchedRabbitmqCluster.Spec, rabbitmqCluster.Spec) {
-		logger.Info("This is an update --------------------- ")
 		err := r.Client.Update(context.TODO(), rabbitmqCluster)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		//err = r.Client.Update(context.TODO(), rabbitmqCluster)
-		//if err != nil {
-		//	return reconcile.Result{}, err
-		//}
 		return reconcile.Result{Requeue: true}, nil
 	}
-
-	// rabbitmqCluster, err = r.getRabbitmqCluster(req.NamespacedName)
-
-	// if err != nil {
-	// 	if errors.IsNotFound(err) {
-	// 		return reconcile.Result{}, nil
-	// 	}
-	// 	logger.Error(err, "Failed getting Rabbitmq cluster object")
-	// 	return reconcile.Result{}, err
-	// }
-
-	// logger.Info(fmt.Sprintf("Empty object: -------------- %+v\n", rabbitmqCluster))
 
 	childResources, err := r.getChildResources(*rabbitmqCluster)
 	logger.Info("This checking conditions --------------------- ")
@@ -137,12 +119,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		clusterAvailableCond,
 	}
 
-	logger.Info(fmt.Sprintf("Just before status update: -------------- %+v\n", rabbitmqCluster))
-
 	err = r.Status().Update(context.TODO(), rabbitmqCluster)
 	if err != nil {
-		//		rabbitmqCluster, err = r.getRabbitmqCluster(req.NamespacedName)
-		//		logger.Info(fmt.Sprintf("Just before failure: ---------- %+v\n", rabbitmqCluster))
 		logger.Error(err, "Failed to update the RabbitmqCluster status")
 		return ctrl.Result{}, err
 	}
@@ -193,22 +171,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return reconcile.Result{}, err
 		}
 	}
-
-	/*
-		childResources[] = Get all child resources
-		builder = StatusBuilder(childResources)
-		conditions = builder.Conditions()
-		cr.update(conditions)
-		----------
-		status.go
-		Conditions -> []Condition
-			AllNodesAvailable_condition = local.checkAllNodesAvailable()
-			ClusterAvailable_condition = local.checkClusterAvailable()
-			return []condition{
-				AllNodesAvailable_condition,
-				ClusterAvailable_condition,
-			}
-	*/
 
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 

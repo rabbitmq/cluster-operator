@@ -90,8 +90,6 @@ type RabbitmqClusterCondition struct {
 	Type   RabbitmqClusterConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=RabbitmqClusterConditionType"`
 	Status corev1.ConditionStatus       `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
 	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty" protobuf:"bytes,3,opt,name=lastProbeTime"`
-	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
 	// +optional
 	Reason string `json:"reason,omitempty" protobuf:"bytes,5,opt,name=reason"`

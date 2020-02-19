@@ -28,10 +28,6 @@ func NewAllNodesAvailableConditionManager(childStatefulSet *appsv1.StatefulSet) 
 
 func (manager *AllNodesAvailableConditionManager) Condition() rabbitmqv1beta1.RabbitmqClusterCondition {
 
-	manager.condition.LastProbeTime = metav1.Time{
-		Time: time.Now(),
-	}
-
 	manager.condition.LastTransitionTime = metav1.Time{
 		Time: time.Unix(0, 0),
 	}

@@ -6,7 +6,6 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	rabbitmqstatus "github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("ClusterAvailable", func() {
@@ -51,10 +50,6 @@ var _ = Describe("ClusterAvailable", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
 				Expect(condition.Reason).To(Equal("AtLeastOneNodeAvailable"))
 			})
-
-			By("having a probe time", func() {
-				Expect(condition.LastProbeTime).NotTo(Equal(metav1.Time{}))
-			})
 		})
 	})
 
@@ -84,10 +79,6 @@ var _ = Describe("ClusterAvailable", func() {
 				Expect(condition.Reason).To(Equal("NoServiceEndpointsAvailable"))
 				Expect(condition.Message).NotTo(BeEmpty())
 			})
-
-			By("having a probe time", func() {
-				Expect(condition.LastProbeTime).NotTo(Equal(metav1.Time{}))
-			})
 		})
 	})
 
@@ -112,10 +103,6 @@ var _ = Describe("ClusterAvailable", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 				Expect(condition.Reason).To(Equal("CouldNotAccessServiceEndpoints"))
 				Expect(condition.Message).NotTo(BeEmpty())
-			})
-
-			By("having a probe time", func() {
-				Expect(condition.LastProbeTime).NotTo(Equal(metav1.Time{}))
 			})
 		})
 	})
