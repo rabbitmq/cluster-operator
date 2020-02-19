@@ -159,6 +159,7 @@ var _ = Describe("Operator", func() {
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 
 			waitForRabbitmqRunning(cluster)
+			waitForLoadBalancer(clientSet, cluster)
 
 			hostname = rabbitmqHostname(clientSet, cluster)
 
