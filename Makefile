@@ -43,7 +43,7 @@ generate: controller-gen
 # Build manager binary
 manager: generate fmt vet
 	go mod tidy
-	go build -o bin/manager main.go
+	go build -o bin/manager ./cmd/operator/main.go
 
 deploy-manager:  ## Deploy manager
 	kubectl apply -k config/crd
@@ -76,7 +76,7 @@ destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/crd --ignore-not-found=true
 
 run: generate manifests fmt vet install deploy-namespace-rbac  ## Run against the configured Kubernetes cluster in ~/.kube/config
-	go run ./main.go
+	OPERATOR_NAMESPACE="pivotal-rabbitmq-system" go run ./cmd/operator/main.go
 
 # Install CRDs into a cluster
 install: manifests

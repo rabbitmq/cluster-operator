@@ -3,7 +3,7 @@ FROM golang:1.13 as builder
 
 WORKDIR /workspace
 # Copy the go source
-COPY main.go main.go
+COPY cmd/operator/main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY internal/ internal/
