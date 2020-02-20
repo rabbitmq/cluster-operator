@@ -1,7 +1,8 @@
 apiVersion: rabbitmq.pivotal.io/v1beta1
 kind: RabbitmqCluster
 metadata:
-  creationTimestamp: null
+  name: example
+  namespace: example-namespace
 spec:
   affinity: {}
   image: rabbitmq
@@ -20,4 +21,3 @@ spec:
     type: ClusterIP
   tolerations:
   - {}
-status: {}
