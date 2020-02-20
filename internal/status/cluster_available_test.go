@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("ClusterAvailable", func() {
-
 	var (
 		childServiceEndpoints *corev1.Endpoints
 	)
@@ -48,7 +47,7 @@ var _ = Describe("ClusterAvailable", func() {
 
 			By("having status true and reason message", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
-				Expect(condition.Reason).To(Equal("AtLeastOneNodeAvailable"))
+				Expect(condition.Reason).To(Equal("AtLeastOneEndpointAvailable"))
 			})
 		})
 	})
@@ -76,7 +75,7 @@ var _ = Describe("ClusterAvailable", func() {
 
 			By("having status true and reason message", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
-				Expect(condition.Reason).To(Equal("NoServiceEndpointsAvailable"))
+				Expect(condition.Reason).To(Equal("NoEndpointsAvailable"))
 				Expect(condition.Message).NotTo(BeEmpty())
 			})
 		})

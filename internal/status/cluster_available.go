@@ -32,18 +32,16 @@ func (manager *ClusterAvailableConditionManager) Condition() rabbitmqv1beta1.Rab
 		return manager.condition
 	}
 
-	if len(manager.serviceEndpoints.Subsets) > 0 {
-		for _, subset := range manager.serviceEndpoints.Subsets {
-			if len(subset.Addresses) > 0 {
-				manager.condition.Status = corev1.ConditionTrue
-				manager.condition.Reason = "AtLeastOneNodeAvailable"
-				return manager.condition
-			}
+	for _, subset := range manager.serviceEndpoints.Subsets {
+		if len(subset.Addresses) > 0 {
+			manager.condition.Status = corev1.ConditionTrue
+			manager.condition.Reason = "AtLeastOneEndpointAvailable"
+			return manager.condition
 		}
 	}
 
 	manager.condition.Status = corev1.ConditionFalse
-	manager.condition.Reason = "NoServiceEndpointsAvailable"
-	manager.condition.Message = "The ingress service has no pod endpoints available or ready"
+	manager.condition.Reason = "NoEndpointsAvailable"
+	manager.condition.Message = "The ingress service has no endpoints available"
 	return manager.condition
 }

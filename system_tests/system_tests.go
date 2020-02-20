@@ -92,27 +92,6 @@ var _ = Describe("Operator", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			By("publishing a message", func() {
-				err := rabbitmqPublishToNewQueue(hostname, username, password)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			By("consuming a message after RabbitMQ was restarted", func() {
-				assertHttpReady(hostname)
-
-				message, err := rabbitmqGetMessageFromQueue(hostname, username, password)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(message.Payload).To(Equal("hello"))
-			})
-
-			By("setting owner reference to persistence volume claim successfully", func() {
-				pvcName := "persistence-" + statefulSetPodName(cluster, 0)
-				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(pvcName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(len(pvc.OwnerReferences)).To(Equal(1))
-				Expect(pvc.OwnerReferences[0].Name).To(Equal(cluster.Name))
-			})
-
 			By("having status conditions", func() {
 				output, err := kubectl(
 					"-n",

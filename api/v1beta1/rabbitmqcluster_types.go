@@ -26,13 +26,15 @@ import (
 )
 
 const (
-	rabbitmqImage             string             = "rabbitmq:3.8.2"
-	defaultPersistentCapacity string             = "10Gi"
-	defaultMemoryLimit        string             = "2Gi"
-	defaultCPULimit           string             = "2000m"
-	defaultMemoryRequest      string             = "2Gi"
-	defaultCPURequest         string             = "1000m"
-	defaultServiceType        corev1.ServiceType = corev1.ServiceTypeClusterIP
+	rabbitmqImage             string                       = "rabbitmq:3.8.2"
+	defaultPersistentCapacity string                       = "10Gi"
+	defaultMemoryLimit        string                       = "2Gi"
+	defaultCPULimit           string                       = "2000m"
+	defaultMemoryRequest      string                       = "2Gi"
+	defaultCPURequest         string                       = "1000m"
+	defaultServiceType        corev1.ServiceType           = corev1.ServiceTypeClusterIP
+	AllNodesAvailable         RabbitmqClusterConditionType = "AllNodesAvailable"
+	ClusterAvailable          RabbitmqClusterConditionType = "ClusterAvailable"
 )
 
 // +kubebuilder:object:root=true
@@ -81,20 +83,12 @@ type RabbitmqClusterStatus struct {
 
 type RabbitmqClusterConditionType string
 
-const (
-	AllNodesAvailable RabbitmqClusterConditionType = "AllNodesAvailable"
-	ClusterAvailable  RabbitmqClusterConditionType = "ClusterAvailable"
-)
-
 type RabbitmqClusterCondition struct {
-	Type   RabbitmqClusterConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=RabbitmqClusterConditionType"`
-	Status corev1.ConditionStatus       `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
-	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
-	// +optional
-	Reason string `json:"reason,omitempty" protobuf:"bytes,5,opt,name=reason"`
-	// +optional
-	Message string `json:"message,omitempty" protobuf:"bytes,6,opt,name=message"`
+	Type               RabbitmqClusterConditionType `json:"type"`
+	Status             corev1.ConditionStatus       `json:"status"`
+	LastTransitionTime metav1.Time                  `json:"lastTransitionTime,omitempty"`
+	Reason             string                       `json:"reason,omitempty"`
+	Message            string                       `json:"message,omitempty"`
 }
 
 // +kubebuilder:object:root=true

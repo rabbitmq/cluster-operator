@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("AllNodesAvailable", func() {
-
 	var (
 		childSts *appsv1.StatefulSet
 	)
@@ -57,7 +56,7 @@ var _ = Describe("AllNodesAvailable", func() {
 
 			By("having status false and reason", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
-				Expect(condition.Reason).To(Equal("OneOrMorePodsAreNotReady"))
+				Expect(condition.Reason).To(Equal("NotAllPodsAreReady"))
 				Expect(condition.Message).ToNot(BeEmpty())
 			})
 		})

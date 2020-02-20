@@ -101,7 +101,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	childResources, err := r.getChildResources(*rabbitmqCluster)
-	logger.Info("This checking conditions --------------------- ")
 
 	if err != nil {
 		logger.Error(err, "Failed to Get child resources")
@@ -178,22 +177,18 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 }
 
 func (r *RabbitmqClusterReconciler) getChildResources(rmq rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
-	var sts *appsv1.StatefulSet = &appsv1.StatefulSet{}
-	var endPoints *corev1.Endpoints = &corev1.Endpoints{}
+	sts := &appsv1.StatefulSet{}
+	endPoints := &corev1.Endpoints{}
 
-	err := r.Client.Get(context.TODO(),
+	if err := r.Client.Get(context.TODO(),
 		types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace},
-		sts)
-
-	if err != nil && !errors.IsNotFound(err) {
+		sts); err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
 
-	err = r.Client.Get(context.TODO(),
+	if err := r.Client.Get(context.TODO(),
 		types.NamespacedName{Name: rmq.ChildResourceName("ingress"), Namespace: rmq.Namespace},
-		endPoints)
-
-	if err != nil && !errors.IsNotFound(err) {
+		endPoints); err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
 
