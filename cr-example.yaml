@@ -1,0 +1,23 @@
+apiVersion: rabbitmq.pivotal.io/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: example
+  namespace: example-namespace
+spec:
+  affinity: {}
+  image: rabbitmq
+  imagePullSecret: my-secret
+  persistence:
+    storage: 10Gi
+  replicas: 1
+  resources:
+    limits:
+      cpu: "2"
+      memory: 2Gi
+    requests:
+      cpu: "1"
+      memory: 2Gi
+  service:
+    type: ClusterIP
+  tolerations:
+  - {}
