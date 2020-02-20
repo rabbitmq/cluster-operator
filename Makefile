@@ -58,7 +58,7 @@ deploy-manager-dev:
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/dev
 
-deploy-sample: ## Deploy local rabbitmqcluster
+deploy-sample: ## Deploy RabbitmqCluster defined in config/sample/base
 	kubectl apply -k config/samples/base
 
 configure-kubectl-ci: ci-cluster
@@ -75,7 +75,7 @@ destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/namespace/base --ignore-not-found=true
 	kubectl delete -k config/crd --ignore-not-found=true
 
-run: generate manifests fmt vet install deploy-namespace-rbac  ## Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate manifests fmt vet install deploy-namespace-rbac  ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
 	go run ./main.go
 
 # Install CRDs into a cluster
@@ -89,17 +89,17 @@ deploy-namespace-rbac:
 deploy-master: install deploy-namespace-rbac docker-registry-secret
 	kubectl apply -k config/default/base
 
-deploy: manifests deploy-namespace-rbac docker-registry-secret deploy-manager ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy: manifests deploy-namespace-rbac docker-registry-secret deploy-manager ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config
 
-deploy-dev: docker-build-dev patch-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config, with local changes
+deploy-dev: docker-build-dev patch-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
-deploy-kind: dev-tag patch-kind manifests deploy-namespace-rbac
+deploy-kind: dev-tag patch-kind manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
 	docker build . -t $(CONTROLLER_IMAGE):$(DEV_TAG)
 	kind load docker-image $(CONTROLLER_IMAGE):$(DEV_TAG)
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/kind
 
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+# Deploy operator in the configured Kubernetes cluster in ~/.kube/config
 deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace-rbac docker-registry-secret-ci deploy-manager-ci
 
 generate-installation-manifests:
@@ -150,11 +150,8 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services, and local-pat
 	@kubectl delete -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
 	@kubectl delete -f https://raw.githubusercontent.com/danderson/metallb/v0.8.1/manifests/metallb.yaml
 
-system-tests:
+system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
-
-smoke-test:
-	NAMESPACE="pivotal-rabbitmq-system" ginkgo --focus="Publish and consume a message" -r system_tests/
 
 DOCKER_REGISTRY_SECRET=p-rmq-registry-access
 DOCKER_REGISTRY_SERVER=registry.pivotal.io

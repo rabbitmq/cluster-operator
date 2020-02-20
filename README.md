@@ -26,6 +26,22 @@ The RabbitMQ for Kubernetes [documentation](https://docs.pivotal.io/rabbitmq-kub
 - [Deploying a RabbitMQ cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-6/using.html)
 - [Monitoring the cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-6/monitoring.html)
 
+#### Make targets
+
+- **controller-gen** Download controller-gen if not in $PATH
+- **deploy** Deploy operator in the configured Kubernetes cluster in ~/.kube/config
+- **deploy-dev** Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
+- **deploy-kind** Load operator image and deploy operator into current KinD cluster
+- **deploy-sample** Deploy RabbitmqCluster defined in config/sample/base
+- **destroy** Cleanup all operator artefacts
+- **kind-prepare** Prepare KinD to support LoadBalancer services, and local-path StorageClass
+- **kind-unprepare** Remove KinD support for LoadBalancer services, and local-path StorageClass
+- **list** List Makefile targets
+- **run** Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
+- **unit-tests** Run unit tests
+- **integration-tests** Run integration tests
+- **system-tests** Run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
+
 ## Contributing
 
 This project follows the typical GitHub pull request model. Before starting any work, please either comment on an [existing issue](https://github.com/pivotal/rabbitmq-for-kubernetes/issues), or file a new one.
@@ -35,6 +51,11 @@ This project follows the typical GitHub pull request model. Before starting any 
 Before submitting a pull request, ensure all local tests pass:
 - `make unit-tests`
 - `make integration-tests`
+
+//TODO: generalise deployment process: make DOCKER_REGISTRY_SECRET and DOCKER_REGISTRY_SERVER configurable
+Also, run the system tests against a Kubernetes cluster:
+- `make deploy`
+- `make system-tests`
 
 ## License
 
