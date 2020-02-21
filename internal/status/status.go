@@ -1,13 +1,29 @@
+// +kubebuilder:object:generate=true
+// +groupName=rabbitmq.pivotal.io
 package status
 
 import (
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func generateCondition(conditionType rabbitmqv1beta1.RabbitmqClusterConditionType) rabbitmqv1beta1.RabbitmqClusterCondition {
-	return rabbitmqv1beta1.RabbitmqClusterCondition{
+const (
+	AllNodesAvailable RabbitmqClusterConditionType = "AllNodesAvailable"
+	ClusterAvailable  RabbitmqClusterConditionType = "ClusterAvailable"
+)
+
+type RabbitmqClusterConditionType string
+
+type RabbitmqClusterCondition struct {
+	Type               RabbitmqClusterConditionType `json:"type"`
+	Status             corev1.ConditionStatus       `json:"status"`
+	LastTransitionTime metav1.Time                  `json:"lastTransitionTime,omitempty"`
+	Reason             string                       `json:"reason,omitempty"`
+	Message            string                       `json:"message,omitempty"`
+}
+
+func generateCondition(conditionType RabbitmqClusterConditionType) RabbitmqClusterCondition {
+	return RabbitmqClusterCondition{
 		Type:               conditionType,
 		Status:             corev1.ConditionUnknown,
 		LastTransitionTime: metav1.Time{},

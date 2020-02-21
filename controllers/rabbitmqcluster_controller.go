@@ -107,21 +107,16 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return reconcile.Result{}, err
 	}
 
-	allNodesAvailableConditionManager := status.NewAllNodesAvailableConditionManager(childResources[0].(*appsv1.StatefulSet))
-	allNodesAvailableCond := allNodesAvailableConditionManager.Condition()
+	oldConditions := make([]status.RabbitmqClusterCondition, 2)
+	copy(oldConditions, rabbitmqCluster.Status.Conditions)
+	rabbitmqCluster.Status.SetConditions(childResources)
 
-	clusterAvailableConditionManager := status.NewClusterAvailableConditionManager(childResources[1].(*corev1.Endpoints))
-	clusterAvailableCond := clusterAvailableConditionManager.Condition()
-
-	rabbitmqCluster.Status.Conditions = []rabbitmqv1beta1.RabbitmqClusterCondition{
-		allNodesAvailableCond,
-		clusterAvailableCond,
-	}
-
-	err = r.Status().Update(context.TODO(), rabbitmqCluster)
-	if err != nil {
-		logger.Error(err, "Failed to update the RabbitmqCluster status")
-		return ctrl.Result{}, err
+	if !reflect.DeepEqual(rabbitmqCluster.Status.Conditions, oldConditions) {
+		err = r.Status().Update(context.TODO(), rabbitmqCluster)
+		if err != nil {
+			logger.Error(err, "Failed to update the RabbitmqCluster status")
+			return ctrl.Result{}, err
+		}
 	}
 
 	instanceSpec, err := json.Marshal(rabbitmqCluster.Spec)

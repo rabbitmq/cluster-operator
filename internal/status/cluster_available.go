@@ -3,24 +3,23 @@ package status
 import (
 	"time"
 
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type ClusterAvailableConditionManager struct {
-	condition        rabbitmqv1beta1.RabbitmqClusterCondition
+	condition        RabbitmqClusterCondition
 	serviceEndpoints *corev1.Endpoints
 }
 
 func NewClusterAvailableConditionManager(childServiceEndpoints *corev1.Endpoints) ClusterAvailableConditionManager {
 	return ClusterAvailableConditionManager{
-		condition:        generateCondition(rabbitmqv1beta1.ClusterAvailable),
+		condition:        generateCondition(ClusterAvailable),
 		serviceEndpoints: childServiceEndpoints,
 	}
 }
 
-func (manager *ClusterAvailableConditionManager) Condition() rabbitmqv1beta1.RabbitmqClusterCondition {
+func (manager *ClusterAvailableConditionManager) Condition() RabbitmqClusterCondition {
 	manager.condition.LastTransitionTime = metav1.Time{
 		Time: time.Unix(0, 0),
 	}

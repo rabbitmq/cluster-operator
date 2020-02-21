@@ -3,7 +3,6 @@ package status_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	rabbitmqstatus "github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -41,7 +40,7 @@ var _ = Describe("ClusterAvailable", func() {
 		It("returns the expected condition", func() {
 			condition := conditionManager.Condition()
 			By("having the correct type", func() {
-				var conditionType rabbitmqv1beta1.RabbitmqClusterConditionType = "ClusterAvailable"
+				var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ClusterAvailable"
 				Expect(condition.Type).To(Equal(conditionType))
 			})
 
@@ -69,7 +68,7 @@ var _ = Describe("ClusterAvailable", func() {
 		It("returns the expected condition", func() {
 			condition := conditionManager.Condition()
 			By("having the correct type", func() {
-				var conditionType rabbitmqv1beta1.RabbitmqClusterConditionType = "ClusterAvailable"
+				var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ClusterAvailable"
 				Expect(condition.Type).To(Equal(conditionType))
 			})
 
@@ -94,7 +93,7 @@ var _ = Describe("ClusterAvailable", func() {
 		It("returns the expected condition", func() {
 			condition := conditionManager.Condition()
 			By("having the correct type", func() {
-				var conditionType rabbitmqv1beta1.RabbitmqClusterConditionType = "ClusterAvailable"
+				var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ClusterAvailable"
 				Expect(condition.Type).To(Equal(conditionType))
 			})
 

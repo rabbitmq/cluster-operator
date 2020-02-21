@@ -4,25 +4,24 @@ import (
 	"fmt"
 	"time"
 
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type AllNodesAvailableConditionManager struct {
-	condition   rabbitmqv1beta1.RabbitmqClusterCondition
+	condition   RabbitmqClusterCondition
 	statefulSet *appsv1.StatefulSet
 }
 
 func NewAllNodesAvailableConditionManager(childStatefulSet *appsv1.StatefulSet) AllNodesAvailableConditionManager {
 	return AllNodesAvailableConditionManager{
-		condition:   generateCondition(rabbitmqv1beta1.AllNodesAvailable),
+		condition:   generateCondition(AllNodesAvailable),
 		statefulSet: childStatefulSet,
 	}
 }
 
-func (manager *AllNodesAvailableConditionManager) Condition() rabbitmqv1beta1.RabbitmqClusterCondition {
+func (manager *AllNodesAvailableConditionManager) Condition() RabbitmqClusterCondition {
 	manager.condition.LastTransitionTime = metav1.Time{
 		Time: time.Unix(0, 0),
 	}

@@ -20,21 +20,22 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
-	rabbitmqImage             string                       = "rabbitmq:3.8.2"
-	defaultPersistentCapacity string                       = "10Gi"
-	defaultMemoryLimit        string                       = "2Gi"
-	defaultCPULimit           string                       = "2000m"
-	defaultMemoryRequest      string                       = "2Gi"
-	defaultCPURequest         string                       = "1000m"
-	defaultServiceType        corev1.ServiceType           = corev1.ServiceTypeClusterIP
-	AllNodesAvailable         RabbitmqClusterConditionType = "AllNodesAvailable"
-	ClusterAvailable          RabbitmqClusterConditionType = "ClusterAvailable"
+	rabbitmqImage             string             = "rabbitmq:3.8.2"
+	defaultPersistentCapacity string             = "10Gi"
+	defaultMemoryLimit        string             = "2Gi"
+	defaultCPULimit           string             = "2000m"
+	defaultMemoryRequest      string             = "2Gi"
+	defaultCPURequest         string             = "1000m"
+	defaultServiceType        corev1.ServiceType = corev1.ServiceTypeClusterIP
 )
 
 // +kubebuilder:object:root=true
@@ -77,18 +78,22 @@ type RabbitmqClusterServiceSpec struct {
 
 // RabbitmqClusterStatus defines the observed state of RabbitmqCluster
 type RabbitmqClusterStatus struct {
-	ClusterStatus string                     `json:"clusterStatus,omitempty"`
-	Conditions    []RabbitmqClusterCondition `json:"conditions"`
+	ClusterStatus string                            `json:"clusterStatus,omitempty"`
+	Conditions    []status.RabbitmqClusterCondition `json:"conditions"`
 }
 
-type RabbitmqClusterConditionType string
+func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
 
-type RabbitmqClusterCondition struct {
-	Type               RabbitmqClusterConditionType `json:"type"`
-	Status             corev1.ConditionStatus       `json:"status"`
-	LastTransitionTime metav1.Time                  `json:"lastTransitionTime,omitempty"`
-	Reason             string                       `json:"reason,omitempty"`
-	Message            string                       `json:"message,omitempty"`
+	allNodesAvailableConditionManager := status.NewAllNodesAvailableConditionManager(resources[0].(*appsv1.StatefulSet))
+	allNodesAvailableCond := allNodesAvailableConditionManager.Condition()
+	clusterAvailableConditionManager := status.NewClusterAvailableConditionManager(resources[1].(*corev1.Endpoints))
+	clusterAvailableCond := clusterAvailableConditionManager.Condition()
+	currentStatusConditions := []status.RabbitmqClusterCondition{
+		allNodesAvailableCond,
+		clusterAvailableCond,
+	}
+
+	rmqStatus.Conditions = currentStatusConditions
 }
 
 // +kubebuilder:object:root=true
