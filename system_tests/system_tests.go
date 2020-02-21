@@ -44,7 +44,7 @@ var _ = Describe("Operator", func() {
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
 			cluster.Spec.Service.Type = "LoadBalancer"
-			cluster.Spec.Image = "registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq:latest"
+			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
@@ -104,7 +104,7 @@ var _ = Describe("Operator", func() {
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
 			cluster.Spec.Service.Type = "LoadBalancer"
-			cluster.Spec.Image = "registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq:latest"
+			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
