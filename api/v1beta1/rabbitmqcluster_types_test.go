@@ -263,7 +263,7 @@ var _ = Describe("RabbitmqCluster", func() {
 			rabbitmqClusterStatus.SetConditions([]runtime.Object{statefulset, endPoints})
 
 			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(2))
-			Expect(rabbitmqClusterStatus.Conditions[0].Type).To(Equal(status.AllNodesAvailable))
+			Expect(rabbitmqClusterStatus.Conditions[0].Type).To(Equal(status.AllReplicasReady))
 			Expect(rabbitmqClusterStatus.Conditions[1].Type).To(Equal(status.ClusterAvailable))
 		})
 	})

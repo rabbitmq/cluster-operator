@@ -14,8 +14,8 @@ type AllNodesAvailableConditionManager struct {
 	statefulSet *appsv1.StatefulSet
 }
 
-func AllNodesAvailableCondition(statefulSet *appsv1.StatefulSet) RabbitmqClusterCondition {
-	condition := generateCondition(AllNodesAvailable)
+func AllReplicasReadyCondition(statefulSet *appsv1.StatefulSet) RabbitmqClusterCondition {
+	condition := generateCondition(AllReplicasReady)
 	condition.LastTransitionTime = metav1.Time{
 		Time: time.Unix(0, 0),
 	}

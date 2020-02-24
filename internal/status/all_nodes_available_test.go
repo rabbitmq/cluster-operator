@@ -8,7 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("AllNodesAvailable", func() {
+var _ = Describe("AllReplicasReady", func() {
 	var (
 		sts *appsv1.StatefulSet
 	)
@@ -26,7 +26,7 @@ var _ = Describe("AllNodesAvailable", func() {
 		})
 
 		It("returns the expected condition", func() {
-			condition := rabbitmqstatus.AllNodesAvailableCondition(sts)
+			condition := rabbitmqstatus.AllReplicasReadyCondition(sts)
 
 			By("having status true and reason message", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
@@ -42,7 +42,7 @@ var _ = Describe("AllNodesAvailable", func() {
 		})
 
 		It("returns a condition with state false", func() {
-			condition := rabbitmqstatus.AllNodesAvailableCondition(sts)
+			condition := rabbitmqstatus.AllReplicasReadyCondition(sts)
 
 			By("having status false and reason", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
@@ -58,7 +58,7 @@ var _ = Describe("AllNodesAvailable", func() {
 		})
 
 		It("returns a condition with state unknown", func() {
-			condition := rabbitmqstatus.AllNodesAvailableCondition(sts)
+			condition := rabbitmqstatus.AllReplicasReadyCondition(sts)
 
 			By("having status false and reason", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
