@@ -22,8 +22,8 @@ func AllNodesAvailableCondition(statefulSet *appsv1.StatefulSet) RabbitmqCluster
 
 	if statefulSet == nil {
 		condition.Status = corev1.ConditionUnknown
-		condition.Reason = "CouldNotAccessStatefulSetStatus"
-		condition.Message = "There was an error accessing the StatefulSet"
+		condition.Reason = "MissingStatefulSet"
+		condition.Message = "Could not find StatefulSet"
 
 		return condition
 	}

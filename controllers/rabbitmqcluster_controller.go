@@ -103,11 +103,11 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	childResources, err := r.getChildResources(*rabbitmqCluster)
 
 	if err != nil {
-		logger.Error(err, "Failed to Get child resources")
+		logger.Error(err, "Error getting child resources")
 		return reconcile.Result{}, err
 	}
 
-	oldConditions := make([]status.RabbitmqClusterCondition, 2)
+	oldConditions := make([]status.RabbitmqClusterCondition, len(rabbitmqCluster.Status.Conditions))
 	copy(oldConditions, rabbitmqCluster.Status.Conditions)
 	rabbitmqCluster.Status.SetConditions(childResources)
 
@@ -179,12 +179,16 @@ func (r *RabbitmqClusterReconciler) getChildResources(rmq rabbitmqv1beta1.Rabbit
 		types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace},
 		sts); err != nil && !errors.IsNotFound(err) {
 		return nil, err
+	} else if errors.IsNotFound(err) {
+		sts = nil
 	}
 
 	if err := r.Client.Get(context.TODO(),
 		types.NamespacedName{Name: rmq.ChildResourceName("ingress"), Namespace: rmq.Namespace},
 		endPoints); err != nil && !errors.IsNotFound(err) {
 		return nil, err
+	} else if errors.IsNotFound(err) {
+		endPoints = nil
 	}
 
 	return []runtime.Object{sts, endPoints}, nil

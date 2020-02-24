@@ -62,7 +62,7 @@ var _ = Describe("AllNodesAvailable", func() {
 
 			By("having status false and reason", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
-				Expect(condition.Reason).To(Equal("CouldNotAccessStatefulSetStatus"))
+				Expect(condition.Reason).To(Equal("MissingStatefulSet"))
 				Expect(condition.Message).ToNot(BeEmpty())
 			})
 		})
