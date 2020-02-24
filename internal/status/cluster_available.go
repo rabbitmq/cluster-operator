@@ -8,39 +8,33 @@ import (
 )
 
 type ClusterAvailableConditionManager struct {
-	condition        RabbitmqClusterCondition
-	serviceEndpoints *corev1.Endpoints
+	condition RabbitmqClusterCondition
+	endpoints *corev1.Endpoints
 }
 
-func NewClusterAvailableConditionManager(childServiceEndpoints *corev1.Endpoints) ClusterAvailableConditionManager {
-	return ClusterAvailableConditionManager{
-		condition:        generateCondition(ClusterAvailable),
-		serviceEndpoints: childServiceEndpoints,
-	}
-}
-
-func (manager *ClusterAvailableConditionManager) Condition() RabbitmqClusterCondition {
-	manager.condition.LastTransitionTime = metav1.Time{
+func ClusterAvailableCondition(endpoints *corev1.Endpoints) RabbitmqClusterCondition {
+	condition := generateCondition(ClusterAvailable)
+	condition.LastTransitionTime = metav1.Time{
 		Time: time.Unix(0, 0),
 	}
 
-	if manager.serviceEndpoints == nil {
-		manager.condition.Status = corev1.ConditionFalse
-		manager.condition.Reason = "CouldNotAccessServiceEndpoints"
-		manager.condition.Message = "Could not verify available service endpoints"
-		return manager.condition
+	if endpoints == nil {
+		condition.Status = corev1.ConditionFalse
+		condition.Reason = "CouldNotAccessServiceEndpoints"
+		condition.Message = "Could not verify available service endpoints"
+		return condition
 	}
 
-	for _, subset := range manager.serviceEndpoints.Subsets {
+	for _, subset := range endpoints.Subsets {
 		if len(subset.Addresses) > 0 {
-			manager.condition.Status = corev1.ConditionTrue
-			manager.condition.Reason = "AtLeastOneEndpointAvailable"
-			return manager.condition
+			condition.Status = corev1.ConditionTrue
+			condition.Reason = "AtLeastOneEndpointAvailable"
+			return condition
 		}
 	}
 
-	manager.condition.Status = corev1.ConditionFalse
-	manager.condition.Reason = "NoEndpointsAvailable"
-	manager.condition.Message = "The ingress service has no endpoints available"
-	return manager.condition
+	condition.Status = corev1.ConditionFalse
+	condition.Reason = "NoEndpointsAvailable"
+	condition.Message = "The ingress service has no endpoints available"
+	return condition
 }

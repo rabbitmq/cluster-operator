@@ -10,28 +10,23 @@ import (
 
 var _ = Describe("AllNodesAvailable", func() {
 	var (
-		childSts *appsv1.StatefulSet
+		sts *appsv1.StatefulSet
 	)
 
 	BeforeEach(func() {
-		childSts = &appsv1.StatefulSet{
+		sts = &appsv1.StatefulSet{
 			Status: appsv1.StatefulSetStatus{},
 		}
 	})
 
 	When("all replicas are ready", func() {
-		var (
-			conditionManager rabbitmqstatus.AllNodesAvailableConditionManager
-		)
-
 		BeforeEach(func() {
-			childSts.Status.ReadyReplicas = 5
-			childSts.Status.Replicas = 5
-			conditionManager = rabbitmqstatus.NewAllNodesAvailableConditionManager(childSts)
+			sts.Status.ReadyReplicas = 5
+			sts.Status.Replicas = 5
 		})
 
 		It("returns the expected condition", func() {
-			condition := conditionManager.Condition()
+			condition := rabbitmqstatus.AllNodesAvailableCondition(sts)
 
 			By("having status true and reason message", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
@@ -41,18 +36,13 @@ var _ = Describe("AllNodesAvailable", func() {
 	})
 
 	When("some replicas are not ready", func() {
-		var (
-			conditionManager rabbitmqstatus.AllNodesAvailableConditionManager
-		)
-
 		BeforeEach(func() {
-			childSts.Status.ReadyReplicas = 3
-			childSts.Status.Replicas = 5
-			conditionManager = rabbitmqstatus.NewAllNodesAvailableConditionManager(childSts)
+			sts.Status.ReadyReplicas = 3
+			sts.Status.Replicas = 5
 		})
 
 		It("returns a condition with state false", func() {
-			condition := conditionManager.Condition()
+			condition := rabbitmqstatus.AllNodesAvailableCondition(sts)
 
 			By("having status false and reason", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
@@ -63,17 +53,12 @@ var _ = Describe("AllNodesAvailable", func() {
 	})
 
 	When("the StatefulSet is not found", func() {
-		var (
-			conditionManager rabbitmqstatus.AllNodesAvailableConditionManager
-		)
-
 		BeforeEach(func() {
-			childSts = nil
-			conditionManager = rabbitmqstatus.NewAllNodesAvailableConditionManager(childSts)
+			sts = nil
 		})
 
 		It("returns a condition with state unknown", func() {
-			condition := conditionManager.Condition()
+			condition := rabbitmqstatus.AllNodesAvailableCondition(sts)
 
 			By("having status false and reason", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionUnknown))

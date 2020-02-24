@@ -84,10 +84,8 @@ type RabbitmqClusterStatus struct {
 
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
 
-	allNodesAvailableConditionManager := status.NewAllNodesAvailableConditionManager(resources[0].(*appsv1.StatefulSet))
-	allNodesAvailableCond := allNodesAvailableConditionManager.Condition()
-	clusterAvailableConditionManager := status.NewClusterAvailableConditionManager(resources[1].(*corev1.Endpoints))
-	clusterAvailableCond := clusterAvailableConditionManager.Condition()
+	allNodesAvailableCond := status.AllNodesAvailableCondition(resources[0].(*appsv1.StatefulSet))
+	clusterAvailableCond := status.ClusterAvailableCondition(resources[1].(*corev1.Endpoints))
 	currentStatusConditions := []status.RabbitmqClusterCondition{
 		allNodesAvailableCond,
 		clusterAvailableCond,

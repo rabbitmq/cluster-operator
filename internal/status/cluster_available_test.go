@@ -17,10 +17,6 @@ var _ = Describe("ClusterAvailable", func() {
 	})
 
 	When("at least one service endpoint is published", func() {
-		var (
-			conditionManager rabbitmqstatus.ClusterAvailableConditionManager
-		)
-
 		BeforeEach(func() {
 			childServiceEndpoints.Subsets = []corev1.EndpointSubset{
 				{
@@ -34,11 +30,10 @@ var _ = Describe("ClusterAvailable", func() {
 					},
 				},
 			}
-			conditionManager = rabbitmqstatus.NewClusterAvailableConditionManager(childServiceEndpoints)
 		})
 
 		It("returns the expected condition", func() {
-			condition := conditionManager.Condition()
+			condition := rabbitmqstatus.ClusterAvailableCondition(childServiceEndpoints)
 			By("having the correct type", func() {
 				var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ClusterAvailable"
 				Expect(condition.Type).To(Equal(conditionType))
@@ -52,21 +47,16 @@ var _ = Describe("ClusterAvailable", func() {
 	})
 
 	When("no service endpoint is published", func() {
-		var (
-			conditionManager rabbitmqstatus.ClusterAvailableConditionManager
-		)
-
 		BeforeEach(func() {
 			childServiceEndpoints.Subsets = []corev1.EndpointSubset{
 				{
 					Addresses: []corev1.EndpointAddress{},
 				},
 			}
-			conditionManager = rabbitmqstatus.NewClusterAvailableConditionManager(childServiceEndpoints)
 		})
 
 		It("returns the expected condition", func() {
-			condition := conditionManager.Condition()
+			condition := rabbitmqstatus.ClusterAvailableCondition(childServiceEndpoints)
 			By("having the correct type", func() {
 				var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ClusterAvailable"
 				Expect(condition.Type).To(Equal(conditionType))
@@ -81,17 +71,12 @@ var _ = Describe("ClusterAvailable", func() {
 	})
 
 	When("service endpoints do not exist", func() {
-		var (
-			conditionManager rabbitmqstatus.ClusterAvailableConditionManager
-		)
-
 		BeforeEach(func() {
 			childServiceEndpoints = nil
-			conditionManager = rabbitmqstatus.NewClusterAvailableConditionManager(childServiceEndpoints)
 		})
 
 		It("returns the expected condition", func() {
-			condition := conditionManager.Condition()
+			condition := rabbitmqstatus.ClusterAvailableCondition(childServiceEndpoints)
 			By("having the correct type", func() {
 				var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ClusterAvailable"
 				Expect(condition.Type).To(Equal(conditionType))

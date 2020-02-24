@@ -14,37 +14,31 @@ type AllNodesAvailableConditionManager struct {
 	statefulSet *appsv1.StatefulSet
 }
 
-func NewAllNodesAvailableConditionManager(childStatefulSet *appsv1.StatefulSet) AllNodesAvailableConditionManager {
-	return AllNodesAvailableConditionManager{
-		condition:   generateCondition(AllNodesAvailable),
-		statefulSet: childStatefulSet,
-	}
-}
-
-func (manager *AllNodesAvailableConditionManager) Condition() RabbitmqClusterCondition {
-	manager.condition.LastTransitionTime = metav1.Time{
+func AllNodesAvailableCondition(statefulSet *appsv1.StatefulSet) RabbitmqClusterCondition {
+	condition := generateCondition(AllNodesAvailable)
+	condition.LastTransitionTime = metav1.Time{
 		Time: time.Unix(0, 0),
 	}
 
-	if manager.statefulSet == nil {
-		manager.condition.Status = corev1.ConditionUnknown
-		manager.condition.Reason = "CouldNotAccessStatefulSetStatus"
-		manager.condition.Message = "There was an error accessing the StatefulSet"
+	if statefulSet == nil {
+		condition.Status = corev1.ConditionUnknown
+		condition.Reason = "CouldNotAccessStatefulSetStatus"
+		condition.Message = "There was an error accessing the StatefulSet"
 
-		return manager.condition
+		return condition
 	}
 
-	if manager.statefulSet.Status.Replicas == manager.statefulSet.Status.ReadyReplicas {
-		manager.condition.Status = corev1.ConditionTrue
-		manager.condition.Reason = "AllPodsAreReady"
-		return manager.condition
+	if statefulSet.Status.Replicas == statefulSet.Status.ReadyReplicas {
+		condition.Status = corev1.ConditionTrue
+		condition.Reason = "AllPodsAreReady"
+		return condition
 	}
 
-	manager.condition.Status = corev1.ConditionFalse
-	manager.condition.Reason = "NotAllPodsAreReady"
-	manager.condition.Message = fmt.Sprintf("%d/%d Pods ready",
-		manager.statefulSet.Status.ReadyReplicas,
-		manager.statefulSet.Status.Replicas)
+	condition.Status = corev1.ConditionFalse
+	condition.Reason = "NotAllPodsAreReady"
+	condition.Message = fmt.Sprintf("%d/%d Pods ready",
+		statefulSet.Status.ReadyReplicas,
+		statefulSet.Status.Replicas)
 
-	return manager.condition
+	return condition
 }
