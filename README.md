@@ -15,10 +15,6 @@ The easiest way to set up a local development environment for running the Rabbit
     1. Due to resource limitations on your Docker daemon, the Kubernetes might not be able to schedule all `RabbitmqCluter` nodes. Either [increase your Docker daemon's resource limits](https://docs.docker.com/docker-for-mac/#resources) or deploy the `RabbitmqCluster` custom resource with `resources: {}` to remove default `memory` and `cpu` resource settings.
     1. If you set the `serviceType` to `LoadBalancer`, run `make prepare-kind` to deploy a [MetalLB](https://metallb.universe.tf/) load balancer. This will allow the operator to complete the `RabbitmqCluster` provisioning by assign an arbitrary local IP address to the cluster's ingress service. Proper [network configuration](https://metallb.universe.tf/installation/network-addons/) is required to route traffic via the assigned IP address.
 
-### Deploying with Minikube
-
-// TODO
-
 ### Documentation
 
 The RabbitMQ for Kubernetes [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-6/index.html) has steps for production deployments:
