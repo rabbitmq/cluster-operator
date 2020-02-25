@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	AllReplicasReady RabbitmqClusterConditionType = "AllNodesAvailable"
+	AllReplicasReady RabbitmqClusterConditionType = "AllReplicasReady"
 	ClusterAvailable RabbitmqClusterConditionType = "ClusterAvailable"
 )
 

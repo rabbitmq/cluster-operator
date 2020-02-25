@@ -28,7 +28,6 @@ func ClusterAvailableCondition(endpoints *corev1.Endpoints) RabbitmqClusterCondi
 	for _, subset := range endpoints.Subsets {
 		if len(subset.Addresses) > 0 {
 			condition.Status = corev1.ConditionTrue
-			condition.Reason = "AtLeastOneEndpointAvailable"
 			return condition
 		}
 	}

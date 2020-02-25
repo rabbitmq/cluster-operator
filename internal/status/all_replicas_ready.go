@@ -9,11 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type AllNodesAvailableConditionManager struct {
-	condition   RabbitmqClusterCondition
-	statefulSet *appsv1.StatefulSet
-}
-
 func AllReplicasReadyCondition(statefulSet *appsv1.StatefulSet) RabbitmqClusterCondition {
 	condition := generateCondition(AllReplicasReady)
 	condition.LastTransitionTime = metav1.Time{
@@ -30,12 +25,11 @@ func AllReplicasReadyCondition(statefulSet *appsv1.StatefulSet) RabbitmqClusterC
 
 	if statefulSet.Status.Replicas == statefulSet.Status.ReadyReplicas {
 		condition.Status = corev1.ConditionTrue
-		condition.Reason = "AllPodsAreReady"
 		return condition
 	}
 
 	condition.Status = corev1.ConditionFalse
-	condition.Reason = "NotAllPodsAreReady"
+	condition.Reason = "NotAllPodsReady"
 	condition.Message = fmt.Sprintf("%d/%d Pods ready",
 		statefulSet.Status.ReadyReplicas,
 		statefulSet.Status.Replicas)
