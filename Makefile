@@ -4,7 +4,7 @@
 .PHONY: list
 
 # Image URL to use all building/pushing image targets
-CONTROLLER_IMAGE=registry.pivotal.io/p-rabbitmq-for-kubernetes-staging/rabbitmq-for-kubernetes-operator
+CONTROLLER_IMAGE=dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator
 CI_IMAGE=us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
 GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
 RABBITMQ_USERNAME=guest
@@ -154,9 +154,9 @@ system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.k
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
 
 DOCKER_REGISTRY_SECRET=p-rmq-registry-access
-DOCKER_REGISTRY_SERVER=registry.pivotal.io
-DOCKER_REGISTRY_USERNAME_LOCAL=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-registry-ci" --notes | jq -r .name)
-DOCKER_REGISTRY_PASSWORD_LOCAL=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-registry-ci" --notes | jq -r .token)
+DOCKER_REGISTRY_SERVER=dev.registry.pivotal.io
+DOCKER_REGISTRY_USERNAME_LOCAL=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-dev-registry-ci" --notes | jq -r .name)
+DOCKER_REGISTRY_PASSWORD_LOCAL=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-dev-registry-ci" --notes | jq -r .token)
 docker-registry-secret: operator-namespace
 	echo "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username='$(DOCKER_REGISTRY_USERNAME_LOCAL)' --docker-password='$(DOCKER_REGISTRY_PASSWORD_LOCAL)' || true
