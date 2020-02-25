@@ -6,6 +6,7 @@ import (
 	rabbitmqstatus "github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var _ = Describe("AllReplicasReady", func() {
@@ -26,7 +27,7 @@ var _ = Describe("AllReplicasReady", func() {
 		})
 
 		It("returns the expected condition", func() {
-			condition := rabbitmqstatus.AllReplicasReadyCondition(sts)
+			condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&corev1.Endpoints{}, sts})
 
 			By("having status true and reason message", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
@@ -42,11 +43,11 @@ var _ = Describe("AllReplicasReady", func() {
 		})
 
 		It("returns a condition with state false", func() {
-			condition := rabbitmqstatus.AllReplicasReadyCondition(sts)
+			condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts})
 
 			By("having status false and reason", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
-				Expect(condition.Reason).To(Equal("NotAllPodsAreReady"))
+				Expect(condition.Reason).To(Equal("NotAllPodsReady"))
 				Expect(condition.Message).ToNot(BeEmpty())
 			})
 		})
@@ -58,7 +59,7 @@ var _ = Describe("AllReplicasReady", func() {
 		})
 
 		It("returns a condition with state unknown", func() {
-			condition := rabbitmqstatus.AllReplicasReadyCondition(sts)
+			condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts})
 
 			By("having status false and reason", func() {
 				Expect(condition.Status).To(Equal(corev1.ConditionUnknown))

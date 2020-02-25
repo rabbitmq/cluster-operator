@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqstatus "github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var _ = Describe("ClusterAvailable", func() {
@@ -33,7 +34,7 @@ var _ = Describe("ClusterAvailable", func() {
 		})
 
 		It("returns the expected condition", func() {
-			condition := rabbitmqstatus.ClusterAvailableCondition(childServiceEndpoints)
+			condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpoints})
 			By("having the correct type", func() {
 				var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ClusterAvailable"
 				Expect(condition.Type).To(Equal(conditionType))
@@ -56,7 +57,7 @@ var _ = Describe("ClusterAvailable", func() {
 		})
 
 		It("returns the expected condition", func() {
-			condition := rabbitmqstatus.ClusterAvailableCondition(childServiceEndpoints)
+			condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints})
 			By("having the correct type", func() {
 				var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ClusterAvailable"
 				Expect(condition.Type).To(Equal(conditionType))
@@ -76,15 +77,15 @@ var _ = Describe("ClusterAvailable", func() {
 		})
 
 		It("returns the expected condition", func() {
-			condition := rabbitmqstatus.ClusterAvailableCondition(childServiceEndpoints)
+			condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints})
 			By("having the correct type", func() {
 				var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ClusterAvailable"
 				Expect(condition.Type).To(Equal(conditionType))
 			})
 
 			By("having status true and reason message", func() {
-				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
-				Expect(condition.Reason).To(Equal("CouldNotAccessServiceEndpoints"))
+				Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
+				Expect(condition.Reason).To(Equal("CouldNotRetrieveEndpoints"))
 				Expect(condition.Message).NotTo(BeEmpty())
 			})
 		})

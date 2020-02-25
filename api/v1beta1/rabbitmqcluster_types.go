@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -84,8 +83,8 @@ type RabbitmqClusterStatus struct {
 
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
 
-	allNodesAvailableCond := status.AllReplicasReadyCondition(resources[0].(*appsv1.StatefulSet))
-	clusterAvailableCond := status.ClusterAvailableCondition(resources[1].(*corev1.Endpoints))
+	allNodesAvailableCond := status.AllReplicasReadyCondition(resources)
+	clusterAvailableCond := status.ClusterAvailableCondition(resources)
 	currentStatusConditions := []status.RabbitmqClusterCondition{
 		allNodesAvailableCond,
 		clusterAvailableCond,
