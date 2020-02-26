@@ -21,11 +21,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"time"
 
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -100,6 +100,25 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return reconcile.Result{Requeue: true}, nil
 	}
 
+	childResources, err := r.getChildResources(*rabbitmqCluster)
+
+	if err != nil {
+		logger.Error(err, "Error getting child resources")
+		return reconcile.Result{}, err
+	}
+
+	oldConditions := make([]status.RabbitmqClusterCondition, len(rabbitmqCluster.Status.Conditions))
+	copy(oldConditions, rabbitmqCluster.Status.Conditions)
+	rabbitmqCluster.Status.SetConditions(childResources)
+
+	if !reflect.DeepEqual(rabbitmqCluster.Status.Conditions, oldConditions) {
+		err = r.Status().Update(context.TODO(), rabbitmqCluster)
+		if err != nil {
+			logger.Error(err, "Failed to update the RabbitmqCluster status")
+			return ctrl.Result{}, err
+		}
+	}
+
 	instanceSpec, err := json.Marshal(rabbitmqCluster.Spec)
 	if err != nil {
 		logger.Error(err, "Failed to marshal cluster spec")
@@ -109,10 +128,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		rabbitmqCluster.Name,
 		rabbitmqCluster.Namespace,
 		string(instanceSpec)))
-
-	if rabbitmqCluster.Status.ClusterStatus == "" {
-		r.updateStatus(rabbitmqCluster, "created")
-	}
 
 	resourceBuilder := resource.RabbitmqResourceBuilder{
 		Instance: rabbitmqCluster,
@@ -153,70 +168,30 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 
-	if rabbitmqCluster.Status.ClusterStatus == "created" || rabbitmqCluster.Status.ClusterStatus == "running" {
-		ready := r.ready(rabbitmqCluster)
-		if ready {
-			r.updateStatus(rabbitmqCluster, "running")
-			return reconcile.Result{}, nil
-		}
-		r.updateStatus(rabbitmqCluster, "created")
-	}
-
-	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+	return ctrl.Result{}, nil
 }
 
-func (r *RabbitmqClusterReconciler) updateStatus(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, status string) {
-	rabbitmqCluster.Status.ClusterStatus = status
-	err := r.Status().Update(context.TODO(), rabbitmqCluster)
-	if err != nil {
-		r.Log.Error(err, "Failed updating status")
-	}
-	r.Log.Info(fmt.Sprintf("RabbitmqCluster: %s is %s", rabbitmqCluster.Name, status))
-}
+func (r *RabbitmqClusterReconciler) getChildResources(rmq rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
+	sts := &appsv1.StatefulSet{}
+	endPoints := &corev1.Endpoints{}
 
-func (r *RabbitmqClusterReconciler) ready(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) bool {
-	name := types.NamespacedName{
-		Namespace: rabbitmqCluster.Namespace,
-		Name:      rabbitmqCluster.ChildResourceName("ingress"),
-	}
-	if rabbitmqCluster.Spec.Service.Type == "LoadBalancer" {
-		return r.loadBalancerReady(name) && r.endpointsReady(name, rabbitmqCluster.Spec.Replicas)
+	if err := r.Client.Get(context.TODO(),
+		types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace},
+		sts); err != nil && !errors.IsNotFound(err) {
+		return nil, err
+	} else if errors.IsNotFound(err) {
+		sts = nil
 	}
 
-	return r.endpointsReady(name, rabbitmqCluster.Spec.Replicas)
-}
-
-func (r *RabbitmqClusterReconciler) endpointsReady(name types.NamespacedName, replicas int32) bool {
-	endpoints := &corev1.Endpoints{}
-
-	err := r.Get(context.TODO(), name, endpoints)
-	if err != nil {
-		r.Log.Error(err, "Failed to check if RabbitmqCluster endpoints are ready")
-		return false
+	if err := r.Client.Get(context.TODO(),
+		types.NamespacedName{Name: rmq.ChildResourceName("ingress"), Namespace: rmq.Namespace},
+		endPoints); err != nil && !errors.IsNotFound(err) {
+		return nil, err
+	} else if errors.IsNotFound(err) {
+		endPoints = nil
 	}
 
-	for _, e := range endpoints.Subsets {
-		if len(e.NotReadyAddresses) == 0 && int32(len(e.Addresses)) == replicas {
-			return true
-		}
-	}
-	return false
-}
-
-func (r *RabbitmqClusterReconciler) loadBalancerReady(name types.NamespacedName) bool {
-	svc := &corev1.Service{}
-
-	err := r.Get(context.TODO(), name, svc)
-	if err != nil {
-		r.Log.Error(err, "Failed to check if RabbitmqCluster LoadBalancer service object is ready")
-		return false
-	}
-
-	if len(svc.Status.LoadBalancer.Ingress) == 0 || svc.Status.LoadBalancer.Ingress[0].IP == "" {
-		return false
-	}
-
-	return true
+	return []runtime.Object{sts, endPoints}, nil
 }
 
 func (r *RabbitmqClusterReconciler) getRabbitmqCluster(NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {

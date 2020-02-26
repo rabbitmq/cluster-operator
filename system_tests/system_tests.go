@@ -53,6 +53,7 @@ var _ = Describe("Operator", func() {
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 
 			waitForRabbitmqRunning(cluster)
+			waitForLoadBalancer(clientSet, cluster)
 
 			hostname = rabbitmqHostname(clientSet, cluster)
 
@@ -90,6 +91,30 @@ var _ = Describe("Operator", func() {
 
 				Expect(err).NotTo(HaveOccurred())
 			})
+
+			By("having status conditions", func() {
+				output, err := kubectl(
+					"-n",
+					cluster.Namespace,
+					"get",
+					"rabbitmqclusters",
+					cluster.Name,
+					"-ojsonpath='{.status.conditions[?(@.type==\"AllNodesAvailable\")].status}'",
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(output)).To(Equal("'True'"))
+
+				output, err = kubectl(
+					"-n",
+					cluster.Namespace,
+					"get",
+					"rabbitmqclusters",
+					cluster.Name,
+					"-ojsonpath='{.status.conditions[?(@.type==\"ClusterAvailable\")].status}'",
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(output)).To(Equal("'True'"))
+			})
 		})
 	})
 
@@ -113,6 +138,7 @@ var _ = Describe("Operator", func() {
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
 
 			waitForRabbitmqRunning(cluster)
+			waitForLoadBalancer(clientSet, cluster)
 
 			hostname = rabbitmqHostname(clientSet, cluster)
 
@@ -172,6 +198,7 @@ var _ = Describe("Operator", func() {
 			It("works", func() {
 				waitForRabbitmqRunning(cluster)
 				username, password, err := getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
+				waitForLoadBalancer(clientSet, cluster)
 				hostname := rabbitmqHostname(clientSet, cluster)
 				Expect(err).NotTo(HaveOccurred())
 

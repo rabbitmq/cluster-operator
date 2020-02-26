@@ -20,9 +20,11 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -75,7 +77,20 @@ type RabbitmqClusterServiceSpec struct {
 
 // RabbitmqClusterStatus defines the observed state of RabbitmqCluster
 type RabbitmqClusterStatus struct {
-	ClusterStatus string `json:"clusterStatus,omitempty"`
+	ClusterStatus string                            `json:"clusterStatus,omitempty"`
+	Conditions    []status.RabbitmqClusterCondition `json:"conditions"`
+}
+
+func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
+
+	allNodesAvailableCond := status.AllReplicasReadyCondition(resources)
+	clusterAvailableCond := status.ClusterAvailableCondition(resources)
+	currentStatusConditions := []status.RabbitmqClusterCondition{
+		allNodesAvailableCond,
+		clusterAvailableCond,
+	}
+
+	rmqStatus.Conditions = currentStatusConditions
 }
 
 // +kubebuilder:object:root=true

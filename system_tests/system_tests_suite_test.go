@@ -6,7 +6,6 @@ import (
 
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,9 +27,7 @@ var (
 	rmqClusterClient          client.Client
 	clientSet                 *kubernetes.Clientset
 	namespace                 string
-	mgr                       manager.Manager
 	specifiedStorageClassName = "persistent-test"
-	specifiedStorageCapacity  = "1Gi"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {

@@ -34,5 +34,4 @@ require (
 	k8s.io/client-go v0.0.0-20191121015835-571c0ef67034
 	k8s.io/utils v0.0.0-20191114200735-6ca3b61696b6 // indirect
 	sigs.k8s.io/controller-runtime v0.4.0
-	sigs.k8s.io/controller-tools v0.2.4 // indirect
 )
