@@ -77,10 +77,10 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
+	ctx := context.Background()
 	logger := r.Log
 
-	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(req.NamespacedName)
+	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -93,14 +93,14 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
 
 	if !reflect.DeepEqual(fetchedRabbitmqCluster.Spec, rabbitmqCluster.Spec) {
-		err := r.Client.Update(context.TODO(), rabbitmqCluster)
+		err := r.Client.Update(ctx, rabbitmqCluster)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	childResources, err := r.getChildResources(*rabbitmqCluster)
+	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
 
 	if err != nil {
 		logger.Error(err, "Error getting child resources")
@@ -112,7 +112,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	rabbitmqCluster.Status.SetConditions(childResources)
 
 	if !reflect.DeepEqual(rabbitmqCluster.Status.Conditions, oldConditions) {
-		err = r.Status().Update(context.TODO(), rabbitmqCluster)
+		err = r.Status().Update(ctx, rabbitmqCluster)
 		if err != nil {
 			logger.Error(err, "Failed to update the RabbitmqCluster status")
 			return ctrl.Result{}, err
@@ -151,7 +151,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return reconcile.Result{}, err
 		}
 
-		operationResult, err := controllerutil.CreateOrUpdate(context.TODO(), r, resource, func() error {
+		operationResult, err := controllerutil.CreateOrUpdate(ctx, r, resource, func() error {
 			return builder.Update(resource)
 		})
 
@@ -171,11 +171,11 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	return ctrl.Result{}, nil
 }
 
-func (r *RabbitmqClusterReconciler) getChildResources(rmq rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
+func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
 	sts := &appsv1.StatefulSet{}
 	endPoints := &corev1.Endpoints{}
 
-	if err := r.Client.Get(context.TODO(),
+	if err := r.Client.Get(ctx,
 		types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace},
 		sts); err != nil && !errors.IsNotFound(err) {
 		return nil, err
@@ -183,7 +183,7 @@ func (r *RabbitmqClusterReconciler) getChildResources(rmq rabbitmqv1beta1.Rabbit
 		sts = nil
 	}
 
-	if err := r.Client.Get(context.TODO(),
+	if err := r.Client.Get(ctx,
 		types.NamespacedName{Name: rmq.ChildResourceName("ingress"), Namespace: rmq.Namespace},
 		endPoints); err != nil && !errors.IsNotFound(err) {
 		return nil, err
@@ -194,15 +194,15 @@ func (r *RabbitmqClusterReconciler) getChildResources(rmq rabbitmqv1beta1.Rabbit
 	return []runtime.Object{sts, endPoints}, nil
 }
 
-func (r *RabbitmqClusterReconciler) getRabbitmqCluster(NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
+func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
 	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
-	err := r.Get(context.TODO(), NamespacedName, rabbitmqClusterInstance)
+	err := r.Get(ctx, NamespacedName, rabbitmqClusterInstance)
 	return rabbitmqClusterInstance, err
 }
 
-func (r *RabbitmqClusterReconciler) getImagePullSecret(NamespacedName types.NamespacedName) (*corev1.Secret, error) {
+func (r *RabbitmqClusterReconciler) getImagePullSecret(ctx context.Context, NamespacedName types.NamespacedName) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
-	err := r.Get(context.TODO(), NamespacedName, secret)
+	err := r.Get(ctx, NamespacedName, secret)
 	return secret, err
 }
 
