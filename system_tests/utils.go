@@ -272,7 +272,7 @@ func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 			"get",
 			"rabbitmqclusters",
 			cluster.Name,
-			"-ojsonpath='{.status.conditions[?(@.type==\"AllNodesAvailable\")].status}'",
+			"-ojsonpath='{.status.conditions[?(@.type==\"AllReplicasReady\")].status}'",
 		)
 
 		if err != nil {

@@ -99,7 +99,7 @@ var _ = Describe("Operator", func() {
 					"get",
 					"rabbitmqclusters",
 					cluster.Name,
-					"-ojsonpath='{.status.conditions[?(@.type==\"AllNodesAvailable\")].status}'",
+					"-ojsonpath='{.status.conditions[?(@.type==\"AllReplicasReady\")].status}'",
 				)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(output)).To(Equal("'True'"))
