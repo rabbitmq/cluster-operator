@@ -51,30 +51,29 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 
 If this proposal adds new terms, or defines some, make the changes to the book's glossary when in PR stage.
 
-## Summary [WIP]
+## Summary
 
-The `Summary` section is incredibly important for producing high quality user-focused documentation such as release notes or a development roadmap.
-It should be possible to collect this information before implementation begins in order to avoid requiring implementors to split their attention between writing release notes and implementing the feature itself.
+We propose a documented upgrade workflow for the RabbitMQ for Kubernetes CRD, Controller, and Custom Resource instances, to allow users to feel confident that performing an upgrade will not lead to data loss, or significant downtime. We first seek to understand the tools that are available to upgrade these components, and then seek to implement solutions using these tools that will give users a path to upgrade from an older version to a newer one.
 
-A good summary is probably at least a paragraph in length.
+## Motivation
 
-## Motivation [WIP]
+- There is currently no workflow to allow users to upgrade the operator
+- We do not have semantic versioning to help set initial expectations around upgrades
+- We do not know whether we will experience data loss if we upgrade versions that have different API definitions without having a migration path
+- At the moment, users will have to upgrade each Custom Resource instance individually
 
-This section is for explicitly listing the motivation, goals and non-goals of this proposal.
+### Goals
 
-- Describe why the change is important and the benefits to users.
-- The motivation section can optionally provide links to [experience reports](https://github.com/golang/go/wiki/ExperienceReports)
-to demonstrate the interest in a proposal within the wider Kubernetes community.
+Document how to upgrade our three main components: CRD, controller and all CR instances.
+- Implement multiple version support in CRD
+- Implement multi version migration webhooks in controller
+- Have a strategy around how to deal with multiple CRD versions and multiple controllers - should we deploy all versions of the controller and have them reconcile their associated CR instance? Or simply deploy the latest controller and have it handle all CR instances?
+- Have a strategy for how to deal with CR instances that have not been upgraded yet - how to stop a newer versioned controller from reconciling an older versioned CR instance
 
-### Goals [WIP]
+### Non-Goals/Future Work
 
-- List the specific goals of the proposal.
-- How will we know that this has succeeded?
-
-### Non-Goals/Future Work [WIP]
-
-- What is out of scope for this proposal?
-- Listing non-goals helps to focus discussion and make progress.
+- Bulk vs granular upgrades of CR instances
+- Upgrading RMQ version
 
 ## Proposal [WIP]
 
