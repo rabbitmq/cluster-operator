@@ -11,24 +11,7 @@ replaces:
 superseded-by:
 ---
 
-# Upgrade Rabbitmq for Kubernetes
-
-<!-- BEGIN Remove before PR -->
-To get started with this template:
-1. **Make a copy of this template.**
-  Copy this template into `docs/enhacements` and name it `YYYYMMDD-my-title.md`, where `YYYYMMDD` is the date the proposal was first drafted.
-1. **Fill out the required sections.**
-1. **Create a PR.**
-  Aim for single topic PRs to keep discussions focused.
-  If you disagree with what is already in a document, open a new PR with suggested changes.
-
-The canonical place for the latest set of instructions (and the likely source of this file) is [here](/proposals/YYYYMMDD-proposal-template.md).
-
-The `Metadata` section above is intended to support the creation of tooling around the proposal process.
-This will be a YAML section that is fenced as a code block.
-See the proposal process for details on each of these items.
-
-<!-- END Remove before PR -->
+# Upgrade RabbitMQ for Kubernetes
 
 ## Table of Contents
 
@@ -79,15 +62,15 @@ We propose a high level overview of the expected customer experience we would li
 Each topic will be explored more deeply with a separate KEP.
 ## Motivation
 
-As we experiment and understand more about upgrades, we would like a single place to refer to when trying to understand our current progress towards creating a good upgrade experience. We believe that this KEP will allow us to both track current progress and plan next steps towards improvements.
+As we experiment and understand more about upgrades, we would like a single place to refer to when trying to understand our current progress towards creating a wholistic upgrade experience. We believe that this KEP will allow us to both track current progress and plan next steps towards improvements.
 
-We know that the ability to make a minimal set of guarantees about upgrades is essential towards deciding when to promote our API version to GA (V1). We have had previous discussions about what this set of guarantees might look like for individual components of our product. This document will track and improve on that set of guarantees.
+We know that the ability to make a minimal set of guarantees about upgrades is essential towards deciding when to promote our API version to GA. We have had previous discussions about what this set of guarantees might look like for individual components of our product. The motivation is therefore to track and improve on that set of guarantees while providing an appropriate medium for distributed collaboration.
 
 ### Goals
 
 - To track current and future sets of guarantees made about the upgrades of of RabbitMQ for Kubernetes components
 - Prioritise these behaviours to form a road map
-- Attempt to create a release mark that indicates when we would be confident to say that our upgrade journey is ready for V1
+- Create a release mark that indicates when we would be confident to say that our upgrade journey is ready for GA
 
 ### Non-Goals/Future Work
 
@@ -96,15 +79,8 @@ We know that the ability to make a minimal set of guarantees about upgrades is e
 
 ## Proposal [WIP]
 
-This is where we get down to the nitty gritty of what the proposal actually is.
-
-- What is the plan for implementing this feature?
-- What data model changes, additions, or removals are required?
-- Provide a scenario, or example.
-- Use diagrams to communicate concepts, flows of execution, and states.
-
-[PlantUML](http://plantuml.com) is the preferred tool to generate diagrams,
-place your `.plantuml` files under `images/` and run `make diagrams` from the docs folder.
+- Explain upgrade philosophy
+- Have links to current upgrade KEPs
 
 ### User Stories [WIP]
 
