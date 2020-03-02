@@ -15,11 +15,16 @@ const (
 type RabbitmqClusterConditionType string
 
 type RabbitmqClusterCondition struct {
-	Type               RabbitmqClusterConditionType `json:"type"`
-	Status             corev1.ConditionStatus       `json:"status"`
-	LastTransitionTime metav1.Time                  `json:"lastTransitionTime,omitempty"`
-	Reason             string                       `json:"reason,omitempty"`
-	Message            string                       `json:"message,omitempty"`
+	// Type indicates the scope of RabbitmqCluster status addressed by the condition.
+	Type RabbitmqClusterConditionType `json:"type"`
+	// True, False, or Unknown
+	Status corev1.ConditionStatus `json:"status"`
+	// The last time this Condition type changed.
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	// One word, camel-case reason for current status of the condition.
+	Reason string `json:"reason,omitempty"`
+	// Full text reason for current status of the condition.
+	Message string `json:"message,omitempty"`
 }
 
 func generateCondition(conditionType RabbitmqClusterConditionType) RabbitmqClusterCondition {

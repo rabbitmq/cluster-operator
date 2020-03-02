@@ -51,34 +51,44 @@ type RabbitmqCluster struct {
 	Status RabbitmqClusterStatus `json:"status,omitempty"`
 }
 
-// RabbitmqClusterSpec defines the desired state of RabbitmqCluster
+// Spec is the desired state of the RabbitmqCluster Custom Resource.
 type RabbitmqClusterSpec struct {
+	// Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet.
 	// +kubebuilder:validation:Enum=1;3
-	Replicas        int32                          `json:"replicas"`
-	Image           string                         `json:"image,omitempty"`
+	Replicas int32 `json:"replicas"`
+	// Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster.
+	Image string `json:"image,omitempty"`
+	// Name of the Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
 	ImagePullSecret string                         `json:"imagePullSecret,omitempty"`
 	Service         RabbitmqClusterServiceSpec     `json:"service,omitempty"`
 	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
 	Resources       *corev1.ResourceRequirements   `json:"resources,omitempty"`
 	Affinity        *corev1.Affinity               `json:"affinity,omitempty"`
-	Tolerations     []corev1.Toleration            `json:"tolerations,omitempty"`
+	// Tolerations is the list of Toleration resources attached to each Pod in the RabbitmqCluster.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
+// The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
 type RabbitmqClusterPersistenceSpec struct {
-	StorageClassName *string               `json:"storageClassName,omitempty"`
-	Storage          *k8sresource.Quantity `json:"storage,omitempty"`
+	// StorageClassName is the name of the StorageClass to claim a PersistentVolume from.
+	StorageClassName *string `json:"storageClassName,omitempty"`
+	// The requested size of the persistent volume attached to each Pod in the RabbitmqCluster.
+	Storage *k8sresource.Quantity `json:"storage,omitempty"`
 }
 
+// Settable attributes for the Ingress Service resource.
 type RabbitmqClusterServiceSpec struct {
 	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
-	Type        corev1.ServiceType `json:"type,omitempty"`
-	Annotations map[string]string  `json:"annotations,omitempty"`
+	Type corev1.ServiceType `json:"type,omitempty"`
+	// Annotations to add to the Ingress Service.
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// RabbitmqClusterStatus defines the observed state of RabbitmqCluster
+// Status presents the observed state of RabbitmqCluster
 type RabbitmqClusterStatus struct {
-	ClusterStatus string                            `json:"clusterStatus,omitempty"`
-	Conditions    []status.RabbitmqClusterCondition `json:"conditions"`
+	ClusterStatus string `json:"clusterStatus,omitempty"`
+	// Set of Conditions describing the current state of the RabbitmqCluster
+	Conditions []status.RabbitmqClusterCondition `json:"conditions"`
 }
 
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
