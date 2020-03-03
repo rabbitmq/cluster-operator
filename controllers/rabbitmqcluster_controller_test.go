@@ -26,7 +26,6 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -613,7 +612,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Eventually(func() bool {
 				sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
-				if err != nil && errors.IsNotFound(err) {
+				if err != nil {
 					return false
 				}
 				return string(sts.UID) != string(oldSts.UID)
@@ -621,7 +620,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Eventually(func() bool {
 				ingressSvc, err := clientSet.CoreV1().Services(namespace).Get(ingressServiceName, metav1.GetOptions{})
-				if err != nil && errors.IsNotFound(err) {
+				if err != nil {
 					return false
 				}
 				return string(ingressSvc.UID) != string(oldIngressSvc.UID)
@@ -629,7 +628,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Eventually(func() bool {
 				headlessSvc, err := clientSet.CoreV1().Services(namespace).Get(headlessServiceName, metav1.GetOptions{})
-				if err != nil && errors.IsNotFound(err) {
+				if err != nil {
 					return false
 				}
 				return string(headlessSvc.UID) != string(oldHeadlessSvc.UID)
@@ -637,7 +636,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Eventually(func() bool {
 				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
-				if err != nil && errors.IsNotFound(err) {
+				if err != nil {
 					return false
 				}
 				return string(configMap.UID) != string(oldConfMap.UID)
