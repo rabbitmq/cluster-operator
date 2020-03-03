@@ -26,7 +26,6 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,6 +88,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(secret.Name).To(Equal(secretName))
+				Expect(secret.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
 
 			By("creating an erlang cookie secret", func() {
@@ -96,6 +96,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(secret.Name).To(Equal(secretName))
+				Expect(secret.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
 
 			By("creating a rabbitmq ingress service", func() {
@@ -116,36 +117,27 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 
 			By("creating a service account", func() {
-				name := rabbitmqCluster.ChildResourceName("server")
-				var serviceAccount *corev1.ServiceAccount
-				Eventually(func() error {
-					var err error
-					serviceAccount, err = clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
-					return err
-				}, 1).Should(Succeed())
-				Expect(serviceAccount.Name).To(Equal(name))
+				serviceAccountName := rabbitmqCluster.ChildResourceName("server")
+				serviceAccount, err := clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(serviceAccountName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(serviceAccount.Name).To(Equal(serviceAccountName))
+				Expect(serviceAccount.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
 
 			By("creating a role", func() {
-				name := rabbitmqCluster.ChildResourceName("endpoint-discovery")
-				var role *rbacv1.Role
-				Eventually(func() error {
-					var err error
-					role, err = clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
-					return err
-				}, 1).Should(Succeed())
-				Expect(role.Name).To(Equal(name))
+				roleName := rabbitmqCluster.ChildResourceName("endpoint-discovery")
+				role, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(roleName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(role.Name).To(Equal(roleName))
+				Expect(role.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
 
 			By("creating a role binding", func() {
-				name := rabbitmqCluster.ChildResourceName("server")
-				var roleBinding *rbacv1.RoleBinding
-				Eventually(func() error {
-					var err error
-					roleBinding, err = clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(name, metav1.GetOptions{})
-					return err
-				}, 1).Should(Succeed())
-				Expect(roleBinding.Name).To(Equal(name))
+				roleBindingName := rabbitmqCluster.ChildResourceName("server")
+				roleBinding, err := clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(roleBindingName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(roleBinding.Name).To(Equal(roleBindingName))
+				Expect(roleBinding.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
 		})
 	})
@@ -618,37 +610,37 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(clientSet.CoreV1().Services(namespace).Delete(ingressServiceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 			Expect(clientSet.CoreV1().Services(namespace).Delete(headlessServiceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
-			Eventually(func() string {
+			Eventually(func() bool {
 				sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
 				if err != nil {
-					return err.Error()
+					return false
 				}
-				return string(sts.UID)
-			}, 10).Should(Not(Equal(oldSts.UID)))
+				return string(sts.UID) != string(oldSts.UID)
+			}, 5).Should(BeTrue())
 
-			Eventually(func() string {
+			Eventually(func() bool {
 				ingressSvc, err := clientSet.CoreV1().Services(namespace).Get(ingressServiceName, metav1.GetOptions{})
 				if err != nil {
-					return err.Error()
+					return false
 				}
-				return string(ingressSvc.UID)
-			}, 10).Should(Not(Equal(oldIngressSvc.UID)))
+				return string(ingressSvc.UID) != string(oldIngressSvc.UID)
+			}, 5).Should(BeTrue())
 
-			Eventually(func() string {
+			Eventually(func() bool {
 				headlessSvc, err := clientSet.CoreV1().Services(namespace).Get(headlessServiceName, metav1.GetOptions{})
 				if err != nil {
-					return err.Error()
+					return false
 				}
-				return string(headlessSvc.UID)
-			}, 10).Should(Not(Equal(oldHeadlessSvc.UID)))
+				return string(headlessSvc.UID) != string(oldHeadlessSvc.UID)
+			}, 5).Should(Not(Equal(oldHeadlessSvc.UID)))
 
-			Eventually(func() string {
+			Eventually(func() bool {
 				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
 				if err != nil {
-					return err.Error()
+					return false
 				}
-				return string(configMap.UID)
-			}, 10).Should(Not(Equal(oldConfMap.UID)))
+				return string(configMap.UID) != string(oldConfMap.UID)
+			}, 5).Should(Not(Equal(oldConfMap.UID)))
 
 		})
 	})
