@@ -80,7 +80,36 @@ We know that the ability to make a minimal set of guarantees about upgrades is e
 ## Proposal [WIP]
 
 - Explain upgrade philosophy
-- Have links to current upgrade KEPs
+Our objective with upgrades is to seek to acquire a definition of the minimum set of required conditions for an upgrade journey to start from, so we can iterate towards the ideal upgrade journey over time. This set of requirements can, or Minimum Viable Upgrade, can then be used as a target for GA, because we can be confident that we have covered the minimum required user journey while giving ourselves a chance to iterate towards implementing better workflows.
+
+We can summarise the upgrade journeys by listing out aspects of the behaviour of the system during an upgrade:
+
+### Data loss
+Data loss during an upgrade could happen at either the Data Plane (losing messages, RabbitMQ resource metadata, or configuration data), the Control Plane (losing track of existing instances and their current state or losing existing configuration).
+
+We consider data loss prevention on both planes to be the most important aspect of the upgrade experience we want to provide.
+
+### Consistency
+Somewhat related to Data Loss but not quite the same, consistency is all about making sure that at the very minimum the upgrade moves the system from one valid state to another one. In an ideal world, the system would always remain in a consistent state even during the upgrade. A good upgrade solution would make sure that even in those cases where the upgrade fails the system is left in an operational and consistent state.
+
+In our case, consistency might mean different things depending on the user we are looking at. For example, consistency for application developers could mean that their service bindings (coordinates and credentials) stay the same at any point in time. They probably also care about not consuming one and the same message twice; or that if they published a message and got an acknowledgment from the server, they can be sure that the message is queued correctly and not being lost subsequently.
+
+For the platform operator, consistency might mean that they do not see multiple incarnations of one and the same RabbitMQ instance once the upgrade is finished or that the number of nodes in a given RabbitMQ cluster remains the same after an upgrade.
+
+### Availability
+Availability affects both the data plane and the control plane, i.e. availability of the RabbitMQ instances and availability of the Control Plane. Moreover, we should consider potential side-effects the way we conduct control plane and instance upgrades might have on the availability of the K8s cluster (e.g. API server, etc).
+
+Different users may have different requirements for the availability for either the data or the control plane. This is something we will have to find out more about from our customers.
+
+### Repeatability (TODO define repeatability)
+
+### Performance degradation
+RabbitMQ is commonly used as the backing messaging system responsible for communication within a Microservice ecosystem. Different users will have different performance tolerations for upgrades. We will therefore have to set expectations by providing well researched data that demonstrates the level of performance they can expect during an upgrade. Like any research paper, we will have to frame the data with a given set of constraints. Commonly 
+
+Usability (a scale between automation and manual steps)
+
+To help us track
+- Include Michal's points about minimal viable upgrade for GA. We can include some suggestion to be discussed in the solutions section.
 
 ### User Stories [WIP]
 
