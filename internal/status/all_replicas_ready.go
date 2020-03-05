@@ -10,10 +10,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func AllReplicasReadyCondition(resources []runtime.Object) RabbitmqClusterCondition {
+func AllReplicasReadyCondition(resources []runtime.Object,
+	existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
+
 	condition := generateCondition(AllReplicasReady)
 	condition.LastTransitionTime = metav1.Time{
-		Time: time.Unix(0, 0),
+		Time: time.Now(),
+		// Time: time.Unix(0, 0),
 	}
 	for index := range resources {
 		switch resource := resources[index].(type) {
