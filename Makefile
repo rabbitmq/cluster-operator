@@ -11,7 +11,7 @@ RABBITMQ_USERNAME=guest
 RABBITMQ_PASSWORD=guest
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false"
 
 # Insert a comment starting with '##' after a target, and it will be printed by 'make' and 'make list'
 list:    ## list Makefile targets
