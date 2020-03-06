@@ -19,37 +19,59 @@ A table of contents is helpful for quickly jumping to sections of a proposal and
 any additional information provided beyond the standard proposal template.
 [Tools for generating](https://github.com/ekalinin/github-markdown-toc) a table of contents from markdown are available.
 
-- [Title](#title)
+- [Upgrade RabbitMQ for Kubernetes](#upgrade-rabbitmq-for-kubernetes)
   - [Table of Contents](#table-of-contents)
+  - [Glossary [WIP]](#glossary-wip)
+    - [What is an upgrade?](#what-is-an-upgrade)
+    - [RabbitMQ Instance](#rabbitmq-instance)
+    - [Control plane](#control-plane)
+    - [Minimum Viable Upgrade](#minimum-viable-upgrade)
   - [Summary](#summary)
   - [Motivation](#motivation)
+    - [The upgrade journey](#the-upgrade-journey)
     - [Goals](#goals)
-    - [Non-Goals](#non-goals)
-  - [Proposal](#proposal)
-    - [User Stories [optional]](#user-stories-optional)
+    - [Non-Goals/Future Work](#non-goalsfuture-work)
+  - [Proposal [WIP]](#proposal-wip)
+    - [Data loss](#data-loss)
+    - [Consistency](#consistency)
+    - [Availability](#availability)
+    - [Repeatability (TODO define repeatability)](#repeatability-todo-define-repeatability)
+    - [Performance degradation](#performance-degradation)
+    - [User Stories [WIP]](#user-stories-wip)
       - [Story 1](#story-1)
       - [Story 2](#story-2)
-    - [Implementation Details/Notes/Constraints [optional]](#implementation-detailsnotesconstraints-optional)
-    - [Risks and Mitigations](#risks-and-mitigations)
-  - [Design Details](#design-details)
-    - [Test Plan](#test-plan)
-    - [Graduation Criteria](#graduation-criteria)
-      - [Examples](#examples)
-        - [Alpha -> Beta Graduation](#alpha---beta-graduation)
-        - [Beta -> GA Graduation](#beta---ga-graduation)
-        - [Removing a deprecated flag](#removing-a-deprecated-flag)
-    - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
-    - [Version Skew Strategy](#version-skew-strategy)
+    - [Implementation Details/Notes/Constraints [WIP]](#implementation-detailsnotesconstraints-wip)
+    - [Risks and Mitigations [WIP]](#risks-and-mitigations-wip)
+  - [Alternatives [WIP]](#alternatives-wip)
+  - [Upgrade Strategy [WIP]](#upgrade-strategy-wip)
+  - [Additional Details [WIP]](#additional-details-wip)
+    - [Test Plan [optional]](#test-plan-optional)
+    - [Graduation Criteria [optional]](#graduation-criteria-optional)
+    - [Version Skew Strategy [optional]](#version-skew-strategy-optional)
   - [Implementation History](#implementation-history)
-  - [Drawbacks [optional]](#drawbacks-optional)
-  - [Alternatives [optional]](#alternatives-optional)
-  - [Infrastructure Needed [optional]](#infrastructure-needed-optional)
 
 ## Glossary [WIP]
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+### What is an upgrade?
+An upgrade is a transition from software version A to B. For sake of simplicity this document assumes that version B is always higher than A, i.e. we do not look at downgrades.
 
-If this proposal adds new terms, or defines some, make the changes to the book's glossary when in PR stage.
+### RabbitMQ Instance
+This is a software boundary that describes the components running native Kubernetes resources that ultimately make up the Rabbitmq deployment. This includes:
+- StatefulSet
+- Pods
+- Service
+- ConfigMap
+- Secret
+
+One of the most significant upgrade changes in this category is bumping the version of the RabbitMQ server, i.e. upgrading the RabbitMQ container image.
+
+### Control plane
+This is a software boundary that helps us describe the components that manage the deployment of the RabbitMQ instance. This includes:
+- CRD
+- Controller
+
+### Minimum Viable Upgrade
+For each layer in our stack
 
 ## Summary
 
@@ -60,11 +82,26 @@ We propose a high level overview of the expected customer experience we would li
 - Bulk upgrades for RabbitMQ version
 
 Each topic will be explored more deeply with a separate KEP.
+
 ## Motivation
 
 As we experiment and understand more about upgrades, we would like a single place to refer to when trying to understand our current progress towards creating a wholistic upgrade experience. We believe that this KEP will allow us to both track current progress and plan next steps towards improvements.
 
-We know that the ability to make a minimal set of guarantees about upgrades is essential towards deciding when to promote our API version to GA. We have had previous discussions about what this set of guarantees might look like for individual components of our product. The motivation is therefore to track and improve on that set of guarantees while providing an appropriate medium for distributed collaboration.
+### The upgrade journey
+There are a number of potential ways that customers could get from version A to B:
+- They could delete the version A of their workload and deploy the new version B
+- They could migrate data from the version A workload to the new version B workload
+- They could manually perform a blue-green deployment and switch load balancer to point to the workload version B once it has been successfully migrated
+- They could manually upgrade in place the workload (RabbitMQ server) and the control plane (CRD)
+- They could have an automated blue-green deployment
+- They could have an automated in-place upgrade
+
+All of these are a possible journey that Alanas and Codys could take, and each journey contains a number of trade-offs. It is the objective of this document to help discover what those trade-offs are and to create a framework to ask our customers which trade-offs they are willing to accept in order to guide our product towards continually maintaining an upgrade journey that is within the risk appetite of our customers.
+
+In other words, our objective should be to seek to acquire a definition of the minimum set of required conditions for an upgrade journey to start from, so we can iterate towards the ideal upgrade journey over time. This set of requirements can then be used as a target for GA, because we can be confident that we have covered the minimum required user journey while giving ourselves a chance to iterate towards implementing better workflows.
+
+
+<!-- We know that the ability to make a minimal set of guarantees about upgrades is essential towards deciding when to promote our API version to GA. We have had previous discussions about what this set of guarantees might look like for individual components of our product. The motivation is therefore to track and improve on that set of guarantees while providing an appropriate medium for distributed collaboration. -->
 
 ### Goals
 
@@ -79,8 +116,9 @@ We know that the ability to make a minimal set of guarantees about upgrades is e
 
 ## Proposal [WIP]
 
-- Explain upgrade philosophy
-Our objective with upgrades is to seek to acquire a definition of the minimum set of required conditions for an upgrade journey to start from, so we can iterate towards the ideal upgrade journey over time. This set of requirements can, or Minimum Viable Upgrade, can then be used as a target for GA, because we can be confident that we have covered the minimum required user journey while giving ourselves a chance to iterate towards implementing better workflows.
+Our objective with upgrades is to seek to acquire a definition of the minimum set of required conditions for an upgrade journey to start from, so we can iterate towards the ideal upgrade journey over time. This set of requirements, or Minimum Viable Upgrade, can then be used as a target for GA, because we can be confident that we have covered the minimum required user journey while giving ourselves a chance to iterate towards implementing better workflows in future versions.
+
+
 
 We can summarise the upgrade journeys by listing out aspects of the behaviour of the system during an upgrade:
 
