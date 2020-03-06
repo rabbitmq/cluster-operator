@@ -11,13 +11,9 @@ replaces:
 superseded-by:
 ---
 
-# Upgrade RabbitMQ for Kubernetes
+# Upgrade Criterias
 
 ## Table of Contents
-
-A table of contents is helpful for quickly jumping to sections of a proposal and for highlighting
-any additional information provided beyond the standard proposal template.
-[Tools for generating](https://github.com/ekalinin/github-markdown-toc) a table of contents from markdown are available.
 
 - [Upgrade RabbitMQ for Kubernetes](#upgrade-rabbitmq-for-kubernetes)
   - [Table of Contents](#table-of-contents)
@@ -50,7 +46,7 @@ any additional information provided beyond the standard proposal template.
     - [Version Skew Strategy [optional]](#version-skew-strategy-optional)
   - [Implementation History](#implementation-history)
 
-## Glossary [WIP]
+## Glossary
 
 ### What is an upgrade?
 An upgrade is a transition from software version A to B. For sake of simplicity this document assumes that version B is always higher than A, i.e. we do not look at downgrades.
@@ -75,17 +71,19 @@ For each layer in our stack
 
 ## Summary
 
-We propose a high level overview of the expected customer experience we would like users to have when upgrading all RabbitMQ for Kubernetes components. At the moment we see four broad topics to be covered in depth related to upgrades:
+<!-- We propose a high level overview of the expected customer experience we would like users to have when upgrading all RabbitMQ for Kubernetes components. At the moment we see four broad topics to be covered in depth related to upgrades:
 - Upgrading CRD versions
 - Upgrading RabbitMQ version
 - Bulk upgrades for CRD version
 - Bulk upgrades for RabbitMQ version
 
-Each topic will be explored more deeply with a separate KEP.
+Each topic will be explored more deeply with a separate KEP. -->
+
+We have come up with a set of criteria that we think is important to consider when thinking about upgrades. We hope to use the definitions of criteria in this document to think about future broad topics related to upgrades.
 
 ## Motivation
 
-As we experiment and understand more about upgrades, we would like a single place to refer to when trying to understand our current progress towards creating a wholistic upgrade experience. We believe that this KEP will allow us to both track current progress and plan next steps towards improvements.
+ We believe that if we analyse these different criteria across the Operator and the RabbitMQ Instance, we can better analyse how the system will behave during upgrades, and communicate our expectations to the user.
 
 ### The upgrade journey
 There are a number of potential ways that customers could get from version A to B:
@@ -100,25 +98,19 @@ All of these are a possible journey that Alanas and Codys could take, and each j
 
 In other words, our objective should be to seek to acquire a definition of the minimum set of required conditions for an upgrade journey to start from, so we can iterate towards the ideal upgrade journey over time. This set of requirements can then be used as a target for GA, because we can be confident that we have covered the minimum required user journey while giving ourselves a chance to iterate towards implementing better workflows.
 
-
-<!-- We know that the ability to make a minimal set of guarantees about upgrades is essential towards deciding when to promote our API version to GA. We have had previous discussions about what this set of guarantees might look like for individual components of our product. The motivation is therefore to track and improve on that set of guarantees while providing an appropriate medium for distributed collaboration. -->
-
 ### Goals
 
 - To track current and future sets of guarantees made about the upgrades of of RabbitMQ for Kubernetes components
 - Prioritise these behaviours to form a road map
-- Create a release mark that indicates when we would be confident to say that our upgrade journey is ready for GA
 
 ### Non-Goals/Future Work
 
 - To create detailed solutions for the upgrade journey of each component
 - To designate a release marker for GA - this document will simply detail the upgrade requirements for GA, other system requirements may still block the path to GA.
 
-## Proposal [WIP]
+## Proposal
 
 Our objective with upgrades is to seek to acquire a definition of the minimum set of required conditions for an upgrade journey to start from, so we can iterate towards the ideal upgrade journey over time. This set of requirements, or Minimum Viable Upgrade, can then be used as a target for GA, because we can be confident that we have covered the minimum required user journey while giving ourselves a chance to iterate towards implementing better workflows in future versions.
-
-
 
 We can summarise the upgrade journeys by listing out aspects of the behaviour of the system during an upgrade:
 
