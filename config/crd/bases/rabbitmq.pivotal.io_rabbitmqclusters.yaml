@@ -21,6 +21,7 @@ spec:
     listKind: RabbitmqClusterList
     plural: rabbitmqclusters
     singular: rabbitmqcluster
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -41,7 +42,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: RabbitmqClusterSpec defines the desired state of RabbitmqCluster
+          description: Spec is the desired state of the RabbitmqCluster Custom Resource.
           properties:
             affinity:
               description: Affinity is a group of affinity scheduling rules.
@@ -616,17 +617,30 @@ spec:
                   type: object
               type: object
             image:
+              description: Image is the name of the RabbitMQ docker image to use for
+                RabbitMQ nodes in the RabbitmqCluster.
               type: string
             imagePullSecret:
+              description: Name of the Secret resource containing access credentials
+                to the registry for the RabbitMQ image. Required if the docker registry
+                is private.
               type: string
             persistence:
+              description: The settings for the persistent storage desired for each
+                Pod in the RabbitmqCluster.
               properties:
                 storage:
+                  description: The requested size of the persistent volume attached
+                    to each Pod in the RabbitmqCluster.
                   type: string
                 storageClassName:
+                  description: StorageClassName is the name of the StorageClass to
+                    claim a PersistentVolume from.
                   type: string
               type: object
             replicas:
+              description: Replicas is the number of nodes in the RabbitMQ cluster.
+                Each node is deployed as a Replica in a StatefulSet.
               enum:
               - 1
               - 3
@@ -651,10 +665,12 @@ spec:
                   type: object
               type: object
             service:
+              description: Settable attributes for the Ingress Service resource.
               properties:
                 annotations:
                   additionalProperties:
                     type: string
+                  description: Annotations to add to the Ingress Service.
                   type: object
                 type:
                   description: Service Type string describes ingress methods for a
@@ -666,6 +682,8 @@ spec:
                   type: string
               type: object
             tolerations:
+              description: Tolerations is the list of Toleration resources attached
+                to each Pod in the RabbitmqCluster.
               items:
                 description: The pod this Toleration is attached to tolerates any
                   taint that matches the triple <key,value,effect> using the matching
@@ -708,23 +726,31 @@ spec:
           - replicas
           type: object
         status:
-          description: RabbitmqClusterStatus defines the observed state of RabbitmqCluster
+          description: Status presents the observed state of RabbitmqCluster
           properties:
             clusterStatus:
               type: string
             conditions:
+              description: Set of Conditions describing the current state of the RabbitmqCluster
               items:
                 properties:
                   lastTransitionTime:
+                    description: The last time this Condition type changed.
                     format: date-time
                     type: string
                   message:
+                    description: Full text reason for current status of the condition.
                     type: string
                   reason:
+                    description: One word, camel-case reason for current status of
+                      the condition.
                     type: string
                   status:
+                    description: True, False, or Unknown
                     type: string
                   type:
+                    description: Type indicates the scope of RabbitmqCluster status
+                      addressed by the condition.
                     type: string
                 required:
                 - status
