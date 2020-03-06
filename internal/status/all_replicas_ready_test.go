@@ -98,7 +98,7 @@ var _ = Describe("AllReplicasReady", func() {
 
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
 				Expect(condition.Reason).To(Equal("AllPodsAreReady"))
-				Expect(condition.LastTransitionTime).ToNot(Equal(existingConditionTime))
+				Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
 				Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
 			})
 		})
@@ -117,7 +117,55 @@ var _ = Describe("AllReplicasReady", func() {
 
 				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 				Expect(condition.Reason).To(Equal("NotAllPodsReady"))
-				Expect(condition.LastTransitionTime).To(Equal(existingConditionTime))
+				Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeTrue())
+			})
+		})
+	})
+
+	Context("previous condition was true", func() {
+		BeforeEach(func() {
+			existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				Status: corev1.ConditionTrue,
+				LastTransitionTime: metav1.Time{
+					Time: time.Now().Add(time.Duration(-10 * time.Second)),
+				},
+			}
+		})
+
+		When("all replicas are ready", func() {
+			BeforeEach(func() {
+				sts.Status.ReadyReplicas = 5
+				sts.Status.Replicas = 5
+			})
+
+			It("sets status true, reason and does not update transition time", func() {
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+
+				Expect(existingCondition).NotTo(BeNil())
+				existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
+
+				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+				Expect(condition.Reason).To(Equal("AllPodsAreReady"))
+				Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeTrue())
+			})
+		})
+
+		When("some replicas are not ready", func() {
+			BeforeEach(func() {
+				sts.Status.ReadyReplicas = 3
+				sts.Status.Replicas = 5
+			})
+
+			It("sets status false, reason and updates transition time", func() {
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+
+				Expect(existingCondition).NotTo(BeNil())
+				existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
+
+				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+				Expect(condition.Reason).To(Equal("NotAllPodsReady"))
+				Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
+				Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
 			})
 		})
 	})

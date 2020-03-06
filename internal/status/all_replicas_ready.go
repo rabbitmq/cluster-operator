@@ -14,10 +14,10 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 	existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
 
 	condition := generateCondition(AllReplicasReady)
-	condition.LastTransitionTime = metav1.Time{
-		Time: time.Now(),
-		// Time: time.Unix(0, 0),
+	if existingCondition != nil {
+		condition.LastTransitionTime = existingCondition.LastTransitionTime
 	}
+
 	for index := range resources {
 		switch resource := resources[index].(type) {
 		case *appsv1.StatefulSet:
@@ -26,12 +26,23 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 				condition.Reason = "MissingStatefulSet"
 				condition.Message = "Could not find StatefulSet"
 
+				if existingCondition == nil || existingCondition.Status != condition.Status {
+					condition.LastTransitionTime = metav1.Time{
+						Time: time.Now(),
+					}
+				}
 				return condition
 			}
 
 			if resource.Status.Replicas == resource.Status.ReadyReplicas {
 				condition.Status = corev1.ConditionTrue
 				condition.Reason = "AllPodsAreReady"
+
+				if existingCondition == nil || existingCondition.Status != condition.Status {
+					condition.LastTransitionTime = metav1.Time{
+						Time: time.Now(),
+					}
+				}
 				return condition
 			}
 
@@ -40,6 +51,11 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 			condition.Message = fmt.Sprintf("%d/%d Pods ready",
 				resource.Status.ReadyReplicas,
 				resource.Status.Replicas)
+			if existingCondition == nil || existingCondition.Status != condition.Status {
+				condition.LastTransitionTime = metav1.Time{
+					Time: time.Now(),
+				}
+			}
 		}
 	}
 
