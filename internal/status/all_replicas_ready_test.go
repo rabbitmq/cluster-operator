@@ -32,6 +32,14 @@ var _ = Describe("AllReplicasReady", func() {
 	})
 
 	Context("previous condition was not set", func() {
+		var (
+			expectedTime metav1.Time
+		)
+		BeforeEach(func() {
+			expectedTime = metav1.Time{
+				Time: time.Date(2020, 2, 2, 9, 6, 0, 0, time.UTC),
+			}
+		})
 		When("all replicas are ready", func() {
 			BeforeEach(func() {
 				sts.Status.ReadyReplicas = 5
@@ -44,6 +52,10 @@ var _ = Describe("AllReplicasReady", func() {
 				By("having status true and reason message", func() {
 					Expect(condition.Status).To(Equal(corev1.ConditionTrue))
 					Expect(condition.Reason).To(Equal("AllPodsAreReady"))
+				})
+
+				By("settings the transition time", func() {
+					Expect(condition.LastTransitionTime).To(Equal(expectedTime))
 				})
 			})
 		})
@@ -62,6 +74,10 @@ var _ = Describe("AllReplicasReady", func() {
 					Expect(condition.Reason).To(Equal("NotAllPodsReady"))
 					Expect(condition.Message).ToNot(BeEmpty())
 				})
+
+				By("settings the transition time", func() {
+					Expect(condition.LastTransitionTime).To(Equal(expectedTime))
+				})
 			})
 		})
 
@@ -77,6 +93,10 @@ var _ = Describe("AllReplicasReady", func() {
 					Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
 					Expect(condition.Reason).To(Equal("MissingStatefulSet"))
 					Expect(condition.Message).ToNot(BeEmpty())
+				})
+
+				By("settings the transition time", func() {
+					Expect(condition.LastTransitionTime).To(Equal(expectedTime))
 				})
 			})
 		})
@@ -106,6 +126,7 @@ var _ = Describe("AllReplicasReady", func() {
 
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
 				Expect(condition.Reason).To(Equal("AllPodsAreReady"))
+				Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
 				Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
 			})
 		})
@@ -145,6 +166,7 @@ var _ = Describe("AllReplicasReady", func() {
 				By("updating the transition time", func() {
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
 					Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
 				})
 			})
@@ -215,6 +237,7 @@ var _ = Describe("AllReplicasReady", func() {
 				By("updating the transition time", func() {
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
 					Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
 				})
 			})
@@ -245,6 +268,7 @@ var _ = Describe("AllReplicasReady", func() {
 
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
 				Expect(condition.Reason).To(Equal("AllPodsAreReady"))
+				Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
 				Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
 			})
 		})
@@ -263,6 +287,7 @@ var _ = Describe("AllReplicasReady", func() {
 
 				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 				Expect(condition.Reason).To(Equal("NotAllPodsReady"))
+				Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
 				Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
 			})
 		})
