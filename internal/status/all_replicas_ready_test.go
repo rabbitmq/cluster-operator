@@ -220,4 +220,73 @@ var _ = Describe("AllReplicasReady", func() {
 			})
 		})
 	})
+
+	Context("previous condition was unknown", func() {
+		BeforeEach(func() {
+			existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				Status: corev1.ConditionUnknown,
+				LastTransitionTime: metav1.Time{
+					Time: previousConditionTime,
+				},
+			}
+		})
+
+		When("all replicas are ready", func() {
+			BeforeEach(func() {
+				sts.Status.ReadyReplicas = 5
+				sts.Status.Replicas = 5
+			})
+
+			It("sets status true, reason and updates transition time", func() {
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition, currentTimeFn)
+
+				Expect(existingCondition).NotTo(BeNil())
+				existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
+
+				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+				Expect(condition.Reason).To(Equal("AllPodsAreReady"))
+				Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
+			})
+		})
+
+		When("some replicas are not ready", func() {
+			BeforeEach(func() {
+				sts.Status.ReadyReplicas = 3
+				sts.Status.Replicas = 5
+			})
+
+			It("sets status false, reason and updates transition time", func() {
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition, currentTimeFn)
+
+				Expect(existingCondition).NotTo(BeNil())
+				existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
+
+				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+				Expect(condition.Reason).To(Equal("NotAllPodsReady"))
+				Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
+			})
+		})
+
+		When("the stateful set is not found", func() {
+			BeforeEach(func() {
+				sts = nil
+			})
+
+			It("returns a condition with state unknown and does not update transition time", func() {
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition, currentTimeFn)
+
+				By("having status unknown and reason", func() {
+					Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
+					Expect(condition.Reason).To(Equal("MissingStatefulSet"))
+					Expect(condition.Message).ToNot(BeEmpty())
+				})
+
+				By("updating the transition time", func() {
+					Expect(existingCondition).NotTo(BeNil())
+					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeTrue())
+				})
+			})
+		})
+	})
 })
