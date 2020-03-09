@@ -13,10 +13,13 @@ type ClusterAvailableConditionManager struct {
 	endpoints *corev1.Endpoints
 }
 
-func ClusterAvailableCondition(resources []runtime.Object) RabbitmqClusterCondition {
+func ClusterAvailableCondition(resources []runtime.Object,
+	existingCondition *RabbitmqClusterCondition,
+	now func() time.Time) RabbitmqClusterCondition {
+
 	condition := generateCondition(ClusterAvailable)
-	condition.LastTransitionTime = metav1.Time{
-		Time: time.Unix(0, 0),
+	if existingCondition != nil {
+		condition.LastTransitionTime = existingCondition.LastTransitionTime
 	}
 
 	for index := range resources {
@@ -26,14 +29,14 @@ func ClusterAvailableCondition(resources []runtime.Object) RabbitmqClusterCondit
 				condition.Status = corev1.ConditionUnknown
 				condition.Reason = "CouldNotRetrieveEndpoints"
 				condition.Message = "Could not verify available service endpoints"
-				return condition
+				goto assignLastTransitionTime
 			}
 
 			for _, subset := range resource.Subsets {
 				if len(subset.Addresses) > 0 {
 					condition.Status = corev1.ConditionTrue
 					condition.Reason = "AtLeastOneEndpointAvailable"
-					return condition
+					goto assignLastTransitionTime
 				}
 			}
 
@@ -42,5 +45,13 @@ func ClusterAvailableCondition(resources []runtime.Object) RabbitmqClusterCondit
 			condition.Message = "The ingress service has no endpoints available"
 		}
 	}
+
+assignLastTransitionTime:
+	if existingCondition == nil || existingCondition.Status != condition.Status {
+		condition.LastTransitionTime = metav1.Time{
+			Time: now(),
+		}
+	}
+
 	return condition
 }
