@@ -11,7 +11,8 @@ import (
 )
 
 func AllReplicasReadyCondition(resources []runtime.Object,
-	existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
+	existingCondition *RabbitmqClusterCondition,
+	now func() time.Time) RabbitmqClusterCondition {
 
 	condition := generateCondition(AllReplicasReady)
 	if existingCondition != nil {
@@ -28,7 +29,7 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 
 				if existingCondition == nil || existingCondition.Status != condition.Status {
 					condition.LastTransitionTime = metav1.Time{
-						Time: time.Now(),
+						Time: now(),
 					}
 				}
 				return condition
@@ -40,7 +41,7 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 
 				if existingCondition == nil || existingCondition.Status != condition.Status {
 					condition.LastTransitionTime = metav1.Time{
-						Time: time.Now(),
+						Time: now(),
 					}
 				}
 				return condition
@@ -53,7 +54,7 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 				resource.Status.Replicas)
 			if existingCondition == nil || existingCondition.Status != condition.Status {
 				condition.LastTransitionTime = metav1.Time{
-					Time: time.Now(),
+					Time: now(),
 				}
 			}
 		}
