@@ -82,13 +82,13 @@ var _ = Describe("RabbitmqCluster", func() {
 			By("checking the replica count", func() {
 				invalidReplica := generateRabbitmqClusterObject("rabbit4")
 				invalidReplica.Spec.Replicas = 5
-				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("validation failure list:\nspec.replicas in body should be one of [1 3]")))
+				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("Unsupported value: 5: supported values: \"1\", \"3\"")))
 			})
 
 			By("checking the service type", func() {
 				invalidService := generateRabbitmqClusterObject("rabbit5")
 				invalidService.Spec.Service.Type = "ihateservices"
-				Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("validation failure list:\nspec.service.type in body should be one of [ClusterIP LoadBalancer NodePort]")))
+				Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("supported values: \"ClusterIP\", \"LoadBalancer\", \"NodePort\"")))
 			})
 		})
 
