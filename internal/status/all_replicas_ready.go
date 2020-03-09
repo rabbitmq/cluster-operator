@@ -26,25 +26,13 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 				condition.Status = corev1.ConditionUnknown
 				condition.Reason = "MissingStatefulSet"
 				condition.Message = "Could not find StatefulSet"
-
-				if existingCondition == nil || existingCondition.Status != condition.Status {
-					condition.LastTransitionTime = metav1.Time{
-						Time: now(),
-					}
-				}
-				return condition
+				goto assignLastTransitionTime
 			}
 
 			if resource.Status.Replicas == resource.Status.ReadyReplicas {
 				condition.Status = corev1.ConditionTrue
 				condition.Reason = "AllPodsAreReady"
-
-				if existingCondition == nil || existingCondition.Status != condition.Status {
-					condition.LastTransitionTime = metav1.Time{
-						Time: now(),
-					}
-				}
-				return condition
+				goto assignLastTransitionTime
 			}
 
 			condition.Status = corev1.ConditionFalse
@@ -52,11 +40,13 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 			condition.Message = fmt.Sprintf("%d/%d Pods ready",
 				resource.Status.ReadyReplicas,
 				resource.Status.Replicas)
-			if existingCondition == nil || existingCondition.Status != condition.Status {
-				condition.LastTransitionTime = metav1.Time{
-					Time: now(),
-				}
-			}
+		}
+	}
+
+assignLastTransitionTime:
+	if existingCondition == nil || existingCondition.Status != condition.Status {
+		condition.LastTransitionTime = metav1.Time{
+			Time: now(),
 		}
 	}
 
