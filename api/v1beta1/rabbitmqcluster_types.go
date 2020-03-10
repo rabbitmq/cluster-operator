@@ -93,8 +93,8 @@ type RabbitmqClusterStatus struct {
 }
 
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
-	var existingAllPodsReadyCondition *status.RabbitmqClusterCondition = nil
-	var existingClusterAvailableCondition *status.RabbitmqClusterCondition = nil
+	var existingAllPodsReadyCondition *status.RabbitmqClusterCondition
+	var existingClusterAvailableCondition *status.RabbitmqClusterCondition
 
 	for _, condition := range rmqStatus.Conditions {
 		switch condition.Type {
@@ -105,10 +105,10 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 		}
 	}
 
-	allNodesAvailableCond := status.AllReplicasReadyCondition(resources, existingAllPodsReadyCondition, time.Now)
+	allReplicasReadyCond := status.AllReplicasReadyCondition(resources, existingAllPodsReadyCondition, time.Now)
 	clusterAvailableCond := status.ClusterAvailableCondition(resources, existingClusterAvailableCondition, time.Now)
 	currentStatusConditions := []status.RabbitmqClusterCondition{
-		allNodesAvailableCond,
+		allReplicasReadyCond,
 		clusterAvailableCond,
 	}
 
