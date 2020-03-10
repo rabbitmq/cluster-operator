@@ -1,28 +1,22 @@
 ---
-title: CRD spec configurability
+title: CRD Spec Refactor
 authors:
   - "@ChunyiLyu"
 reviewers:
   -
 creation-date: 2020-03-10
 last-updated: yyyy-mm-dd
-status: provisional|implementable|implemented|deferred|rejected|withdrawn|replaced
+status: provisional
 see-also:
 replaces:
 superseded-by:
 ---
 
-# CRD spec configurability
-
-<!-- END Remove before PR -->
+# CRD Spec Refactor
 
 ## Table of Contents
 
-A table of contents is helpful for quickly jumping to sections of a proposal and for highlighting
-any additional information provided beyond the standard proposal template.
-[Tools for generating](https://github.com/ekalinin/github-markdown-toc) a table of contents from markdown are available.
-
-- [CRD spec configurability](#crd-spec-configurability)
+- [CRD Spec Refactor](#CRD-spec-refactor)
   - [Table of Contents](#table-of-contents)
   - [Glossary](#glossary)
   - [Summary](#summary)
@@ -53,16 +47,16 @@ If this proposal adds new terms, or defines some, make the changes to the book's
 
 ## Summary
 
-This KEP describes a new structure for the `RabbitmqCluster` spec to achieve better flexibilty and configurability for the `RabbitmqCluster`. The proposed solution suggests using the StatefulSet, Service, and the ConfigMap kubernetes template directly in our spec. Users will be able to configure any field that of the StatefulSet and ingress Service template through editting the `RabbitmqCluster` spec.
+This KEP describes a new structure for the `RabbitmqCluster` spec to achieve better flexibilty and configurability for the `RabbitmqCluster`. The proposed solution suggests using the StatefulSet, Service, and the ConfigMap kubernetes template directly in our spec. Users will be able to configure any field that of the StatefulSet, ingress Service, and ConfigMap through editting the `RabbitmqCluster` spec.
 
 ## Motivation
 
-We would like to make our `RabbitmqCluster` CRD as flexible as possible. This is aligned with our team roadmap discussions. We decided that we are going to provide different layers of abstructions to create RabbitMQ, and the `RabbitmqCluster` CRD, which is at the 'bottom' of the abstruction layer, should offer little opinion on how users should configure and create `RabbitmqCluster` instances. The `RabbitmqCluster` CRD should enable users to customize it to whichever configurations that adhere to users' requirements.
+We would like to make our `RabbitmqCluster` CRD as flexible as possible. This is aligned with our team roadmap discussions. We decided that we are going to provide different layers of abstructions to create RabbitMQ. The `RabbitmqCluster` CRD, which is at the 'bottom' of the abstruction layer, should offer little opinion on how users should configure and create `RabbitmqCluster` instances. The `RabbitmqCluster` CRD should enable users to customize it to whichever configurations that adhere to users' own requirements.
 
 ### Goals
 
 - To make the `RabbitmqCluster` CRD as flexible as possible
-- To leverage kubernetes native object templates
+- To leverage kubernetes native resource templates
 
 ### Non-Goals/Future Work
 
@@ -71,7 +65,9 @@ We would like to make our `RabbitmqCluster` CRD as flexible as possible. This is
 
 ## Proposal
 
-The proposed new `RabbitmqCluster` spec uses StatefulSet, Service, and the ConfigMap kubernetes template directly. Our operator currently creates 9 kuberentes child recources directly for each `RabbitmqCluster`: ingress Service, headless Service, StatefulSet, ConfigMap, erlang cookie secret, admin secret, rbac role, role binding, service account. Out of all these resources, we are currently allowing users to partially configure the StatefulSet, the ingress Service, and the pods that StatefulSet creates (look at manifest example below for all configurations we allow through the `RabbitmqCluster` spec). I think it makes sense to focus the two child recources (ingress Service and StatefulSet) for adding configurability, as there is no abvious use case we can think of now that involves configuring any of the other child resources. Our ConfigMap current tracks the list of rabbitmq plug-ins that's enabled by default and the rabbitmq conf file. The current process for our users to update that the plug-ins list is to modify the ConfigMap object directly, and recreate the StatefulSet object. With this new structure of the `RabbitmqCluster` spec, user will be able to modify the ConfigMap directly in the `RabbitmqCluster` spec.
+The proposed new `RabbitmqCluster` spec uses StatefulSet, Service, and the ConfigMap kubernetes template directly. Our operator currently creates 9 kuberentes child recources directly for each `RabbitmqCluster`: ingress Service, headless Service, StatefulSet, ConfigMap, erlang cookie secret, admin secret, rbac role, role binding, service account. Out of all these resources, we are currently allowing users to partially configure the StatefulSet, the ingress Service, and the pods that StatefulSet creates (look at manifest example below for all configurations we allow through the `RabbitmqCluster` spec). I think it makes sense to focus the two child recources (ingress Service and StatefulSet) for adding configurability, as there is no abvious use case I can think of now that involves configuring any of the other child resources.
+
+Our current implementation of ConfigMap tracks the list of enabled rabbitmq plugins and the rabbitmq conf file. At the moment, users need to modify the ConfigMap object directly and recreate the StatefulSet object to update the plugins list and the rabbitmq conf file. Such modifications does not stay if the ConfigMap gets recreated, since our controller will recreate the ConfigMap with our own default values. With this new structure of the `RabbitmqCluster` spec, users will be able to modify the ConfigMap directly in the `RabbitmqCluster` spec. Since the ConfigMap is stored in the `RabbitmqCluster` spec, any modifications on the ConfigMap will be kept if the ConfigMap gets recreated.
 
 At the moment, if someone customizes every field in the `RabbitmqCluster` spec, their manifest can look like:
 
@@ -115,7 +111,7 @@ spec:
     storage: 20Gi
 ```
 
-With the proposed `RabbitmqCluster` spec structure, users can configure and create the same `RabbitmqCluster` as the above example by providing the below manifest. The manifest below also configures list of plug-ins and rabbitmq conf file through configMapTemplate:
+With the proposed `RabbitmqCluster` spec structure, users can configure and create the same `RabbitmqCluster` as the above example by providing the below manifest. The manifest below also configures a list of plugins and rabbitmq conf file through configMapTemplate:
 
 ```
 apiVersion: rabbitmq.pivotal.io/v1beta1
@@ -166,15 +162,12 @@ spec:
       type: LoadBalancer
   configMapTemplate:
     data:
-      enabled_plugins: '[rabbitmq_management,rabbitmq_peer_discovery_k8s,rabbitmq_federation,rabbitmq_federation_management,rabbitmq_shovel,rabbitmq_shovel_management,rabbitmq_prometheus].'
+      enabled_plugins: '[rabbitmq_management].'
       rabbitmq.conf: |-
         cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
         cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
         cluster_formation.k8s.address_type = hostname
-        cluster_formation.node_cleanup.interval = 30
-        cluster_formation.node_cleanup.only_log_warning = true
-        cluster_partition_handling = pause_minority
-        queue_master_locator = min-masters
+        cluster_formation.node_cleanup.interval = 10
 ```
 TODO: what about use spec directly instead of the template? What's the benefits of letting people modifying the name and namespace fields?
 
@@ -441,22 +434,19 @@ spec:
         name: rabbitmqcluster-sample-rabbitmq-server-conf
         namespace: pivotal-rabbitmq-system
       data:
-        enabled_plugins: '[rabbitmq_management,rabbitmq_peer_discovery_k8s,rabbitmq_federation,rabbitmq_federation_management,rabbitmq_shovel,rabbitmq_shovel_management,rabbitmq_prometheus].'
+        enabled_plugins: '[rabbitmq_management].'
         rabbitmq.conf: |-
           cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
           cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
           cluster_formation.k8s.address_type = hostname
-          cluster_formation.node_cleanup.interval = 30
-          cluster_formation.node_cleanup.only_log_warning = true
-          cluster_partition_handling = pause_minority
-          queue_master_locator = min-masters
+          cluster_formation.node_cleanup.interval = 10
 ```
 
 The updated manifest contains almost the complete manifest for the StatefulSet, ingress Service, and ConfigMap (it does not have any fields like the status, kind, or apiversion, which require updates from the apiserver, not the controller).
 
 ### Update
 
-TODO
+Any update to the StatefulSet, ingress Service, and the ConfigMap template should be reconciled by our controller. This means that certain updates will trigger reconciliation errors, and any reconciliation error should be surfaced through status.conditions as usuall. Some updates on the pod template of the StatefulSet template will trigger a statefulset restart. Since we are not offering opinions about how people should configure and deploy their RabbitMQ, a statefulset restart triggered by updating the `RabbitmqCluster` spec should not be a concern to us.
 
 ### User Stories
 
