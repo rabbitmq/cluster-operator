@@ -1,6 +1,6 @@
 name: rabbitmq
 version: 0.1
-appVersion: 3.8.2
+appVersion: 3.8.3
 description: Pivotal RabbitMQ for Kubernetes
 keywords:
 - rabbitmq
