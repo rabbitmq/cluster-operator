@@ -31,51 +31,53 @@ var _ = Describe("AllReplicasReady", func() {
 		previousConditionTime = time.Date(2020, 2, 2, 8, 0, 0, 0, time.UTC)
 	})
 
-	When("all replicas are ready", func() {
-		BeforeEach(func() {
-			sts.Status.ReadyReplicas = 5
-			sts.Status.Replicas = 5
-		})
+	Context("condition status and reason", func() {
+		When("all replicas are ready", func() {
+			BeforeEach(func() {
+				sts.Status.ReadyReplicas = 5
+				sts.Status.Replicas = 5
+			})
 
-		It("returns the expected condition", func() {
-			condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&corev1.Endpoints{}, sts}, existingCondition, currentTimeFn)
+			It("returns the expected condition", func() {
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&corev1.Endpoints{}, sts}, existingCondition, currentTimeFn)
 
-			By("having status true and reason message", func() {
-				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
-				Expect(condition.Reason).To(Equal("AllPodsAreReady"))
+				By("having status true and reason message", func() {
+					Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+					Expect(condition.Reason).To(Equal("AllPodsAreReady"))
+				})
 			})
 		})
-	})
 
-	When("some replicas are not ready", func() {
-		BeforeEach(func() {
-			sts.Status.ReadyReplicas = 3
-			sts.Status.Replicas = 5
-		})
+		When("some replicas are not ready", func() {
+			BeforeEach(func() {
+				sts.Status.ReadyReplicas = 3
+				sts.Status.Replicas = 5
+			})
 
-		It("returns a condition with state false", func() {
-			condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition, currentTimeFn)
+			It("returns a condition with state false", func() {
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition, currentTimeFn)
 
-			By("having status false and reason", func() {
-				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
-				Expect(condition.Reason).To(Equal("NotAllPodsReady"))
-				Expect(condition.Message).ToNot(BeEmpty())
+				By("having status false and reason", func() {
+					Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+					Expect(condition.Reason).To(Equal("NotAllPodsReady"))
+					Expect(condition.Message).ToNot(BeEmpty())
+				})
 			})
 		})
-	})
 
-	When("the StatefulSet is not found", func() {
-		BeforeEach(func() {
-			sts = nil
-		})
+		When("the StatefulSet is not found", func() {
+			BeforeEach(func() {
+				sts = nil
+			})
 
-		It("returns a condition with state unknown", func() {
-			condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition, currentTimeFn)
+			It("returns a condition with state unknown", func() {
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition, currentTimeFn)
 
-			By("having status unknown and reason", func() {
-				Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
-				Expect(condition.Reason).To(Equal("MissingStatefulSet"))
-				Expect(condition.Message).ToNot(BeEmpty())
+				By("having status unknown and reason", func() {
+					Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
+					Expect(condition.Reason).To(Equal("MissingStatefulSet"))
+					Expect(condition.Message).ToNot(BeEmpty())
+				})
 			})
 		})
 	})
