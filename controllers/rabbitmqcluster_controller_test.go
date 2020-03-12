@@ -61,12 +61,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		It("works", func() {
 			By("creating a statefulset with default configurations", func() {
 				statefulSetName := rabbitmqCluster.ChildResourceName("server")
-				var sts *appsv1.StatefulSet
-				Eventually(func() error {
-					var err error
-					sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
-					return err
-				}, 1).Should(Succeed())
+				sts := statefulSet(rabbitmqCluster)
 				Expect(sts.Name).To(Equal(statefulSetName))
 
 				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
@@ -203,11 +198,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 		It("configures the imagePullSecret on sts correctly", func() {
 			By("using the instance spec secret", func() {
-				stsName := rabbitmqCluster.ChildResourceName("server")
-				Eventually(func() []corev1.LocalObjectReference {
-					sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
-					return sts.Spec.Template.Spec.ImagePullSecrets
-				}, 1).Should(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
+				sts := statefulSet(rabbitmqCluster)
+				Expect(sts.Spec.Template.Spec.ImagePullSecrets).Should(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
 			})
 		})
 	})
@@ -602,8 +594,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			oldHeadlessSvc, err := clientSet.CoreV1().Services(namespace).Get(headlessServiceName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			oldSts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
+			oldSts := statefulSet(rabbitmqCluster)
 
 			Expect(clientSet.AppsV1().StatefulSets(namespace).Delete(stsName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 			Expect(clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
