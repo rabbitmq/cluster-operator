@@ -19,7 +19,6 @@ package v1beta1
 import (
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	corev1 "k8s.io/api/core/v1"
@@ -105,8 +104,8 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 		}
 	}
 
-	allReplicasReadyCond := status.AllReplicasReadyCondition(resources, existingAllPodsReadyCondition, time.Now)
-	clusterAvailableCond := status.ClusterAvailableCondition(resources, existingClusterAvailableCondition, time.Now)
+	allReplicasReadyCond := status.AllReplicasReadyCondition(resources, existingAllPodsReadyCondition)
+	clusterAvailableCond := status.ClusterAvailableCondition(resources, existingClusterAvailableCondition)
 	currentStatusConditions := []status.RabbitmqClusterCondition{
 		allReplicasReadyCond,
 		clusterAvailableCond,

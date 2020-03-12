@@ -15,12 +15,10 @@ var _ = Describe("ClusterAvailable", func() {
 	var (
 		childServiceEndpoints *corev1.Endpoints
 		existingCondition     *rabbitmqstatus.RabbitmqClusterCondition
-		previousConditionTime time.Time
 	)
 
 	BeforeEach(func() {
 		childServiceEndpoints = &corev1.Endpoints{}
-		previousConditionTime = time.Date(2020, 2, 2, 8, 0, 0, 0, time.UTC)
 	})
 
 	Context("condition status and reason", func() {
@@ -81,6 +79,14 @@ var _ = Describe("ClusterAvailable", func() {
 	})
 
 	Context("condition transitions", func() {
+		var (
+			previousConditionTime time.Time
+		)
+
+		BeforeEach(func() {
+			previousConditionTime = time.Date(2020, 2, 2, 8, 0, 0, 0, time.UTC)
+		})
+
 		Context("previous condition was true", func() {
 			BeforeEach(func() {
 				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{

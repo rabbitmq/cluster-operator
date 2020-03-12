@@ -14,9 +14,8 @@ import (
 
 var _ = Describe("AllReplicasReady", func() {
 	var (
-		sts                   *appsv1.StatefulSet
-		existingCondition     *rabbitmqstatus.RabbitmqClusterCondition
-		previousConditionTime time.Time
+		sts               *appsv1.StatefulSet
+		existingCondition *rabbitmqstatus.RabbitmqClusterCondition
 	)
 
 	BeforeEach(func() {
@@ -24,7 +23,7 @@ var _ = Describe("AllReplicasReady", func() {
 			Status: appsv1.StatefulSetStatus{},
 		}
 		existingCondition = nil
-		previousConditionTime = time.Date(2020, 2, 2, 8, 0, 0, 0, time.UTC)
+
 	})
 
 	Context("condition status and reason", func() {
@@ -79,6 +78,14 @@ var _ = Describe("AllReplicasReady", func() {
 	})
 
 	Context("Condition transitions", func() {
+		var (
+			previousConditionTime time.Time
+		)
+
+		BeforeEach(func() {
+			previousConditionTime = time.Date(2020, 2, 2, 8, 0, 0, 0, time.UTC)
+		})
+
 		Context("previous condition was not set", func() {
 			var (
 				emptyTime metav1.Time
