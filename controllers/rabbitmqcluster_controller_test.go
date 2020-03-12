@@ -613,7 +613,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 func statefulSet(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
 	stsName := rabbitmqCluster.ChildResourceName("server")
 	var sts *appsv1.StatefulSet
-	Eventually(func() error {
+	EventuallyWithOffset(1, func() error {
 		var err error
 		sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 		return err
@@ -624,16 +624,16 @@ func statefulSet(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 func service(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, svcName string) *corev1.Service {
 	serviceName := rabbitmqCluster.ChildResourceName(svcName)
 	var svc *corev1.Service
-	Eventually(func() error {
+	EventuallyWithOffset(1, func() error {
 		var err error
 		svc, err = clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(serviceName, metav1.GetOptions{})
 		return err
-	}, 1).Should(Succeed())
+	}, 2).Should(Succeed())
 	return svc
 }
 
 func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
-	Eventually(func() string {
+	EventuallyWithOffset(1, func() string {
 		rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
 		err := client.Get(
 			context.TODO(),
@@ -655,7 +655,7 @@ func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 }
 
 func waitForClusterDeletion(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
-	Eventually(func() bool {
+	EventuallyWithOffset(1, func() bool {
 		rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
 		err := client.Get(
 			context.TODO(),
