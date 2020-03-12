@@ -654,7 +654,7 @@ func statefulSet(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 		var err error
 		sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 		return err
-	}, 1).Should(Succeed())
+	}, 5).Should(Succeed())
 	return sts
 }
 
