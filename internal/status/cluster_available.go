@@ -14,8 +14,7 @@ type ClusterAvailableConditionManager struct {
 }
 
 func ClusterAvailableCondition(resources []runtime.Object,
-	existingCondition *RabbitmqClusterCondition,
-	now func() time.Time) RabbitmqClusterCondition {
+	existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
 
 	condition := generateCondition(ClusterAvailable)
 	if existingCondition != nil {
@@ -49,7 +48,7 @@ func ClusterAvailableCondition(resources []runtime.Object,
 assignLastTransitionTime:
 	if existingCondition == nil || existingCondition.Status != condition.Status {
 		condition.LastTransitionTime = metav1.Time{
-			Time: now(),
+			Time: time.Now(),
 		}
 	}
 
