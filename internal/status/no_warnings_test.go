@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var _ = Describe("ResourceProblem", func() {
+var _ = Describe("NoWarnings", func() {
 	It("is true if no resource limits are set", func() {
 		sts := &appsv1.StatefulSet{
 			Spec: appsv1.StatefulSetSpec{
@@ -26,15 +26,15 @@ var _ = Describe("ResourceProblem", func() {
 				},
 			},
 		}
-		condition := rabbitmqstatus.ResourceProblemCondition([]runtime.Object{sts})
+		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{sts})
 		By("having the correct type", func() {
-			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ResourceProblem"
+			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "NoWarnings"
 			Expect(condition.Type).To(Equal(conditionType))
 		})
 
 		By("having status false and reason message", func() {
 			Expect(condition.Status).To(Equal(corev1.ConditionTrue))
-			Expect(condition.Reason).To(Equal("NoMemoryIssues"))
+			Expect(condition.Reason).To(Equal("NoWarnings"))
 			Expect(condition.Message).To(BeEmpty())
 		})
 	})
@@ -62,9 +62,9 @@ var _ = Describe("ResourceProblem", func() {
 			},
 		}
 
-		condition := rabbitmqstatus.ResourceProblemCondition([]runtime.Object{sts})
+		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{sts})
 		By("having the correct type", func() {
-			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ResourceProblem"
+			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "NoWarnings"
 			Expect(condition.Type).To(Equal(conditionType))
 		})
 
@@ -97,9 +97,9 @@ var _ = Describe("ResourceProblem", func() {
 			},
 		}
 
-		condition := rabbitmqstatus.ResourceProblemCondition([]runtime.Object{sts})
+		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{sts})
 		By("having the correct type", func() {
-			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "ResourceProblem"
+			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "NoWarnings"
 			Expect(condition.Type).To(Equal(conditionType))
 		})
 

@@ -7,14 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// type ResourceProblemConditionManager struct {
-// 	condition RabbitmqClusterCondition
-// 	endpoints *corev1.Endpoints
-// }
+func NoWarningsCondition(resources []runtime.Object) RabbitmqClusterCondition {
 
-func ResourceProblemCondition(resources []runtime.Object) RabbitmqClusterCondition {
-
-	condition := generateCondition(ResourceProblem)
+	condition := generateCondition(NoWarnings)
 	// if existingCondition != nil {
 	// 	condition.LastTransitionTime = existingCondition.LastTransitionTime
 	// }
@@ -37,7 +32,7 @@ func ResourceProblemCondition(resources []runtime.Object) RabbitmqClusterConditi
 			}
 
 			condition.Status = corev1.ConditionTrue
-			condition.Reason = "NoMemoryIssues"
+			condition.Reason = "NoWarnings"
 		}
 	}
 
