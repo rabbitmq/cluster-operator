@@ -43,29 +43,7 @@ var _ = Describe("NoWarnings", func() {
 	})
 
 	It("is false if the memory request does not match the memory limit", func() {
-		sts := &appsv1.StatefulSet{
-			Spec: appsv1.StatefulSetSpec{
-				Replicas: nil,
-				Template: corev1.PodTemplateSpec{
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{
-								Resources: corev1.ResourceRequirements{
-									Limits: map[corev1.ResourceName]resource.Quantity{
-										"memory": resource.MustParse("100Mi"),
-									},
-									Requests: map[corev1.ResourceName]resource.Quantity{
-										"memory": resource.MustParse("50Mi"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{sts}, nil)
+		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{memoryWarningStatefulSet()}, nil)
 		By("having the correct type", func() {
 			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "NoWarnings"
 			Expect(condition.Type).To(Equal(conditionType))
@@ -78,19 +56,14 @@ var _ = Describe("NoWarnings", func() {
 		})
 	})
 
-	It("is false if the RabbitMQ memory alarm is triggered", func() {
-		sts := memoryWarningStatefulSet()
+	It("is unknown when the StatefulSet does not exist", func() {
+		var sts *appsv1.StatefulSet = nil
 		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{sts}, nil)
 
-		By("having the correct type", func() {
-			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "NoWarnings"
-			Expect(condition.Type).To(Equal(conditionType))
-		})
-
-		By("having status false and reason message", func() {
-			Expect(condition.Status).To(Equal(corev1.ConditionFalse))
-			Expect(condition.Reason).To(Equal("MemoryRequestAndLimitDifferent"))
-			Expect(condition.Message).NotTo(BeEmpty())
+		By("having status unknown and reason", func() {
+			Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
+			Expect(condition.Reason).To(Equal("MissingStatefulSet"))
+			Expect(condition.Message).ToNot(BeEmpty())
 		})
 	})
 
@@ -116,7 +89,7 @@ var _ = Describe("NoWarnings", func() {
 
 			When("remains true", func() {
 				It("does not update transition time", func() {
-					condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{&appsv1.StatefulSet{}}, existingCondition)
+					condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{noMemoryWarningStatefulSet()}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -159,7 +132,7 @@ var _ = Describe("NoWarnings", func() {
 
 			When("transitions to true", func() {
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{&appsv1.StatefulSet{}}, existingCondition)
+					condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{noMemoryWarningStatefulSet()}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -285,6 +258,30 @@ func memoryWarningStatefulSet() *appsv1.StatefulSet {
 								},
 								Requests: map[corev1.ResourceName]resource.Quantity{
 									"memory": resource.MustParse("50Mi"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func noMemoryWarningStatefulSet() *appsv1.StatefulSet {
+	return &appsv1.StatefulSet{
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: nil,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Resources: corev1.ResourceRequirements{
+								Limits: map[corev1.ResourceName]resource.Quantity{
+									"memory": resource.MustParse("100Mi"),
+								},
+								Requests: map[corev1.ResourceName]resource.Quantity{
+									"memory": resource.MustParse("100Mi"),
 								},
 							},
 						},

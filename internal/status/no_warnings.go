@@ -20,14 +20,14 @@ func NoWarningsCondition(resources []runtime.Object, existingCondition *Rabbitmq
 	for index := range resources {
 		switch resource := resources[index].(type) {
 		case *appsv1.StatefulSet:
-			// 		if resource == nil {
-			// 			condition.Status = corev1.ConditionUnknown
-			// 			condition.Reason = "CouldNotRetrieveEndpoints"
-			// 			condition.Message = "Could not verify available service endpoints"
-			// 			goto assignLastTransitionTime
-			// 		}
+			if resource == nil {
+				condition.Status = corev1.ConditionUnknown
+				condition.Reason = "MissingStatefulSet"
+				condition.Message = "Could not find StatefulSet"
+				goto assignLastTransitionTime
+			}
 
-			if len(resource.Spec.Template.Spec.Containers) > 0 && !equality.Semantic.DeepEqual(resource.Spec.Template.Spec.Containers[0].Resources.Limits["memory"], resource.Spec.Template.Spec.Containers[0].Resources.Requests["memory"]) {
+			if !equality.Semantic.DeepEqual(resource.Spec.Template.Spec.Containers[0].Resources.Limits["memory"], resource.Spec.Template.Spec.Containers[0].Resources.Requests["memory"]) {
 				condition.Status = corev1.ConditionFalse
 				condition.Reason = "MemoryRequestAndLimitDifferent"
 				condition.Message = "RabbitMQ container memory resource request and limit must be equal"
