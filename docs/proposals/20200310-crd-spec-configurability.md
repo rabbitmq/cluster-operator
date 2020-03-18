@@ -59,7 +59,7 @@ In our team roadmap we decided to coup the lack of user feedbacks by offering [d
 
 ## Non-Goals/Future Work
 
-* Increase flexibility at configuring RabbitMQ by enabling users to configure rabbitmq conf file and list of plugins. This feature will be addressed separately by [github issue]().
+* Increase flexibility at configuring RabbitMQ by enabling users to configure rabbitmq conf file and list of plugins. This feature will be addressed separately by [github issue on rabbitmq conf](https://github.com/pivotal/rabbitmq-for-kubernetes/issues/57), [github issue on rabbitmq plugins](https://github.com/pivotal/rabbitmq-for-kubernetes/issues/58).
 * To provide detailed guidelines on how to configure each spec property. We are assuming that users who choose to configure the StatefulSet and ingress Service spec knows their specific use cases, and how to use kubernetes.
 * To prioritize simplicity over flexibility. We should offer better usability and opinions on how to deploy `RabbitmqCluster` at the different abstraction layer, such as `Claims` and `Plans`, as defined in [Stev's design proposal](https://miro.com/app/board/o9J_kvlRPnc=/)
 
@@ -179,16 +179,13 @@ spec:
       name: rabbitmqcluster-sample-rabbitmq-server
       namespace: pivotal-rabbitmq-system
     spec:
-      podManagementPolicy: OrderedReady
       replicas: 1
-      revisionHistoryLimit: 10
       selector:
         matchLabels:
           app.kubernetes.io/name: rabbitmqcluster-sample
       serviceName: rabbitmqcluster-sample-rabbitmq-headless
       template:
         metadata:
-          creationTimestamp: null
           labels:
             app.kubernetes.io/component: rabbitmq
             app.kubernetes.io/name: rabbitmqcluster-sample
@@ -210,7 +207,20 @@ spec:
                     values:
                     - node-1
           containers:
-          - env:
+          - name: rabbitmq
+            image: rabbitmq:3.8.2
+            imagePullPolicy: IfNotPresent
+            lifecycle:
+              preStop:
+                exec:
+                  command:
+                  - /bin/bash
+                  - -c
+                  - while true; do rabbitmq-queues check_if_node_is_quorum_critical 2>&1;
+                    if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; rabbitmq-queues
+                    check_if_node_is_mirror_sync_critical 2>&1; if [ $(echo $?) -eq 69
+                    ]; then sleep 2; continue; fi; break; done 
+            env:
             - name: RABBITMQ_ENABLED_PLUGINS_FILE
               value: /opt/server-conf/enabled_plugins
             - name: RABBITMQ_DEFAULT_PASS_FILE
@@ -237,19 +247,6 @@ spec:
               value: rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local
             - name: K8S_HOSTNAME_SUFFIX
               value: .$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local
-            image: rabbitmq:3.8.2
-            imagePullPolicy: IfNotPresent
-            lifecycle:
-              preStop:
-                exec:
-                  command:
-                  - /bin/bash
-                  - -c
-                  - while true; do rabbitmq-queues check_if_node_is_quorum_critical 2>&1;
-                    if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; rabbitmq-queues
-                    check_if_node_is_mirror_sync_critical 2>&1; if [ $(echo $?) -eq 69
-                    ]; then sleep 2; continue; fi; break; done
-            name: rabbitmq
             ports:
             - containerPort: 4369
               name: epmd
@@ -324,8 +321,6 @@ spec:
               name: rabbitmq-erlang-cookie
             - mountPath: /tmp/erlang-cookie-secret/
               name: erlang-cookie-secret
-          restartPolicy: Always
-          schedulerName: default-scheduler
           securityContext:
             fsGroup: 999
             runAsGroup: 999
@@ -361,7 +356,6 @@ spec:
         type: RollingUpdate
       volumeClaimTemplates:
       - metadata:
-          creationTimestamp: null
           labels:
             app.kubernetes.io/component: rabbitmq
             app.kubernetes.io/name: rabbitmqcluster-sample
@@ -386,27 +380,21 @@ spec:
         name: rabbitmqcluster-sample-rabbitmq-ingress
         namespace: pivotal-rabbitmq-system
       spec:
-        clusterIP: 10.51.248.13
-        externalTrafficPolicy: Cluster
         ports:
         - name: prometheus
           nodePort: 30040
           port: 15692
           protocol: TCP
-          targetPort: 15692
         - name: amqp
           nodePort: 31965
           port: 5672
           protocol: TCP
-          targetPort: 5672
         - name: http
           nodePort: 30090
           port: 15672
           protocol: TCP
-          targetPort: 15672
         selector:
           app.kubernetes.io/name: rabbitmqcluster-sample
-        sessionAffinity: None
         type: LoadBalancer
 ```
 
@@ -428,7 +416,58 @@ Users can set environment variables in the rabbitmq container. They can set envi
 
 ### Implementation Details/Notes/Constraints
 
-* What happens when users configure `spec.statefulSetTemplate.spec.template.spec.containers`?
+There are several properties that are lists where we currently have defaults fo them. Lets take a look of the list of containers `spec.statefulSetTemplate.spec.template.Containers` as an example, where our controller defines one container: `rabbitmq`. There are roughly two different use cases: one is to add a new container, and the other is to modify a certain property in the already defined `rabbitmq` container.
+
+Case 1) As a user, I would like to add a sidecar container.
+
+In this case, users can do so by specifying only the sidecar container they want to add to the list of containers:
+
+```yaml
+kind: RabbitmqCluster
+spec:
+  statefulSetTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: rabbit-side-cat
+            image: rabbit-side-cat
+            ...
+```
+Our controller should append the `rabbit-side-car` container users provided.`RabbitmqCluster` will have both the `rabbitmq` container and the `rabbit-side-cat` container in the same pod.
+
+Case 2) As a user, I would like to define resource requests and limits for the `rabbitmq` container
+
+In this case, users will need to define their resource requests and limits inside the `rabbitmq` container:
+
+```yaml
+kind: RabbitmqCluster
+spec:
+  statefulSetTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: rabbitmq
+            resources:
+              limits:
+                cpu: "10"
+                memory: 10Gi
+              requests:
+                cpu: "1"
+                memory: 10Gi
+```
+
+User does not need to provide other configurations for container `rabbitmq`. Our controller will set defaults for properties that user hasn't provided value for.
+
+We should apply the same logic to merge other lists values, e.g.:
+
+* spec.statefulSetTemplate.spec.template.volumes
+* spec.statefulSetTemplate.spec.template.spec.template.Containers["rabbitmq"].env
+* spec.statefulSetTemplate.spec.template.initContainers
+* spec.ingressServiceTemplate.spec.ports
+
+This way, we ensure that users have the flexibility to configure properties and that they do not need to provide values that they do not need to modify or care about.
 
 ### Risks and Mitigation
 
