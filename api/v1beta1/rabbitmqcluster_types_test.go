@@ -235,6 +235,24 @@ var _ = Describe("RabbitmqCluster", func() {
 		It("sets conditions based on inputs", func() {
 			rabbitmqClusterStatus := RabbitmqClusterStatus{}
 			statefulset := &appsv1.StatefulSet{
+				Spec: appsv1.StatefulSetSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Resources: corev1.ResourceRequirements{
+										Limits: map[corev1.ResourceName]resource.Quantity{
+											"memory": resource.MustParse("100Mi"),
+										},
+										Requests: map[corev1.ResourceName]resource.Quantity{
+											"memory": resource.MustParse("100Mi"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 				Status: appsv1.StatefulSetStatus{
 					ObservedGeneration: 0,
 					Replicas:           0,
@@ -262,9 +280,10 @@ var _ = Describe("RabbitmqCluster", func() {
 
 			rabbitmqClusterStatus.SetConditions([]runtime.Object{statefulset, endPoints})
 
-			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(2))
+			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(3))
 			Expect(rabbitmqClusterStatus.Conditions[0].Type).To(Equal(status.AllReplicasReady))
 			Expect(rabbitmqClusterStatus.Conditions[1].Type).To(Equal(status.ClusterAvailable))
+			Expect(rabbitmqClusterStatus.Conditions[2].Type).To(Equal(status.NoWarnings))
 		})
 	})
 })
