@@ -1,18 +1,21 @@
 package status
 
 import (
+	"time"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func NoWarningsCondition(resources []runtime.Object) RabbitmqClusterCondition {
+func NoWarningsCondition(resources []runtime.Object, existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
 
 	condition := generateCondition(NoWarnings)
-	// if existingCondition != nil {
-	// 	condition.LastTransitionTime = existingCondition.LastTransitionTime
-	// }
+	if existingCondition != nil {
+		condition.LastTransitionTime = existingCondition.LastTransitionTime
+	}
 
 	for index := range resources {
 		switch resource := resources[index].(type) {
@@ -37,11 +40,11 @@ func NoWarningsCondition(resources []runtime.Object) RabbitmqClusterCondition {
 	}
 
 assignLastTransitionTime:
-	// if existingCondition == nil || existingCondition.Status != condition.Status {
-	// 	condition.LastTransitionTime = metav1.Time{
-	// 		Time: time.Now(),
-	// 	}
-	// }
+	if existingCondition == nil || existingCondition.Status != condition.Status {
+		condition.LastTransitionTime = metav1.Time{
+			Time: time.Now(),
+		}
+	}
 
 	return condition
 }
