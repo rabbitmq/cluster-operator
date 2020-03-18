@@ -6,8 +6,8 @@ template: |
 
   local vhost = "%2F";
   local ingressIP = if ingress[0].spec.type == "LoadBalancer" then ingress[0].status.loadBalancer.ingress[0].ip else ingress[0].spec.clusterIP;
-  local adminUsername = admin[0].data['rabbitmq-username'];
-  local adminPassword = admin[0].data['rabbitmq-password'];
+  local adminUsername = admin[0].data['username'];
+  local adminPassword = admin[0].data['password'];
   local mgmtURI = "http://" + ingressIP + ":15672/#/login/" + adminUsername + "/" + adminPassword;
   local apiURI = "http://" + adminUsername + ":" + adminPassword + "@" + ingressIP + ":15672/api/";
   local amqpURI = "amqp://" + adminUsername + ":" + adminPassword + "@" + ingressIP + "/" + vhost;
