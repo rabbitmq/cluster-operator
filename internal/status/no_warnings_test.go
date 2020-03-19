@@ -151,7 +151,7 @@ var _ = Describe("NoWarnings", func() {
 				})
 			})
 
-			When("transitions	to unknown", func() {
+			When("transitions to unknown", func() {
 				It("updates transition time", func() {
 					condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{nil}, existingCondition)
 
@@ -269,25 +269,19 @@ func memoryWarningStatefulSet() *appsv1.StatefulSet {
 }
 
 func noMemoryWarningStatefulSet() *appsv1.StatefulSet {
-	return &appsv1.StatefulSet{
-		Spec: appsv1.StatefulSetSpec{
-			Replicas: nil,
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Resources: corev1.ResourceRequirements{
-								Limits: map[corev1.ResourceName]resource.Quantity{
-									"memory": resource.MustParse("100Mi"),
-								},
-								Requests: map[corev1.ResourceName]resource.Quantity{
-									"memory": resource.MustParse("100Mi"),
-								},
-							},
-						},
-					},
+	sts := &appsv1.StatefulSet{}
+	sts.Spec.Template.Spec.Containers = []corev1.Container{
+		{
+			Resources: corev1.ResourceRequirements{
+				Limits: map[corev1.ResourceName]resource.Quantity{
+					"memory": resource.MustParse("100Mi"),
+				},
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					"memory": resource.MustParse("100Mi"),
 				},
 			},
 		},
 	}
+
+	return sts
 }

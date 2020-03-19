@@ -11,7 +11,6 @@ import (
 )
 
 func NoWarningsCondition(resources []runtime.Object, existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
-
 	condition := generateCondition(NoWarnings)
 	if existingCondition != nil {
 		condition.LastTransitionTime = existingCondition.LastTransitionTime
