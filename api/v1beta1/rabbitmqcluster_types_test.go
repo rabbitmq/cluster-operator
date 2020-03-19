@@ -234,18 +234,30 @@ var _ = Describe("RabbitmqCluster", func() {
 	Context("RabbitmqClusterStatus", func() {
 		It("sets conditions based on inputs", func() {
 			rabbitmqClusterStatus := RabbitmqClusterStatus{}
-			statefulset := &appsv1.StatefulSet{
-				Status: appsv1.StatefulSetStatus{
-					ObservedGeneration: 0,
-					Replicas:           0,
-					ReadyReplicas:      3,
-					CurrentReplicas:    0,
-					UpdatedReplicas:    0,
-					CurrentRevision:    "",
-					UpdateRevision:     "",
-					CollisionCount:     nil,
-					Conditions:         nil,
+			statefulset := &appsv1.StatefulSet{}
+			statefulset.Spec.Template.Spec.Containers = []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Limits: map[corev1.ResourceName]resource.Quantity{
+							"memory": resource.MustParse("100Mi"),
+						},
+						Requests: map[corev1.ResourceName]resource.Quantity{
+							"memory": resource.MustParse("100Mi"),
+						},
+					},
 				},
+			}
+
+			statefulset.Status = appsv1.StatefulSetStatus{
+				ObservedGeneration: 0,
+				Replicas:           0,
+				ReadyReplicas:      3,
+				CurrentReplicas:    0,
+				UpdatedReplicas:    0,
+				CurrentRevision:    "",
+				UpdateRevision:     "",
+				CollisionCount:     nil,
+				Conditions:         nil,
 			}
 
 			endPoints := &corev1.Endpoints{
@@ -262,9 +274,10 @@ var _ = Describe("RabbitmqCluster", func() {
 
 			rabbitmqClusterStatus.SetConditions([]runtime.Object{statefulset, endPoints})
 
-			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(2))
+			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(3))
 			Expect(rabbitmqClusterStatus.Conditions[0].Type).To(Equal(status.AllReplicasReady))
 			Expect(rabbitmqClusterStatus.Conditions[1].Type).To(Equal(status.ClusterAvailable))
+			Expect(rabbitmqClusterStatus.Conditions[2].Type).To(Equal(status.NoWarnings))
 		})
 	})
 })

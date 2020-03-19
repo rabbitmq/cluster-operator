@@ -10,6 +10,7 @@ import (
 const (
 	AllReplicasReady RabbitmqClusterConditionType = "AllReplicasReady"
 	ClusterAvailable RabbitmqClusterConditionType = "ClusterAvailable"
+	NoWarnings       RabbitmqClusterConditionType = "NoWarnings"
 )
 
 type RabbitmqClusterConditionType string
