@@ -45,35 +45,36 @@ any additional information provided beyond the standard proposal template.
   - [Alternatives [optional]](#alternatives-optional)
   - [Infrastructure Needed [optional]](#infrastructure-needed-optional)
 
-## Glossary [WIP]
-
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
-
-If this proposal adds new terms, or defines some, make the changes to the book's glossary when in PR stage.
+## Glossary
 
 ## Summary
 
-We propose a documented upgrade workflow for the RabbitMQ for Kubernetes CRD, Controller, and Custom Resource instances, to allow users to feel confident that performing an upgrade will not lead to data loss, or significant downtime. We first seek to understand the tools that are available to upgrade these components, and then seek to implement solutions using these tools that will give users a path to upgrade from an older version to a newer one.
+CRDs are capable of supporting multiple API versions at the same time. This allows us to create iterative API versions that can progress from `v1beta1` to `v1`. The catch is that we can only have one operator running at a time and this Operator can only reconcile one of the API versions being served.
+The solution is to utilise conversion webhooks that can convert any API version to the current version that the Operator can reconcile.
 
 ## Motivation
 
-- There is currently no workflow to allow users to upgrade the operator
-- We do not have semantic versioning to help set initial expectations around upgrades
-- We do not know whether we will experience data loss if we upgrade versions that have different API definitions without having a migration path
+- We do not know whether we will experience data loss if we upgrade versions that have different API definitions without having a conversion webhook
 - At the moment, users will have to upgrade each Custom Resource instance individually
 
 ### Goals
 
-Document how to upgrade our three main components: CRD, controller and all CR instances.
-- Implement multiple version support in CRD
-- Implement multi version migration webhooks in controller
-- Have a strategy around how to deal with multiple CRD versions and multiple controllers - should we deploy all versions of the controller and have them reconcile their associated CR instance? Or simply deploy the latest controller and have it handle all CR instances?
-- Have a strategy for how to deal with CR instances that have not been upgraded yet - how to stop a newer versioned controller from reconciling an older versioned CR instance
+Document how to upgrade the CRD:
+- implement multi version conversion webhooks in Operator
+- document a strategy to deal with multiple CRD versions and their corresponding instances
+- identify and document the risks with simply deploying the latest controller and have it handle all CR instances
+- document a strategy for CR instances that have not been upgraded and will become deprecated
+- document a strategy for version deprecation and property deprecation
+  - version deprecation means removing an API versions from the CRD definition
+  - property deprecation means removing a property from the latest version by either:
+    - migrating the property to a different key
+    - removing the property altogether as it has become redundant in the new version
 
 ### Non-Goals/Future Work
 
 - Bulk vs granular upgrades of CR instances
 - Upgrading RMQ version
+- Upgrading the Operator
 
 ## Proposal [WIP]
 
