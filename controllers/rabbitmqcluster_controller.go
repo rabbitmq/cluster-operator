@@ -23,6 +23,7 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/types"
+	clientretry "k8s.io/client-go/util/retry"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
@@ -151,19 +152,23 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return reconcile.Result{}, err
 		}
 
-		operationResult, err := controllerutil.CreateOrUpdate(ctx, r, resource, func() error {
-			return builder.Update(resource)
-		})
+		var operationResult controllerutil.OperationResult
+		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+			var apiError error
+			operationResult, apiError = controllerutil.CreateOrUpdate(ctx, r, resource, func() error {
+				return builder.Update(resource)
+			})
+
+			return apiError
+		}); err != nil {
+			logger.Error(err, "Failed to CreateOrUpdate")
+			return reconcile.Result{}, err
+		}
 
 		logger.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type %T",
 			operationResult,
 			resource.(metav1.Object).GetName(),
 			resource.(metav1.Object)))
-
-		if err != nil {
-			logger.Error(err, "Failed to CreateOrUpdate")
-			return reconcile.Result{}, err
-		}
 	}
 
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
