@@ -17,13 +17,21 @@ limitations under the License.
 package controllers
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s.io/client-go/tools/record"
+	"os"
 	"reflect"
 
+	"k8s.io/client-go/tools/record"
+
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/remotecommand"
 	clientretry "k8s.io/client-go/util/retry"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
@@ -41,14 +49,19 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	ownerKey  = ".metadata.controller"
-	ownerKind = "RabbitmqCluster"
-	apiGVStr  = rabbitmqv1beta1.GroupVersion.String()
+	apiGVStr = rabbitmqv1beta1.GroupVersion.String()
+)
+
+const (
+	ownerKey          = ".metadata.controller"
+	ownerKind         = "RabbitmqCluster"
+	deletionFinalizer = "deletion.finalizers.rabbitmq"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -61,6 +74,7 @@ type RabbitmqClusterReconciler struct {
 }
 
 // the rbac rule requires an empty row at the end to render
+// +kubebuilder:rbac:groups="",resources=pods/exec,verbs=create
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;list;watch;create;update;patch;delete
@@ -95,12 +109,25 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
 
-	if !reflect.DeepEqual(fetchedRabbitmqCluster.Spec, rabbitmqCluster.Spec) {
-		err := r.Client.Update(ctx, rabbitmqCluster)
-		if err != nil {
+	if !reflect.DeepEqual(rabbitmqCluster.Spec, rabbitmqCluster.Spec) {
+		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// Check if deletion timestamp is set
+	if err := r.AddFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Resource has been marked for deletion
+	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		logger.Info(fmt.Sprintf("Deleting RabbitmqCluster \"%s\" in namespace \"%s\"",
+			rabbitmqCluster.Name,
+			rabbitmqCluster.Namespace))
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, r.PrepareForDeletion(ctx, rabbitmqCluster)
 	}
 
 	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
@@ -201,6 +228,82 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Obje
 		r.Log.Error(err, msg)
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedUpdate", msg)
 	}
+}
+
+// Helper functions to check and remove string from a slice of strings.
+func containsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *RabbitmqClusterReconciler) PrepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	if containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
+		if err := r.ShutdownRabbitmq(ctx, rabbitmqCluster); err != nil {
+			r.Log.Error(err, "Failed to shutdown RabbitmqCluster")
+			return err
+		}
+
+		if err := r.RemoveFinalizer(ctx, rabbitmqCluster); err != nil {
+			r.Log.Error(err, "Failed to remove finalizer for deletion")
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RabbitmqClusterReconciler) RemoveFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	if err := controllerutil.RemoveFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {
+		return err
+	}
+
+	if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *RabbitmqClusterReconciler) ShutdownRabbitmq(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	sts := &appsv1.StatefulSet{}
+	if err := r.Client.Get(ctx,
+		types.NamespacedName{Name: rabbitmqCluster.ChildResourceName("server"), Namespace: rabbitmqCluster.Namespace},
+		sts); err != nil {
+		return err
+	}
+
+	// Delete StatefulSet so Pods aren't restarted after shutdown
+	if err := r.Client.Delete(ctx, sts); err != nil {
+		return err
+	}
+
+	// Shutdown RabbitMQ on all nodes so Pre-Stop hook terminates immediately
+	for i := 0; i < int(*sts.Spec.Replicas); i++ {
+		//TODO: Can we be specific about when we want to retry this? Currently all output (even successful shutdown - exit code 69) returns to stdErr so we can't handle errors properly.
+		if _, err := r.execCommand(rabbitmqCluster.Namespace, fmt.Sprintf("%s-%d", sts.Name, i), &sts.Spec.Template.Spec.Containers[0], "sh", "-c", "rabbitmqctl shutdown"); err != nil {
+			r.Log.Info("Error returned from rabbitmqctl shutdown: %s", err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (r *RabbitmqClusterReconciler) AddFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	// The RabbitmqCluster is not marked for deletion (no deletion timestamp) but does not have the deletion finalizer
+	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
+		if err := controllerutil.AddFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {
+			return err
+		}
+
+		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
@@ -326,4 +429,59 @@ func addResourceToIndex(rawObj runtime.Object) []string {
 	default:
 		return nil
 	}
+}
+
+func (r *RabbitmqClusterReconciler) execCommand(namespace, podName string, container *v1.Container, command ...string) (string, error) {
+	if len(os.Getenv("IGNORE_POD_EXECUTE")) == 0 {
+		var kubeClient *kubernetes.Clientset
+		var inClusterConfig *rest.Config
+		var err error
+		inClusterConfig, err = rest.InClusterConfig()
+		if err != nil {
+			return "", err
+		}
+
+		kubeClient = kubernetes.NewForConfigOrDie(inClusterConfig)
+
+		request := kubeClient.CoreV1().RESTClient().
+			Post().
+			Resource("pods").
+			Name(podName).
+			Namespace(namespace).
+			SubResource("exec").
+			VersionedParams(&v1.PodExecOptions{
+				Container: container.Name,
+				Command:   command,
+				Stdout:    true,
+				Stderr:    true,
+				Stdin:     false,
+			}, scheme.ParameterCodec)
+
+		exec, err := remotecommand.NewSPDYExecutor(inClusterConfig, "POST", request.URL())
+		if err != nil {
+			return "", err
+		}
+
+		stdOut := bytes.Buffer{}
+		stdErr := bytes.Buffer{}
+
+		err = exec.Stream(remotecommand.StreamOptions{
+			Stdout: bufio.NewWriter(&stdOut),
+			Stderr: bufio.NewWriter(&stdErr),
+			Stdin:  nil,
+			Tty:    false,
+		})
+
+		if err != nil {
+			return "", err
+		}
+
+		if stdErr.Len() > 0 {
+			return "", fmt.Errorf("%v", stdErr)
+		}
+
+		return stdOut.String(), nil
+	}
+
+	return "", nil
 }
