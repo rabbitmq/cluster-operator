@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s.io/client-go/tools/record"
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -56,6 +57,7 @@ type RabbitmqClusterReconciler struct {
 	Log       logr.Logger
 	Scheme    *runtime.Scheme
 	Namespace string
+	Recorder  record.EventRecorder
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -73,6 +75,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
@@ -161,19 +164,46 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 			return apiError
 		}); err != nil {
-			logger.Error(err, "Failed to CreateOrUpdate")
+			r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 			return reconcile.Result{}, err
 		}
 
-		logger.Info(fmt.Sprintf("Operation Result \"%s\" for resource \"%s\" of Type %T",
-			operationResult,
-			resource.(metav1.Object).GetName(),
-			resource.(metav1.Object)))
+		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 	}
 
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 
 	return ctrl.Result{}, nil
+}
+
+func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Object, resource runtime.Object, operationResult controllerutil.OperationResult, err error) {
+	if operationResult == controllerutil.OperationResultCreated {
+		if err != nil {
+			msg := fmt.Sprintf("failed to create resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
+
+			r.Log.Error(err, msg)
+			r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedCreate", msg)
+		} else {
+			msg := fmt.Sprintf("created resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
+
+			r.Log.Info(msg)
+			r.Recorder.Event(rmq, corev1.EventTypeNormal, "SuccessfulCreate", msg)
+		}
+	}
+
+	if operationResult == controllerutil.OperationResultUpdated {
+		if err != nil {
+			msg := fmt.Sprintf("failed to update resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
+
+			r.Log.Error(err, msg)
+			r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedUpdate", msg)
+		} else {
+			msg := fmt.Sprintf("updated resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
+
+			r.Log.Info(msg)
+			r.Recorder.Event(rmq, corev1.EventTypeNormal, "SuccessfulUpdate", msg)
+		}
+	}
 }
 
 func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {

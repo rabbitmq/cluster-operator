@@ -99,6 +99,7 @@ func startManager(scheme *runtime.Scheme) {
 		Client:    client,
 		Log:       ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
 		Scheme:    mgr.GetScheme(),
+		Recorder:  mgr.GetEventRecorderFor("rabbitmqcluster-controller"),
 		Namespace: "pivotal-rabbitmq-system",
 	}
 	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())

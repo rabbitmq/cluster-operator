@@ -71,12 +71,13 @@ func main() {
 
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client:    mgr.GetClient(),
-		Log:       ctrl.Log.WithName("controllers").WithName("RabbitmqCluster"),
+		Log:       ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
 		Scheme:    mgr.GetScheme(),
+		Recorder:  mgr.GetEventRecorderFor("rabbitmqcluster-controller"),
 		Namespace: operatorNamespace,
 	}).SetupWithManager(mgr)
 	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RabbitmqCluster")
+		setupLog.Error(err, "unable to create controller", "controller", "rabbitmqcluster")
 		os.Exit(1)
 	}
 	setupLog.Info("Started controller")
