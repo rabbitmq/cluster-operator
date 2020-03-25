@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: p-rmq-operator
+    app.kubernetes.io/name: p-rmq-operator
+    app.kubernetes.io/part-of: pivotal-rabbitmq
+  name: p-rmq-operator
+  namespace: pivotal-rabbitmq-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: p-rmq-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: p-rmq-operator
+        app.kubernetes.io/name: p-rmq-operator
+        app.kubernetes.io/part-of: pivotal-rabbitmq
+    spec:
+      imagePullSecrets:
+      - name: pivotal-registry
+      containers:
+      - args:
+        - --metrics-addr=0
+        command:
+        - /manager
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+{{- include "rabbitmq-operator.registryImage" (dict "image" .Values.images.operator "values" .Values) | nindent 8 }}
+        name: {{ .Chart.Name }}
+        resources:
+          limits:
+            cpu: 200m
+            memory: 500Mi
+          requests:
+            cpu: 200m
+            memory: 500Mi
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsUser: 1000
+      serviceAccountName: p-rmq-operator
+      terminationGracePeriodSeconds: 10

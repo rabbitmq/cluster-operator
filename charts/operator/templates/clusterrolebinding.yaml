@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: p-rmq-operator
+    app.kubernetes.io/name: p-rmq-operator
+    app.kubernetes.io/part-of: pivotal-rabbitmq
+  name: p-rmq-operator-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: p-rmq-operator-role
+subjects:
+- kind: ServiceAccount
+  name: p-rmq-operator
+  namespace: pivotal-rabbitmq-system
