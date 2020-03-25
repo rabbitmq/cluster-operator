@@ -1,4 +1,4 @@
-Related issue number: #
+This closes #
 
 ## Summary Of Changes
 
