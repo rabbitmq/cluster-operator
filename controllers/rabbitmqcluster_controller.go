@@ -181,12 +181,10 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Obje
 	if operationResult == controllerutil.OperationResultCreated {
 		if err != nil {
 			msg := fmt.Sprintf("failed to create resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
-
 			r.Log.Error(err, msg)
 			r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedCreate", msg)
 		} else {
 			msg := fmt.Sprintf("created resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
-
 			r.Log.Info(msg)
 			r.Recorder.Event(rmq, corev1.EventTypeNormal, "SuccessfulCreate", msg)
 		}
@@ -195,12 +193,10 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Obje
 	if operationResult == controllerutil.OperationResultUpdated {
 		if err != nil {
 			msg := fmt.Sprintf("failed to update resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
-
 			r.Log.Error(err, msg)
 			r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedUpdate", msg)
 		} else {
 			msg := fmt.Sprintf("updated resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
-
 			r.Log.Info(msg)
 			r.Recorder.Event(rmq, corev1.EventTypeNormal, "SuccessfulUpdate", msg)
 		}
