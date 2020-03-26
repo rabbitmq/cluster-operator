@@ -87,11 +87,10 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
 
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
 		logger.Error(err, "Failed getting Rabbitmq cluster object")
-		return reconcile.Result{}, err
+		// No need to requeue if the resource no longer exists, otherwise we'll
+		// requeue the error.
+		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
 	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
@@ -176,6 +175,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	return ctrl.Result{}, nil
 }
 
+// logAndRecordOperationResult - helper function to log and record events with message and error
+// it logs and records 'updated' and 'created' OperationResult, and ignores OperationResult 'unchanged'
 func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Object, resource runtime.Object, operationResult controllerutil.OperationResult, err error) {
 	if operationResult == controllerutil.OperationResultCreated {
 		if err != nil {
