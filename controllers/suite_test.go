@@ -41,6 +41,8 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
+const controllerName = "rabbitmqcluster-controller"
+
 var (
 	cfg        *rest.Config
 	testEnv    *envtest.Environment
@@ -97,9 +99,9 @@ func startManager(scheme *runtime.Scheme) {
 
 	reconciler := &controllers.RabbitmqClusterReconciler{
 		Client:    client,
-		Log:       ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
+		Log:       ctrl.Log.WithName(controllerName),
 		Scheme:    mgr.GetScheme(),
-		Recorder:  mgr.GetEventRecorderFor("rabbitmqcluster-controller"),
+		Recorder:  mgr.GetEventRecorderFor(controllerName),
 		Namespace: "pivotal-rabbitmq-system",
 	}
 	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())

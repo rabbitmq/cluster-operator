@@ -30,6 +30,8 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
+const controllerName = "rabbitmqcluster-controller"
+
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
@@ -71,13 +73,13 @@ func main() {
 
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client:    mgr.GetClient(),
-		Log:       ctrl.Log.WithName("controllers").WithName("rabbitmqcluster"),
+		Log:       ctrl.Log.WithName(controllerName),
 		Scheme:    mgr.GetScheme(),
-		Recorder:  mgr.GetEventRecorderFor("rabbitmqcluster-controller"),
+		Recorder:  mgr.GetEventRecorderFor(controllerName),
 		Namespace: operatorNamespace,
 	}).SetupWithManager(mgr)
 	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "rabbitmqcluster")
+		setupLog.Error(err, "unable to create controller", controllerName)
 		os.Exit(1)
 	}
 	setupLog.Info("Started controller")
