@@ -19,8 +19,6 @@ spec:
         app.kubernetes.io/name: p-rmq-operator
         app.kubernetes.io/part-of: pivotal-rabbitmq
     spec:
-      imagePullSecrets:
-      - name: pivotal-registry
       containers:
       - args:
         - --metrics-addr=0
@@ -31,8 +29,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-{{- include "rabbitmq-operator.registryImage" (dict "image" .Values.images.operator "values" .Values) | nindent 8 }}
-        name: {{ .Chart.Name }}
+        image: '{{printf "%s:%s" .Values.images.operator.name .Values.images.operator.tag}}'
+        name: operator
         resources:
           limits:
             cpu: 200m
@@ -40,6 +38,8 @@ spec:
           requests:
             cpu: 200m
             memory: 500Mi
+      imagePullSecrets:
+      - name: pivotal-registry
       securityContext:
         fsGroup: 1000
         runAsGroup: 1000

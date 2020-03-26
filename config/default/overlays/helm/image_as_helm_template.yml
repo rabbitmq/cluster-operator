@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operator
+  namespace: system
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: pivotal-registry
+      containers:
+        - name: operator
+          image: '{{printf "%s:%s" .Values.images.operator.name .Values.images.operator.tag}}'

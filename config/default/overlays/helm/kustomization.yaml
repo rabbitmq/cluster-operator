@@ -1,0 +1,7 @@
+namespace: pivotal-rabbitmq-system
+
+bases:
+- ../../base
+
+patches:
+- image_as_helm_template.yml
