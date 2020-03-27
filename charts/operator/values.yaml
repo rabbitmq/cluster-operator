@@ -1,15 +1,8 @@
 global:
   imageRegistry: dev.registry.pivotal.io
-  imageNamespace: p-rabbitmq-for-kubernetes
   imageUsername:
   imagePassword:
 images:
   operator:
-    name: rabbitmq-for-kubernetes-operator
+    name: dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator
     tag: "0.7.0-build.41"
-    digest: ""
-  rabbitmq:
-    name: rabbitmq
-    tag: "0.7.0-build.41"
-    digest: ""
-    pullPolicy: Always
