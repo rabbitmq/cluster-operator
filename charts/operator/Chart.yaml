@@ -1,5 +1,5 @@
 name: rabbitmq-operator
-version: 0.1
+version: 0.3
 appVersion: 0.7.0-build.41
 description: Pivotal RabbitMQ for Kubernetes
 keywords:

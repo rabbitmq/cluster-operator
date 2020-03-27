@@ -1,8 +1,9 @@
 global:
-  imageRegistry: dev.registry.pivotal.io
+  imageRegistry: registry.pivotal.io
+  # This is Pivotal Network username/email address
   imageUsername:
   imagePassword:
 images:
   operator:
-    name: dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator
+    name: registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator
     tag: "0.7.0-build.41"
