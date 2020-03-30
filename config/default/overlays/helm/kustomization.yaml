@@ -3,5 +3,8 @@ namespace: pivotal-rabbitmq-system
 bases:
 - ../../base
 
+resources:
+- image_pull_secret.yml
+
 patches:
 - image_as_helm_template.yml
