@@ -145,7 +145,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			By("adding the deletion finalizer", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				EventuallyWithOffset(1, func() string {
+				Eventually(func() string {
 					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 					if err != nil {
 						return ""

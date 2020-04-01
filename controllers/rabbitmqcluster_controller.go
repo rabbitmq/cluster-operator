@@ -49,7 +49,6 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -431,7 +430,7 @@ func addResourceToIndex(rawObj runtime.Object) []string {
 	}
 }
 
-func (r *RabbitmqClusterReconciler) execCommand(namespace, podName string, container *v1.Container, command ...string) (string, error) {
+func (r *RabbitmqClusterReconciler) execCommand(namespace, podName string, container *corev1.Container, command ...string) (string, error) {
 	if len(os.Getenv("IGNORE_POD_EXECUTE")) == 0 {
 		var kubeClient *kubernetes.Clientset
 		var inClusterConfig *rest.Config
@@ -449,7 +448,7 @@ func (r *RabbitmqClusterReconciler) execCommand(namespace, podName string, conta
 			Name(podName).
 			Namespace(namespace).
 			SubResource("exec").
-			VersionedParams(&v1.PodExecOptions{
+			VersionedParams(&corev1.PodExecOptions{
 				Container: container.Name,
 				Command:   command,
 				Stdout:    true,
