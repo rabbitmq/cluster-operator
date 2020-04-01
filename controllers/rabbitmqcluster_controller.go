@@ -109,7 +109,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
 
-	if !reflect.DeepEqual(rabbitmqCluster.Spec, rabbitmqCluster.Spec) {
+	if !reflect.DeepEqual(fetchedRabbitmqCluster.Spec, rabbitmqCluster.Spec) {
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 			return reconcile.Result{}, err
 		}
