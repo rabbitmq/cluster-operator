@@ -56,6 +56,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Eventually(func() bool {
+				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+				return apierrors.IsNotFound(err)
+			}, 5).Should(BeTrue())
 		})
 
 		It("works", func() {

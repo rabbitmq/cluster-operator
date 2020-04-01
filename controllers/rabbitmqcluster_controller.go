@@ -22,7 +22,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 
 	"k8s.io/client-go/tools/record"
@@ -63,8 +62,11 @@ const (
 	deletionFinalizer = "deletion.finalizers.rabbitmq"
 )
 
+type PodExecute func(string, string, string, ...string) (string, error)
+
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
+	Exec PodExecute
 	client.Client
 	Log       logr.Logger
 	Scheme    *runtime.Scheme
@@ -268,22 +270,25 @@ func (r *RabbitmqClusterReconciler) RemoveFinalizer(ctx context.Context, rabbitm
 
 func (r *RabbitmqClusterReconciler) ShutdownRabbitmq(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	sts := &appsv1.StatefulSet{}
-	if err := r.Client.Get(ctx,
+	err := r.Client.Get(ctx,
 		types.NamespacedName{Name: rabbitmqCluster.ChildResourceName("server"), Namespace: rabbitmqCluster.Namespace},
-		sts); err != nil {
+		sts)
+	if client.IgnoreNotFound(err) != nil {
 		return err
 	}
 
-	// Delete StatefulSet so Pods aren't restarted after shutdown
-	if err := r.Client.Delete(ctx, sts); err != nil {
-		return err
-	}
+	if err == nil {
+		// Delete StatefulSet so Pods aren't restarted after shutdown
+		if err := r.Client.Delete(ctx, sts); err != nil {
+			return err
+		}
 
-	// Shutdown RabbitMQ on all nodes so Pre-Stop hook terminates immediately
-	for i := 0; i < int(*sts.Spec.Replicas); i++ {
-		//TODO: Can we be specific about when we want to retry this? Currently all output (even successful shutdown - exit code 69) returns to stdErr so we can't handle errors properly.
-		if _, err := r.execCommand(rabbitmqCluster.Namespace, fmt.Sprintf("%s-%d", sts.Name, i), &sts.Spec.Template.Spec.Containers[0], "sh", "-c", "rabbitmqctl shutdown"); err != nil {
-			r.Log.Info("Error returned from rabbitmqctl shutdown: %s", err.Error())
+		// Shutdown RabbitMQ on all nodes so Pre-Stop hook terminates immediately
+		for i := 0; i < int(*sts.Spec.Replicas); i++ {
+			//TODO: Can we be specific about when we want to retry this? Currently all output (even successful shutdown - exit code 69) returns to stdErr so we can't handle errors properly.
+			if _, err := r.Exec(rabbitmqCluster.Namespace, fmt.Sprintf("%s-%d", sts.Name, i), sts.Spec.Template.Spec.Containers[0].Name, "sh", "-c", "rabbitmqctl shutdown"); err != nil {
+				r.Log.Info(fmt.Sprintf("Error returned from rabbitmqctl shutdown: %s", err.Error()))
+			}
 		}
 	}
 
@@ -430,57 +435,53 @@ func addResourceToIndex(rawObj runtime.Object) []string {
 	}
 }
 
-func (r *RabbitmqClusterReconciler) execCommand(namespace, podName string, container *corev1.Container, command ...string) (string, error) {
-	if len(os.Getenv("IGNORE_POD_EXECUTE")) == 0 {
-		var kubeClient *kubernetes.Clientset
-		var inClusterConfig *rest.Config
-		var err error
-		inClusterConfig, err = rest.InClusterConfig()
-		if err != nil {
-			return "", err
-		}
-
-		kubeClient = kubernetes.NewForConfigOrDie(inClusterConfig)
-
-		request := kubeClient.CoreV1().RESTClient().
-			Post().
-			Resource("pods").
-			Name(podName).
-			Namespace(namespace).
-			SubResource("exec").
-			VersionedParams(&corev1.PodExecOptions{
-				Container: container.Name,
-				Command:   command,
-				Stdout:    true,
-				Stderr:    true,
-				Stdin:     false,
-			}, scheme.ParameterCodec)
-
-		exec, err := remotecommand.NewSPDYExecutor(inClusterConfig, "POST", request.URL())
-		if err != nil {
-			return "", err
-		}
-
-		stdOut := bytes.Buffer{}
-		stdErr := bytes.Buffer{}
-
-		err = exec.Stream(remotecommand.StreamOptions{
-			Stdout: bufio.NewWriter(&stdOut),
-			Stderr: bufio.NewWriter(&stdErr),
-			Stdin:  nil,
-			Tty:    false,
-		})
-
-		if err != nil {
-			return "", err
-		}
-
-		if stdErr.Len() > 0 {
-			return "", fmt.Errorf("%v", stdErr)
-		}
-
-		return stdOut.String(), nil
+func Exec(namespace, podName, containerName string, command ...string) (string, error) {
+	var kubeClient *kubernetes.Clientset
+	var inClusterConfig *rest.Config
+	var err error
+	inClusterConfig, err = rest.InClusterConfig()
+	if err != nil {
+		return "", err
 	}
 
-	return "", nil
+	kubeClient = kubernetes.NewForConfigOrDie(inClusterConfig)
+
+	request := kubeClient.CoreV1().RESTClient().
+		Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(namespace).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: containerName,
+			Command:   command,
+			Stdout:    true,
+			Stderr:    true,
+			Stdin:     false,
+		}, scheme.ParameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(inClusterConfig, "POST", request.URL())
+	if err != nil {
+		return "", err
+	}
+
+	stdOut := bytes.Buffer{}
+	stdErr := bytes.Buffer{}
+
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdout: bufio.NewWriter(&stdOut),
+		Stderr: bufio.NewWriter(&stdErr),
+		Stdin:  nil,
+		Tty:    false,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if stdErr.Len() > 0 {
+		return "", fmt.Errorf("%v", stdErr)
+	}
+
+	return stdOut.String(), nil
 }
