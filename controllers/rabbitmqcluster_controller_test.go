@@ -130,6 +130,19 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(roleBinding.Name).To(Equal(roleBindingName))
 				Expect(roleBinding.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
+
+			By("recording SuccessfullCreate events for all child resources", func() {
+				allEventMsgs := aggregateEventMsgs(rabbitmqCluster, "SuccessfulCreate")
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("ingress"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("headless"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("server-conf"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("erlang-cookie"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("admin"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ServiceAccount", rabbitmqCluster.ChildResourceName("server"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Role", rabbitmqCluster.ChildResourceName("endpoint-discovery"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.RoleBinding", rabbitmqCluster.ChildResourceName("server"))))
+			})
 		})
 	})
 
@@ -384,6 +397,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 				service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
 				return service.Annotations
 			}, 1).Should(HaveKeyWithValue("test-key", "test-value"))
+
+			// verify that SuccessfulUpdate event is recorded for the ingress service
+			Expect(aggregateEventMsgs(rabbitmqCluster, "SuccessfulUpdate")).To(
+				ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("ingress"))))
 		})
 
 		It("the CPU and memory requirements are updated", func() {
@@ -412,6 +429,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Expect(resourceRequirements.Requests).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Requests[corev1.ResourceMemory]))
 			Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
+
+			// verify that SuccessfulUpdate event is recorded for the StatefulSet
+			Expect(aggregateEventMsgs(rabbitmqCluster, "SuccessfulUpdate")).To(
+				ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
 		})
 
 		It("the rabbitmq image is updated", func() {
@@ -470,6 +491,18 @@ var _ = Describe("RabbitmqclusterController", func() {
 				sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 				return sts.Annotations
 			}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
+
+			// verify that SuccessfulUpdate events are recorded for all child resources
+			allEventMsgs := aggregateEventMsgs(rabbitmqCluster, "SuccessfulUpdate")
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("ingress"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("headless"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("server-conf"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("erlang-cookie"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("admin"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.ServiceAccount", rabbitmqCluster.ChildResourceName("server"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Role", rabbitmqCluster.ChildResourceName("endpoint-discovery"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.RoleBinding", rabbitmqCluster.ChildResourceName("server"))))
 		})
 
 		It("service type is updated", func() {
@@ -523,7 +556,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}, 1).Should(BeNil())
 		})
 	})
-	// })
 
 	Context("Recreate child resources after deletion", func() {
 		var (
@@ -609,6 +641,20 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 
 })
+
+// aggregateEventMsgs - helper function to aggregate all event messages for a given rabbitmqcluster
+// and filters on a specific event reason string
+func aggregateEventMsgs(rabbit *rabbitmqv1beta1.RabbitmqCluster, reason string) string {
+	events, err := clientSet.CoreV1().Events(rabbit.Namespace).List(metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.namespace=%s,reason=%s", rabbit.Name, rabbit.Namespace, reason),
+	})
+	ExpectWithOffset(1, err).To(Succeed())
+	var msgs string
+	for _, e := range events.Items {
+		msgs = msgs + e.Message + " "
+	}
+	return msgs
+}
 
 func statefulSet(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
 	stsName := rabbitmqCluster.ChildResourceName("server")
