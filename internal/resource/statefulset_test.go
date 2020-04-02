@@ -520,6 +520,10 @@ var _ = Describe("StatefulSet", func() {
 					Name:      "rabbitmq-erlang-cookie",
 					MountPath: "/var/lib/rabbitmq/",
 				},
+				corev1.VolumeMount{
+					Name:      "pod-info",
+					MountPath: "/etc/pod-info/",
+				},
 			))
 		})
 
@@ -573,6 +577,21 @@ var _ = Describe("StatefulSet", func() {
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
 							SecretName: instance.ChildResourceName("erlang-cookie"),
+						},
+					},
+				},
+				corev1.Volume{
+					Name: "pod-info",
+					VolumeSource: corev1.VolumeSource{
+						DownwardAPI: &corev1.DownwardAPIVolumeSource{
+							Items: []corev1.DownwardAPIVolumeFile{
+								{
+									Path: "deletion.finalizers.rabbitmq",
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath: "metadata.labels['deletion.finalizers.rabbitmq']",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -667,7 +686,7 @@ var _ = Describe("StatefulSet", func() {
 			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			expectedPreStopCommand := []string{"/bin/bash", "-c", "while true; do rabbitmq-queues check_if_node_is_quorum_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; rabbitmq-queues check_if_node_is_mirror_sync_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break; done"}
+			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z $(cat /etc/pod-info/deletion.finalizers.rabbitmq) ]; then exit 0; fi; while true; do rabbitmq-queues check_if_node_is_quorum_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; rabbitmq-queues check_if_node_is_mirror_sync_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break; done"}
 
 			Expect(statefulSet.Spec.Template.Spec.Containers[0].Lifecycle.PreStop.Exec.Command).To(Equal(expectedPreStopCommand))
 		})

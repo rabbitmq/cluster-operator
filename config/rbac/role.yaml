@@ -80,9 +80,9 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods/exec
+  - pods
   verbs:
-  - create
+  - patch
 - apiGroups:
   - ""
   resources:

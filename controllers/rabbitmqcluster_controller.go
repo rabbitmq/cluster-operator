@@ -17,25 +17,20 @@ limitations under the License.
 package controllers
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/client-go/tools/record"
 
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/remotecommand"
 	clientretry "k8s.io/client-go/util/retry"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -62,11 +57,8 @@ const (
 	deletionFinalizer = "deletion.finalizers.rabbitmq"
 )
 
-type PodExecute func(string, string, string, ...string) (string, error)
-
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
-	Exec PodExecute
 	client.Client
 	Log       logr.Logger
 	Scheme    *runtime.Scheme
@@ -75,7 +67,7 @@ type RabbitmqClusterReconciler struct {
 }
 
 // the rbac rule requires an empty row at the end to render
-// +kubebuilder:rbac:groups="",resources=pods/exec,verbs=create
+// +kubebuilder:rbac:groups="",resources=pods,verbs=patch
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;list;watch;create;update;patch;delete
@@ -101,11 +93,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
 
-	if err != nil {
+	if client.IgnoreNotFound(err) != nil {
 		logger.Error(err, "Failed getting Rabbitmq cluster object")
-		// No need to requeue if the resource no longer exists, otherwise we'll
-		// requeue the error.
-		return reconcile.Result{}, client.IgnoreNotFound(err)
+		return reconcile.Result{}, err
+	} else if errors.IsNotFound(err) {
+		// No need to requeue if the resource no longer exists
+		return reconcile.Result{}, nil
 	}
 
 	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
@@ -280,14 +273,21 @@ func (r *RabbitmqClusterReconciler) ShutdownRabbitmq(ctx context.Context, rabbit
 	if err == nil {
 		// Delete StatefulSet so Pods aren't restarted after shutdown
 		if err := r.Client.Delete(ctx, sts); err != nil {
-			return err
+			return fmt.Errorf(fmt.Sprintf("Cannot delete StatefulSet: %s", err.Error()))
 		}
 
-		// Shutdown RabbitMQ on all nodes so Pre-Stop hook terminates immediately
+		// Add label on all Pods to be picked up in pre-stop hook via Downward API
 		for i := 0; i < int(*sts.Spec.Replicas); i++ {
-			//TODO: Can we be specific about when we want to retry this? Currently all output (even successful shutdown - exit code 69) returns to stdErr so we can't handle errors properly.
-			if _, err := r.Exec(rabbitmqCluster.Namespace, fmt.Sprintf("%s-%d", sts.Name, i), sts.Spec.Template.Spec.Containers[0].Name, "sh", "-c", "rabbitmqctl shutdown"); err != nil {
-				r.Log.Info(fmt.Sprintf("Error returned from rabbitmqctl shutdown: %s", err.Error()))
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("%s-%d", rabbitmqCluster.ChildResourceName("server"), i),
+					Namespace: rabbitmqCluster.Namespace,
+				},
+			}
+			patchString := fmt.Sprintf("{\"metadata\": {\"labels\":{\"%s\":\"true\"}}}", deletionFinalizer)
+			patch := client.RawPatch(types.StrategicMergePatchType, []byte(patchString))
+			if err := r.Client.Patch(ctx, pod, patch); client.IgnoreNotFound(err) != nil {
+				return fmt.Errorf(fmt.Sprintf("Cannot Patch Pod: %s", err.Error()))
 			}
 		}
 	}
@@ -433,55 +433,4 @@ func addResourceToIndex(rawObj runtime.Object) []string {
 	default:
 		return nil
 	}
-}
-
-func Exec(namespace, podName, containerName string, command ...string) (string, error) {
-	var kubeClient *kubernetes.Clientset
-	var inClusterConfig *rest.Config
-	var err error
-	inClusterConfig, err = rest.InClusterConfig()
-	if err != nil {
-		return "", err
-	}
-
-	kubeClient = kubernetes.NewForConfigOrDie(inClusterConfig)
-
-	request := kubeClient.CoreV1().RESTClient().
-		Post().
-		Resource("pods").
-		Name(podName).
-		Namespace(namespace).
-		SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: containerName,
-			Command:   command,
-			Stdout:    true,
-			Stderr:    true,
-			Stdin:     false,
-		}, scheme.ParameterCodec)
-
-	exec, err := remotecommand.NewSPDYExecutor(inClusterConfig, "POST", request.URL())
-	if err != nil {
-		return "", err
-	}
-
-	stdOut := bytes.Buffer{}
-	stdErr := bytes.Buffer{}
-
-	err = exec.Stream(remotecommand.StreamOptions{
-		Stdout: bufio.NewWriter(&stdOut),
-		Stderr: bufio.NewWriter(&stdErr),
-		Stdin:  nil,
-		Tty:    false,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	if stdErr.Len() > 0 {
-		return "", fmt.Errorf("%v", stdErr)
-	}
-
-	return stdOut.String(), nil
 }

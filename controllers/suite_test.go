@@ -17,7 +17,6 @@ limitations under the License.
 package controllers_test
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"sync"
@@ -102,7 +101,6 @@ func startManager(scheme *runtime.Scheme) {
 	client = mgr.GetClient()
 
 	reconciler := &controllers.RabbitmqClusterReconciler{
-		Exec:      fakeExec,
 		Client:    client,
 		Log:       ctrl.Log.WithName(controllerName),
 		Scheme:    mgr.GetScheme(),
@@ -118,8 +116,4 @@ func startManager(scheme *runtime.Scheme) {
 		defer mgrStopped.Done()
 		Expect(mgr.Start(stopMgr)).NotTo(HaveOccurred())
 	}()
-}
-
-func fakeExec(namespace, podName, containerName string, command ...string) (string, error) {
-	return "", errors.New("fake error")
 }

@@ -294,6 +294,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							Name:      "rabbitmq-erlang-cookie",
 							MountPath: "/var/lib/rabbitmq/",
 						},
+						{
+							Name:      "pod-info",
+							MountPath: "/etc/pod-info/",
+						},
 					},
 					ReadinessProbe: &corev1.Probe{
 						Handler: corev1.Handler{
@@ -311,7 +315,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
 								Command: []string{
-									"/bin/bash", "-c", "while true; do rabbitmq-queues check_if_node_is_quorum_critical" +
+									"/bin/bash", "-c", "if [ ! -z $(cat /etc/pod-info/deletion.finalizers.rabbitmq) ]; then exit 0; fi;" +
+										" while true; do rabbitmq-queues check_if_node_is_quorum_critical" +
 										" 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi;" +
 										" rabbitmq-queues check_if_node_is_mirror_sync_critical" +
 										" 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break;" +
@@ -368,6 +373,21 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
 							SecretName: builder.Instance.ChildResourceName(erlangCookieName),
+						},
+					},
+				},
+				{
+					Name: "pod-info",
+					VolumeSource: corev1.VolumeSource{
+						DownwardAPI: &corev1.DownwardAPIVolumeSource{
+							Items: []corev1.DownwardAPIVolumeFile{
+								{
+									Path: "deletion.finalizers.rabbitmq",
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath: "metadata.labels['deletion.finalizers.rabbitmq']",
+									},
+								},
+							},
 						},
 					},
 				},
