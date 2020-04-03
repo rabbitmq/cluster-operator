@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/labels"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/client-go/tools/record"
@@ -67,7 +69,7 @@ type RabbitmqClusterReconciler struct {
 }
 
 // the rbac rule requires an empty row at the end to render
-// +kubebuilder:rbac:groups="",resources=pods,verbs=patch
+// +kubebuilder:rbac:groups="",resources=pods,verbs=update;get;list;watch;patch
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;list;watch;create;update;patch;delete
@@ -111,7 +113,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	// Check if deletion timestamp is set
-	if err := r.AddFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
+	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -121,7 +123,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			rabbitmqCluster.Name,
 			rabbitmqCluster.Namespace))
 		// Stop reconciliation as the item is being deleted
-		return ctrl.Result{}, r.PrepareForDeletion(ctx, rabbitmqCluster)
+		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
 	}
 
 	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
@@ -234,14 +236,26 @@ func containsString(slice []string, s string) bool {
 	return false
 }
 
-func (r *RabbitmqClusterReconciler) PrepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
-		if err := r.ShutdownRabbitmq(ctx, rabbitmqCluster); err != nil {
-			r.Log.Error(err, "Failed to shutdown RabbitmqCluster")
+		sts := &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      rabbitmqCluster.ChildResourceName("server"),
+				Namespace: rabbitmqCluster.Namespace,
+			},
+		}
+
+		// Delete StatefulSet so Pods aren't restarted after shutdown
+		if err := r.Client.Delete(ctx, sts); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf(fmt.Sprintf("Cannot delete StatefulSet: %s", err.Error()))
+		}
+		// Add label on all Pods to be picked up in pre-stop hook via Downward API
+		if err := r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster); err != nil {
+			r.Log.Error(err, "Failed to add deletion markers to RabbitmqCluster Pods")
 			return err
 		}
 
-		if err := r.RemoveFinalizer(ctx, rabbitmqCluster); err != nil {
+		if err := r.removeFinalizer(ctx, rabbitmqCluster); err != nil {
 			r.Log.Error(err, "Failed to remove finalizer for deletion")
 			return err
 		}
@@ -249,7 +263,7 @@ func (r *RabbitmqClusterReconciler) PrepareForDeletion(ctx context.Context, rabb
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) RemoveFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if err := controllerutil.RemoveFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {
 		return err
 	}
@@ -261,41 +275,32 @@ func (r *RabbitmqClusterReconciler) RemoveFinalizer(ctx context.Context, rabbitm
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) ShutdownRabbitmq(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	sts := &appsv1.StatefulSet{}
-	err := r.Client.Get(ctx,
-		types.NamespacedName{Name: rabbitmqCluster.ChildResourceName("server"), Namespace: rabbitmqCluster.Namespace},
-		sts)
-	if client.IgnoreNotFound(err) != nil {
+func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	pods := &corev1.PodList{}
+	selector, err := labels.Parse(fmt.Sprintf("app.kubernetes.io/name=%s", rabbitmqCluster.Name))
+	if err != nil {
+		return err
+	}
+	listOptions := client.ListOptions{
+		LabelSelector: selector,
+	}
+
+	if err := r.Client.List(ctx, pods, &listOptions); err != nil {
 		return err
 	}
 
-	if err == nil {
-		// Delete StatefulSet so Pods aren't restarted after shutdown
-		if err := r.Client.Delete(ctx, sts); err != nil {
-			return fmt.Errorf(fmt.Sprintf("Cannot delete StatefulSet: %s", err.Error()))
-		}
-
-		// Add label on all Pods to be picked up in pre-stop hook via Downward API
-		for i := 0; i < int(*sts.Spec.Replicas); i++ {
-			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("%s-%d", rabbitmqCluster.ChildResourceName("server"), i),
-					Namespace: rabbitmqCluster.Namespace,
-				},
-			}
-			patchString := fmt.Sprintf("{\"metadata\": {\"labels\":{\"%s\":\"true\"}}}", deletionFinalizer)
-			patch := client.RawPatch(types.StrategicMergePatchType, []byte(patchString))
-			if err := r.Client.Patch(ctx, pod, patch); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf(fmt.Sprintf("Cannot Patch Pod: %s", err.Error()))
-			}
+	for i := 0; i < len(pods.Items); i++ {
+		pod := &pods.Items[i]
+		pod.Labels[deletionFinalizer] = "true"
+		if err := r.Client.Update(ctx, pod); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf(fmt.Sprintf("Cannot Update Pod %s in Namespace %s: %s", pod.Name, pod.Namespace, err.Error()))
 		}
 	}
 
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) AddFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	// The RabbitmqCluster is not marked for deletion (no deletion timestamp) but does not have the deletion finalizer
 	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
 		if err := controllerutil.AddFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {

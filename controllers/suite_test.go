@@ -17,7 +17,6 @@ limitations under the License.
 package controllers_test
 
 import (
-	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -70,8 +69,6 @@ var _ = BeforeSuite(func() {
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
 	}
-
-	os.Setenv("IGNORE_POD_EXECUTE", "true")
 
 	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())

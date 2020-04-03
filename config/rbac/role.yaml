@@ -82,7 +82,11 @@ rules:
   resources:
   - pods
   verbs:
+  - get
+  - list
   - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
