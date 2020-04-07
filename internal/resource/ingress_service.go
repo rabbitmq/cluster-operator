@@ -61,10 +61,10 @@ func updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
 			Port:     5672,
 			Name:     "amqp",
 		},
-		"http": corev1.ServicePort{
+		"management": corev1.ServicePort{
 			Protocol: corev1.ProtocolTCP,
 			Port:     15672,
-			Name:     "http",
+			Name:     "management",
 		},
 		"prometheus": corev1.ServicePort{
 			Protocol: corev1.ProtocolTCP,
