@@ -69,7 +69,7 @@ type RabbitmqClusterReconciler struct {
 }
 
 // the rbac rule requires an empty row at the end to render
-// +kubebuilder:rbac:groups="",resources=pods,verbs=update;get;list;watch;patch
+// +kubebuilder:rbac:groups="",resources=pods,verbs=update;get;list;watch;
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;list;watch;create;update;patch;delete
