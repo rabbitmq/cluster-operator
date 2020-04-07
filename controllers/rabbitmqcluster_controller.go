@@ -20,15 +20,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s.io/client-go/tools/record"
 	"reflect"
+
+	"k8s.io/apimachinery/pkg/labels"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+
+	"k8s.io/client-go/tools/record"
 
 	"k8s.io/apimachinery/pkg/types"
 	clientretry "k8s.io/client-go/util/retry"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -46,9 +50,13 @@ import (
 )
 
 var (
-	ownerKey  = ".metadata.controller"
-	ownerKind = "RabbitmqCluster"
-	apiGVStr  = rabbitmqv1beta1.GroupVersion.String()
+	apiGVStr = rabbitmqv1beta1.GroupVersion.String()
+)
+
+const (
+	ownerKey          = ".metadata.controller"
+	ownerKind         = "RabbitmqCluster"
+	deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.pivotal.io"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -61,6 +69,7 @@ type RabbitmqClusterReconciler struct {
 }
 
 // the rbac rule requires an empty row at the end to render
+// +kubebuilder:rbac:groups="",resources=pods,verbs=update;get;list;watch;
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;list;watch;create;update;patch;delete
@@ -86,21 +95,34 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
 
-	if err != nil {
+	if client.IgnoreNotFound(err) != nil {
 		logger.Error(err, "Failed getting Rabbitmq cluster object")
-		// No need to requeue if the resource no longer exists, otherwise we'll
-		// requeue the error.
-		return reconcile.Result{}, client.IgnoreNotFound(err)
+		return reconcile.Result{}, err
+	} else if errors.IsNotFound(err) {
+		// No need to requeue if the resource no longer exists
+		return reconcile.Result{}, nil
 	}
 
 	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
 
 	if !reflect.DeepEqual(fetchedRabbitmqCluster.Spec, rabbitmqCluster.Spec) {
-		err := r.Client.Update(ctx, rabbitmqCluster)
-		if err != nil {
+		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Resource has been marked for deletion
+	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		logger.Info(fmt.Sprintf("Deleting RabbitmqCluster \"%s\" in namespace \"%s\"",
+			rabbitmqCluster.Name,
+			rabbitmqCluster.Namespace))
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
 	}
 
 	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
@@ -201,6 +223,98 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Obje
 		r.Log.Error(err, msg)
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedUpdate", msg)
 	}
+}
+
+func containsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	if containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
+		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+			sts := &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      rabbitmqCluster.ChildResourceName("server"),
+					Namespace: rabbitmqCluster.Namespace,
+				},
+			}
+			// Delete StatefulSet so Pods aren't restarted after shutdown
+			if err := r.Client.Delete(ctx, sts); client.IgnoreNotFound(err) != nil {
+				return fmt.Errorf(fmt.Sprintf("Cannot delete StatefulSet: %s", err.Error()))
+			}
+			// Add label on all Pods to be picked up in pre-stop hook via Downward API
+			if err := r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster); err != nil {
+				return fmt.Errorf(fmt.Sprintf("Failed to add deletion markers to RabbitmqCluster Pods: %s", err.Error()))
+			}
+
+			return nil
+		}); err != nil {
+			r.Log.Error(err, "RabbitmqCluster deletion")
+		}
+
+		if err := r.removeFinalizer(ctx, rabbitmqCluster); err != nil {
+			r.Log.Error(err, "Failed to remove finalizer for deletion")
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	if err := controllerutil.RemoveFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {
+		return err
+	}
+
+	if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	pods := &corev1.PodList{}
+	selector, err := labels.Parse(fmt.Sprintf("app.kubernetes.io/name=%s", rabbitmqCluster.Name))
+	if err != nil {
+		return err
+	}
+	listOptions := client.ListOptions{
+		LabelSelector: selector,
+	}
+
+	if err := r.Client.List(ctx, pods, &listOptions); err != nil {
+		return err
+	}
+
+	for i := 0; i < len(pods.Items); i++ {
+		pod := &pods.Items[i]
+		pod.Labels[deletionFinalizer] = "true"
+		if err := r.Client.Update(ctx, pod); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf(fmt.Sprintf("Cannot Update Pod %s in Namespace %s: %s", pod.Name, pod.Namespace, err.Error()))
+		}
+	}
+
+	return nil
+}
+
+func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	// The RabbitmqCluster is not marked for deletion (no deletion timestamp) but does not have the deletion finalizer
+	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
+		if err := controllerutil.AddFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {
+			return err
+		}
+
+		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {

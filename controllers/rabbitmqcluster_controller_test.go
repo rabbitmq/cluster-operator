@@ -56,6 +56,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Eventually(func() bool {
+				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+				return apierrors.IsNotFound(err)
+			}, 5).Should(BeTrue())
 		})
 
 		It("works", func() {
@@ -130,7 +135,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(roleBinding.Name).To(Equal(roleBindingName))
 				Expect(roleBinding.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
-
 			By("recording SuccessfullCreate events for all child resources", func() {
 				allEventMsgs := aggregateEventMsgs(rabbitmqCluster, "SuccessfulCreate")
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
@@ -142,6 +146,21 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ServiceAccount", rabbitmqCluster.ChildResourceName("server"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Role", rabbitmqCluster.ChildResourceName("endpoint-discovery"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.RoleBinding", rabbitmqCluster.ChildResourceName("server"))))
+			})
+
+			By("adding the deletion finalizer", func() {
+				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				Eventually(func() string {
+					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+					if err != nil {
+						return ""
+					}
+					if len(rmq.Finalizers) > 0 {
+						return rmq.Finalizers[0]
+					}
+
+					return ""
+				}, 5).Should(Equal("deletion.finalizers.rabbitmqclusters.rabbitmq.pivotal.io"))
 			})
 		})
 	})
@@ -281,7 +300,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 	Context("Resource requirements configurations", func() {
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-			Expect(clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("server"), nil)).To(Succeed())
 		})
 
 		It("uses resource requirements from instance spec when provided", func() {
@@ -326,7 +344,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 	Context("Persistence configurations", func() {
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-			Expect(clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("server"), nil)).To(Succeed())
 		})
 
 		It("creates the RabbitmqCluster with the specified storage from instance spec", func() {
