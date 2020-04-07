@@ -112,7 +112,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	// Check if deletion timestamp is set
 	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -238,21 +237,25 @@ func containsString(slice []string, s string) bool {
 
 func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
-		sts := &appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      rabbitmqCluster.ChildResourceName("server"),
-				Namespace: rabbitmqCluster.Namespace,
-			},
-		}
+		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+			sts := &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      rabbitmqCluster.ChildResourceName("server"),
+					Namespace: rabbitmqCluster.Namespace,
+				},
+			}
+			// Delete StatefulSet so Pods aren't restarted after shutdown
+			if err := r.Client.Delete(ctx, sts); client.IgnoreNotFound(err) != nil {
+				return fmt.Errorf(fmt.Sprintf("Cannot delete StatefulSet: %s", err.Error()))
+			}
+			// Add label on all Pods to be picked up in pre-stop hook via Downward API
+			if err := r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster); err != nil {
+				return fmt.Errorf(fmt.Sprintf("Failed to add deletion markers to RabbitmqCluster Pods: %s", err.Error()))
+			}
 
-		// Delete StatefulSet so Pods aren't restarted after shutdown
-		if err := r.Client.Delete(ctx, sts); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf(fmt.Sprintf("Cannot delete StatefulSet: %s", err.Error()))
-		}
-		// Add label on all Pods to be picked up in pre-stop hook via Downward API
-		if err := r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster); err != nil {
-			r.Log.Error(err, "Failed to add deletion markers to RabbitmqCluster Pods")
-			return err
+			return nil
+		}); err != nil {
+			r.Log.Error(err, "RabbitmqCluster deletion")
 		}
 
 		if err := r.removeFinalizer(ctx, rabbitmqCluster); err != nil {
