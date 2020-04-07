@@ -1,0 +1,15 @@
+name: rabbitmq-operator
+version: 0.3
+appVersion: 0.7.0-build.41
+description: Pivotal RabbitMQ for Kubernetes
+keywords:
+- rabbitmq
+- operator
+- message queue
+- AMQP
+home: https://pivotal.io/rabbitmq
+icon: https://bitnami.com/assets/stacks/rabbitmq/img/rabbitmq-stack-220x234.png
+maintainers:
+- name: Pivotal
+  email: rabbitmq-for-k8s@pivotal.com
+engine: gotpl

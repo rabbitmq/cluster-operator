@@ -1,0 +1,57 @@
+apiVersion: v1
+data:
+  .dockerconfigjson: '{{ template "imagePullSecret" . }}'
+kind: Secret
+metadata:
+  name: pivotal-registry
+  namespace: pivotal-rabbitmq-system
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: p-rmq-operator
+    app.kubernetes.io/name: p-rmq-operator
+    app.kubernetes.io/part-of: pivotal-rabbitmq
+  name: p-rmq-operator
+  namespace: pivotal-rabbitmq-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: p-rmq-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: p-rmq-operator
+        app.kubernetes.io/name: p-rmq-operator
+        app.kubernetes.io/part-of: pivotal-rabbitmq
+    spec:
+      containers:
+      - args:
+        - --metrics-addr=0
+        command:
+        - /manager
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: '{{printf "%s:%s" .Values.images.operator.name .Values.images.operator.tag}}'
+        name: operator
+        resources:
+          limits:
+            cpu: 200m
+            memory: 500Mi
+          requests:
+            cpu: 200m
+            memory: 500Mi
+      imagePullSecrets:
+      - name: pivotal-registry
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsUser: 1000
+      serviceAccountName: p-rmq-operator
+      terminationGracePeriodSeconds: 10
