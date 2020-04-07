@@ -586,9 +586,9 @@ var _ = Describe("StatefulSet", func() {
 						DownwardAPI: &corev1.DownwardAPIVolumeSource{
 							Items: []corev1.DownwardAPIVolumeFile{
 								{
-									Path: "deletion.finalizers.rabbitmq",
+									Path: "skipPreStopChecks",
 									FieldRef: &corev1.ObjectFieldSelector{
-										FieldPath: "metadata.labels['deletion.finalizers.rabbitmq']",
+										FieldPath: "metadata.labels['skipPreStopChecks']",
 									},
 								},
 							},
@@ -686,7 +686,7 @@ var _ = Describe("StatefulSet", func() {
 			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z $(cat /etc/pod-info/deletion.finalizers.rabbitmq) ]; then exit 0; fi; while true; do rabbitmq-queues check_if_node_is_quorum_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; rabbitmq-queues check_if_node_is_mirror_sync_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break; done"}
+			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; while true; do rabbitmq-queues check_if_node_is_quorum_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; rabbitmq-queues check_if_node_is_mirror_sync_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break; done"}
 
 			Expect(statefulSet.Spec.Template.Spec.Containers[0].Lifecycle.PreStop.Exec.Command).To(Equal(expectedPreStopCommand))
 		})

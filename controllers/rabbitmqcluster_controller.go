@@ -56,7 +56,7 @@ var (
 const (
 	ownerKey          = ".metadata.controller"
 	ownerKind         = "RabbitmqCluster"
-	deletionFinalizer = "deletion.finalizers.rabbitmq"
+	deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.pivotal.io"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -225,7 +225,6 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Obje
 	}
 }
 
-// Helper functions to check and remove string from a slice of strings.
 func containsString(slice []string, s string) bool {
 	for _, item := range slice {
 		if item == s {
