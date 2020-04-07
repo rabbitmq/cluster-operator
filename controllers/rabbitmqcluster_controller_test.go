@@ -160,7 +160,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					}
 
 					return ""
-				}, 5).Should(Equal("deletion.finalizers.rabbitmq"))
+				}, 5).Should(Equal("deletion.finalizers.rabbitmqclusters.rabbitmq.pivotal.io"))
 			})
 		})
 	})
