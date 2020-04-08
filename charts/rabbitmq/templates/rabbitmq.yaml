@@ -57,3 +57,11 @@ spec:
   resources:
 {{ toYaml .Values.resources | indent 4 }}
   {{- end }}
+
+  {{- if .Values.rabbitmq }}
+  rabbitmq:
+    {{- if .Values.rabbitmq.additionalPlugins }}
+    additionalPlugins:
+{{ toYaml .Values.rabbitmq.additionalPlugins | indent 4 }}
+    {{- end }}
+  {{- end }}

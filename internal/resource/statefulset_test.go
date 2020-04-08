@@ -19,7 +19,6 @@ var _ = Describe("StatefulSet", func() {
 		instance rabbitmqv1beta1.RabbitmqCluster
 		scheme   *runtime.Scheme
 		cluster  *resource.RabbitmqResourceBuilder
-		// sts      *appsv1.StatefulSet
 	)
 
 	Context("Build", func() {
@@ -439,10 +438,6 @@ var _ = Describe("StatefulSet", func() {
 
 			requiredEnvVariables := []corev1.EnvVar{
 				{
-					Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
-					Value: "/opt/server-conf/enabled_plugins",
-				},
-				{
 					Name:  "RABBITMQ_DEFAULT_PASS_FILE",
 					Value: "/opt/rabbitmq-secret/password",
 				},
@@ -500,10 +495,6 @@ var _ = Describe("StatefulSet", func() {
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 			Expect(container.VolumeMounts).Should(ConsistOf(
-				corev1.VolumeMount{
-					Name:      "server-conf",
-					MountPath: "/opt/server-conf/",
-				},
 				corev1.VolumeMount{
 					Name:      "rabbitmq-admin",
 					MountPath: "/opt/rabbitmq-secret/",
@@ -648,7 +639,9 @@ var _ = Describe("StatefulSet", func() {
 				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
 					"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 					"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
-					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
+					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
+					"cp /tmp/rabbitmq/enabled_plugins /etc/rabbitmq/enabled_plugins " +
+					"&& chown 999:999 /etc/rabbitmq/enabled_plugins",
 			}))
 
 			Expect(container.VolumeMounts).Should(ConsistOf(

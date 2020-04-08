@@ -17,22 +17,29 @@ limitations under the License.
 package controllers
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/remotecommand"
 	"reflect"
+	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	"k8s.io/apimachinery/pkg/api/errors"
-
 	"k8s.io/client-go/tools/record"
 
 	"k8s.io/apimachinery/pkg/types"
-	clientretry "k8s.io/client-go/util/retry"
 
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
+	clientretry "k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -62,13 +69,16 @@ const (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
-	Log       logr.Logger
-	Scheme    *runtime.Scheme
-	Namespace string
-	Recorder  record.EventRecorder
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	Namespace       string
+	Recorder        record.EventRecorder
+	InClusterConfig *rest.Config
+	Clientset       *kubernetes.Clientset
 }
 
 // the rbac rule requires an empty row at the end to render
+// +kubebuilder:rbac:groups="",resources=pods/exec,verbs=create
 // +kubebuilder:rbac:groups="",resources=pods,verbs=update;get;list;watch;
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services/status,verbs=get;update;patch
@@ -192,9 +202,99 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 	}
 
+	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
+		// only enable plugins when all pods of the StatefulSet become ready
+		// requeue request after 10 seconds without error
+		logger.Info(fmt.Sprintf("Not all replicas are ready; unable to configure plugins on cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
+		return reconcile.Result{RequeueAfter: time.Second * 10}, err
+	}
+
+	if err := r.enablePlugins(rabbitmqCluster); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 
-	return ctrl.Result{}, nil
+	return reconcile.Result{}, nil
+}
+
+// allReplicasReady - helper function that checks if StatefulSet replicas are all ready
+func (r *RabbitmqClusterReconciler) allReplicasReady(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (error, bool) {
+	sts := &appsv1.StatefulSet{}
+
+	if err := r.Get(ctx, types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}, sts); err != nil {
+		return client.IgnoreNotFound(err), false
+	}
+
+	if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
+		return nil, false
+	}
+
+	return nil, true
+}
+
+// enablePlugins - helper function to set the list of enabled plugins in a given RabbitmqCluster pods
+// `rabbitmq-plugins set` disables plugins that are not in the provided list
+func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+	for i := 0; i < int(rmq.Spec.Replicas); i++ {
+		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
+		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s",
+			strings.Join(append(resource.RequiredPlugins, rmq.Spec.Rabbitmq.AdditionalPlugins...), " "))
+
+		output, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", rabbitCommand)
+
+		if err != nil {
+			r.Log.Error(err, fmt.Sprintf(
+				"Failed to enable plugins on pod %s in namespace %s, running command %s with output %s",
+				podName, rmq.Namespace, rabbitCommand, output))
+
+			return err
+		}
+	}
+
+	r.Log.Info(fmt.Sprintf("Successfully enabled plugins on cluster %s in namespace %s", rmq.Name, rmq.Namespace))
+	return nil
+}
+
+func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName string, command ...string) (string, error) {
+	request := r.Clientset.CoreV1().RESTClient().
+		Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(namespace).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: containerName,
+			Command:   command,
+			Stdout:    true,
+			Stderr:    true,
+			Stdin:     false,
+		}, scheme.ParameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(r.InClusterConfig, "POST", request.URL())
+	if err != nil {
+		return "", err
+	}
+
+	stdOut := bytes.Buffer{}
+	stdErr := bytes.Buffer{}
+
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdout: bufio.NewWriter(&stdOut),
+		Stderr: bufio.NewWriter(&stdErr),
+		Stdin:  nil,
+		Tty:    false,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if stdErr.Len() > 0 {
+		return "", fmt.Errorf("%v", stdErr)
+	}
+
+	return stdOut.String(), nil
 }
 
 // logAndRecordOperationResult - helper function to log and record events with message and error

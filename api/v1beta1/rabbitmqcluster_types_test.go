@@ -171,6 +171,11 @@ var _ = Describe("RabbitmqCluster", func() {
 								Effect:   "NoSchedule",
 							},
 						},
+						Rabbitmq: RabbitmqClusterConfigurationSpec{
+							AdditionalPlugins: []string{
+								"my-plugins",
+							},
+						},
 					}
 					instance := MergeDefaults(rmqClusterInstance)
 					Expect(instance.Spec).To(Equal(rmqClusterInstance.Spec))

@@ -18,6 +18,8 @@ package main
 
 import (
 	"flag"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"os"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
@@ -71,12 +73,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	inClusterConfig, err := rest.InClusterConfig()
+	if err != nil {
+		setupLog.Error(err, "unable to get inClusterConfig")
+		os.Exit(1)
+	}
+
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client:    mgr.GetClient(),
-		Log:       ctrl.Log.WithName(controllerName),
-		Scheme:    mgr.GetScheme(),
-		Recorder:  mgr.GetEventRecorderFor(controllerName),
-		Namespace: operatorNamespace,
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName(controllerName),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorderFor(controllerName),
+		Namespace:       operatorNamespace,
+		InClusterConfig: inClusterConfig,
+		Clientset:       kubernetes.NewForConfigOrDie(inClusterConfig),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", controllerName)

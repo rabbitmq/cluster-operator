@@ -50,4 +50,8 @@ spec:
     requests:
       cpu: 777m
       memory: 1Gi
-    
+     
+  rabbitmq:
+    additionalPlugins:
+    - rabbitmq_shovel
+    - rabbitmq_shovel_management

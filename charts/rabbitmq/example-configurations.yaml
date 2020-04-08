@@ -35,6 +35,11 @@ tolerations:
     value: "rabbitmq"
     effect: "NoSchedule"
 
+rabbitmq:
+  additionalPlugins:
+  - rabbitmq_shovel
+  - rabbitmq_shovel_management
+
 affinity:
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:

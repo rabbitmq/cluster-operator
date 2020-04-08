@@ -26,6 +26,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const podCreationTimeout = 360 * time.Second
+
 func MustHaveEnv(name string) string {
 	value := os.Getenv(name)
 	if value == "" {
@@ -312,30 +314,6 @@ func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1bet
 	}, podCreationTimeout, 1).ShouldNot(BeEmpty())
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-}
-
-func assertStatefulSetReady(cluster *rabbitmqv1beta1.RabbitmqCluster) {
-	numReplicas := cluster.Spec.Replicas
-
-	EventuallyWithOffset(1, func() []byte {
-		output, err := statefulSetStatus(cluster)
-
-		if err != nil {
-			Expect(string(output)).To(ContainSubstring("not found"))
-		}
-
-		return output
-	}, podCreationTimeout*time.Duration(numReplicas), 1).Should(ContainSubstring(fmt.Sprintf("%d/%d", numReplicas, numReplicas)))
-}
-
-func statefulSetStatus(cluster *rabbitmqv1beta1.RabbitmqCluster) ([]byte, error) {
-	return kubectl(
-		"-n",
-		cluster.Namespace,
-		"get",
-		"sts",
-		cluster.ChildResourceName(statefulSetSuffix),
-	)
 }
 
 func assertHttpReady(hostname string) {
