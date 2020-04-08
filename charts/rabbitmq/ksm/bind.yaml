@@ -1,23 +1,29 @@
 template: |
   local ingressFilterFunc(j) = std.length(std.findSubstr("rabbitmq-ingress", j.name)) > 0;
-  local ingress = std.filter(ingressFilterFunc, $.services);
+  local ingressService = std.filter(ingressFilterFunc, $.services)[0];
   local secretFilterFunc(j) = std.length(std.findSubstr("rabbitmq-admin", j.name)) > 0;
   local admin = std.filter(secretFilterFunc, $.secrets);
 
   local vhost = "%2F";
-  local ingressIP = if ingress[0].spec.type == "LoadBalancer" then ingress[0].status.loadBalancer.ingress[0].ip else ingress[0].spec.clusterIP;
+  local ingress = if ingressService.spec.type == "LoadBalancer" then
+      if std.objectHas(ingressService.status.loadBalancer.ingress[0], "hostname") then
+        ingressService.status.loadBalancer.ingress[0].hostname
+      else
+        ingressService.status.loadBalancer.ingress[0].ip
+    else
+      ingressService.spec.clusterIP;
   local adminUsername = admin[0].data['username'];
   local adminPassword = admin[0].data['password'];
-  local mgmtURI = "http://" + ingressIP + ":15672/#/login/" + adminUsername + "/" + adminPassword;
-  local apiURI = "http://" + adminUsername + ":" + adminPassword + "@" + ingressIP + ":15672/api/";
-  local amqpURI = "amqp://" + adminUsername + ":" + adminPassword + "@" + ingressIP + "/" + vhost;
+  local mgmtURI = "http://" + ingress + ":15672/#/login/" + adminUsername + "/" + adminPassword;
+  local apiURI = "http://" + adminUsername + ":" + adminPassword + "@" + ingress + ":15672/api/";
+  local amqpURI = "amqp://" + adminUsername + ":" + adminPassword + "@" + ingress + "/" + vhost;
   {
-    "hostname": ingressIP,
+    "hostname": ingress,
     "username": adminUsername,
     "password": adminPassword,
     "dashboard_url": mgmtURI,
     "hostnames": [
-      ingressIP
+      ingress
     ],
     "http_api_uri": apiURI,
     "http_api_uris": [
@@ -31,9 +37,9 @@ template: |
     "vhost": vhost,
     "protocols": {
       "amqp": {
-        "host": ingressIP,
+        "host": ingress,
         "hosts": [
-          ingressIP
+          ingress
         ],
         "password": adminPassword,
         "port": 5672,
@@ -46,9 +52,9 @@ template: |
         "vhost": vhost
       },
       "management": {
-        "host": ingressIP,
+        "host": ingress,
         "hosts": [
-          ingressIP
+          ingress
         ],
         "password": adminPassword,
         "path": "/api/",
