@@ -167,7 +167,9 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
 							"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
-							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie",
+							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
+							"cp /tmp/rabbitmq/enabled_plugins /etc/rabbitmq/enabled_plugins " +
+							"&& chown 999:999 /etc/rabbitmq/enabled_plugins",
 					},
 					Resources: corev1.ResourceRequirements{
 						Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -205,10 +207,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					Resources: *builder.Instance.Spec.Resources,
 					Image:     builder.Instance.Spec.Image,
 					Env: []corev1.EnvVar{
-						{
-							Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
-							Value: "/opt/server-conf/enabled_plugins",
-						},
 						{
 							Name:  "RABBITMQ_DEFAULT_PASS_FILE",
 							Value: "/opt/rabbitmq-secret/password",
@@ -275,10 +273,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						},
 					},
 					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "server-conf",
-							MountPath: "/opt/server-conf/",
-						},
 						{
 							Name:      "rabbitmq-admin",
 							MountPath: "/opt/rabbitmq-secret/",

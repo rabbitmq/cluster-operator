@@ -642,6 +642,16 @@ spec:
                     claim a PersistentVolume from.
                   type: string
               type: object
+            rabbitmq:
+              description: Rabbitmq related configurations
+              properties:
+                additionalPlugins:
+                  description: 'List of plugins to enable in addition to essential
+                    plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.'
+                  items:
+                    type: string
+                  type: array
+              type: object
             replicas:
               description: Replicas is the number of nodes in the RabbitMQ cluster.
                 Each node is deployed as a Replica in a StatefulSet.

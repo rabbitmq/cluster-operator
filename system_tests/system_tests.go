@@ -2,6 +2,7 @@ package system_tests
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -16,7 +17,6 @@ import (
 )
 
 const (
-	podCreationTimeout   = 360 * time.Second
 	ingressServiceSuffix = "ingress"
 	statefulSetSuffix    = "server"
 )
@@ -79,13 +79,8 @@ var _ = Describe("Operator", func() {
 					statefulSetPodName(cluster, 0),
 					"rabbitmq-plugins",
 					"is_enabled",
-					"rabbitmq_federation",
-					"rabbitmq_federation_management",
 					"rabbitmq_management",
-					"rabbitmq_peer_discovery_common",
 					"rabbitmq_peer_discovery_k8s",
-					"rabbitmq_shovel",
-					"rabbitmq_shovel_management",
 					"rabbitmq_prometheus",
 				)
 
@@ -114,6 +109,28 @@ var _ = Describe("Operator", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(output)).To(Equal("'True'"))
+			})
+
+			By("updating enabled plugins when additional plugins are modified", func() {
+				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
+				fetchedRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
+				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).NotTo(HaveOccurred())
+				fetchedRabbit.Spec.Rabbitmq.AdditionalPlugins = []string{"rabbitmq_top"}
+				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
+
+				// wait for pod being restarted and becoming not ready
+				Eventually(func() error {
+					_, err := kubectlExec(namespace,
+						statefulSetPodName(cluster, 0),
+						"rabbitmq-plugins",
+						"is_enabled",
+						"rabbitmq_management",
+						"rabbitmq_peer_discovery_k8s",
+						"rabbitmq_prometheus",
+						"rabbitmq_top",
+					)
+					return err
+				}, 10*time.Second).ShouldNot(HaveOccurred())
 			})
 		})
 	})

@@ -1,18 +1,30 @@
 package resource
 
 import (
-	"strings"
-
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"strings"
 )
 
 const (
 	serverConfigMapName = "server-conf"
+	defaultRabbitmqConf = `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+cluster_formation.k8s.address_type = hostname
+cluster_formation.node_cleanup.interval = 30
+cluster_formation.node_cleanup.only_log_warning = true
+cluster_partition_handling = pause_minority
+queue_master_locator = min-masters`
 )
+
+var RequiredPlugins = []string{
+	"rabbitmq_peer_discovery_k8s", // required for clustering
+	"rabbitmq_prometheus",         // enforce prometheus metrics
+	"rabbitmq_management",
+}
 
 type ServerConfigMapBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
@@ -38,24 +50,21 @@ func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 			Namespace: builder.Instance.Namespace,
 		},
 		Data: map[string]string{
-			"enabled_plugins": "[" +
-				"rabbitmq_management," +
-				"rabbitmq_peer_discovery_k8s," +
-				"rabbitmq_federation," +
-				"rabbitmq_federation_management," +
-				"rabbitmq_shovel," +
-				"rabbitmq_shovel_management," +
-				"rabbitmq_prometheus].",
-
-			"rabbitmq.conf": strings.Join([]string{
-				"cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s",
-				"cluster_formation.k8s.host = kubernetes.default.svc.cluster.local",
-				"cluster_formation.k8s.address_type = hostname",
-				"cluster_formation.node_cleanup.interval = 30",
-				"cluster_formation.node_cleanup.only_log_warning = true",
-				"cluster_partition_handling = pause_minority",
-				"queue_master_locator = min-masters",
-			}, "\n"),
+			"rabbitmq.conf":   defaultRabbitmqConf,
+			"enabled_plugins": "[" + strings.Join(appendIfUnique(RequiredPlugins, builder.Instance.Spec.Rabbitmq.AdditionalPlugins), ",") + "].",
 		},
 	}, nil
+}
+
+func appendIfUnique(a, b []string) []string {
+	check := make(map[string]bool)
+	list := append(a, b...)
+	set := make([]string, 0)
+	for _, s := range list {
+		if _, value := check[s]; !value {
+			check[s] = true
+			set = append(set, s)
+		}
+	}
+	return set
 }

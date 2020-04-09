@@ -65,7 +65,14 @@ type RabbitmqClusterSpec struct {
 	Resources       *corev1.ResourceRequirements   `json:"resources,omitempty"`
 	Affinity        *corev1.Affinity               `json:"affinity,omitempty"`
 	// Tolerations is the list of Toleration resources attached to each Pod in the RabbitmqCluster.
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	Tolerations []corev1.Toleration              `json:"tolerations,omitempty"`
+	Rabbitmq    RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
+}
+
+// Rabbitmq related configurations
+type RabbitmqClusterConfigurationSpec struct {
+	// List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.
+	AdditionalPlugins []string `json:"additionalPlugins,omitempty"`
 }
 
 // The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
