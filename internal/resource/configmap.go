@@ -40,11 +40,6 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	configMap.Annotations = metadata.ReconcileAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
-
-	if configMap.Data == nil {
-		configMap.Data = make(map[string]string)
-	}
-	configMap.Data["enabled_plugins"] = "[" + strings.Join(appendIfUnique(RequiredPlugins, builder.Instance.Spec.Rabbitmq.AdditionalPlugins), ",") + "]."
 	return nil
 }
 
@@ -55,7 +50,8 @@ func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 			Namespace: builder.Instance.Namespace,
 		},
 		Data: map[string]string{
-			"rabbitmq.conf": defaultRabbitmqConf,
+			"rabbitmq.conf":   defaultRabbitmqConf,
+			"enabled_plugins": "[" + strings.Join(appendIfUnique(RequiredPlugins, builder.Instance.Spec.Rabbitmq.AdditionalPlugins), ",") + "].",
 		},
 	}, nil
 }

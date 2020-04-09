@@ -57,6 +57,39 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			Expect(ok).To(BeTrue())
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
+
+		It("returns a ConfigMap with required plugins", func() {
+			expectedEnabledPlugins := "[" +
+				"rabbitmq_peer_discovery_k8s," +
+				"rabbitmq_prometheus," +
+				"rabbitmq_management]."
+
+			plugins, ok := configMap.Data["enabled_plugins"]
+			Expect(ok).To(BeTrue())
+			Expect(plugins).To(Equal(expectedEnabledPlugins))
+		})
+
+		When("additionalPlugins are provided in instance spec", func() {
+			It("appends provided plugins to a list of required ones and removes duplicates", func() {
+				instance.Spec.Rabbitmq.AdditionalPlugins = []string{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "rabbitmq_top", "my_great_plugin"}
+
+				expectedEnabledPlugins := "[" +
+					"rabbitmq_peer_discovery_k8s," +
+					"rabbitmq_prometheus," +
+					"rabbitmq_management," +
+					"rabbitmq_shovel," +
+					"rabbitmq_top," +
+					"my_great_plugin]."
+
+				obj, err := configMapBuilder.Build()
+				configMap = obj.(*corev1.ConfigMap)
+				Expect(err).NotTo(HaveOccurred())
+
+				plugins, ok := configMap.Data["enabled_plugins"]
+				Expect(ok).To(BeTrue())
+				Expect(plugins).To(Equal(expectedEnabledPlugins))
+			})
+		})
 	})
 
 	Context("Update", func() {
@@ -69,70 +102,6 @@ var _ = Describe("GenerateServerConfigMap", func() {
 					Namespace: instance.Namespace,
 				},
 			}
-		})
-
-		Context("plugins", func() {
-			When("no additionalPlugins are provided in instance spec", func() {
-				It("returns a ConfigMap with required plugins", func() {
-					expectedEnabledPlugins := "[" +
-						"rabbitmq_peer_discovery_k8s," +
-						"rabbitmq_prometheus," +
-						"rabbitmq_management]."
-
-					err := configMapBuilder.Update(configMap)
-					Expect(err).NotTo(HaveOccurred())
-
-					plugins, ok := configMap.Data["enabled_plugins"]
-					Expect(ok).To(BeTrue())
-					Expect(plugins).To(Equal(expectedEnabledPlugins))
-				})
-
-			})
-			When("additionalPlugins are provided in instance spec", func() {
-				It("appends provided plugins to a list of required ones and removes duplicates", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []string{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "rabbitmq_top", "my_great_plugin"}
-
-					expectedEnabledPlugins := "[" +
-						"rabbitmq_peer_discovery_k8s," +
-						"rabbitmq_prometheus," +
-						"rabbitmq_management," +
-						"rabbitmq_shovel," +
-						"rabbitmq_top," +
-						"my_great_plugin]."
-
-					err := configMapBuilder.Update(configMap)
-					Expect(err).NotTo(HaveOccurred())
-
-					plugins, ok := configMap.Data["enabled_plugins"]
-					Expect(ok).To(BeTrue())
-					Expect(plugins).To(Equal(expectedEnabledPlugins))
-				})
-			})
-
-			When("the configmap was configured with outdated plugins configurations", func() {
-				It("updates the configmap with the current additionalPlugins", func() {
-					configMap.Data = map[string]string{
-						"enabled_plugins": "[my-previous-plugins-1,my-previous-plugins-2].",
-					}
-
-					instance.Spec.Rabbitmq.AdditionalPlugins = []string{"rabbitmq_shovel", "rabbitmq_top", "my_great_plugin"}
-
-					expectedEnabledPlugins := "[" +
-						"rabbitmq_peer_discovery_k8s," +
-						"rabbitmq_prometheus," +
-						"rabbitmq_management," +
-						"rabbitmq_shovel," +
-						"rabbitmq_top," +
-						"my_great_plugin]."
-
-					err := configMapBuilder.Update(configMap)
-					Expect(err).NotTo(HaveOccurred())
-
-					plugins, ok := configMap.Data["enabled_plugins"]
-					Expect(ok).To(BeTrue())
-					Expect(plugins).To(Equal(expectedEnabledPlugins))
-				})
-			})
 		})
 
 		Context("labels", func() {
