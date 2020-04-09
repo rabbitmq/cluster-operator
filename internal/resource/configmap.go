@@ -44,7 +44,7 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
 	}
-	configMap.Data["enabled_plugins"] = "[" + strings.Join(append(RequiredPlugins, builder.Instance.Spec.Rabbitmq.AdditionalPlugins...), ",") + "]."
+	configMap.Data["enabled_plugins"] = "[" + strings.Join(appendIfUnique(RequiredPlugins, builder.Instance.Spec.Rabbitmq.AdditionalPlugins), ",") + "]."
 	return nil
 }
 
@@ -58,4 +58,17 @@ func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 			"rabbitmq.conf": defaultRabbitmqConf,
 		},
 	}, nil
+}
+
+func appendIfUnique(a, b []string) []string {
+	check := make(map[string]bool)
+	list := append(a, b...)
+	set := make([]string, 0)
+	for _, s := range list {
+		if _, value := check[s]; !value {
+			check[s] = true
+			set = append(set, s)
+		}
+	}
+	return set
 }
