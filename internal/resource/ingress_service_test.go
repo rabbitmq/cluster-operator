@@ -248,8 +248,8 @@ var _ = Context("IngressServices", func() {
 					Port:     5672,
 					Protocol: corev1.ProtocolTCP,
 				}
-				httpPort := corev1.ServicePort{
-					Name:     "http",
+				managementPort := corev1.ServicePort{
+					Name:     "management",
 					Port:     15672,
 					Protocol: corev1.ProtocolTCP,
 				}
@@ -258,7 +258,7 @@ var _ = Context("IngressServices", func() {
 					Port:     15692,
 					Protocol: corev1.ProtocolTCP,
 				}
-				Expect(ingressService.Spec.Ports).Should(ConsistOf(amqpPort, httpPort, prometheusPort))
+				Expect(ingressService.Spec.Ports).Should(ConsistOf(amqpPort, managementPort, prometheusPort))
 			})
 
 			It("updates the service type from ClusterIP to NodePort", func() {
@@ -283,7 +283,7 @@ var _ = Context("IngressServices", func() {
 					corev1.ServicePort{
 						Protocol: corev1.ProtocolTCP,
 						Port:     15672,
-						Name:     "http",
+						Name:     "management",
 						NodePort: 1234,
 					},
 					corev1.ServicePort{
@@ -304,10 +304,10 @@ var _ = Context("IngressServices", func() {
 					Port:     5672,
 					NodePort: 12345,
 				}
-				expectedHttpServicePort := corev1.ServicePort{
+				expectedManagementServicePort := corev1.ServicePort{
 					Protocol: corev1.ProtocolTCP,
 					Port:     15672,
-					Name:     "http",
+					Name:     "management",
 					NodePort: 1234,
 				}
 				expectedPrometheusServicePort := corev1.ServicePort{
@@ -318,7 +318,7 @@ var _ = Context("IngressServices", func() {
 				}
 
 				Expect(ingressService.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
-				Expect(ingressService.Spec.Ports).To(ContainElement(expectedHttpServicePort))
+				Expect(ingressService.Spec.Ports).To(ContainElement(expectedManagementServicePort))
 				Expect(ingressService.Spec.Ports).To(ContainElement(expectedPrometheusServicePort))
 			})
 
