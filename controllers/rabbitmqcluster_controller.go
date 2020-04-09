@@ -69,12 +69,12 @@ const (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	Namespace       string
-	Recorder        record.EventRecorder
-	InClusterConfig *rest.Config
-	Clientset       *kubernetes.Clientset
+	Log           logr.Logger
+	Scheme        *runtime.Scheme
+	Namespace     string
+	Recorder      record.EventRecorder
+	ClusterConfig *rest.Config
+	Clientset     *kubernetes.Clientset
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -271,7 +271,7 @@ func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName strin
 			Stdin:     false,
 		}, scheme.ParameterCodec)
 
-	exec, err := remotecommand.NewSPDYExecutor(r.InClusterConfig, "POST", request.URL())
+	exec, err := remotecommand.NewSPDYExecutor(r.ClusterConfig, "POST", request.URL())
 	if err != nil {
 		return "", err
 	}
