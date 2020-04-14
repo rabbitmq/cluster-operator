@@ -149,13 +149,13 @@ patch-kind: dev-tag
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services, and local-path StorageClass
 	# deploy and configure MetalLB to add support for LoadBalancer services
-	@kubectl apply -f https://raw.githubusercontent.com/danderson/metallb/v0.8.1/manifests/metallb.yaml
+	@kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.8.1/manifests/metallb.yaml
 	@kubectl apply -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
 
 kind-unprepare:  ## Remove KIND support for LoadBalancer services, and local-path StorageClass
 	# remove MetalLB
 	@kubectl delete -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
-	@kubectl delete -f https://raw.githubusercontent.com/danderson/metallb/v0.8.1/manifests/metallb.yaml
+	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.8.1/manifests/metallb.yaml
 
 system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
 	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
