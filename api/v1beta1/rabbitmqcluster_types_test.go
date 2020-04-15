@@ -172,7 +172,7 @@ var _ = Describe("RabbitmqCluster", func() {
 							},
 						},
 						Rabbitmq: RabbitmqClusterConfigurationSpec{
-							AdditionalPlugins: []string{
+							AdditionalPlugins: []Plugin{
 								"my-plugins",
 							},
 						},

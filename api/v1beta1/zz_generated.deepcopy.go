@@ -58,7 +58,7 @@ func (in *RabbitmqClusterConfigurationSpec) DeepCopyInto(out *RabbitmqClusterCon
 	*out = *in
 	if in.AdditionalPlugins != nil {
 		in, out := &in.AdditionalPlugins, &out.AdditionalPlugins
-		*out = make([]string, len(*in))
+		*out = make([]Plugin, len(*in))
 		copy(*out, *in)
 	}
 }

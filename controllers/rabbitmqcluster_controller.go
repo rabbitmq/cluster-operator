@@ -239,7 +239,7 @@ func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqC
 	for i := 0; i < int(rmq.Spec.Replicas); i++ {
 		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
 		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s",
-			strings.Join(appendIfUnique(resource.RequiredPlugins, rmq.Spec.Rabbitmq.AdditionalPlugins), " "))
+			strings.Join(resource.AppendIfUnique(resource.RequiredPlugins, rmq.Spec.Rabbitmq.AdditionalPlugins), " "))
 
 		output, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", rabbitCommand)
 
@@ -332,19 +332,6 @@ func containsString(slice []string, s string) bool {
 		}
 	}
 	return false
-}
-
-func appendIfUnique(a, b []string) []string {
-	check := make(map[string]bool)
-	list := append(a, b...)
-	set := make([]string, 0)
-	for _, s := range list {
-		if _, value := check[s]; !value {
-			check[s] = true
-			set = append(set, s)
-		}
-	}
-	return set
 }
 
 func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {

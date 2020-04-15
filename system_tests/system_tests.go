@@ -115,7 +115,7 @@ var _ = Describe("Operator", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
 				fetchedRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
 				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).NotTo(HaveOccurred())
-				fetchedRabbit.Spec.Rabbitmq.AdditionalPlugins = []string{"rabbitmq_top"}
+				fetchedRabbit.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
 				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
 
 				// wait for pod being restarted and becoming not ready

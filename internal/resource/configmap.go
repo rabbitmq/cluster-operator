@@ -51,14 +51,19 @@ func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 		},
 		Data: map[string]string{
 			"rabbitmq.conf":   defaultRabbitmqConf,
-			"enabled_plugins": "[" + strings.Join(appendIfUnique(RequiredPlugins, builder.Instance.Spec.Rabbitmq.AdditionalPlugins), ",") + "].",
+			"enabled_plugins": "[" + strings.Join(AppendIfUnique(RequiredPlugins, builder.Instance.Spec.Rabbitmq.AdditionalPlugins), ",") + "].",
 		},
 	}, nil
 }
 
-func appendIfUnique(a, b []string) []string {
+func AppendIfUnique(a []string, b []rabbitmqv1beta1.Plugin) []string {
+	data := make([]string, len(b))
+	for i := range data {
+		data[i] = string(b[i])
+	}
+
 	check := make(map[string]bool)
-	list := append(a, b...)
+	list := append(a, data...)
 	set := make([]string, 0)
 	for _, s := range list {
 		if _, value := check[s]; !value {

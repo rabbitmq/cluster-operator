@@ -71,7 +71,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 		When("additionalPlugins are provided in instance spec", func() {
 			It("appends provided plugins to a list of required ones and removes duplicates", func() {
-				instance.Spec.Rabbitmq.AdditionalPlugins = []string{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "rabbitmq_top", "my_great_plugin"}
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "rabbitmq_top", "my_great_plugin"}
 
 				expectedEnabledPlugins := "[" +
 					"rabbitmq_peer_discovery_k8s," +
