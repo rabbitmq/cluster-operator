@@ -69,10 +69,17 @@ type RabbitmqClusterSpec struct {
 	Rabbitmq    RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
 }
 
+// kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.
+// Alias type 'string' as 'Plugin' to specify schema validation on items of the list 'AdditionalPlugins'
+// +kubebuilder:validation:Pattern:="^\\w+$"
+// +kubebuilder:validation:MaxLength=100
+type Plugin string
+
 // Rabbitmq related configurations
 type RabbitmqClusterConfigurationSpec struct {
 	// List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.
-	AdditionalPlugins []string `json:"additionalPlugins,omitempty"`
+	// +kubebuilder:validation:MaxItems:=100
+	AdditionalPlugins []Plugin `json:"additionalPlugins,omitempty"`
 }
 
 // The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
