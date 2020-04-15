@@ -7,11 +7,9 @@ metadata:
   labels:
     label1: foo
     label2: bar
-    
   annotations:
     annotation1: foo
     annotation2: bar
-    
 
 spec:
   image: rabbitmq:3.8.1
@@ -22,7 +20,6 @@ spec:
     type: LoadBalancer
     annotations:
       cloud.google.com/load-balancer-type: Internal
-      
   persistence:
     storageClassName: foo
     storage: 30Gi
@@ -31,7 +28,6 @@ spec:
     key: dedicated
     operator: Equal
     value: rabbitmq
-  
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -42,7 +38,6 @@ spec:
             values:
             - e2e-az1
             - e2e-az2
-    
   resources:
     limits:
       cpu: 888m
@@ -50,7 +45,6 @@ spec:
     requests:
       cpu: 777m
       memory: 1Gi
-     
   rabbitmq:
     additionalPlugins:
     - rabbitmq_shovel
