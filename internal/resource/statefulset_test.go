@@ -16,9 +16,10 @@ import (
 
 var _ = Describe("StatefulSet", func() {
 	var (
-		instance rabbitmqv1beta1.RabbitmqCluster
-		scheme   *runtime.Scheme
-		cluster  *resource.RabbitmqResourceBuilder
+		instance   rabbitmqv1beta1.RabbitmqCluster
+		scheme     *runtime.Scheme
+		cluster    *resource.RabbitmqResourceBuilder
+		stsBuilder *resource.StatefulSetBuilder
 	)
 
 	Context("Build", func() {
@@ -32,10 +33,11 @@ var _ = Describe("StatefulSet", func() {
 				Instance: &instance,
 				Scheme:   scheme,
 			}
+
+			stsBuilder = cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
 		})
 
 		It("sets the name and namespace", func() {
-			stsBuilder := cluster.StatefulSet()
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			sts := obj.(*appsv1.StatefulSet)
@@ -45,7 +47,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets the right service name", func() {
-			stsBuilder := cluster.StatefulSet()
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -53,7 +54,6 @@ var _ = Describe("StatefulSet", func() {
 			Expect(statefulSet.Spec.ServiceName).To(Equal(instance.ChildResourceName("headless")))
 		})
 		It("adds the correct label selector", func() {
-			stsBuilder := cluster.StatefulSet()
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -69,7 +69,7 @@ var _ = Describe("StatefulSet", func() {
 				Instance: &instance,
 				Scheme:   scheme,
 			}
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -84,7 +84,7 @@ var _ = Describe("StatefulSet", func() {
 				Instance: &instance,
 				Scheme:   scheme,
 			}
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -97,7 +97,6 @@ var _ = Describe("StatefulSet", func() {
 				truth := true
 				q, _ := k8sresource.ParseQuantity("10Gi")
 
-				stsBuilder := cluster.StatefulSet()
 				obj, err := stsBuilder.Build()
 				Expect(err).NotTo(HaveOccurred())
 				statefulSet := obj.(*appsv1.StatefulSet)
@@ -158,7 +157,7 @@ var _ = Describe("StatefulSet", func() {
 				Scheme:   scheme,
 			}
 
-			stsBuilder = cluster.StatefulSet()
+			stsBuilder = cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
 
 			statefulSet = &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
@@ -193,7 +192,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets the owner reference", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(len(statefulSet.OwnerReferences)).To(Equal(1))
@@ -201,7 +199,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("specifies the upgrade policy", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			zero := int32(0)
 			updateStrategy := appsv1.StatefulSetUpdateStrategy{
@@ -248,6 +245,8 @@ var _ = Describe("StatefulSet", func() {
 					Instance: &instance,
 					Scheme:   scheme,
 				}
+
+				stsBuilder = cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
 			})
 
 			It("restores the default labels", func() {
@@ -273,13 +272,11 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("has the labels from the instance on the statefulset", func() {
-				stsBuilder := cluster.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				testLabels(statefulSet.Labels)
 			})
 
 			It("has the labels from the instance on the pod", func() {
-				stsBuilder := cluster.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				podTemplate := statefulSet.Spec.Template
 				testLabels(podTemplate.Labels)
@@ -317,7 +314,6 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("adds the correct labels on the rabbitmq pods", func() {
-				stsBuilder := cluster.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				labels := statefulSet.Spec.Template.ObjectMeta.Labels
@@ -400,14 +396,12 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets replicas", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(1)))
 		})
 
 		It("has resources requirements on the init container", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			resources := statefulSet.Spec.Template.Spec.InitContainers[0].Resources
@@ -418,7 +412,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("specifies required Container Ports", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			requiredContainerPorts := []int32{4369, 5672, 15672, 15692}
@@ -433,7 +426,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("uses required Environment Variables", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			requiredEnvVariables := []corev1.EnvVar{
@@ -490,7 +482,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("creates required Volume Mounts for the rabbitmq container", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -519,7 +510,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("defines the expected volumes", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(statefulSet.Spec.Template.Spec.Volumes).Should(ConsistOf(
@@ -590,21 +580,18 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("uses the correct service account", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(Equal(instance.ChildResourceName("server")))
 		})
 
 		It("mounts the service account in its pods", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(*statefulSet.Spec.Template.Spec.AutomountServiceAccountToken).To(BeTrue())
 		})
 
 		It("creates the required SecurityContext", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			rmqGID, rmqUID := int64(999), int64(999)
@@ -619,7 +606,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("defines a Readiness Probe", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -628,7 +614,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("templates the correct InitContainer", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			initContainers := statefulSet.Spec.Template.Spec.InitContainers
@@ -667,7 +652,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("adds the required terminationGracePeriodSeconds", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			gracePeriodSeconds := statefulSet.Spec.Template.Spec.TerminationGracePeriodSeconds
@@ -676,7 +660,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("checks mirror and querum queue status in preStop hook", func() {
-			stsBuilder := cluster.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; while true; do rabbitmq-queues check_if_node_is_quorum_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; rabbitmq-queues check_if_node_is_mirror_sync_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break; done"}
@@ -703,7 +686,7 @@ var _ = Describe("StatefulSet", func() {
 					Scheme:   scheme,
 				}
 
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
 				expectedMemoryRequest, _ := k8sresource.ParseQuantity("3Gi")
@@ -728,7 +711,7 @@ var _ = Describe("StatefulSet", func() {
 					Scheme:   scheme,
 				}
 
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -746,11 +729,35 @@ var _ = Describe("StatefulSet", func() {
 					Scheme:   scheme,
 				}
 
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:latest"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
+			})
+		})
+
+		When("the cluster domain is not the default `cluster.local`", func() {
+			It("sets the cluster domain correctly", func() {
+				getNonDefaultClusterDomainFunc := func() (string, error) {
+					return "foo.bar", nil
+				}
+				stsBuilder := cluster.StatefulSetWithClusterDomainFunc(getNonDefaultClusterDomainFunc)
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				expectedEnvVariables := []corev1.EnvVar{
+					{
+						Name:  "RABBITMQ_NODENAME",
+						Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.foo.bar",
+					},
+					{
+						Name:  "K8S_HOSTNAME_SUFFIX",
+						Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.foo.bar",
+					},
+				}
+
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.Env).Should(ContainElements(expectedEnvVariables))
 			})
 		})
 
@@ -760,13 +767,17 @@ var _ = Describe("StatefulSet", func() {
 				Instance: &instance,
 				Scheme:   scheme,
 			}
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))
 		})
 	})
 
 })
+
+func mockGetClusterDomain() (string, error) {
+	return "cluster.local", nil
+}
 
 func extractContainer(containers []corev1.Container, containerName string) corev1.Container {
 	for _, container := range containers {

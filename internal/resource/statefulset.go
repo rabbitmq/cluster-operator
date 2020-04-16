@@ -2,6 +2,8 @@ package resource
 
 import (
 	"fmt"
+	"net"
+	"strings"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
@@ -21,16 +23,43 @@ const (
 	deletionMarker                   string = "skipPreStopChecks"
 )
 
+type ClusterDomainGetter func() (string, error)
+
+// GetClusterDomain returns Kubernetes cluster domain, default to "cluster.local"
+func getClusterDomain() (string, error) {
+	apiSvc := "kubernetes.default.svc"
+
+	clusterDomain := "cluster.local"
+
+	cname, err := net.LookupCNAME(apiSvc)
+	if err != nil {
+		return "", err
+	}
+
+	clusterDomain = strings.TrimPrefix(cname, apiSvc)
+	clusterDomain = strings.TrimSuffix(clusterDomain, ".")
+
+	return clusterDomain, nil
+}
+
 func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
+	return builder.StatefulSetWithClusterDomainFunc(getClusterDomain)
+}
+
+// This way to create a StatefulSetBuilder is useful for unit tests as it allows mocking the network call
+// that goes out in the `getClusterDomain()` function which is used by the production code
+func (builder *RabbitmqResourceBuilder) StatefulSetWithClusterDomainFunc(getClusterDomainFunc ClusterDomainGetter) *StatefulSetBuilder {
 	return &StatefulSetBuilder{
-		Instance: builder.Instance,
-		Scheme:   builder.Scheme,
+		Instance:         builder.Instance,
+		Scheme:           builder.Scheme,
+		getClusterDomain: getClusterDomainFunc,
 	}
 }
 
 type StatefulSetBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
+	Instance         *rabbitmqv1beta1.RabbitmqCluster
+	Scheme           *runtime.Scheme
+	getClusterDomain ClusterDomainGetter
 }
 
 func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
@@ -111,7 +140,11 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	sts.Labels = updatedLabels
 
-	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels)
+	podSpec, err := builder.podTemplateSpec(podAnnotations, updatedLabels)
+	if err != nil {
+		return fmt.Errorf("failed to set pod template: %v", err)
+	}
+	sts.Spec.Template = podSpec
 
 	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
 		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
@@ -125,7 +158,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) corev1.PodTemplateSpec {
+func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) (corev1.PodTemplateSpec, error) {
 	//Init Container resources
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
@@ -141,6 +174,11 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 	rabbitmqUID := int64(999)
 
 	terminationGracePeriod := defaultGracePeriodTimeoutSeconds
+
+	clusterDomain, err := builder.getClusterDomain()
+	if err != nil {
+		return corev1.PodTemplateSpec{}, fmt.Errorf("Could not get cluster domain: %v", err)
+	}
 
 	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -247,11 +285,11 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						},
 						{
 							Name:  "RABBITMQ_NODENAME",
-							Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
+							Value: fmt.Sprintf("rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.%v", clusterDomain),
 						},
 						{
 							Name:  "K8S_HOSTNAME_SUFFIX",
-							Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
+							Value: fmt.Sprintf(".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.%v", clusterDomain),
 						},
 					},
 					Ports: []corev1.ContainerPort{
@@ -388,5 +426,5 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				},
 			},
 		},
-	}
+	}, nil
 }
