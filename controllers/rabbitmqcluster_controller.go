@@ -22,13 +22,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
+	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
-	"reflect"
-	"strings"
-	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -167,6 +169,15 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	resourceBuilder := resource.RabbitmqResourceBuilder{
 		Instance: rabbitmqCluster,
 		Scheme:   r.Scheme,
+	}
+
+	if rabbitmqCluster.Spec.Tls.SecretName != "" {
+		secret := &corev1.Secret{}
+		if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: rabbitmqCluster.Spec.Tls.SecretName}, secret); client.IgnoreNotFound(err) != nil {
+			return reconcile.Result{}, err
+		} else if apierrors.IsNotFound(err) {
+			return reconcile.Result{RequeueAfter: time.Second * 10}, err
+		}
 	}
 
 	builders, err := resourceBuilder.ResourceBuilders()

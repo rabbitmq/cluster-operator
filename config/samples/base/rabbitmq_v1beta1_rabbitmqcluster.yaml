@@ -6,3 +6,5 @@ spec:
   replicas: 1
   service:
     type: LoadBalancer
+  tls:
+    secretName: self-signed-cert

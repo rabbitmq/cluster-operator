@@ -709,6 +709,11 @@ spec:
                   - NodePort
                   type: string
               type: object
+            tls:
+              properties:
+                secretName:
+                  type: string
+              type: object
             tolerations:
               description: Tolerations is the list of Toleration resources attached
                 to each Pod in the RabbitmqCluster.

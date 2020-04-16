@@ -61,6 +61,11 @@ func updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
 			Port:     5672,
 			Name:     "amqp",
 		},
+		"amqp-tls": corev1.ServicePort{
+			Protocol: corev1.ProtocolTCP,
+			Port:     5671,
+			Name:     "amqp-tls",
+		},
 		"management": corev1.ServicePort{
 			Protocol: corev1.ProtocolTCP,
 			Port:     15672,

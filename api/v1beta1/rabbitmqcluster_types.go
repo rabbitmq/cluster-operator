@@ -64,6 +64,7 @@ type RabbitmqClusterSpec struct {
 	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
 	Resources       *corev1.ResourceRequirements   `json:"resources,omitempty"`
 	Affinity        *corev1.Affinity               `json:"affinity,omitempty"`
+	Tls             TlsSettings                    `json:"tls,omitempty"`
 	// Tolerations is the list of Toleration resources attached to each Pod in the RabbitmqCluster.
 	Tolerations []corev1.Toleration              `json:"tolerations,omitempty"`
 	Rabbitmq    RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
@@ -74,6 +75,10 @@ type RabbitmqClusterSpec struct {
 // +kubebuilder:validation:Pattern:="^\\w+$"
 // +kubebuilder:validation:MaxLength=100
 type Plugin string
+
+type TlsSettings struct {
+	SecretName string `json:"secretName,omitempty"`
+}
 
 // Rabbitmq related configurations
 type RabbitmqClusterConfigurationSpec struct {

@@ -142,6 +142,100 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 
 	terminationGracePeriod := defaultGracePeriodTimeoutSeconds
 
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "rabbitmq-admin",
+			MountPath: "/opt/rabbitmq-secret/",
+		},
+		{
+			Name:      "persistence",
+			MountPath: "/var/lib/rabbitmq/db/",
+		},
+		{
+			Name:      "rabbitmq-etc",
+			MountPath: "/etc/rabbitmq/",
+		},
+		{
+			Name:      "rabbitmq-erlang-cookie",
+			MountPath: "/var/lib/rabbitmq/",
+		},
+		{
+			Name:      "pod-info",
+			MountPath: "/etc/pod-info/",
+		},
+	}
+
+	volumes := []corev1.Volume{
+		{
+			Name: "rabbitmq-admin",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: builder.Instance.ChildResourceName(adminSecretName),
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "username",
+							Path: "username",
+						},
+						{
+							Key:  "password",
+							Path: "password",
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "server-conf",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: builder.Instance.ChildResourceName(serverConfigMapName),
+					},
+				},
+			},
+		},
+		{
+			Name: "rabbitmq-etc",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: "rabbitmq-erlang-cookie",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: "erlang-cookie-secret",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: builder.Instance.ChildResourceName(erlangCookieName),
+				},
+			},
+		},
+		{
+			Name: "pod-info",
+			VolumeSource: corev1.VolumeSource{
+				DownwardAPI: &corev1.DownwardAPIVolumeSource{
+					Items: []corev1.DownwardAPIVolumeFile{
+						{
+							Path: deletionMarker,
+							FieldRef: &corev1.ObjectFieldSelector{
+								FieldPath: fmt.Sprintf("metadata.labels['%s']", deletionMarker),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if builder.Instance.Spec.Tls.SecretName != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{Name: "rabbitmq-tls", MountPath: "/etc/rabbitmq-tls/"})
+		volumes = append(volumes, corev1.Volume{Name: "rabbitmq-tls", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: builder.Instance.Spec.Tls.SecretName}}})
+	}
+
 	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: annotations,
@@ -264,6 +358,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							ContainerPort: 5672,
 						},
 						{
+							Name:          "amqp-tls",
+							ContainerPort: 5671,
+						},
+						{
 							Name:          "http",
 							ContainerPort: 15672,
 						},
@@ -272,28 +370,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							ContainerPort: 15692,
 						},
 					},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "rabbitmq-admin",
-							MountPath: "/opt/rabbitmq-secret/",
-						},
-						{
-							Name:      "persistence",
-							MountPath: "/var/lib/rabbitmq/db/",
-						},
-						{
-							Name:      "rabbitmq-etc",
-							MountPath: "/etc/rabbitmq/",
-						},
-						{
-							Name:      "rabbitmq-erlang-cookie",
-							MountPath: "/var/lib/rabbitmq/",
-						},
-						{
-							Name:      "pod-info",
-							MountPath: "/etc/pod-info/",
-						},
-					},
+					VolumeMounts: volumeMounts,
+
 					ReadinessProbe: &corev1.Probe{
 						Handler: corev1.Handler{
 							Exec: &corev1.ExecAction{
@@ -322,71 +400,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					},
 				},
 			},
-			Volumes: []corev1.Volume{
-				{
-					Name: "rabbitmq-admin",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: builder.Instance.ChildResourceName(adminSecretName),
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "username",
-									Path: "username",
-								},
-								{
-									Key:  "password",
-									Path: "password",
-								},
-							},
-						},
-					},
-				},
-				{
-					Name: "server-conf",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: builder.Instance.ChildResourceName(serverConfigMapName),
-							},
-						},
-					},
-				},
-				{
-					Name: "rabbitmq-etc",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-				{
-					Name: "rabbitmq-erlang-cookie",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-				{
-					Name: "erlang-cookie-secret",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: builder.Instance.ChildResourceName(erlangCookieName),
-						},
-					},
-				},
-				{
-					Name: "pod-info",
-					VolumeSource: corev1.VolumeSource{
-						DownwardAPI: &corev1.DownwardAPIVolumeSource{
-							Items: []corev1.DownwardAPIVolumeFile{
-								{
-									Path: deletionMarker,
-									FieldRef: &corev1.ObjectFieldSelector{
-										FieldPath: fmt.Sprintf("metadata.labels['%s']", deletionMarker),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			Volumes: volumes,
 		},
 	}
 }
