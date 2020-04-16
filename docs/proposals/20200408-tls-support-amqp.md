@@ -63,6 +63,7 @@ As a RabbitMQ client (whether application or end user), I want to be sure that t
   - Block deployment of all RabbitMQCluster resources until the Secret can be retrieved
   - Mount the Secret as a volume on each RabbitMQ Pod
   - Set `ssl_options.cacertfile`, `ssl_options.certfile`, `ssl_options.keyfile` in rabbitmq.conf to paths on the mount
+  - Add `5671` to the Container Ports in the Pod Template
   - Add `5671` to the port map in the Ingress Service
 - If we expose the Ingress Service template we can potentially depend on the user to specify the port
 - When deploying via KSM, a [Certificate Request](https://cert-manager.io/docs/concepts/certificaterequest/) is templated if the plan specified `tls: true`
@@ -91,21 +92,21 @@ And I can retrieve that message over the same port
 
 ### Implementation Details/Notes/Constraints
 #### 'Turning on' SSL for a K8s deploy RabbitMQ cluster
-- TLS for RabbitMQ protocols is enabled based on a set of settings in rabbitmq.conf. Three filepaths are the bare mimimum required configuration: `ssl_options.cacertfile`, `ssl_options.certfile`, `ssl_options.keyfile`. The other relevant setting is `listeners.ssl` but non-default ports are out of scope for this enhancement.
+- TLS for RabbitMQ protocols is enabled based on a set of settings in rabbitmq.conf. Three filepaths are the bare mimimum required configuration: `ssl_options.cacertfile`, `ssl_options.certfile`, `ssl_options.keyfile`, and `tls.ssl.default` (set to `5671`).
 - Our challenge is relating those settings to K8s resource configuration, and handling situations where they do not match.
 - With the proposed solution, when `tls.secretName` is set, we will set the relevant config in rabbitmq.conf, add the volume mount in the Pod Template, and add the Service Port in the Ingress Service. There are several potential or planned enhancements that create edge cases worth considering:
   - Once we add the `additional_config` in the CR, the user could effectively disable TLS by setting their own values for `ssl_options`.
   - The user could also change `listeners.ssl.default` and the Service port would no longer be valid.
   - If we allow the Service to be templated the user could block the port neeeded for `listeners.ssl.default`
   - If we allow the StatefulSet to be templated the user could overwrite the required volume mount
-- The benefit of adding a new field to name the TLS Secret is that we can wait for the Secret to be created if we are using a certificate manager. The operator creates the other Secrets that will be mounted as volumes before the StatefulSet so that Pod creation succeeds. But for a Certificate Secret the process is asynchronous and we will need to poll to be sure it exists (e.g. in cert-manager there are several intermediate CRs: CertificateRequest -> Challenge -> Certificate -> Secret).
+- The benefit of adding a new field to name the TLS Secret is that we can wait for the Secret to be created if we are using a certificate manager. The operator creates the other Secrets that will be mounted as volumes before the StatefulSet so that Pod creation succeeds. But for a Certificate Secret the process is asynchronous and we will need to poll to be sure it exists (e.g. in cert-manager there are several intermediate CRs: Certificate -> CertificateRequest -> Challenge -> Secret).
 - It may be enough to simply document that if `tls.secretName` is set there is no need to set `ssl_options.cacertfile`, `ssl_options.certfile`, `ssl_options.keyfile` or a Volume mount for the TLS Secret (and that doing so will lead to unexpected behaviour).
 
 #### TLS Secret
 - We should expect the certfiles and keyfile in a Kubernetes [TLS Secret](https://kubernetes.io/docs/concepts/services-networking/ingress/#tls)
   - We can mount the Secret as a volume on each RabbitMQ node Pod without making cert-manager (or equivalent) an explicit dependency.
   - The RabbitMQ Pods will fail to deploy with an 'unable to mount volume' error unless the Secret created by the Certificate (issued at some point after deploying the CertificateRequest) is available. We should check for the existence of the named Secret in the CR and requeue with a delay until it appears.
-  - [cert-manager](https://github.com/jetstack/cert-manager) stores the key pair ([certfile + keyfile](https://github.com/jetstack/cert-manager/blob/15d1735688a907c3fde90e5801e86d0e1abbaefe/pkg/controller/certificates/sync.go#L851)) in a TLS Secret under the standard [core v1](https://github.com/kubernetes/api/blob/2433a9db3db38d5e177eac8495dec1cd3d15b128/core/v1/types.go#L5600) (map) keys. The CA bundle (cacertfile) is also stored in the TLS Secret, but using a key [defined by cert-manager](https://github.com/jetstack/cert-manager/blob/ba46885ee43b031c0bad934def6b051b0c640eb0/pkg/internal/apis/meta/types.go#L60). To completely decouple the operator, we could specify the Secret's keys in the CR but this is likely unnecessary for now.
+  - [cert-manager](https://github.com/jetstack/cert-manager) stores the key pair ([certfile + keyfile](https://github.com/jetstack/cert-manager/blob/15d1735688a907c3fde90e5801e86d0e1abbaefe/pkg/controller/certificates/sync.go#L851)) in a TLS Secret under the standard [core v1](https://github.com/kubernetes/api/blob/2433a9db3db38d5e177eac8495dec1cd3d15b128/core/v1/types.go#L5600) (map) keys: `tls.crt` and `tls.key`. The CA bundle (cacertfile) is also stored in the TLS Secret, but using a key [defined by cert-manager](https://github.com/jetstack/cert-manager/blob/ba46885ee43b031c0bad934def6b051b0c640eb0/pkg/internal/apis/meta/types.go#L60): `ca.crt`. By contrast, the rabbitmq-ha helm chart sets the ca cert in a seperate secret under [`ca.key`](https://github.com/helm/charts/blob/1b724a195f31be3e548574c8326071167eb8ea21/stable/pomerium/templates/tls-secrets.yaml#L113). There isn't likely to be a need to cater to multiple different implementations for now. Although we could accomodate any configuration by setting the rabbitmq.conf values and mounts manually (once that's possible).
 
 #### Disabling non-TLS
 - Should we expose non-TLS ports when TLS is enabled? Would this be a blanket setting or per protocol? `listeners.tcp = none`, `mqtt.listeners.tcp = none` etc...
