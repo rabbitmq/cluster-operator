@@ -49,3 +49,6 @@ spec:
     additionalPlugins:
     - rabbitmq_shovel
     - rabbitmq_shovel_management
+    additionalConfig:
+    |
+      cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
