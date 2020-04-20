@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	adminSecretName = "admin"
+	AdminSecretName = "admin"
 )
 
 type AdminSecretBuilder struct {
@@ -42,7 +42,7 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(adminSecretName),
+			Name:      builder.Instance.ChildResourceName(AdminSecretName),
 			Namespace: builder.Instance.Namespace,
 		},
 		Type: corev1.SecretTypeOpaque,

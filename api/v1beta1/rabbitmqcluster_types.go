@@ -103,6 +103,25 @@ type RabbitmqClusterStatus struct {
 	ClusterStatus string `json:"clusterStatus,omitempty"`
 	// Set of Conditions describing the current state of the RabbitmqCluster
 	Conditions []status.RabbitmqClusterCondition `json:"conditions"`
+
+	// Identifying information on internal resources
+	Admin *RabbitmqClusterAdmin `json:"admin,omitempty"`
+}
+
+type RabbitmqClusterAdmin struct {
+	SecretReference  *RabbitmqClusterSecretReference  `json:"secretReference,omitempty"`
+	ServiceReference *RabbitmqClusterServiceReference `json:"serviceReference,omitempty"`
+}
+
+type RabbitmqClusterSecretReference struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	// Keys      map[string]string `json:"keys"`
+}
+
+type RabbitmqClusterServiceReference struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
 }
 
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {

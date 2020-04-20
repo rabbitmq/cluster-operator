@@ -22,13 +22,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
+	"time"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
-	"reflect"
-	"strings"
-	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -199,6 +200,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return reconcile.Result{}, err
 		}
 
+		if err := r.setAdminStatus(ctx, rabbitmqCluster, resource); err != nil {
+			return reconcile.Result{}, err
+		}
 		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 	}
 
@@ -216,6 +220,51 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 
 	return reconcile.Result{}, nil
+}
+
+func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, obj runtime.Object) error {
+	if rmq.Status.Admin == nil {
+		rmq.Status.Admin = &rabbitmqv1beta1.RabbitmqClusterAdmin{}
+	}
+
+	if rmq.Status.Admin.SecretReference == nil {
+		rmq.Status.Admin.SecretReference = &rabbitmqv1beta1.RabbitmqClusterSecretReference{}
+	}
+
+	if rmq.Status.Admin.ServiceReference == nil {
+		rmq.Status.Admin.ServiceReference = &rabbitmqv1beta1.RabbitmqClusterServiceReference{}
+	}
+
+	switch typedResource := obj.(type) {
+	case *corev1.Secret:
+		if typedResource.Name == rmq.ChildResourceName(resource.AdminSecretName) {
+			if rmq.Status.Admin.SecretReference.Name != rmq.ChildResourceName(resource.AdminSecretName) || rmq.Status.Admin.SecretReference.Namespace != rmq.Namespace {
+				secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{
+					Name:      rmq.ChildResourceName(resource.AdminSecretName),
+					Namespace: rmq.Namespace,
+				}
+				rmq.Status.Admin.SecretReference = secretRef
+				if err := r.Status().Update(ctx, rmq); err != nil {
+					return err
+				}
+			}
+		}
+	case *corev1.Service:
+		if typedResource.Name == rmq.ChildResourceName("ingress") {
+			if rmq.Status.Admin.ServiceReference.Name != rmq.ChildResourceName("ingress") || rmq.Status.Admin.ServiceReference.Namespace != rmq.Namespace {
+				serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{
+					Name:      rmq.ChildResourceName("ingress"),
+					Namespace: rmq.Namespace,
+				}
+				rmq.Status.Admin.ServiceReference = serviceRef
+				if err := r.Status().Update(ctx, rmq); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // allReplicasReady - helper function that checks if StatefulSet replicas are all ready
