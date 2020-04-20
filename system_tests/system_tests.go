@@ -110,15 +110,36 @@ var _ = Describe("Operator", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(output)).To(Equal("'True'"))
 			})
+		})
+	})
 
-			By("updating enabled plugins when additional plugins are modified", func() {
+	Context("RabbitMQ configurations", func() {
+		var cluster *rabbitmqv1beta1.RabbitmqCluster
+
+		BeforeEach(func() {
+			cluster = generateRabbitmqCluster(namespace, "config-rabbit")
+			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
+			cluster.Spec.Resources = &corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
+				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+			}
+
+			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
+			waitForRabbitmqRunning(cluster)
+		})
+
+		AfterEach(func() {
+			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
+		})
+
+		It("keeps rabbitmq server related configurations up-to-date", func() {
+			By("updating enabled plugins when additionalPlugins are modified", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
 				fetchedRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
 				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).NotTo(HaveOccurred())
 				fetchedRabbit.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
 				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
 
-				// wait for pod being restarted and becoming not ready
 				Eventually(func() error {
 					_, err := kubectlExec(namespace,
 						statefulSetPodName(cluster, 0),
@@ -130,7 +151,31 @@ var _ = Describe("Operator", func() {
 						"rabbitmq_top",
 					)
 					return err
-				}, 10*time.Second).ShouldNot(HaveOccurred())
+				}, 20*time.Second).ShouldNot(HaveOccurred())
+			})
+
+			By("updating the rabbitmq.conf file when additionalConfig are modified", func() {
+				// modify rabbitmqcluster.spec.rabbitmq.additionalConfig
+				fetchedRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
+				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).NotTo(HaveOccurred())
+				fetchedRabbit.Spec.Rabbitmq.AdditionalConfig = `vm_memory_high_watermark_paging_ratio = 0.5
+cluster_partition_handling = ignore
+cluster_keepalive_interval = 10000`
+				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
+
+				// wait for statefulSet to be restarted
+				waitForStsRestart(clientSet, cluster.Namespace, cluster.ChildResourceName("server"))
+
+				// verify that rabbitmq.conf contains provided configurations
+				output, err := kubectlExec(namespace,
+					statefulSetPodName(cluster, 0),
+					"cat",
+					"/etc/rabbitmq/rabbitmq.conf",
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(output)).Should(ContainSubstring("vm_memory_high_watermark_paging_ratio = 0.5"))
+				Expect(string(output)).Should(ContainSubstring("cluster_keepalive_interval = 10000"))
+				Expect(string(output)).Should(ContainSubstring("cluster_partition_handling = ignore"))
 			})
 		})
 	})

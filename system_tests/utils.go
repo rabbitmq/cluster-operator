@@ -332,3 +332,17 @@ func assertHttpReady(hostname string) {
 		return resp.StatusCode
 	}, podCreationTimeout, 5).Should(Equal(http.StatusOK))
 }
+
+func waitForStsRestart(clientSet *kubernetes.Clientset, namespace, stsName string) {
+	EventuallyWithOffset(1, func() int {
+		sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		return int(sts.Status.ReadyReplicas)
+	}, 20*time.Second).Should(Equal(0))
+
+	EventuallyWithOffset(1, func() int {
+		sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		return int(sts.Status.ReadyReplicas)
+	}, podCreationTimeout).Should(Equal(1))
+}

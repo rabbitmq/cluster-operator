@@ -40,6 +40,16 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	configMap.Annotations = metadata.ReconcileAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
+	if configMap.Data == nil {
+		configMap.Data = make(map[string]string)
+	}
+	configMap.Data["rabbitmq.conf"] = defaultRabbitmqConf
+
+	// rabbitmq.conf takes the last provided value when multiple values of the same key are specified
+	// do not need to deduplicate keys to allow overwrite
+	if builder.Instance.Spec.Rabbitmq.AdditionalConfig != "" {
+		configMap.Data["rabbitmq.conf"] = defaultRabbitmqConf + "\n" + builder.Instance.Spec.Rabbitmq.AdditionalConfig
+	}
 	return nil
 }
 
@@ -50,7 +60,6 @@ func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 			Namespace: builder.Instance.Namespace,
 		},
 		Data: map[string]string{
-			"rabbitmq.conf":   defaultRabbitmqConf,
 			"enabled_plugins": "[" + strings.Join(AppendIfUnique(RequiredPlugins, builder.Instance.Spec.Rabbitmq.AdditionalPlugins), ",") + "].",
 		},
 	}, nil
