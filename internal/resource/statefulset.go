@@ -29,32 +29,40 @@ type ClusterDomainGetter func() (string, error)
 func getClusterDomain() (string, error) {
 	apiSvc := "kubernetes.default.svc"
 
-	clusterDomain := "cluster.local"
-
 	cname, err := net.LookupCNAME(apiSvc)
 	if err != nil {
 		return "", err
 	}
 
-	clusterDomain = strings.TrimPrefix(cname, apiSvc)
+	clusterDomain := strings.TrimPrefix(cname, apiSvc)
 	clusterDomain = strings.TrimPrefix(clusterDomain, ".")
 	clusterDomain = strings.TrimSuffix(clusterDomain, ".")
 
 	return clusterDomain, nil
 }
 
-func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
-	return builder.StatefulSetWithClusterDomainFunc(getClusterDomain)
+// Can be used to set a hardcoded cluster domain instead of trying to look it up with a network call
+// as done in the `getClusterDomain()` function
+func MockClusterDomain(clusterDomain string) func(*StatefulSetBuilder) {
+	return func(s *StatefulSetBuilder) {
+		s.getClusterDomain = func() (string, error) {
+			return clusterDomain, nil
+		}
+	}
 }
 
-// This way to create a StatefulSetBuilder is useful for unit tests as it allows mocking the network call
-// that goes out in the `getClusterDomain()` function which is used by the production code
-func (builder *RabbitmqResourceBuilder) StatefulSetWithClusterDomainFunc(getClusterDomainFunc ClusterDomainGetter) *StatefulSetBuilder {
-	return &StatefulSetBuilder{
+func (builder *RabbitmqResourceBuilder) StatefulSet(options ...func(*StatefulSetBuilder)) *StatefulSetBuilder {
+	statefulSetBuilder := StatefulSetBuilder{
 		Instance:         builder.Instance,
 		Scheme:           builder.Scheme,
-		getClusterDomain: getClusterDomainFunc,
+		getClusterDomain: getClusterDomain,
 	}
+
+	for _, option := range options {
+		option(&statefulSetBuilder)
+	}
+
+	return &statefulSetBuilder
 }
 
 type StatefulSetBuilder struct {

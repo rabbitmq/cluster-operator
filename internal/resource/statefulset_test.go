@@ -34,7 +34,7 @@ var _ = Describe("StatefulSet", func() {
 				Scheme:   scheme,
 			}
 
-			stsBuilder = cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
+			stsBuilder = cluster.StatefulSet(resource.MockClusterDomain("cluster.local"))
 		})
 
 		It("sets the name and namespace", func() {
@@ -69,7 +69,7 @@ var _ = Describe("StatefulSet", func() {
 				Instance: &instance,
 				Scheme:   scheme,
 			}
-			stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
+			stsBuilder := cluster.StatefulSet(resource.MockClusterDomain("cluster.local"))
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -84,7 +84,7 @@ var _ = Describe("StatefulSet", func() {
 				Instance: &instance,
 				Scheme:   scheme,
 			}
-			stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
+			stsBuilder := cluster.StatefulSet(resource.MockClusterDomain("cluster.local"))
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -157,7 +157,7 @@ var _ = Describe("StatefulSet", func() {
 				Scheme:   scheme,
 			}
 
-			stsBuilder = cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
+			stsBuilder = cluster.StatefulSet(resource.MockClusterDomain("cluster.local"))
 
 			statefulSet = &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
@@ -246,7 +246,7 @@ var _ = Describe("StatefulSet", func() {
 					Scheme:   scheme,
 				}
 
-				stsBuilder = cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
+				stsBuilder = cluster.StatefulSet(resource.MockClusterDomain("cluster.local"))
 			})
 
 			It("restores the default labels", func() {
@@ -686,7 +686,7 @@ var _ = Describe("StatefulSet", func() {
 					Scheme:   scheme,
 				}
 
-				stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
+				stsBuilder := cluster.StatefulSet(resource.MockClusterDomain("cluster.local"))
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
 				expectedMemoryRequest, _ := k8sresource.ParseQuantity("3Gi")
@@ -711,7 +711,7 @@ var _ = Describe("StatefulSet", func() {
 					Scheme:   scheme,
 				}
 
-				stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
+				stsBuilder := cluster.StatefulSet(resource.MockClusterDomain("cluster.local"))
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -729,7 +729,7 @@ var _ = Describe("StatefulSet", func() {
 					Scheme:   scheme,
 				}
 
-				stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
+				stsBuilder := cluster.StatefulSet(resource.MockClusterDomain("cluster.local"))
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:latest"))
@@ -739,10 +739,7 @@ var _ = Describe("StatefulSet", func() {
 
 		When("the cluster domain is not the default `cluster.local`", func() {
 			It("sets the cluster domain correctly", func() {
-				getNonDefaultClusterDomainFunc := func() (string, error) {
-					return "foo.bar", nil
-				}
-				stsBuilder := cluster.StatefulSetWithClusterDomainFunc(getNonDefaultClusterDomainFunc)
+				stsBuilder := cluster.StatefulSet(resource.MockClusterDomain("foo.bar"))
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				expectedEnvVariables := []corev1.EnvVar{
@@ -767,17 +764,13 @@ var _ = Describe("StatefulSet", func() {
 				Instance: &instance,
 				Scheme:   scheme,
 			}
-			stsBuilder := cluster.StatefulSetWithClusterDomainFunc(mockGetClusterDomain)
+			stsBuilder := cluster.StatefulSet(resource.MockClusterDomain("cluster.local"))
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))
 		})
 	})
 
 })
-
-func mockGetClusterDomain() (string, error) {
-	return "cluster.local", nil
-}
 
 func extractContainer(containers []corev1.Container, containerName string) corev1.Container {
 	for _, container := range containers {
