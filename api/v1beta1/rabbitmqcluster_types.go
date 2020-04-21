@@ -114,9 +114,9 @@ type RabbitmqClusterAdmin struct {
 }
 
 type RabbitmqClusterSecretReference struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	// Keys      map[string]string `json:"keys"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Keys      map[string]string `json:"keys"`
 }
 
 type RabbitmqClusterServiceReference struct {

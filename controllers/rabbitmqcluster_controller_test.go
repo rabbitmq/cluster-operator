@@ -183,6 +183,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 				Expect(secretRef.Name).To(Equal(rmq.ChildResourceName(resource.AdminSecretName)))
 				Expect(secretRef.Namespace).To(Equal(rmq.Namespace))
+				Expect(secretRef.Keys["username"]).To(Equal("username"))
+				Expect(secretRef.Keys["password"]).To(Equal("password"))
 			})
 
 			By("setting the ingress service details in the custom resource status", func() {

@@ -761,11 +761,16 @@ spec:
               properties:
                 secretReference:
                   properties:
+                    keys:
+                      additionalProperties:
+                        type: string
+                      type: object
                     name:
                       type: string
                     namespace:
                       type: string
                   required:
+                  - keys
                   - name
                   - namespace
                   type: object
