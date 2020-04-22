@@ -18,7 +18,7 @@ const (
 	defaultGracePeriodTimeoutSeconds int64  = 60 * 60 * 24 * 7
 	initContainerCPU                 string = "100m"
 	initContainerMemory              string = "500Mi"
-	deletionMarker                   string = "skipPreStopChecks"
+	DeletionMarker                   string = "skipPreStopChecks"
 )
 
 func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
@@ -310,7 +310,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
 								Command: []string{
-									"/bin/bash", "-c", fmt.Sprintf("if [ ! -z \"$(cat /etc/pod-info/%s)\" ]; then exit 0; fi;", deletionMarker) +
+									"/bin/bash", "-c", fmt.Sprintf("if [ ! -z \"$(cat /etc/pod-info/%s)\" ]; then exit 0; fi;", DeletionMarker) +
 										" while true; do rabbitmq-queues check_if_node_is_quorum_critical" +
 										" 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi;" +
 										" rabbitmq-queues check_if_node_is_mirror_sync_critical" +
@@ -377,9 +377,9 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						DownwardAPI: &corev1.DownwardAPIVolumeSource{
 							Items: []corev1.DownwardAPIVolumeFile{
 								{
-									Path: deletionMarker,
+									Path: DeletionMarker,
 									FieldRef: &corev1.ObjectFieldSelector{
-										FieldPath: fmt.Sprintf("metadata.labels['%s']", deletionMarker),
+										FieldPath: fmt.Sprintf("metadata.labels['%s']", DeletionMarker),
 									},
 								},
 							},
