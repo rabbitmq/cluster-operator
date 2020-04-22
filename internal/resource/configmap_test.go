@@ -99,7 +99,7 @@ cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling = pause_minority
 queue_master_locator = min-masters`
 
-			Expect(configMapBuilder.Update(configMap)).NotTo(HaveOccurred())
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
 			Expect(ok).To(BeTrue())
 			Expect(rabbitmqConf).To(Equal(defaultRabbitmqConf))
@@ -121,7 +121,7 @@ my-config-property-1 = better-value`
 my-config-property-0 = great-value
 my-config-property-1 = better-value`
 
-			Expect(configMapBuilder.Update(configMap)).NotTo(HaveOccurred())
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
 			Expect(ok).To(BeTrue())
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))

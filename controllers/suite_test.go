@@ -78,8 +78,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	scheme = runtime.NewScheme()
-	Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
 	startManager(scheme)
 })
@@ -111,6 +111,6 @@ func startManager(scheme *runtime.Scheme) {
 	mgrStopped.Add(1)
 	go func() {
 		defer mgrStopped.Done()
-		Expect(mgr.Start(stopMgr)).NotTo(HaveOccurred())
+		Expect(mgr.Start(stopMgr)).To(Succeed())
 	}()
 }

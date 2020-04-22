@@ -50,7 +50,7 @@ var _ = Describe("Operator", func() {
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 			}
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
+			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
 			waitForLoadBalancer(clientSet, cluster)
@@ -124,7 +124,7 @@ var _ = Describe("Operator", func() {
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 			}
 
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
+			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 		})
 
@@ -136,7 +136,7 @@ var _ = Describe("Operator", func() {
 			By("updating enabled plugins when additionalPlugins are modified", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
 				fetchedRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).NotTo(HaveOccurred())
+				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).To(Succeed())
 				fetchedRabbit.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
 				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
 
@@ -151,7 +151,7 @@ var _ = Describe("Operator", func() {
 						"rabbitmq_top",
 					)
 					return err
-				}, 20*time.Second).ShouldNot(HaveOccurred())
+				}, 20*time.Second).To(Succeed())
 			})
 
 			By("updating the rabbitmq.conf file when additionalConfig are modified", func() {
@@ -197,7 +197,7 @@ cluster_keepalive_interval = 10000`
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 			}
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
+			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
 			waitForLoadBalancer(clientSet, cluster)
@@ -250,7 +250,7 @@ cluster_keepalive_interval = 10000`
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 				}
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).NotTo(HaveOccurred())
+				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 			})
 
 			AfterEach(func() {
