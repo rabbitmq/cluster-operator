@@ -200,6 +200,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 
 		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
+		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
 	}
 
 	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
@@ -216,6 +217,31 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 
 	return reconcile.Result{}, nil
+}
+
+// restartStatefulSetIfNeeded - helper function that annotate the StatefulSet PodTemplate with current timestamp
+// to trigger a restart of the all pods in the StatefulSet when ConfigMap is updated
+func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, resource runtime.Object, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) {
+	if _, ok := resource.(*corev1.ConfigMap); ok && operationResult == controllerutil.OperationResultUpdated {
+		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+			sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}}
+			if err := r.Get(ctx, types.NamespacedName{Name: sts.Name, Namespace: sts.Namespace}, sts); err != nil {
+				return err
+			}
+			if sts.Spec.Template.ObjectMeta.Annotations == nil {
+				sts.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			sts.Spec.Template.ObjectMeta.Annotations["rabbitmq.pivotal.io/restartAt"] = time.Now().Format(time.RFC3339)
+			return r.Update(ctx, sts)
+		}); err != nil {
+			msg := fmt.Sprintf("Failed to restart StatefulSet %s of Namespace %s; rabbitmq.conf configuration may be outdated", rmq.ChildResourceName("server"), rmq.Namespace)
+			r.Log.Error(err, msg)
+			r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedUpdate", msg)
+		}
+		msg := fmt.Sprintf("Restarted StatefulSet %s of Namespace %s", rmq.ChildResourceName("server"), rmq.Namespace)
+		r.Log.Info(msg)
+		r.Recorder.Event(rmq, corev1.EventTypeNormal, "SuccessfulUpdate", msg)
+	}
 }
 
 // allReplicasReady - helper function that checks if StatefulSet replicas are all ready

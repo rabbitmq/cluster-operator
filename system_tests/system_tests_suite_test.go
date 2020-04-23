@@ -32,8 +32,8 @@ var (
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	scheme := runtime.NewScheme()
-	Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
 	restConfig, err := createRestConfig()
 	Expect(err).NotTo(HaveOccurred())
@@ -75,8 +75,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	return nil
 }, func(data []byte) {
 	scheme := runtime.NewScheme()
-	Expect(rabbitmqv1beta1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(defaultscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
 	restConfig, err := createRestConfig()
 	Expect(err).NotTo(HaveOccurred())

@@ -80,6 +80,9 @@ type RabbitmqClusterConfigurationSpec struct {
 	// List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.
 	// +kubebuilder:validation:MaxItems:=100
 	AdditionalPlugins []Plugin `json:"additionalPlugins,omitempty"`
+	// Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modify this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
+	// +kubebuilder:validation:MaxLength:=2000
+	AdditionalConfig string `json:"additionalConfig,omitempty"`
 }
 
 // The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
