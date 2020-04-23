@@ -45,6 +45,7 @@ func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
 				Name:     "epmd",
 			},
 		},
+		PublishNotReadyAddresses: true,
 	}
 
 	return nil

@@ -167,6 +167,7 @@ var _ = Describe("HeadlessService", func() {
 						Name:     "epmd",
 					},
 				},
+				PublishNotReadyAddresses: true,
 			}
 
 			Expect(service.Spec).To(Equal(expectedSpec))

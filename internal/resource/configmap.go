@@ -12,7 +12,7 @@ import (
 const (
 	serverConfigMapName = "server-conf"
 	defaultRabbitmqConf = `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+cluster_formation.k8s.host = kubernetes.default
 cluster_formation.k8s.address_type = hostname
 cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true

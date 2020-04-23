@@ -477,11 +477,11 @@ var _ = Describe("StatefulSet", func() {
 				},
 				{
 					Name:  "RABBITMQ_NODENAME",
-					Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
+					Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 				},
 				{
 					Name:  "K8S_HOSTNAME_SUFFIX",
-					Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local",
+					Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 				},
 			}
 
