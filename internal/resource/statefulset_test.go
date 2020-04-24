@@ -352,10 +352,7 @@ var _ = Describe("StatefulSet", func() {
 
 			It("updates annotations", func() {
 				stsBuilder.Instance.Annotations = map[string]string{
-					"my-annotation":              "i-like-this",
-					"kubernetes.io/name":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/name": "i-do-not-like-this",
-					"k8s.io/name":                "i-do-not-like-this",
+					"my-annotation": "i-like-this",
 				}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
@@ -371,10 +368,7 @@ var _ = Describe("StatefulSet", func() {
 
 			It("update annotations from the instance to the pod", func() {
 				stsBuilder.Instance.Annotations = map[string]string{
-					"my-annotation":              "i-like-this",
-					"kubernetes.io/name":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/name": "i-do-not-like-this",
-					"k8s.io/name":                "i-do-not-like-this",
+					"my-annotation": "i-like-this",
 				}
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())

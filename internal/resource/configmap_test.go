@@ -178,10 +178,7 @@ my-config-property-1 = better-value`
 					},
 				}
 				instance.Annotations = map[string]string{
-					"my-annotation":              "i-like-this",
-					"kubernetes.io/name":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/name": "i-do-not-like-this",
-					"k8s.io/name":                "i-do-not-like-this",
+					"my-annotation": "i-like-this",
 				}
 
 				configMap = &corev1.ConfigMap{
