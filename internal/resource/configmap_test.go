@@ -92,7 +92,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 		It("returns the default rabbitmq conf when additionalConfig is not provided", func() {
 			defaultRabbitmqConf := `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+cluster_formation.k8s.host = kubernetes.default
 cluster_formation.k8s.address_type = hostname
 cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true
@@ -107,7 +107,7 @@ queue_master_locator = min-masters`
 
 		It("appends configurations to the default rabbitmq.conf when additionalConfig is provided", func() {
 			expectedRabbitmqConf := `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+cluster_formation.k8s.host = kubernetes.default
 cluster_formation.k8s.address_type = hostname
 cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true
