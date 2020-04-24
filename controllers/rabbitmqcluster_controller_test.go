@@ -52,7 +52,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 			waitForClusterCreation(rabbitmqCluster, client)
 		})
 		AfterEach(func() {
@@ -300,7 +300,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 		})
 
 		AfterEach(func() {
@@ -334,7 +334,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster.Spec.Service.Type = "LoadBalancer"
 			rabbitmqCluster.Spec.Service.Annotations = map[string]string{"annotations": "cr-annotation"}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 
 			ingressSvc := service(rabbitmqCluster, "ingress")
 			Expect(ingressSvc.Spec.Type).Should(Equal(corev1.ServiceTypeLoadBalancer))
@@ -367,7 +367,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 
 			sts := statefulSet(rabbitmqCluster)
 
@@ -406,7 +406,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster.Spec.Persistence.StorageClassName = &storageClassName
 			storage := k8sresource.MustParse("100Gi")
 			rabbitmqCluster.Spec.Persistence.Storage = &storage
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).NotTo(HaveOccurred())
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 
 			sts := statefulSet(rabbitmqCluster)
 

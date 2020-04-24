@@ -64,4 +64,8 @@ spec:
     additionalPlugins:
 {{ toYaml .Values.rabbitmq.additionalPlugins | indent 4 }}
     {{- end }}
+    {{- if .Values.rabbitmq.additionalConfig }}
+    additionalConfig:
+{{ toYaml .Values.rabbitmq.additionalConfig | indent 4 }}
+    {{- end }}
   {{- end }}

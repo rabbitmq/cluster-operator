@@ -10,14 +10,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const expectedRabbitmqConf = `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
-cluster_formation.k8s.address_type = hostname
-cluster_formation.node_cleanup.interval = 30
-cluster_formation.node_cleanup.only_log_warning = true
-cluster_partition_handling = pause_minority
-queue_master_locator = min-masters`
-
 var _ = Describe("GenerateServerConfigMap", func() {
 	var (
 		instance         rabbitmqv1beta1.RabbitmqCluster
@@ -50,12 +42,6 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		It("generates a ConfigMap with the correct name and namespace", func() {
 			Expect(configMap.Name).To(Equal(builder.Instance.ChildResourceName("server-conf")))
 			Expect(configMap.Namespace).To(Equal(builder.Instance.Namespace))
-		})
-
-		It("returns a rabbitmq conf with the required configurations", func() {
-			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-			Expect(ok).To(BeTrue())
-			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
 
 		It("returns a ConfigMap with required plugins", func() {
@@ -102,6 +88,43 @@ var _ = Describe("GenerateServerConfigMap", func() {
 					Namespace: instance.Namespace,
 				},
 			}
+		})
+
+		It("returns the default rabbitmq conf when additionalConfig is not provided", func() {
+			defaultRabbitmqConf := `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+cluster_formation.k8s.address_type = hostname
+cluster_formation.node_cleanup.interval = 30
+cluster_formation.node_cleanup.only_log_warning = true
+cluster_partition_handling = pause_minority
+queue_master_locator = min-masters`
+
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
+			Expect(ok).To(BeTrue())
+			Expect(rabbitmqConf).To(Equal(defaultRabbitmqConf))
+		})
+
+		It("appends configurations to the default rabbitmq.conf when additionalConfig is provided", func() {
+			expectedRabbitmqConf := `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+cluster_formation.k8s.address_type = hostname
+cluster_formation.node_cleanup.interval = 30
+cluster_formation.node_cleanup.only_log_warning = true
+cluster_partition_handling = pause_minority
+queue_master_locator = min-masters
+cluster_formation.peer_discovery_backend = my-backend
+my-config-property-0 = great-value
+my-config-property-1 = better-value`
+
+			instance.Spec.Rabbitmq.AdditionalConfig = `cluster_formation.peer_discovery_backend = my-backend
+my-config-property-0 = great-value
+my-config-property-1 = better-value`
+
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
+			Expect(ok).To(BeTrue())
+			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
 
 		Context("labels", func() {
@@ -190,6 +213,5 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				Expect(configMap.Annotations).To(Equal(expectedAnnotations))
 			})
 		})
-
 	})
 })
