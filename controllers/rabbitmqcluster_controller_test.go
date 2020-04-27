@@ -167,19 +167,19 @@ var _ = Describe("RabbitmqclusterController", func() {
 			By("setting the admin secret details in the custom resource status", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{}
-				Eventually(func() bool {
+				Eventually(func() *rabbitmqv1beta1.RabbitmqClusterSecretReference {
 					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 					if err != nil {
-						return false
+						return nil
 					}
 
 					if rmq.Status.Admin != nil && rmq.Status.Admin.SecretReference != nil {
 						secretRef = rmq.Status.Admin.SecretReference
-						return true
+						return secretRef
 					}
 
-					return false
-				}, 5).Should(BeTrue())
+					return nil
+				}, 5).ShouldNot(BeNil())
 
 				Expect(secretRef.Name).To(Equal(rmq.ChildResourceName(resource.AdminSecretName)))
 				Expect(secretRef.Namespace).To(Equal(rmq.Namespace))
@@ -190,19 +190,19 @@ var _ = Describe("RabbitmqclusterController", func() {
 			By("setting the ingress service details in the custom resource status", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{}
-				Eventually(func() bool {
+				Eventually(func() *rabbitmqv1beta1.RabbitmqClusterServiceReference {
 					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 					if err != nil {
-						return false
+						return nil
 					}
 
 					if rmq.Status.Admin != nil && rmq.Status.Admin.ServiceReference != nil {
 						serviceRef = rmq.Status.Admin.ServiceReference
-						return true
+						return serviceRef
 					}
 
-					return false
-				}, 5).Should(BeTrue())
+					return nil
+				}, 5).ShouldNot(BeNil())
 
 				Expect(serviceRef.Name).To(Equal(rmq.ChildResourceName("ingress")))
 				Expect(serviceRef.Namespace).To(Equal(rmq.Namespace))
