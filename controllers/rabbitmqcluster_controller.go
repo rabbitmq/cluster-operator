@@ -200,11 +200,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return reconcile.Result{}, err
 		}
 
-		if err := r.setAdminStatus(ctx, rabbitmqCluster, resource); err != nil {
-			return reconcile.Result{}, err
-		}
 		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
+	}
+
+	if err := r.setAdminStatus(ctx, rabbitmqCluster); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
@@ -223,58 +224,33 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	return reconcile.Result{}, nil
 }
 
-func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, obj runtime.Object) error {
-	if rmq.Status.Admin == nil {
-		rmq.Status.Admin = &rabbitmqv1beta1.RabbitmqClusterAdmin{}
-	}
+func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 
-	switch typedResource := obj.(type) {
-	case *corev1.Secret:
-		if err := r.setAdminSecretReference(ctx, typedResource, rmq); err != nil {
+	adminStatus := &rabbitmqv1beta1.RabbitmqClusterAdmin{}
+
+	serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{
+		Name:      rmq.ChildResourceName("ingress"),
+		Namespace: rmq.Namespace,
+	}
+	adminStatus.ServiceReference = serviceRef
+
+	secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{
+		Name:      rmq.ChildResourceName(resource.AdminSecretName),
+		Namespace: rmq.Namespace,
+		Keys: map[string]string{
+			"username": "username",
+			"password": "password",
+		},
+	}
+	adminStatus.SecretReference = secretRef
+
+	if !reflect.DeepEqual(rmq.Status.Admin, adminStatus) {
+		rmq.Status.Admin = adminStatus
+		if err := r.Status().Update(ctx, rmq); err != nil {
 			return err
 		}
-	case *corev1.Service:
-		if err := r.setIngressServiceReference(ctx, typedResource, rmq); err != nil {
-			return err
-		}
 	}
 
-	return nil
-}
-
-func (r *RabbitmqClusterReconciler) setIngressServiceReference(ctx context.Context, service *corev1.Service, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
-	if service.Name == rmq.ChildResourceName("ingress") {
-		serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{
-			Name:      rmq.ChildResourceName("ingress"),
-			Namespace: rmq.Namespace,
-		}
-		if !reflect.DeepEqual(rmq.Status.Admin.ServiceReference, serviceRef) {
-			rmq.Status.Admin.ServiceReference = serviceRef
-			if err := r.Status().Update(ctx, rmq); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (r *RabbitmqClusterReconciler) setAdminSecretReference(ctx context.Context, secret *corev1.Secret, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
-	if secret.Name == rmq.ChildResourceName(resource.AdminSecretName) {
-		secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{
-			Name:      rmq.ChildResourceName(resource.AdminSecretName),
-			Namespace: rmq.Namespace,
-			Keys: map[string]string{
-				"username": "username",
-				"password": "password",
-			},
-		}
-		if !reflect.DeepEqual(rmq.Status.Admin.SecretReference, secretRef) {
-			rmq.Status.Admin.SecretReference = secretRef
-			if err := r.Status().Update(ctx, rmq); err != nil {
-				return err
-			}
-		}
-	}
 	return nil
 }
 
