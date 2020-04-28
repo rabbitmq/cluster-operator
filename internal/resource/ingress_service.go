@@ -93,8 +93,8 @@ func updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
 
 func (builder *IngressServiceBuilder) setAnnotations(service *corev1.Service) {
 	if builder.Instance.Spec.Service.Annotations != nil {
-		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations, builder.Instance.Spec.Service.Annotations)
+		service.Annotations = metadata.ReconcileAnnotations(metadata.ReconcileAndFilterAnnotations(service.Annotations, builder.Instance.Annotations), builder.Instance.Spec.Service.Annotations)
 	} else {
-		service.Annotations = metadata.ReconcileAnnotations(service.Annotations, builder.Instance.Annotations)
+		service.Annotations = metadata.ReconcileAndFilterAnnotations(service.Annotations, builder.Instance.Annotations)
 	}
 }

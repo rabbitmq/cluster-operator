@@ -39,7 +39,7 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilde
 func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	configMap.Annotations = metadata.ReconcileAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
+	configMap.Annotations = metadata.ReconcileAndFilterAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
 	}

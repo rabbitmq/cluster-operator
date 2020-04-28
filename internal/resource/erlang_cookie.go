@@ -46,7 +46,7 @@ func (builder *ErlangCookieBuilder) Build() (runtime.Object, error) {
 func (builder *ErlangCookieBuilder) Update(object runtime.Object) error {
 	secret := object.(*corev1.Secret)
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	secret.Annotations = metadata.ReconcileAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
+	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
 	return nil
 }
 
