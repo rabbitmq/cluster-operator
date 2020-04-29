@@ -78,10 +78,9 @@ destroy-ci: configure-kubectl-ci
 	kubectl delete -k config/rbac/ --ignore-not-found=true
 	kubectl delete -k config/namespace/base --ignore-not-found=true
 
-run: generate manifests fmt vet install deploy-namespace-rbac  ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
-	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=pivotal-rabbitmq-system go run ./main.go
+run: generate manifests fmt vet install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
 
-just-run:
+just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
 	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=pivotal-rabbitmq-system go run ./main.go
 
 # Install CRDs into a cluster
