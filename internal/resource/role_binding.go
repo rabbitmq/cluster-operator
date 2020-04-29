@@ -26,7 +26,7 @@ func (builder *RabbitmqResourceBuilder) RoleBinding() *RoleBindingBuilder {
 func (builder *RoleBindingBuilder) Update(object runtime.Object) error {
 	roleBinding := object.(*rbacv1.RoleBinding)
 	roleBinding.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	roleBinding.Annotations = metadata.ReconcileAnnotations(roleBinding.GetAnnotations(), builder.Instance.Annotations)
+	roleBinding.Annotations = metadata.ReconcileAndFilterAnnotations(roleBinding.GetAnnotations(), builder.Instance.Annotations)
 	roleBinding.RoleRef = rbacv1.RoleRef{
 		APIGroup: "rbac.authorization.k8s.io",
 		Kind:     "Role",

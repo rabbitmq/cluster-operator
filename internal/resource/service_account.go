@@ -25,7 +25,7 @@ func (builder *RabbitmqResourceBuilder) ServiceAccount() *ServiceAccountBuilder 
 func (builder *ServiceAccountBuilder) Update(object runtime.Object) error {
 	serviceAccount := object.(*corev1.ServiceAccount)
 	serviceAccount.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	serviceAccount.Annotations = metadata.ReconcileAnnotations(serviceAccount.GetAnnotations(), builder.Instance.Annotations)
+	serviceAccount.Annotations = metadata.ReconcileAndFilterAnnotations(serviceAccount.GetAnnotations(), builder.Instance.Annotations)
 	return nil
 }
 

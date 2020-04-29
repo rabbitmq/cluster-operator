@@ -67,7 +67,7 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 			Name:        "persistence",
 			Namespace:   instance.GetNamespace(),
 			Labels:      metadata.Label(instance.Name),
-			Annotations: metadata.ReconcileAnnotations(map[string]string{}, instance.Annotations),
+			Annotations: metadata.ReconcileAndFilterAnnotations(map[string]string{}, instance.Annotations),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.ResourceRequirements{
@@ -104,8 +104,8 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	}
 
 	//Annotations
-	sts.Annotations = metadata.ReconcileAnnotations(sts.Annotations, builder.Instance.Annotations)
-	podAnnotations := metadata.ReconcileAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations)
+	sts.Annotations = metadata.ReconcileAndFilterAnnotations(sts.Annotations, builder.Instance.Annotations)
+	podAnnotations := metadata.ReconcileAndFilterAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations)
 
 	//Labels
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)

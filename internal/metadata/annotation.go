@@ -11,6 +11,18 @@ func ReconcileAnnotations(existing map[string]string, defaults ...map[string]str
 		return existing
 	}
 
+	return mergeWithFilter(func(k string) bool { return true }, existing, defaults...)
+}
+
+func ReconcileAndFilterAnnotations(existing map[string]string, defaults ...map[string]string) map[string]string {
+	if existing == nil {
+		existing = map[string]string{}
+	}
+
+	if len(defaults) == 0 {
+		return existing
+	}
+
 	return mergeWithFilter(isNotKubernetesAnnotation, existing, defaults...)
 }
 

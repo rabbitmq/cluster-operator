@@ -92,10 +92,13 @@ var _ = Describe("HeadlessService", func() {
 				},
 			}
 			instance.Annotations = map[string]string{
-				"my-annotation":              "i-like-this",
-				"kubernetes.io/name":         "i-do-not-like-this",
-				"kubectl.kubernetes.io/name": "i-do-not-like-this",
-				"k8s.io/name":                "i-do-not-like-this",
+				"my-annotation":               "i-like-this",
+				"kubernetes.io/name":          "i-do-not-like-this",
+				"kubectl.kubernetes.io/name":  "i-do-not-like-this",
+				"k8s.io/name":                 "i-do-not-like-this",
+				"kubernetes.io/other":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/other": "i-do-not-like-this",
+				"k8s.io/other":                "i-do-not-like-this",
 			}
 
 			service = &corev1.Service{

@@ -64,16 +64,19 @@ var _ = Context("IngressServices", func() {
 			When("CR instance does have service annotations specified", func() {
 				It("generates a service object with the annotations as specified", func() {
 					serviceAnno := map[string]string{
-						"service_annotation_a":       "0.0.0.0/0",
-						"kubernetes.io/name":         "i-do-not-like-this",
-						"kubectl.kubernetes.io/name": "i-do-not-like-this",
-						"k8s.io/name":                "i-do-not-like-this",
+						"service_annotation_a":        "0.0.0.0/0",
+						"kubernetes.io/other":         "i-like-this",
+						"kubectl.kubernetes.io/other": "i-like-this",
+						"k8s.io/other":                "i-like-this",
 					}
 					expectedAnnotations := map[string]string{
 						"service_annotation_a":             "0.0.0.0/0",
 						"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
 						"app.k8s.io/something":             "something-amazing",
 						"this-was-the-previous-annotation": "should-be-preserved",
+						"kubernetes.io/other":              "i-like-this",
+						"kubectl.kubernetes.io/other":      "i-like-this",
+						"k8s.io/other":                     "i-like-this",
 					}
 
 					service := updateServiceWithAnnotations(rmqBuilder, nil, serviceAnno)
@@ -99,10 +102,10 @@ var _ = Context("IngressServices", func() {
 			When("CR instance does not have service annotations specified, but does have metadata annotations specified", func() {
 				It("sets the instance annotations on the service", func() {
 					instanceMetadataAnnotations := map[string]string{
-						"my-annotation":              "i-like-this",
 						"kubernetes.io/name":         "i-do-not-like-this",
 						"kubectl.kubernetes.io/name": "i-do-not-like-this",
 						"k8s.io/name":                "i-do-not-like-this",
+						"my-annotation":              "i-like-this",
 					}
 
 					var serviceAnnotations map[string]string = nil
@@ -121,21 +124,24 @@ var _ = Context("IngressServices", func() {
 			When("CR instance has service annotations specified, and has metadata annotations specified", func() {
 				It("merges the annotations", func() {
 					serviceAnnotations := map[string]string{
-						"service_annotation_a":       "0.0.0.0/0",
-						"my-annotation":              "i-like-this-more",
-						"kubernetes.io/name":         "i-do-not-like-this",
-						"kubectl.kubernetes.io/name": "i-do-not-like-this",
-						"k8s.io/name":                "i-do-not-like-this",
+						"kubernetes.io/other":         "i-like-this",
+						"kubectl.kubernetes.io/other": "i-like-this",
+						"k8s.io/other":                "i-like-this",
+						"service_annotation_a":        "0.0.0.0/0",
+						"my-annotation":               "i-like-this-more",
 					}
 					instanceAnnotations := map[string]string{
-						"my-annotation":              "i-like-this",
-						"my-second-annotation":       "i-like-this-also",
 						"kubernetes.io/name":         "i-do-not-like-this",
 						"kubectl.kubernetes.io/name": "i-do-not-like-this",
 						"k8s.io/name":                "i-do-not-like-this",
+						"my-annotation":              "i-like-this",
+						"my-second-annotation":       "i-like-this-also",
 					}
 
 					expectedAnnotations := map[string]string{
+						"kubernetes.io/other":              "i-like-this",
+						"kubectl.kubernetes.io/other":      "i-like-this",
+						"k8s.io/other":                     "i-like-this",
 						"my-annotation":                    "i-like-this-more",
 						"my-second-annotation":             "i-like-this-also",
 						"service_annotation_a":             "0.0.0.0/0",
