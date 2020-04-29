@@ -331,6 +331,7 @@ var _ = Describe("StatefulSet", func() {
 			var (
 				existingAnnotations            map[string]string
 				existingPodTemplateAnnotations map[string]string
+				existingPvcTemplateAnnotations map[string]string
 			)
 
 			BeforeEach(func() {
@@ -346,8 +347,18 @@ var _ = Describe("StatefulSet", func() {
 					"app.k8s.io/something":           "something-amazing-on-pod",
 				}
 
+				existingPvcTemplateAnnotations = map[string]string{
+					"this-was-the-previous-pod-anno": "should-be-preserved-here",
+					"app.kubernetes.io/part-of":      "pivotal-rabbitmq-pvc",
+					"app.k8s.io/something":           "something-amazing-on-pvc",
+				}
+
 				statefulSet.Annotations = existingAnnotations
 				statefulSet.Spec.Template.Annotations = existingPodTemplateAnnotations
+				statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+					{},
+				}
+				statefulSet.Spec.VolumeClaimTemplates[0].Annotations = existingPvcTemplateAnnotations
 			})
 
 			It("updates annotations", func() {
@@ -392,6 +403,27 @@ var _ = Describe("StatefulSet", func() {
 				}
 
 				Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedAnnotations))
+			})
+
+			It("does not update annotations from the instance to the pvc template", func() {
+				stsBuilder.Instance.Annotations = map[string]string{
+					"kubernetes.io/name":          "i-do-not-like-this",
+					"kubectl.kubernetes.io/name":  "i-do-not-like-this",
+					"k8s.io/name":                 "i-do-not-like-this",
+					"kubernetes.io/other":         "i-do-not-like-this",
+					"kubectl.kubernetes.io/other": "i-do-not-like-this",
+					"k8s.io/other":                "i-do-not-like-this",
+					"my-annotation":               "i-do-not-like-this",
+				}
+
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				expectedAnnotations := map[string]string{
+					"app.kubernetes.io/part-of":      "pivotal-rabbitmq-pvc",
+					"this-was-the-previous-pod-anno": "should-be-preserved-here",
+					"app.k8s.io/something":           "something-amazing-on-pvc",
+				}
+
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Annotations).To(Equal(expectedAnnotations))
 			})
 		})
 

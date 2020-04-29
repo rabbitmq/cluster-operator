@@ -14,18 +14,6 @@ func ReconcileAnnotations(existing map[string]string, defaults ...map[string]str
 	return mergeWithFilter(func(k string) bool { return true }, existing, defaults...)
 }
 
-func merge(base map[string]string, maps ...map[string]string) map[string]string {
-	result := base
-
-	for _, m := range maps {
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-
-	return result
-}
-
 func ReconcileAndFilterAnnotations(existing map[string]string, defaults ...map[string]string) map[string]string {
 	if existing == nil {
 		existing = map[string]string{}
