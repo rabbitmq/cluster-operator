@@ -66,11 +66,6 @@ func updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
 			Port:     15672,
 			Name:     "management",
 		},
-		"prometheus": corev1.ServicePort{
-			Protocol: corev1.ProtocolTCP,
-			Port:     15692,
-			Name:     "prometheus",
-		},
 	}
 	updatedServicePorts := []corev1.ServicePort{}
 

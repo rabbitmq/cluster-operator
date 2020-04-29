@@ -253,12 +253,7 @@ var _ = Context("IngressServices", func() {
 					Port:     15672,
 					Protocol: corev1.ProtocolTCP,
 				}
-				prometheusPort := corev1.ServicePort{
-					Name:     "prometheus",
-					Port:     15692,
-					Protocol: corev1.ProtocolTCP,
-				}
-				Expect(ingressService.Spec.Ports).Should(ConsistOf(amqpPort, managementPort, prometheusPort))
+				Expect(ingressService.Spec.Ports).Should(ConsistOf(amqpPort, managementPort))
 			})
 
 			It("updates the service type from ClusterIP to NodePort", func() {
@@ -286,12 +281,6 @@ var _ = Context("IngressServices", func() {
 						Name:     "management",
 						NodePort: 1234,
 					},
-					corev1.ServicePort{
-						Protocol: corev1.ProtocolTCP,
-						Port:     15692,
-						Name:     "prometheus",
-						NodePort: 2345,
-					},
 				}
 
 				serviceBuilder.Instance.Spec.Service.Type = "NodePort"
@@ -310,16 +299,9 @@ var _ = Context("IngressServices", func() {
 					Name:     "management",
 					NodePort: 1234,
 				}
-				expectedPrometheusServicePort := corev1.ServicePort{
-					Protocol: corev1.ProtocolTCP,
-					Port:     15692,
-					Name:     "prometheus",
-					NodePort: 2345,
-				}
 
 				Expect(ingressService.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
 				Expect(ingressService.Spec.Ports).To(ContainElement(expectedManagementServicePort))
-				Expect(ingressService.Spec.Ports).To(ContainElement(expectedPrometheusServicePort))
 			})
 
 			It("resets ports", func() {})
