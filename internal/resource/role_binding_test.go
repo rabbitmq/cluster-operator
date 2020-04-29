@@ -139,7 +139,10 @@ var _ = Describe("RoleBinding", func() {
 				},
 			}
 			instance.Annotations = map[string]string{
-				"my-annotation": "i-like-this",
+				"my-annotation":              "i-like-this",
+				"kubernetes.io/name":         "i-do-not-like-this",
+				"kubectl.kubernetes.io/name": "i-do-not-like-this",
+				"k8s.io/name":                "i-do-not-like-this",
 			}
 
 			roleBinding = &rbacv1.RoleBinding{
