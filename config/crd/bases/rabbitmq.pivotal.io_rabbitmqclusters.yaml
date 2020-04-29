@@ -763,6 +763,35 @@ spec:
         status:
           description: Status presents the observed state of RabbitmqCluster
           properties:
+            admin:
+              description: Identifying information on internal resources
+              properties:
+                secretReference:
+                  properties:
+                    keys:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  required:
+                  - keys
+                  - name
+                  - namespace
+                  type: object
+                serviceReference:
+                  properties:
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  required:
+                  - name
+                  - namespace
+                  type: object
+              type: object
             clusterStatus:
               type: string
             conditions:

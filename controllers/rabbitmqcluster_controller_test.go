@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -161,6 +162,50 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 					return ""
 				}, 5).Should(Equal("deletion.finalizers.rabbitmqclusters.rabbitmq.pivotal.io"))
+			})
+
+			By("setting the admin secret details in the custom resource status", func() {
+				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{}
+				Eventually(func() *rabbitmqv1beta1.RabbitmqClusterSecretReference {
+					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+					if err != nil {
+						return nil
+					}
+
+					if rmq.Status.Admin != nil && rmq.Status.Admin.SecretReference != nil {
+						secretRef = rmq.Status.Admin.SecretReference
+						return secretRef
+					}
+
+					return nil
+				}, 5).ShouldNot(BeNil())
+
+				Expect(secretRef.Name).To(Equal(rmq.ChildResourceName(resource.AdminSecretName)))
+				Expect(secretRef.Namespace).To(Equal(rmq.Namespace))
+				Expect(secretRef.Keys["username"]).To(Equal("username"))
+				Expect(secretRef.Keys["password"]).To(Equal("password"))
+			})
+
+			By("setting the ingress service details in the custom resource status", func() {
+				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{}
+				Eventually(func() *rabbitmqv1beta1.RabbitmqClusterServiceReference {
+					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+					if err != nil {
+						return nil
+					}
+
+					if rmq.Status.Admin != nil && rmq.Status.Admin.ServiceReference != nil {
+						serviceRef = rmq.Status.Admin.ServiceReference
+						return serviceRef
+					}
+
+					return nil
+				}, 5).ShouldNot(BeNil())
+
+				Expect(serviceRef.Name).To(Equal(rmq.ChildResourceName("ingress")))
+				Expect(serviceRef.Namespace).To(Equal(rmq.Namespace))
 			})
 		})
 	})

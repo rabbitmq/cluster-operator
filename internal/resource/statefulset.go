@@ -327,7 +327,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					Name: "rabbitmq-admin",
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							SecretName: builder.Instance.ChildResourceName(adminSecretName),
+							SecretName: builder.Instance.ChildResourceName(AdminSecretName),
 							Items: []corev1.KeyToPath{
 								{
 									Key:  "username",

@@ -22,13 +22,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
+	"time"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
-	"reflect"
-	"strings"
-	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -203,6 +204,10 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
 	}
 
+	if err := r.setAdminStatus(ctx, rabbitmqCluster); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
 		// only enable plugins when all pods of the StatefulSet become ready
 		// requeue request after 10 seconds without error
@@ -217,6 +222,36 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
 
 	return reconcile.Result{}, nil
+}
+
+func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+
+	adminStatus := &rabbitmqv1beta1.RabbitmqClusterAdmin{}
+
+	serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{
+		Name:      rmq.ChildResourceName("ingress"),
+		Namespace: rmq.Namespace,
+	}
+	adminStatus.ServiceReference = serviceRef
+
+	secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{
+		Name:      rmq.ChildResourceName(resource.AdminSecretName),
+		Namespace: rmq.Namespace,
+		Keys: map[string]string{
+			"username": "username",
+			"password": "password",
+		},
+	}
+	adminStatus.SecretReference = secretRef
+
+	if !reflect.DeepEqual(rmq.Status.Admin, adminStatus) {
+		rmq.Status.Admin = adminStatus
+		if err := r.Status().Update(ctx, rmq); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // restartStatefulSetIfNeeded - helper function that annotate the StatefulSet PodTemplate with current timestamp
