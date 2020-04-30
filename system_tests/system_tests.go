@@ -139,6 +139,7 @@ var _ = Describe("Operator", func() {
 				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).To(Succeed())
 				fetchedRabbit.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
 				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
+				waitForRabbitmqRunning(fetchedRabbit)
 
 				Eventually(func() error {
 					_, err := kubectlExec(namespace,
