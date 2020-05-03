@@ -107,7 +107,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
 
 	if client.IgnoreNotFound(err) != nil {
-		logger.Error(err, "Failed getting Rabbitmq cluster object")
 		return reconcile.Result{}, err
 	} else if errors.IsNotFound(err) {
 		// No need to requeue if the resource no longer exists
@@ -139,7 +138,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
 
 	if err != nil {
-		logger.Error(err, "Error getting child resources")
 		return reconcile.Result{}, err
 	}
 
@@ -150,7 +148,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	if !reflect.DeepEqual(rabbitmqCluster.Status.Conditions, oldConditions) {
 		err = r.Status().Update(ctx, rabbitmqCluster)
 		if err != nil {
-			logger.Error(err, "Failed to update the RabbitmqCluster status")
 			return ctrl.Result{}, err
 		}
 	}
@@ -183,7 +180,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 		//TODO this should be done in the builders
 		if err := controllerutil.SetControllerReference(rabbitmqCluster, resource.(metav1.Object), r.Scheme); err != nil {
-			logger.Error(err, "Failed setting controller reference")
 			return reconcile.Result{}, err
 		}
 
