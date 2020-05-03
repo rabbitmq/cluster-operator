@@ -129,9 +129,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// Resource has been marked for deletion
 	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		logger.Info(fmt.Sprintf("Deleting RabbitmqCluster \"%s\" in namespace \"%s\"",
-			rabbitmqCluster.Name,
-			rabbitmqCluster.Namespace))
+		logger.Info("Deleting RabbitmqCluster",
+			"namespace", rabbitmqCluster.Namespace,
+			"name", rabbitmqCluster.Name)
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
 	}
@@ -160,10 +160,10 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		logger.Error(err, "Failed to marshal cluster spec")
 	}
 
-	logger.Info(fmt.Sprintf("Start reconciling RabbitmqCluster \"%s\" in namespace \"%s\" with Spec: %+v",
-		rabbitmqCluster.Name,
-		rabbitmqCluster.Namespace,
-		string(instanceSpec)))
+	logger.Info("Start reconciling RabbitmqCluster",
+		"namespace", rabbitmqCluster.Namespace,
+		"name", rabbitmqCluster.Name,
+		"spec", string(instanceSpec))
 
 	resourceBuilder := resource.RabbitmqResourceBuilder{
 		Instance: rabbitmqCluster,
@@ -211,7 +211,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
 		// only enable plugins when all pods of the StatefulSet become ready
 		// requeue request after 10 seconds without error
-		logger.Info(fmt.Sprintf("Not all replicas are ready; unable to configure plugins on cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
+		logger.Info("Not all replicas are ready; unable to configure plugins on RabbitmqCluster",
+			"namespace", rabbitmqCluster.Namespace,
+			"name", rabbitmqCluster.Name)
 		return reconcile.Result{RequeueAfter: time.Second * 10}, err
 	}
 
@@ -219,7 +221,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return reconcile.Result{}, err
 	}
 
-	logger.Info(fmt.Sprintf("Finished reconciling cluster with name \"%s\" in namespace \"%s\"", rabbitmqCluster.Name, rabbitmqCluster.Namespace))
+	logger.Info("Finished reconciling RabbitmqCluster",
+		"namespace", rabbitmqCluster.Namespace,
+		"name", rabbitmqCluster.Name)
 
 	return reconcile.Result{}, nil
 }
@@ -313,7 +317,9 @@ func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqC
 		}
 	}
 
-	r.Log.Info(fmt.Sprintf("Successfully enabled plugins on cluster %s in namespace %s", rmq.Name, rmq.Namespace))
+	r.Log.Info("Successfully enabled plugins on RabbitmqCluster",
+		"namespace", rmq.Namespace,
+		"name", rmq.Name)
 	return nil
 }
 
