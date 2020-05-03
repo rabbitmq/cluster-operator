@@ -18,10 +18,11 @@ package main
 
 import (
 	"flag"
+	"os"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
@@ -41,9 +42,8 @@ var (
 )
 
 func init() {
-
-	rabbitmqv1beta1.AddToScheme(scheme)
-	defaultscheme.AddToScheme(scheme)
+	_ = rabbitmqv1beta1.AddToScheme(scheme)
+	_ = defaultscheme.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
