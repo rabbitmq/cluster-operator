@@ -42,7 +42,6 @@ import (
 
 	clientretry "k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -107,19 +106,19 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
 
 	if client.IgnoreNotFound(err) != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	} else if errors.IsNotFound(err) {
 		// No need to requeue if the resource no longer exists
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
 
 	if !reflect.DeepEqual(fetchedRabbitmqCluster.Spec, rabbitmqCluster.Spec) {
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
-		return reconcile.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
@@ -138,7 +137,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
 
 	if err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	oldConditions := make([]status.RabbitmqClusterCondition, len(rabbitmqCluster.Status.Conditions))
@@ -169,18 +168,18 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	builders, err := resourceBuilder.ResourceBuilders()
 	if err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	for _, builder := range builders {
 		resource, err := builder.Build()
 		if err != nil {
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
 
 		//TODO this should be done in the builders
 		if err := controllerutil.SetControllerReference(rabbitmqCluster, resource.(metav1.Object), r.Scheme); err != nil {
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
 
 		var operationResult controllerutil.OperationResult
@@ -193,7 +192,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return apiError
 		}); err != nil {
 			r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
 
 		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
@@ -201,7 +200,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	if err := r.setAdminStatus(ctx, rabbitmqCluster); err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
@@ -210,18 +209,18 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		logger.Info("Not all replicas are ready; unable to configure plugins on RabbitmqCluster",
 			"namespace", rabbitmqCluster.Namespace,
 			"name", rabbitmqCluster.Name)
-		return reconcile.Result{RequeueAfter: time.Second * 10}, err
+		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 
 	if err := r.enablePlugins(rabbitmqCluster); err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("Finished reconciling RabbitmqCluster",
 		"namespace", rabbitmqCluster.Namespace,
 		"name", rabbitmqCluster.Name)
 
-	return reconcile.Result{}, nil
+	return ctrl.Result{}, nil
 }
 
 func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
