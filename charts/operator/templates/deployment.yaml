@@ -38,6 +38,18 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        {{- if .Values.leaseDuration }}
+        - name: LEASE_DURATION
+          value: {{ .Values.leaseDuration | quote }}
+        {{- end }}
+        {{- if .Values.retryPeriod }}
+        - name: RETRY_PERIOD
+          value: {{ .Values.retryPeriod | quote }}
+        {{- end }}
+        {{- if .Values.renewDeadline }}
+        - name: RENEW_DEADLINE
+          value: {{ .Values.renewDeadline | quote }}
+        {{- end }}
         image: '{{printf "%s:%s" .Values.images.operator.name .Values.images.operator.tag}}'
         name: operator
         resources:
