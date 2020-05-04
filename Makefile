@@ -98,9 +98,9 @@ deploy: manifests deploy-namespace-rbac docker-registry-secret deploy-manager ##
 
 deploy-dev: docker-build-dev patch-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
-deploy-kind: dev-tag patch-kind manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
-	docker build . -t $(CONTROLLER_IMAGE):$(DEV_TAG)
-	kind load docker-image $(CONTROLLER_IMAGE):$(DEV_TAG)
+deploy-kind: git-commit-sha patch-kind manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
+	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(CONTROLLER_IMAGE):$(GIT_COMMIT) .
+	kind load docker-image $(CONTROLLER_IMAGE):$(GIT_COMMIT)
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/kind
 
@@ -121,35 +121,31 @@ generate-helm-manifests:
 	kustomize build config/default/overlays/helm/ > charts/operator/templates/deployment.yaml
 
 # Build the docker image
-docker-build:
-	docker build . -t $(CONTROLLER_IMAGE):latest
-
-docker-build-ci-image:
-	docker build ci/ -t ${CI_IMAGE}
-	docker push ${CI_IMAGE}
+docker-build: git-commit-sha
+	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(CONTROLLER_IMAGE):latest .
 
 # Push the docker image
 docker-push:
 	docker push $(CONTROLLER_IMAGE):latest
 
-dev-tag:
+git-commit-sha:
 ifeq ("", git diff --stat)
-DEV_TAG="$(shell git rev-parse --short HEAD)"
+GIT_COMMIT="$(shell git rev-parse --short HEAD)"
 else
-DEV_TAG="$(shell git rev-parse --short HEAD)-"
+GIT_COMMIT="$(shell git rev-parse --short HEAD)-"
 endif
 
-docker-build-dev: dev-tag
-	docker build . -t $(CONTROLLER_IMAGE):$(DEV_TAG)
-	docker push $(CONTROLLER_IMAGE):$(DEV_TAG)
+docker-build-dev: git-commit-sha
+	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(CONTROLLER_IMAGE):$(GIT_COMMIT) .
+	docker push $(CONTROLLER_IMAGE):$(GIT_COMMIT)
 
-patch-dev: dev-tag
+patch-dev: git-commit-sha
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(DEV_TAG)"'@' ./config/default/overlays/dev/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(GIT_COMMIT)"'@' ./config/default/overlays/dev/manager_image_patch.yaml
 
-patch-kind: dev-tag
+patch-kind: git-commit-sha
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(DEV_TAG)"'@' ./config/default/overlays/kind/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(GIT_COMMIT)"'@' ./config/default/overlays/kind/manager_image_patch.yaml
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services, and local-path StorageClass
 	# deploy and configure MetalLB to add support for LoadBalancer services
