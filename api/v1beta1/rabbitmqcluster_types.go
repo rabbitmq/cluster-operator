@@ -67,6 +67,11 @@ type RabbitmqClusterSpec struct {
 	// Tolerations is the list of Toleration resources attached to each Pod in the RabbitmqCluster.
 	Tolerations []corev1.Toleration              `json:"tolerations,omitempty"`
 	Rabbitmq    RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
+	TLS         TLSSpec                          `json:"tls,omitempty"`
+}
+
+type TLSSpec struct {
+	SecretRef *corev1.SecretReference `json:"secretRef,omitempty"`
 }
 
 // kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.
