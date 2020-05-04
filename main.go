@@ -18,10 +18,11 @@ package main
 
 import (
 	"flag"
+	"os"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
@@ -41,9 +42,8 @@ var (
 )
 
 func init() {
-
-	rabbitmqv1beta1.AddToScheme(scheme)
-	defaultscheme.AddToScheme(scheme)
+	_ = rabbitmqv1beta1.AddToScheme(scheme)
+	_ = defaultscheme.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -52,7 +52,7 @@ func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":12345", "The address the metric endpoint binds to.")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.Logger(true))
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	operatorNamespace := os.Getenv("OPERATOR_NAMESPACE")
 	if operatorNamespace == "" {

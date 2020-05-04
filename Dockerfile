@@ -17,10 +17,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager 
 
 # Changed base image to ubuntu for OSL compliance
 FROM ubuntu@sha256:c303f19cfe9ee92badbbbd7567bc1ca47789f79303ddcef56f77687d4744cd7a
+
+ARG GIT_COMMIT
+LABEL GitCommit=$GIT_COMMIT
+
 WORKDIR /
 COPY --from=builder /workspace/manager .
-ARG COMMIT_SHA
-LABEL commit=$COMMIT_SHA
 
 # Create operator system user & group
 RUN set -eux; \
