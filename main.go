@@ -71,17 +71,17 @@ func main() {
 	}
 
 	if leaseDuration := getEnvInDuration("LEASE_DURATION"); leaseDuration != 0 {
-		log.Info(fmt.Sprintf("manager configured with lease duration: %d seconds", int(leaseDuration.Seconds())))
+		log.Info("manager configured with lease duration",  "seconds", int(leaseDuration.Seconds()))
 		options.LeaseDuration = &leaseDuration
 	}
 
 	if renewDeadline := getEnvInDuration("RENEW_DEADLINE"); renewDeadline != 0 {
-		log.Info(fmt.Sprintf("manager configured with renew deadline: %d seconds", int(renewDeadline.Seconds())))
+		log.Info("manager configured with renew deadline", "seconds", int(renewDeadline.Seconds()))
 		options.RenewDeadline = &renewDeadline
 	}
 
 	if retryPeriod := getEnvInDuration("RETRY_PERIOD"); retryPeriod != 0 {
-		log.Info(fmt.Sprintf("manager configured with retry period: %d seconds", int(retryPeriod.Seconds())))
+		log.Info("manager configured with retry period", "seconds", int(retryPeriod.Seconds()))
 		options.RetryPeriod = &retryPeriod
 	}
 

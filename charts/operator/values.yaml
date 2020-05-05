@@ -7,6 +7,6 @@ images:
   operator:
     name: registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator
     tag: "0.7.0-build.41"
-leaseDuration: "15"
-retryPeriod: "10"
-renewDeadline: "20"
+leaseDuration:
+retryPeriod:
+renewDeadline:
