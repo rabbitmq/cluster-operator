@@ -39,7 +39,7 @@ func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
 	service.Spec.Type = corev1.ServiceType(builder.Instance.Spec.Service.Type)
 	service.Spec.Selector = metadata.LabelSelector(builder.Instance.Name)
 
-	service.Spec.Ports = updatePorts(service.Spec.Ports)
+	service.Spec.Ports = updatePorts(service.Spec.Ports, builder.Instance.TLSEnabled())
 
 	if builder.Instance.Spec.Service.Type == "ClusterIP" || builder.Instance.Spec.Service.Type == "" {
 		for i := range service.Spec.Ports {
@@ -54,7 +54,7 @@ func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
+func updatePorts(servicePorts []corev1.ServicePort, tlsEnabled bool) []corev1.ServicePort {
 	servicePortsMap := map[string]corev1.ServicePort{
 		"amqp": corev1.ServicePort{
 			Protocol: corev1.ProtocolTCP,
@@ -67,6 +67,14 @@ func updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
 			Name:     "management",
 		},
 	}
+	if tlsEnabled {
+		servicePortsMap["amqps"] = corev1.ServicePort{
+			Protocol: corev1.ProtocolTCP,
+			Port:     5671,
+			Name:     "amqps",
+		}
+	}
+
 	updatedServicePorts := []corev1.ServicePort{}
 
 	for _, servicePort := range servicePorts {

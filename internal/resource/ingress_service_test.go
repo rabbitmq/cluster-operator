@@ -60,6 +60,40 @@ var _ = Context("IngressServices", func() {
 			}
 		})
 
+		Context("TLS", func() {
+			It("opens port 5671 on the service", func() {
+				instance := &rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "foo-namespace",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						TLS: rabbitmqv1beta1.TLSSpec{
+							SecretRef: &corev1.SecretReference{
+								Name:      "tls-secret",
+								Namespace: "tls-namespace",
+							},
+						},
+					},
+				}
+				rmqBuilder.Instance = instance
+				serviceBuilder := rmqBuilder.IngressService()
+				ingressService := &corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foo-service",
+						Namespace: "foo-namespace",
+					},
+				}
+
+				Expect(serviceBuilder.Update(ingressService)).To(Succeed())
+				Expect(ingressService.Spec.Ports).Should(ContainElement(corev1.ServicePort{
+					Name:     "amqps",
+					Protocol: "TCP",
+					Port:     5671,
+				}))
+			})
+		})
+
 		Context("Annotations", func() {
 			When("CR instance does have service annotations specified", func() {
 				It("generates a service object with the annotations as specified", func() {
@@ -309,8 +343,6 @@ var _ = Context("IngressServices", func() {
 				Expect(ingressService.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
 				Expect(ingressService.Spec.Ports).To(ContainElement(expectedManagementServicePort))
 			})
-
-			It("resets ports", func() {})
 
 			It("unsets nodePort after updating from NodePort to ClusterIP", func() {
 				ingressService.Spec.Type = corev1.ServiceTypeNodePort
