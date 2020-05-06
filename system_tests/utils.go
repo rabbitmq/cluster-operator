@@ -287,6 +287,24 @@ func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 }
 
+// asserts an event with reason: "TLSError", occurs for the cluster in it's namespace
+func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	var err error
+
+	EventuallyWithOffset(1, func() string {
+		output, _ := kubectl(
+			"get",
+			"events",
+			"--field-selector",
+			fmt.Sprintf("involvedObject.name=%v,involvedObject.namespace=%v,reason=%v", cluster.Name, cluster.Namespace, "TLSError"),
+		)
+
+		return string(output)
+	}, podCreationTimeout, 1*time.Second).Should(ContainSubstring("TLSError"))
+
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+}
+
 func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	var err error
 

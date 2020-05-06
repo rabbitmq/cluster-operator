@@ -132,6 +132,10 @@ type RabbitmqClusterServiceReference struct {
 	Namespace string `json:"namespace"`
 }
 
+func (cluster *RabbitmqCluster) TLSEnabled() bool {
+	return cluster.Spec.TLS.SecretRef != nil
+}
+
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
 	var existingAllPodsReadyCondition *status.RabbitmqClusterCondition
 	var existingClusterAvailableCondition *status.RabbitmqClusterCondition

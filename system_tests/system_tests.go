@@ -270,4 +270,22 @@ cluster_keepalive_interval = 10000`
 			})
 		})
 	})
+
+	Context("TLS", func() {
+		// not implemented
+		//It("can access on port 5671 and the communication is TLS enabled", func() {
+
+		//})
+
+		When("the TLS secret does not exist", func() {
+			cluster := generateRabbitmqCluster(namespace, "tls-rabbit-2")
+			cluster.Spec.TLS = rabbitmqv1beta1.TLSSpec{SecretRef: &corev1.SecretReference{Name: "tls-secret-does-not-exist"}}
+
+			It("fails to deploy the RabbitmqCluster", func() {
+				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				assertTLSError(cluster)
+				Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
+			})
+		})
+	})
 })

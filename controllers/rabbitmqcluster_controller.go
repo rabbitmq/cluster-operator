@@ -123,6 +123,34 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return reconcile.Result{Requeue: true}, nil
 	}
 
+	// TLS: check if specified, and if secret exists
+	tlsSecretRef := rabbitmqCluster.Spec.TLS.SecretRef
+	if tlsSecretRef != nil {
+		logger.Info("TLS set, looking for secret", "secret", tlsSecretRef.Name, "namespace", tlsSecretRef.Namespace)
+
+		// check if secret exists
+		secret := &corev1.Secret{}
+		if err := r.Get(ctx, types.NamespacedName{Namespace: tlsSecretRef.Namespace, Name: tlsSecretRef.Name}, secret); err != nil {
+			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError", fmt.Sprintf("Failed to get TLS secret: %v", err.Error()))
+			// retry after 10 seconds if not found
+			if errors.IsNotFound(err) {
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+			}
+
+			return ctrl.Result{}, err
+		}
+
+		// check if secret has the right keys
+		_, hasTLSKey := secret.Data["tls.key"]
+		_, hasTLSCert := secret.Data["tls.crt"]
+		if !hasTLSCert || !hasTLSKey {
+			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError", fmt.Sprintf("The TLS secret must have the fields tls.crt and tls.key"))
+			return ctrl.Result{}, errors.NewBadRequest("The TLS secret must have the fields tls.crt and tls.key")
+		}
+
+		// TODO: check if the private key and cert have a valid format
+	}
+
 	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
 		return ctrl.Result{}, err
 	}

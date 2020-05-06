@@ -34,6 +34,11 @@ import (
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	ClusterCreationTimeout = 5 * time.Second
+	ClusterDeletionTimeout = 2 * time.Second
+)
+
 var _ = Describe("RabbitmqclusterController", func() {
 
 	var (
@@ -208,6 +213,135 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(serviceRef.Namespace).To(Equal(rmq.Namespace))
 			})
 		})
+	})
+
+	Context("TLS set on the instance", func() {
+		BeforeEach(func() {
+			tlsSecret := corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "tls-secret",
+					Namespace: "rabbitmq-tls",
+				},
+				StringData: map[string]string{
+					"tls.crt": "this is a tls cert",
+					"tls.key": "this is a tls key",
+				},
+			}
+			_, err := clientSet.CoreV1().Secrets("rabbitmq-tls").Create(&tlsSecret)
+			Expect(ignoreAlreadyExists(err)).NotTo(HaveOccurred())
+
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-tls",
+					Namespace: "rabbitmq-tls",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas: 1,
+					TLS: rabbitmqv1beta1.TLSSpec{
+						SecretRef: &corev1.SecretReference{
+							Name:      "tls-secret",
+							Namespace: "rabbitmq-tls",
+						},
+					},
+				},
+			}
+		})
+
+		It("Deploys successfully", func() {
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(rabbitmqCluster, client)
+		})
+
+		When("the TLS secret does not have the expected keys - tls.crt, or tls.key", func() {
+			BeforeEach(func() {
+				malformedSecret := corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rabbitmq-tls-malformed",
+						Namespace: "rabbitmq-tls-malformed",
+					},
+					StringData: map[string]string{
+						"somekey": "someval",
+						"tls.key": "this is a tls key",
+					},
+				}
+				_, err := clientSet.CoreV1().Secrets("rabbitmq-tls-malformed").Create(&malformedSecret)
+				Expect(ignoreAlreadyExists(err)).NotTo(HaveOccurred())
+
+				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rabbitmq-tls-malformed",
+						Namespace: "rabbitmq-tls-malformed",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas: 1,
+						TLS: rabbitmqv1beta1.TLSSpec{
+							SecretRef: &corev1.SecretReference{
+								Name:      "rabbitmq-tls-malformed",
+								Namespace: "rabbitmq-tls-malformed",
+							},
+						},
+					},
+				}
+			})
+
+			It("fails to deploy the RabbitmqCluster", func() {
+				Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				tlsEventTimeout := 5 * time.Second
+				tlsRetry := 1 * time.Second
+				Eventually(func() string {
+					return aggregateEventMsgs(rabbitmqCluster, "TLSError")
+				}, tlsEventTimeout, tlsRetry).Should(ContainSubstring("The TLS secret must have the fields tls.crt and tls.key"))
+			})
+
+		})
+
+		When("the TLS secret does not exist", func() {
+			BeforeEach(func() {
+				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rabbitmq-tls-secret-does-not-exist",
+						Namespace: "rabbitmq-tls-secret-does-not-exist",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas: 1,
+						TLS: rabbitmqv1beta1.TLSSpec{
+							SecretRef: &corev1.SecretReference{
+								Name:      "tls-secret-does-not-exist",
+								Namespace: "tls-secret-does-not-exist",
+							},
+						},
+					},
+				}
+			})
+
+			It("fails to deploy the RabbitmqCluster, and retries every 10 seconds", func() {
+				Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+				tlsEventTimeout := 5 * time.Second
+				tlsRetry := 1 * time.Second
+				Eventually(func() string {
+					return aggregateEventMsgs(rabbitmqCluster, "TLSError")
+				}, tlsEventTimeout, tlsRetry).Should(ContainSubstring("Failed to get TLS secret"))
+
+				// create missing secret
+				tlsSecret := corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "tls-secret-does-not-exist",
+						Namespace: "tls-secret-does-not-exist",
+					},
+					StringData: map[string]string{
+						"tls.crt": "this is a tls cert",
+						"tls.key": "this is a tls key",
+					},
+				}
+				_, err := clientSet.CoreV1().Secrets("tls-secret-does-not-exist").Create(&tlsSecret)
+				Expect(err).NotTo(HaveOccurred())
+
+				waitForClusterCreation(rabbitmqCluster, client)
+			})
+		})
+
 	})
 
 	Context("Annotations set on the instance", func() {
@@ -758,7 +892,7 @@ func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 
 		return "ready"
 
-	}, 5, 1).Should(Equal("ready"))
+	}, ClusterCreationTimeout, 1*time.Second).Should(Equal("ready"))
 
 }
 
@@ -771,6 +905,13 @@ func waitForClusterDeletion(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 			&rabbitmqClusterCreated,
 		)
 		return apierrors.IsNotFound(err)
-	}, 2, 1).Should(BeTrue())
+	}, ClusterDeletionTimeout, 1*time.Second).Should(BeTrue())
 
+}
+
+func ignoreAlreadyExists(err error) error {
+	if apierrors.IsAlreadyExists(err) {
+		return nil
+	}
+	return err
 }
