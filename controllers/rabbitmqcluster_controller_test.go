@@ -238,10 +238,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: 1,
 					TLS: rabbitmqv1beta1.TLSSpec{
-						SecretRef: &corev1.SecretReference{
-							Name:      "tls-secret",
-							Namespace: "rabbitmq-tls",
-						},
+						SecretName: "tls-secret",
 					},
 				},
 			}
@@ -275,10 +272,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 						Replicas: 1,
 						TLS: rabbitmqv1beta1.TLSSpec{
-							SecretRef: &corev1.SecretReference{
-								Name:      "rabbitmq-tls-malformed",
-								Namespace: "rabbitmq-tls-malformed",
-							},
+							SecretName: "rabbitmq-tls-malformed",
 						},
 					},
 				}
@@ -301,15 +295,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "rabbitmq-tls-secret-does-not-exist",
-						Namespace: "rabbitmq-tls-secret-does-not-exist",
+						Namespace: "rabbitmq-namespace",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 						Replicas: 1,
 						TLS: rabbitmqv1beta1.TLSSpec{
-							SecretRef: &corev1.SecretReference{
-								Name:      "tls-secret-does-not-exist",
-								Namespace: "tls-secret-does-not-exist",
-							},
+							SecretName: "tls-secret-does-not-exist",
 						},
 					},
 				}
@@ -328,14 +319,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 				tlsSecret := corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "tls-secret-does-not-exist",
-						Namespace: "tls-secret-does-not-exist",
+						Namespace: "rabbitmq-namespace",
 					},
 					StringData: map[string]string{
 						"tls.crt": "this is a tls cert",
 						"tls.key": "this is a tls key",
 					},
 				}
-				_, err := clientSet.CoreV1().Secrets("tls-secret-does-not-exist").Create(&tlsSecret)
+				_, err := clientSet.CoreV1().Secrets("rabbitmq-namespace").Create(&tlsSecret)
 				Expect(err).NotTo(HaveOccurred())
 
 				waitForClusterCreation(rabbitmqCluster, client)

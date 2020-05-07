@@ -80,7 +80,7 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("can be created with server side TLS", func() {
 			created := generateRabbitmqClusterObject("rabbit-tls")
-			created.Spec.TLS.SecretRef = &corev1.SecretReference{Name: "tls-secret-name"}
+			created.Spec.TLS.SecretName = "tls-secret-name"
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 		})
 
@@ -88,7 +88,7 @@ var _ = Describe("RabbitmqCluster", func() {
 			created := generateRabbitmqClusterObject("rabbit-tls")
 			Expect(created.TLSEnabled()).To(BeFalse())
 
-			created.Spec.TLS.SecretRef = &corev1.SecretReference{Name: "tls-secret-name"}
+			created.Spec.TLS.SecretName = "tls-secret-name"
 			Expect(created.TLSEnabled()).To(BeTrue())
 		})
 

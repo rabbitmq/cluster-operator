@@ -69,10 +69,7 @@ var _ = Context("IngressServices", func() {
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 						TLS: rabbitmqv1beta1.TLSSpec{
-							SecretRef: &corev1.SecretReference{
-								Name:      "tls-secret",
-								Namespace: "tls-namespace",
-							},
+							SecretName: "tls-secret",
 						},
 					},
 				}

@@ -136,9 +136,7 @@ my-config-property-1 = better-value`
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 						TLS: rabbitmqv1beta1.TLSSpec{
-							SecretRef: &corev1.SecretReference{
-								Name: "tls-secret",
-							},
+							SecretName: "tls-secret",
 						},
 					},
 				}

@@ -71,7 +71,7 @@ type RabbitmqClusterSpec struct {
 }
 
 type TLSSpec struct {
-	SecretRef *corev1.SecretReference `json:"secretRef,omitempty"`
+	SecretName string `json:"secretName"`
 }
 
 // kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.
@@ -133,7 +133,7 @@ type RabbitmqClusterServiceReference struct {
 }
 
 func (cluster *RabbitmqCluster) TLSEnabled() bool {
-	return cluster.Spec.TLS.SecretRef != nil
+	return cluster.Spec.TLS.SecretName != ""
 }
 
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {

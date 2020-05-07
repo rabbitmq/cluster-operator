@@ -124,13 +124,13 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	// TLS: check if specified, and if secret exists
-	tlsSecretRef := rabbitmqCluster.Spec.TLS.SecretRef
-	if tlsSecretRef != nil {
-		logger.Info("TLS set, looking for secret", "secret", tlsSecretRef.Name, "namespace", tlsSecretRef.Namespace)
+	if rabbitmqCluster.TLSEnabled() {
+		secretName := rabbitmqCluster.Spec.TLS.SecretName
+		logger.Info("TLS set, looking for secret", "secret", secretName, "namespace", rabbitmqCluster.Namespace)
 
 		// check if secret exists
 		secret := &corev1.Secret{}
-		if err := r.Get(ctx, types.NamespacedName{Namespace: tlsSecretRef.Namespace, Name: tlsSecretRef.Name}, secret); err != nil {
+		if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
 			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError", fmt.Sprintf("Failed to get TLS secret: %v", err.Error()))
 			// retry after 10 seconds if not found
 			if errors.IsNotFound(err) {
