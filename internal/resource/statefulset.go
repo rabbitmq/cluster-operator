@@ -34,10 +34,6 @@ type StatefulSetBuilder struct {
 }
 
 func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
-	return builder.statefulSet()
-}
-
-func (builder *StatefulSetBuilder) statefulSet() (*appsv1.StatefulSet, error) {
 	// PVC, ServiceName & Selector: can't be updated without deleting the statefulset
 	pvc, err := persistentVolumeClaim(builder.Instance, builder.Scheme)
 	if err != nil {
@@ -111,7 +107,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	sts.Labels = updatedLabels
 
-	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels)
+	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels, builder.Instance.Spec.TLS)
 
 	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
 		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
@@ -125,7 +121,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) corev1.PodTemplateSpec {
+func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string, tlsSpec rabbitmqv1beta1.TLSSpec) corev1.PodTemplateSpec {
 	//Init Container resources
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
@@ -142,7 +138,154 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 
 	terminationGracePeriod := defaultGracePeriodTimeoutSeconds
 
-	return corev1.PodTemplateSpec{
+	volumes := []corev1.Volume{
+		{
+			Name: "rabbitmq-admin",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: builder.Instance.ChildResourceName(AdminSecretName),
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "username",
+							Path: "username",
+						},
+						{
+							Key:  "password",
+							Path: "password",
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "server-conf",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: builder.Instance.ChildResourceName(serverConfigMapName),
+					},
+				},
+			},
+		},
+		{
+			Name: "rabbitmq-etc",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: "rabbitmq-erlang-cookie",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: "erlang-cookie-secret",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: builder.Instance.ChildResourceName(erlangCookieName),
+				},
+			},
+		},
+		{
+			Name: "pod-info",
+			VolumeSource: corev1.VolumeSource{
+				DownwardAPI: &corev1.DownwardAPIVolumeSource{
+					Items: []corev1.DownwardAPIVolumeFile{
+						{
+							Path: DeletionMarker,
+							FieldRef: &corev1.ObjectFieldSelector{
+								FieldPath: fmt.Sprintf("metadata.labels['%s']", DeletionMarker),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ports := []corev1.ContainerPort{
+		{
+			Name:          "epmd",
+			ContainerPort: 4369,
+		},
+		{
+			Name:          "amqp",
+			ContainerPort: 5672,
+		},
+		{
+			Name:          "http",
+			ContainerPort: 15672,
+		},
+		{
+			Name:          "prometheus",
+			ContainerPort: 15692,
+		},
+	}
+
+	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "rabbitmq-admin",
+			MountPath: "/opt/rabbitmq-secret/",
+		},
+		{
+			Name:      "persistence",
+			MountPath: "/var/lib/rabbitmq/db/",
+		},
+		{
+			Name:      "rabbitmq-etc",
+			MountPath: "/etc/rabbitmq/",
+		},
+		{
+			Name:      "rabbitmq-erlang-cookie",
+			MountPath: "/var/lib/rabbitmq/",
+		},
+		{
+			Name:      "pod-info",
+			MountPath: "/etc/pod-info/",
+		},
+	}
+
+	if tlsSpec.SecretName != "" {
+		// add tls port
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "amqps",
+			ContainerPort: 5671,
+		})
+
+		// add tls volume
+		filePermissions := int32(400)
+		secretEnforced := true
+		tlsSecretName := tlsSpec.SecretName
+		volumes = append(volumes, corev1.Volume{
+			Name: "rabbitmq-tls",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: tlsSecretName,
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "tls.crt",
+							Path: "tls.crt",
+						},
+						{
+							Key:  "tls.key",
+							Path: "tls.key",
+						},
+					},
+					DefaultMode: &filePermissions,
+					Optional:    &secretEnforced,
+				},
+			},
+		})
+
+		// add volume mount
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name:      "rabbitmq-tls",
+			MountPath: "/etc/rabbitmq-tls/",
+		})
+	}
+
+	podTemplateSpec := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: annotations,
 			Labels:      labels,
@@ -201,6 +344,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					},
 				},
 			},
+			Volumes: volumes,
 			Containers: []corev1.Container{
 				{
 					Name:      "rabbitmq",
@@ -254,46 +398,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 						},
 					},
-					Ports: []corev1.ContainerPort{
-						{
-							Name:          "epmd",
-							ContainerPort: 4369,
-						},
-						{
-							Name:          "amqp",
-							ContainerPort: 5672,
-						},
-						{
-							Name:          "http",
-							ContainerPort: 15672,
-						},
-						{
-							Name:          "prometheus",
-							ContainerPort: 15692,
-						},
-					},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "rabbitmq-admin",
-							MountPath: "/opt/rabbitmq-secret/",
-						},
-						{
-							Name:      "persistence",
-							MountPath: "/var/lib/rabbitmq/db/",
-						},
-						{
-							Name:      "rabbitmq-etc",
-							MountPath: "/etc/rabbitmq/",
-						},
-						{
-							Name:      "rabbitmq-erlang-cookie",
-							MountPath: "/var/lib/rabbitmq/",
-						},
-						{
-							Name:      "pod-info",
-							MountPath: "/etc/pod-info/",
-						},
-					},
+					Ports:        ports,
+					VolumeMounts: rabbitmqContainerVolumeMounts,
 					ReadinessProbe: &corev1.Probe{
 						Handler: corev1.Handler{
 							Exec: &corev1.ExecAction{
@@ -322,71 +428,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					},
 				},
 			},
-			Volumes: []corev1.Volume{
-				{
-					Name: "rabbitmq-admin",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: builder.Instance.ChildResourceName(AdminSecretName),
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "username",
-									Path: "username",
-								},
-								{
-									Key:  "password",
-									Path: "password",
-								},
-							},
-						},
-					},
-				},
-				{
-					Name: "server-conf",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: builder.Instance.ChildResourceName(serverConfigMapName),
-							},
-						},
-					},
-				},
-				{
-					Name: "rabbitmq-etc",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-				{
-					Name: "rabbitmq-erlang-cookie",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-				{
-					Name: "erlang-cookie-secret",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: builder.Instance.ChildResourceName(erlangCookieName),
-						},
-					},
-				},
-				{
-					Name: "pod-info",
-					VolumeSource: corev1.VolumeSource{
-						DownwardAPI: &corev1.DownwardAPIVolumeSource{
-							Items: []corev1.DownwardAPIVolumeFile{
-								{
-									Path: DeletionMarker,
-									FieldRef: &corev1.ObjectFieldSelector{
-										FieldPath: fmt.Sprintf("metadata.labels['%s']", DeletionMarker),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 		},
 	}
+
+	return podTemplateSpec
 }
