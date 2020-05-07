@@ -83,6 +83,11 @@ run: generate manifests fmt vet install deploy-namespace-rbac just-run ## Run op
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
 	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=pivotal-rabbitmq-system go run ./main.go
 
+delve: generate install deploy-namespace-rbac just-delve ## Deploys CRD, Namespace, RBACs and starts Delve debugger
+
+just-delve: ## Just starts Delve debugger
+	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=pivotal-rabbitmq-system dlv debug
+
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -f config/crd/bases
