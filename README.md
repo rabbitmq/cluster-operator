@@ -11,16 +11,16 @@ The easiest way to set up a local development environment for running the Rabbit
 1. Follow the KinD [installation guide](https://kind.sigs.k8s.io/#installation-and-usage) to deploy a Kubernetes cluster
 1. Run `make deploy-kind`
 1. Check that the operator is running by running `kubectl get all --namespace=pivotal-rabbitmq-system`
-1. Deploy a `RabbitMQCluster` custom resource. Refer to the [example YAML](./cr-example.yaml) and [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-6/using.html) for available CR attributes
+1. Deploy a `RabbitMQCluster` custom resource. Refer to the [example YAML](./cr-example.yaml) and [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/using.html#configure) for available CR attributes
     1. Due to resource limitations on your Docker daemon, the Kubernetes might not be able to schedule all `RabbitmqCluter` nodes. Either [increase your Docker daemon's resource limits](https://docs.docker.com/docker-for-mac/#resources) or deploy the `RabbitmqCluster` custom resource with `resources: {}` to remove default `memory` and `cpu` resource settings.
     1. If you set the `serviceType` to `LoadBalancer`, run `make prepare-kind` to deploy a [MetalLB](https://metallb.universe.tf/) load balancer. This will allow the operator to complete the `RabbitmqCluster` provisioning by assign an arbitrary local IP address to the cluster's ingress service. Proper [network configuration](https://metallb.universe.tf/installation/network-addons/) is required to route traffic via the assigned IP address.
 
 ### Documentation
 
-The RabbitMQ for Kubernetes [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-6/index.html) has steps for production deployments:
-- [Deploying an operator](https://docs.pivotal.io/rabbitmq-kubernetes/0-6/installing.html)
-- [Deploying a RabbitMQ cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-6/using.html)
-- [Monitoring the cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-6/monitoring.html)
+The RabbitMQ for Kubernetes [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/index.html) has steps to deploy to a Kubernetes cluster:
+- [Deploying an operator](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/installing.html)
+- [Deploying a RabbitMQ cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/using.html)
+- [Monitoring the cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/monitoring.html)
 
 #### Make targets
 
@@ -48,7 +48,7 @@ Before submitting a pull request, ensure all local tests pass:
 - `make unit-tests`
 - `make integration-tests`
 
-//TODO: generalise deployment process: make DOCKER_REGISTRY_SECRET and DOCKER_REGISTRY_SERVER configurable
+<!-- TODO: generalise deployment process: make DOCKER_REGISTRY_SECRET and DOCKER_REGISTRY_SERVER configurable -->
 Also, run the system tests against a Kubernetes cluster:
 - `make deploy`
 - `make system-tests`
@@ -57,6 +57,3 @@ Also, run the system tests against a Kubernetes cluster:
 
 This project follows the same code conventions as the [kubernetes golang code conventions](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions). The kuberentes golang code conventions mostly refer to [Effective Go](https://golang.org/doc/effective_go.html) and the [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments). Please ensure your pull requests follow these guidlines.
 
-## License
-
-//TODO
