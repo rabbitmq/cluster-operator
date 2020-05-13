@@ -147,8 +147,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError", fmt.Sprintf("The TLS secret must have the fields tls.crt and tls.key"))
 			return ctrl.Result{}, errors.NewBadRequest("The TLS secret must have the fields tls.crt and tls.key")
 		}
-
-		// TODO: check if the private key and cert have a valid format
 	}
 
 	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
