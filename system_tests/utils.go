@@ -3,8 +3,11 @@ package system_tests
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,11 +20,19 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/cloudflare/cfssl/csr"
+	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/initca"
+	"github.com/cloudflare/cfssl/signer"
+	"github.com/cloudflare/cfssl/signer/local"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	"github.com/streadway/amqp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/retry"
 
 	. "github.com/onsi/gomega"
 )
@@ -178,6 +189,114 @@ func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassw
 	return nil
 }
 
+func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, caFilePath string) error {
+	// create TLS config for amqps request
+	cfg := new(tls.Config)
+	cfg.RootCAs = x509.NewCertPool()
+	ca, err := ioutil.ReadFile(caFilePath)
+	if err != nil {
+		return err
+	}
+	cfg.RootCAs.AppendCertsFromPEM(ca)
+
+	// create connection
+	conn, err := amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:5671/", username, password, hostname), cfg)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	// create channel
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+
+	q, err := ch.QueueDeclare(
+		"test-queue", // name
+		true,         // durable
+		false,        // delete when unused
+		false,        // exclusive
+		false,        // no-wait
+		nil,          // arguments
+	)
+	if err != nil {
+		return err
+	}
+
+	err = ch.Publish(
+		"",     // exchange
+		q.Name, // routing key
+		false,  // mandatory
+		false,  // immediate
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        []byte(message),
+		})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath string) (string, error) {
+	// create TLS config for amqps request
+	cfg := new(tls.Config)
+	cfg.RootCAs = x509.NewCertPool()
+	ca, err := ioutil.ReadFile(caFilePath)
+	if err != nil {
+		return "", err
+	}
+	cfg.RootCAs.AppendCertsFromPEM(ca)
+
+	// create connection
+	conn, err := amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:5671/", username, password, hostname), cfg)
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	// create channel
+	ch, err := conn.Channel()
+	if err != nil {
+		return "", err
+	}
+	defer ch.Close()
+
+	// declare queue (safety incase the consumer is started before the producer)
+	q, err := ch.QueueDeclare(
+		"test-queue", // name
+		true,         // durable
+		false,        // delete when unused
+		false,        // exclusive
+		false,        // no-wait
+		nil,          // arguments
+	)
+	if err != nil {
+		return "", err
+	}
+
+	// consume from queue
+	msgs, err := ch.Consume(
+		q.Name, // queue
+		"",     // consumer
+		true,   // auto-ack
+		false,  // exclusive
+		false,  // no-local
+		false,  // no-wait
+		nil,    // args
+	)
+
+	// return first msg
+	for msg := range msgs {
+		return string(msg.Body), nil
+	}
+
+	return "", nil
+}
+
 func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("http://%s:15672/api/aliveness-test/%%2F", rabbitmqHostName)
@@ -248,6 +367,28 @@ func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Ra
 	}
 }
 
+//the updateFn can change properties of the RabbitmqCluster CR
+func updateRabbitmqCluster(client client.Client, name, namespace string, updateFn func(*rabbitmqv1beta1.RabbitmqCluster)) error {
+	var result rabbitmqv1beta1.RabbitmqCluster
+
+	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		getErr := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, &result)
+		if getErr != nil {
+			return getErr
+		}
+
+		updateFn(&result)
+		updateErr := client.Update(context.TODO(), &result)
+		return updateErr
+	})
+
+	if retryErr != nil {
+		return retryErr
+	}
+
+	return nil
+}
+
 func createRabbitmqCluster(client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	return client.Create(context.TODO(), rabbitmqCluster)
 }
@@ -262,6 +403,29 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 	ExpectWithOffset(1, len(service.Status.LoadBalancer.Ingress)).To(BeNumerically(">", 0))
 
 	return service.Status.LoadBalancer.Ingress[0].IP
+}
+
+func waitForRabbitmqNotRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	var err error
+
+	EventuallyWithOffset(1, func() string {
+		output, err := kubectl(
+			"-n",
+			cluster.Namespace,
+			"get",
+			"rabbitmqclusters",
+			cluster.Name,
+			"-ojsonpath='{.status.conditions[?(@.type==\"AllReplicasReady\")].status}'",
+		)
+
+		if err != nil {
+			Expect(string(output)).To(ContainSubstring("not found"))
+		}
+
+		return string(output)
+	}, podCreationTimeout, 1).Should(Equal("'False'"))
+
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 }
 
 func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
@@ -363,4 +527,171 @@ func waitForStsRestart(clientSet *kubernetes.Clientset, namespace, stsName strin
 		Expect(err).NotTo(HaveOccurred())
 		return int(sts.Status.ReadyReplicas)
 	}, podCreationTimeout).Should(Equal(1))
+}
+
+func createTLSSecret(secretName, secretNamespace, hostname string) string {
+	// create key and crt files
+	tmpDir := os.TempDir()
+	serverCertPath := filepath.Join(tmpDir, "server.crt")
+	serverCertFile, err := os.OpenFile(serverCertPath, os.O_CREATE|os.O_RDWR, 0755)
+	Expect(err).ToNot(HaveOccurred())
+
+	serverKeyPath := filepath.Join(tmpDir, "server.key")
+	serverKeyFile, err := os.OpenFile(serverKeyPath, os.O_CREATE|os.O_RDWR, 0755)
+	Expect(err).ToNot(HaveOccurred())
+
+	caCertPath := filepath.Join(tmpDir, "ca.crt")
+	caCertFile, err := os.OpenFile(caCertPath, os.O_CREATE|os.O_RDWR, 0755)
+	Expect(err).ToNot(HaveOccurred())
+
+	// generate and write cert and key to file
+	Expect(generateCertificateChain(hostname, caCertFile, serverCertFile, serverKeyFile)).To(Succeed())
+	// create k8s tls secret
+	Expect(k8sCreateSecretTLS("rabbitmq-tls-test-secret", secretNamespace, serverCertPath, serverKeyPath)).To(Succeed())
+
+	// remove server files
+	Expect(os.Remove(serverKeyPath)).To(Succeed())
+	Expect(os.Remove(serverCertPath)).To(Succeed())
+	return caCertPath
+}
+
+func k8sSecretExists(secretName, secretNamespace string) (bool, error) {
+	output, err := kubectl(
+		"-n",
+		secretNamespace,
+		"get",
+		"secret",
+		secretName,
+	)
+
+	if err != nil {
+		Expect(string(output)).To(ContainSubstring("not found"))
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func k8sCreateSecretTLS(secretName, secretNamespace, certPath, keyPath string) error {
+	// delete secret if it exists
+	secretExists, err := k8sSecretExists(secretName, secretNamespace)
+	Expect(err).NotTo(HaveOccurred())
+	if secretExists {
+		Expect(k8sDeleteSecret(secretName, secretNamespace)).To(Succeed())
+	}
+
+	// create secret
+	output, err := kubectl(
+		"-n",
+		secretNamespace,
+		"create",
+		"secret",
+		"tls",
+		secretName,
+		fmt.Sprintf("--cert=%+v", certPath),
+		fmt.Sprintf("--key=%+v", keyPath),
+	)
+
+	if err != nil {
+		return fmt.Errorf("Failed with error: %v\nOutput: %v\n", err.Error(), string(output))
+	}
+
+	return nil
+}
+
+func k8sDeleteSecret(secretName, secretNamespace string) error {
+	output, err := kubectl(
+		"-n",
+		secretNamespace,
+		"delete",
+		"secret",
+		secretName,
+	)
+
+	if err != nil {
+		return fmt.Errorf("Failed with error: %v\nOutput: %v\n", err.Error(), string(output))
+	}
+
+	return nil
+}
+
+// creates a CA cert, and uses it to sign another cert
+func generateCertificateChain(hostname string, caCertWriter, certWriter, keyWriter io.Writer) error {
+	// create a CA cert
+	caReq := &csr.CertificateRequest{
+		Names: []csr.Name{
+			{
+				C:  "UK",
+				ST: "London",
+				L:  "London",
+				O:  "VMWare",
+				OU: "RabbitMQ",
+			},
+		},
+		CN:         "tests-CA",
+		Hosts:      []string{hostname},
+		KeyRequest: &csr.KeyRequest{A: "rsa", S: 2048},
+	}
+
+	caCert, _, caKey, err := initca.New(caReq)
+	if err != nil {
+		return err
+	}
+
+	caPriv, err := helpers.ParsePrivateKeyPEM(caKey)
+	if err != nil {
+		return err
+	}
+
+	caPub, err := helpers.ParseCertificatePEM(caCert)
+	if err != nil {
+		return err
+	}
+
+	s, err := local.NewSigner(caPriv, caPub, signer.DefaultSigAlgo(caPriv), nil)
+	if err != nil {
+		return err
+	}
+
+	// create server cert
+	serverReq := &csr.CertificateRequest{
+		Names: []csr.Name{
+			{
+				C:  "UK",
+				ST: "London",
+				L:  "London",
+				O:  "VMWare",
+				OU: "RabbitMQ",
+			},
+		},
+		CN:         "tests-server",
+		Hosts:      []string{hostname},
+		KeyRequest: &csr.KeyRequest{A: "rsa", S: 2048},
+	}
+
+	serverCsr, serverKey, err := csr.ParseRequest(serverReq)
+	if err != nil {
+		return err
+	}
+
+	signReq := signer.SignRequest{Hosts: serverReq.Hosts, Request: string(serverCsr)}
+	serverCert, err := s.Sign(signReq)
+	if err != nil {
+		return err
+	}
+
+	_, err = caCertWriter.Write(caCert)
+	if err != nil {
+		return err
+	}
+	_, err = certWriter.Write(serverCert)
+	if err != nil {
+		return err
+	}
+	_, err = keyWriter.Write(serverKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -7,6 +7,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.9.2 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.8.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/cloudflare/cfssl v1.4.1
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
@@ -19,6 +20,7 @@ require (
 	github.com/prometheus/client_golang v1.2.1 // indirect
 	github.com/prometheus/common v0.7.0
 	github.com/prometheus/procfs v0.0.8 // indirect
+	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20191122220453-ac88ee75c92c // indirect

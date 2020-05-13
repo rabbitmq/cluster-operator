@@ -272,16 +272,66 @@ cluster_keepalive_interval = 10000`
 	})
 
 	Context("TLS", func() {
-		// not implemented
-		//It("can access on port 5671 and the communication is TLS enabled", func() {
+		When("TLS is correctly configured", func() {
+			var (
+				cluster    *rabbitmqv1beta1.RabbitmqCluster
+				hostname   string
+				username   string
+				password   string
+				caFilePath string
+			)
 
-		//})
+			BeforeEach(func() {
+				cluster = generateRabbitmqCluster(namespace, "tls-test-rabbit")
+				cluster.Spec.Service.Type = "LoadBalancer"
+				cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
+				cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
+				cluster.Spec.Resources = &corev1.ResourceRequirements{
+					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
+					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+				}
+				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				waitForRabbitmqRunning(cluster)
+				waitForLoadBalancer(clientSet, cluster)
+
+				hostname = rabbitmqHostname(clientSet, cluster)
+				caFilePath = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
+
+				// Update CR with TLS secret name
+				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
+				})).To(Succeed())
+				// wait because the change in cluster condition is not fast enough
+				waitForRabbitmqNotRunning(cluster)
+				waitForLoadBalancer(clientSet, cluster)
+				waitForRabbitmqRunning(cluster)
+			})
+
+			AfterEach(func() {
+				Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
+				Expect(k8sDeleteSecret("rabbitmq-tls-test-secret", namespace)).To(Succeed())
+			})
+
+			It("talks amqps with RabbitMQ", func() {
+				var err error
+				username, password, err = getRabbitmqUsernameAndPassword(clientSet, "pivotal-rabbitmq-system", "tls-test-rabbit")
+				Expect(err).NotTo(HaveOccurred())
+
+				// try to publish and consume a message on a amqps url
+				sentMessage := "Hello Rabbitmq!"
+				Expect(rabbitmqAMQPSPublishToNewQueue(sentMessage, username, password, hostname, caFilePath)).To(Succeed())
+
+				recievedMessage, err := rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(recievedMessage).To(Equal(sentMessage))
+			})
+		})
 
 		When("the TLS secret does not exist", func() {
-			cluster := generateRabbitmqCluster(namespace, "tls-rabbit-2")
+			cluster := generateRabbitmqCluster(namespace, "tls-test-rabbit-faulty")
 			cluster.Spec.TLS = rabbitmqv1beta1.TLSSpec{SecretName: "tls-secret-does-not-exist"}
 
-			It("fails to deploy the RabbitmqCluster", func() {
+			It("reports a TLSError event with the reason", func() {
 				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 				assertTLSError(cluster)
 				Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
