@@ -438,17 +438,7 @@ var _ = Describe("StatefulSet", func() {
 					Name: "rabbitmq-tls",
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							SecretName: "tls-secret",
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "tls.crt",
-									Path: "tls.crt",
-								},
-								{
-									Key:  "tls.key",
-									Path: "tls.key",
-								},
-							},
+							SecretName:  "tls-secret",
 							DefaultMode: &filePermissions,
 							Optional:    &secretEnforced,
 						},

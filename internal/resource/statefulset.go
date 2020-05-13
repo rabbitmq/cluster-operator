@@ -261,17 +261,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			Name: "rabbitmq-tls",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: tlsSecretName,
-					Items: []corev1.KeyToPath{
-						{
-							Key:  "tls.crt",
-							Path: "tls.crt",
-						},
-						{
-							Key:  "tls.key",
-							Path: "tls.key",
-						},
-					},
+					SecretName:  tlsSecretName,
 					DefaultMode: &filePermissions,
 					Optional:    &secretEnforced,
 				},
