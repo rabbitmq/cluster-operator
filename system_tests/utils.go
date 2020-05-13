@@ -405,6 +405,11 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 	return service.Status.LoadBalancer.Ingress[0].IP
 }
 
+func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	waitForRabbitmqNotRunning(cluster)
+	waitForRabbitmqRunning(cluster)
+}
+
 func waitForRabbitmqNotRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	var err error
 
@@ -515,20 +520,6 @@ func assertHttpReady(hostname string) {
 	}, podCreationTimeout, 5).Should(Equal(http.StatusOK))
 }
 
-func waitForStsRestart(clientSet *kubernetes.Clientset, namespace, stsName string) {
-	EventuallyWithOffset(1, func() int {
-		sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
-		Expect(err).NotTo(HaveOccurred())
-		return int(sts.Status.ReadyReplicas)
-	}, 20*time.Second).Should(Equal(0))
-
-	EventuallyWithOffset(1, func() int {
-		sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
-		Expect(err).NotTo(HaveOccurred())
-		return int(sts.Status.ReadyReplicas)
-	}, podCreationTimeout).Should(Equal(1))
-}
-
 func createTLSSecret(secretName, secretNamespace, hostname string) string {
 	// create key and crt files
 	tmpDir := os.TempDir()
@@ -545,7 +536,7 @@ func createTLSSecret(secretName, secretNamespace, hostname string) string {
 	Expect(err).ToNot(HaveOccurred())
 
 	// generate and write cert and key to file
-	Expect(generateCertificateChain(hostname, caCertFile, serverCertFile, serverKeyFile)).To(Succeed())
+	Expect(createCertificateChain(hostname, caCertFile, serverCertFile, serverKeyFile)).To(Succeed())
 	// create k8s tls secret
 	Expect(k8sCreateSecretTLS("rabbitmq-tls-test-secret", secretNamespace, serverCertPath, serverKeyPath)).To(Succeed())
 
@@ -616,7 +607,7 @@ func k8sDeleteSecret(secretName, secretNamespace string) error {
 }
 
 // creates a CA cert, and uses it to sign another cert
-func generateCertificateChain(hostname string, caCertWriter, certWriter, keyWriter io.Writer) error {
+func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter io.Writer) error {
 	// create a CA cert
 	caReq := &csr.CertificateRequest{
 		Names: []csr.Name{

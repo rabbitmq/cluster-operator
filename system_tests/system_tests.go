@@ -2,7 +2,6 @@ package system_tests
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -135,10 +134,9 @@ var _ = Describe("Operator", func() {
 		It("keeps rabbitmq server related configurations up-to-date", func() {
 			By("updating enabled plugins when additionalPlugins are modified", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
-				fetchedRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).To(Succeed())
-				fetchedRabbit.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
-				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
+				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+					cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
+				})).To(Succeed())
 
 				Eventually(func() error {
 					_, err := kubectlExec(namespace,
@@ -155,16 +153,14 @@ var _ = Describe("Operator", func() {
 			})
 
 			By("updating the rabbitmq.conf file when additionalConfig are modified", func() {
-				// modify rabbitmqcluster.spec.rabbitmq.additionalConfig
-				fetchedRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).NotTo(HaveOccurred())
-				fetchedRabbit.Spec.Rabbitmq.AdditionalConfig = `vm_memory_high_watermark_paging_ratio = 0.5
+				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+					cluster.Spec.Rabbitmq.AdditionalConfig = `vm_memory_high_watermark_paging_ratio = 0.5
 cluster_partition_handling = ignore
 cluster_keepalive_interval = 10000`
-				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
+				})).To(Succeed())
 
 				// wait for statefulSet to be restarted
-				waitForStsRestart(clientSet, cluster.Namespace, cluster.ChildResourceName("server"))
+				waitForRabbitmqUpdate(cluster)
 
 				// verify that rabbitmq.conf contains provided configurations
 				output, err := kubectlExec(namespace,
@@ -302,9 +298,8 @@ cluster_keepalive_interval = 10000`
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 				})).To(Succeed())
 				// wait because the change in cluster condition is not fast enough
-				waitForRabbitmqNotRunning(cluster)
+				waitForRabbitmqUpdate(cluster)
 				waitForLoadBalancer(clientSet, cluster)
-				waitForRabbitmqRunning(cluster)
 			})
 
 			AfterEach(func() {
