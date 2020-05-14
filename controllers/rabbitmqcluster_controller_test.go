@@ -228,7 +228,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 			_, err := clientSet.CoreV1().Secrets("rabbitmq-tls").Create(&tlsSecret)
-			Expect(ignoreAlreadyExists(err)).NotTo(HaveOccurred())
+			if !apierrors.IsAlreadyExists(err) {
+				Expect(err).NotTo(HaveOccurred())
+			}
 
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -262,7 +264,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 					},
 				}
 				_, err := clientSet.CoreV1().Secrets("rabbitmq-tls-namespace").Create(&malformedSecret)
-				Expect(ignoreAlreadyExists(err)).NotTo(HaveOccurred())
+				if !apierrors.IsAlreadyExists(err) {
+					Expect(err).NotTo(HaveOccurred())
+				}
 
 				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -899,11 +903,4 @@ func waitForClusterDeletion(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 		return apierrors.IsNotFound(err)
 	}, ClusterDeletionTimeout, 1*time.Second).Should(BeTrue())
 
-}
-
-func ignoreAlreadyExists(err error) error {
-	if apierrors.IsAlreadyExists(err) {
-		return nil
-	}
-	return err
 }
