@@ -15,15 +15,16 @@ type ResourceBuilder interface {
 	Build() (runtime.Object, error)
 }
 
-func (builder *RabbitmqResourceBuilder) ResourceBuilders() (builders []ResourceBuilder, err error) {
-	builders = append(builders, builder.HeadlessService())
-	builders = append(builders, builder.IngressService())
-	builders = append(builders, builder.ErlangCookie())
-	builders = append(builders, builder.AdminSecret())
-	builders = append(builders, builder.ServerConfigMap())
-	builders = append(builders, builder.ServiceAccount())
-	builders = append(builders, builder.Role())
-	builders = append(builders, builder.RoleBinding())
-	builders = append(builders, builder.StatefulSet())
-	return builders, nil
+func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, error) {
+	return []ResourceBuilder{
+		builder.HeadlessService(),
+		builder.IngressService(),
+		builder.ErlangCookie(),
+		builder.AdminSecret(),
+		builder.ServerConfigMap(),
+		builder.ServiceAccount(),
+		builder.Role(),
+		builder.RoleBinding(),
+		builder.StatefulSet(),
+	}, nil
 }

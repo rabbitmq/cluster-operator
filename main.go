@@ -18,10 +18,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"os"
+	"strconv"
+	"time"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
@@ -36,14 +39,13 @@ import (
 const controllerName = "rabbitmqcluster-controller"
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = runtime.NewScheme()
+	log    = ctrl.Log.WithName("setup")
 )
 
 func init() {
-
-	rabbitmqv1beta1.AddToScheme(scheme)
-	defaultscheme.AddToScheme(scheme)
+	_ = rabbitmqv1beta1.AddToScheme(scheme)
+	_ = defaultscheme.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -52,11 +54,11 @@ func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":12345", "The address the metric endpoint binds to.")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.Logger(true))
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	operatorNamespace := os.Getenv("OPERATOR_NAMESPACE")
 	if operatorNamespace == "" {
-		setupLog.Info("Unable to find operator namespace")
+		log.Info("unable to find operator namespace")
 		os.Exit(1)
 	}
 
@@ -68,9 +70,24 @@ func main() {
 		LeaderElectionID:        "pivotal-rabbitmq-operator-leader-election",
 	}
 
+	if leaseDuration := getEnvInDuration("LEASE_DURATION"); leaseDuration != 0 {
+		log.Info("manager configured with lease duration",  "seconds", int(leaseDuration.Seconds()))
+		options.LeaseDuration = &leaseDuration
+	}
+
+	if renewDeadline := getEnvInDuration("RENEW_DEADLINE"); renewDeadline != 0 {
+		log.Info("manager configured with renew deadline", "seconds", int(renewDeadline.Seconds()))
+		options.RenewDeadline = &renewDeadline
+	}
+
+	if retryPeriod := getEnvInDuration("RETRY_PERIOD"); retryPeriod != 0 {
+		log.Info("manager configured with retry period", "seconds", int(retryPeriod.Seconds()))
+		options.RetryPeriod = &retryPeriod
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		log.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
@@ -82,7 +99,7 @@ func main() {
 	}
 
 	if err != nil {
-		setupLog.Error(err, "unable to get kubernetes cluster config")
+		log.Error(err, "unable to get kubernetes cluster config")
 		os.Exit(1)
 	}
 
@@ -96,15 +113,27 @@ func main() {
 		Clientset:     kubernetes.NewForConfigOrDie(clusterConfig),
 	}).SetupWithManager(mgr)
 	if err != nil {
-		setupLog.Error(err, "unable to create controller", controllerName)
+		log.Error(err, "unable to create controller", controllerName)
 		os.Exit(1)
 	}
-	setupLog.Info("Started controller")
+	log.Info("started controller")
 	// +kubebuilder:scaffold:builder
 
-	setupLog.Info("starting manager")
+	log.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+		log.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func getEnvInDuration(envName string) time.Duration {
+	var durationInt int64
+	if durationStr := os.Getenv(envName); durationStr != "" {
+		var err error
+		if durationInt, err = strconv.ParseInt(durationStr, 10, 64); err != nil {
+			log.Error(err, fmt.Sprintf("unable to parse provided '%s'", envName))
+			os.Exit(1)
+		}
+	}
+	return time.Duration(durationInt) * time.Second
 }
