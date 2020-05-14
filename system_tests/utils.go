@@ -406,14 +406,18 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 }
 
 func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
-	waitForRabbitmqNotRunning(cluster)
-	waitForRabbitmqRunning(cluster)
+	waitForRabbitmqNotRunningWithOffset(cluster, 2)
+	waitForRabbitmqRunningWithOffset(cluster, 2)
 }
 
-func waitForRabbitmqNotRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	waitForRabbitmqRunningWithOffset(cluster, 2)
+}
+
+func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
 	var err error
 
-	EventuallyWithOffset(1, func() string {
+	EventuallyWithOffset(callStackOffset, func() string {
 		output, err := kubectl(
 			"-n",
 			cluster.Namespace,
@@ -430,13 +434,15 @@ func waitForRabbitmqNotRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 		return string(output)
 	}, podCreationTimeout, 1).Should(Equal("'False'"))
 
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
 }
 
-func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+// the callStackOffset makes sure that failures point to the caller of the function
+// than the function itself
+func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
 	var err error
 
-	EventuallyWithOffset(1, func() string {
+	EventuallyWithOffset(callStackOffset, func() string {
 		output, err := kubectl(
 			"-n",
 			cluster.Namespace,
@@ -453,7 +459,7 @@ func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 		return string(output)
 	}, podCreationTimeout, 1).Should(Equal("'True'"))
 
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
 }
 
 // asserts an event with reason: "TLSError", occurs for the cluster in it's namespace
