@@ -71,7 +71,7 @@ type RabbitmqClusterSpec struct {
 }
 
 type TLSSpec struct {
-	SecretName string `json:"secretName"`
+	SecretName string `json:"secretName,omitempty"`
 }
 
 // kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.
