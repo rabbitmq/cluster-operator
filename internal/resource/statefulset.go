@@ -275,7 +275,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		})
 	}
 
-	podTemplateSpec := corev1.PodTemplateSpec{
+	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: annotations,
 			Labels:      labels,
@@ -420,6 +420,4 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			},
 		},
 	}
-
-	return podTemplateSpec
 }
