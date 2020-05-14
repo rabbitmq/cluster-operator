@@ -52,3 +52,5 @@ spec:
     additionalConfig:
     |
       cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+  tls:
+    secretName: tls-secret

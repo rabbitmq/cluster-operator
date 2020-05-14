@@ -69,3 +69,10 @@ spec:
 {{ toYaml .Values.rabbitmq.additionalConfig | indent 4 }}
     {{- end }}
   {{- end }}
+
+  {{- if .Values.tls }}
+  tls:
+    {{- if .Values.tls.secretName }}
+    secretName: {{ .Values.tls.secretName }}
+    {{- end }}
+  {{- end }}
