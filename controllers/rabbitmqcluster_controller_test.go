@@ -254,20 +254,20 @@ var _ = Describe("RabbitmqclusterController", func() {
 				malformedSecret := corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "rabbitmq-tls-malformed",
-						Namespace: "rabbitmq-tls-malformed",
+						Namespace: "rabbitmq-tls-namespace",
 					},
 					StringData: map[string]string{
 						"somekey": "someval",
 						"tls.key": "this is a tls key",
 					},
 				}
-				_, err := clientSet.CoreV1().Secrets("rabbitmq-tls-malformed").Create(&malformedSecret)
+				_, err := clientSet.CoreV1().Secrets("rabbitmq-tls-namespace").Create(&malformedSecret)
 				Expect(ignoreAlreadyExists(err)).NotTo(HaveOccurred())
 
 				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "rabbitmq-tls-malformed",
-						Namespace: "rabbitmq-tls-malformed",
+						Namespace: "rabbitmq-tls-namespace",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 						Replicas: 1,
@@ -285,7 +285,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 				tlsRetry := 1 * time.Second
 				Eventually(func() string {
 					return aggregateEventMsgs(rabbitmqCluster, "TLSError")
-				}, tlsEventTimeout, tlsRetry).Should(ContainSubstring("The TLS secret must have the fields tls.crt and tls.key"))
+				}, tlsEventTimeout, tlsRetry).Should(
+					ContainSubstring("The TLS secret rabbitmq-tls-malformed in namespace rabbitmq-tls-namespace must have the fields tls.crt and tls.key"))
 			})
 
 		})

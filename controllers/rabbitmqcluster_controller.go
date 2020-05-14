@@ -131,7 +131,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		// check if secret exists
 		secret := &corev1.Secret{}
 		if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
-			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError", fmt.Sprintf("Failed to get TLS secret: %v", err.Error()))
+			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
+				fmt.Sprintf("Failed to get TLS secret in namespace %v: %v", rabbitmqCluster.Namespace, err.Error()))
 			// retry after 10 seconds if not found
 			if errors.IsNotFound(err) {
 				return ctrl.Result{RequeueAfter: 10 * time.Second}, err
@@ -144,7 +145,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		_, hasTLSKey := secret.Data["tls.key"]
 		_, hasTLSCert := secret.Data["tls.crt"]
 		if !hasTLSCert || !hasTLSKey {
-			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError", fmt.Sprintf("The TLS secret must have the fields tls.crt and tls.key"))
+			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
+				fmt.Sprintf("The TLS secret %v in namespace %v must have the fields tls.crt and tls.key", secretName, rabbitmqCluster.Namespace))
 			return ctrl.Result{}, errors.NewBadRequest("The TLS secret must have the fields tls.crt and tls.key")
 		}
 	}
