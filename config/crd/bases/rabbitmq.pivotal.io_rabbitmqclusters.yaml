@@ -720,8 +720,6 @@ spec:
               properties:
                 secretName:
                   type: string
-              required:
-              - secretName
               type: object
             tolerations:
               description: Tolerations is the list of Toleration resources attached
