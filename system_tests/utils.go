@@ -468,6 +468,8 @@ func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 
 	EventuallyWithOffset(1, func() string {
 		output, _ := kubectl(
+			"-n",
+			cluster.Namespace,
 			"get",
 			"events",
 			"--field-selector",
