@@ -121,6 +121,15 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	// Resource has been marked for deletion
+	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		logger.Info("Deleting RabbitmqCluster",
+			"namespace", rabbitmqCluster.Namespace,
+			"name", rabbitmqCluster.Name)
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
+	}
+
 	// TLS: check if specified, and if secret exists
 	if rabbitmqCluster.TLSEnabled() {
 		secretName := rabbitmqCluster.Spec.TLS.SecretName
@@ -151,15 +160,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// Resource has been marked for deletion
-	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		logger.Info("Deleting RabbitmqCluster",
-			"namespace", rabbitmqCluster.Namespace,
-			"name", rabbitmqCluster.Name)
-		// Stop reconciliation as the item is being deleted
-		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
 	}
 
 	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
