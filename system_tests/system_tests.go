@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -22,20 +20,14 @@ const (
 
 var _ = Describe("Operator", func() {
 	var (
-		clientSet *kubernetes.Clientset
 		namespace = MustHaveEnv("NAMESPACE")
 	)
-
-	BeforeEach(func() {
-		var err error
-		clientSet, err = createClientSet()
-		Expect(err).NotTo(HaveOccurred())
-	})
 
 	Context("Publish and consume a message in a single node cluster", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
+			port     string
 			username string
 			password string
 		)
@@ -44,7 +36,7 @@ var _ = Describe("Operator", func() {
 			one := int32(1)
 			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
 			cluster.Spec.Replicas = &one
-			cluster.Spec.Service.Type = "LoadBalancer"
+			cluster.Spec.Service.Type = "NodePort"
 			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
@@ -55,14 +47,14 @@ var _ = Describe("Operator", func() {
 
 			waitForRabbitmqRunning(cluster)
 			waitForClusterAvailable(cluster)
-			waitForLoadBalancer(clientSet, cluster)
 
-			hostname = rabbitmqHostname(clientSet, cluster)
+			hostname = kubernetesNodeIp(clientSet)
+			port = rabbitmqIngressManagementNodePort(clientSet, cluster)
 
 			var err error
 			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			assertHttpReady(hostname)
+			assertHttpReady(hostname, port)
 		})
 
 		AfterEach(func() {
@@ -71,7 +63,7 @@ var _ = Describe("Operator", func() {
 
 		It("works", func() {
 			By("being able to create a test queue and publish a message", func() {
-				response, err := rabbitmqAlivenessTest(hostname, username, password)
+				response, err := rabbitmqAlivenessTest(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
 			})
@@ -183,13 +175,14 @@ cluster_keepalive_interval = 10000`
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
+			port     string
 			username string
 			password string
 		)
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
-			cluster.Spec.Service.Type = "LoadBalancer"
+			cluster.Spec.Service.Type = "NodePort"
 			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
@@ -199,14 +192,14 @@ cluster_keepalive_interval = 10000`
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
-			waitForLoadBalancer(clientSet, cluster)
 
-			hostname = rabbitmqHostname(clientSet, cluster)
+			hostname = kubernetesNodeIp(clientSet)
+			port = rabbitmqIngressManagementNodePort(clientSet, cluster)
 
 			var err error
 			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			assertHttpReady(hostname)
+			assertHttpReady(hostname, port)
 		})
 
 		AfterEach(func() {
@@ -215,14 +208,15 @@ cluster_keepalive_interval = 10000`
 
 		It("persists messages after pod deletion", func() {
 			By("publishing a message", func() {
-				err := rabbitmqPublishToNewQueue(hostname, username, password)
+				err := rabbitmqPublishToNewQueue(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			By("consuming a message after RabbitMQ was restarted", func() {
-				assertHttpReady(hostname)
+				// We are asserting this in the BeforeEach. Is it necessary again here?
+				assertHttpReady(hostname, port)
 
-				message, err := rabbitmqGetMessageFromQueue(hostname, username, password)
+				message, err := rabbitmqGetMessageFromQueue(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(message.Payload).To(Equal("hello"))
 			})
@@ -245,12 +239,13 @@ cluster_keepalive_interval = 10000`
 				three := int32(3)
 				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
 				cluster.Spec.Replicas = &three
-				cluster.Spec.Service.Type = "LoadBalancer"
+				cluster.Spec.Service.Type = "NodePort"
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 				}
 				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				waitForRabbitmqRunning(cluster)
 			})
 
 			AfterEach(func() {
@@ -258,14 +253,13 @@ cluster_keepalive_interval = 10000`
 			})
 
 			It("works", func() {
-				waitForRabbitmqRunning(cluster)
 				username, password, err := getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
-				waitForLoadBalancer(clientSet, cluster)
-				hostname := rabbitmqHostname(clientSet, cluster)
+				hostname := kubernetesNodeIp(clientSet)
+				port := rabbitmqIngressManagementNodePort(clientSet, cluster)
 				Expect(err).NotTo(HaveOccurred())
-				assertHttpReady(hostname)
+				assertHttpReady(hostname, port)
 
-				response, err := rabbitmqAlivenessTest(hostname, username, password)
+				response, err := rabbitmqAlivenessTest(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
 			})
