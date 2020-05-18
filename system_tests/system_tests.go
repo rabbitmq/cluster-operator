@@ -149,7 +149,7 @@ var _ = Describe("Operator", func() {
 						"rabbitmq_top",
 					)
 					return err
-				}, 20*time.Second).Should(Succeed())
+				}, 40*time.Second).Should(Succeed())
 			})
 
 			By("updating the rabbitmq.conf file when additionalConfig are modified", func() {

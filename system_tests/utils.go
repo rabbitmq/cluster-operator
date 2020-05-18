@@ -96,7 +96,7 @@ func kubectl(args ...string) ([]byte, error) {
 }
 
 func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, body []byte) (responseBody []byte, err error) {
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: 10 * time.Second}
 	req, _ := http.NewRequest(httpMethod, url, bytes.NewReader(body))
 	req.SetBasicAuth(rabbitmqUsername, rabbitmqPassword)
 
@@ -298,7 +298,7 @@ func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath s
 }
 
 func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: 10 * time.Second}
 	url := fmt.Sprintf("http://%s:15672/api/aliveness-test/%%2F", rabbitmqHostName)
 
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
@@ -382,11 +382,7 @@ func updateRabbitmqCluster(client client.Client, name, namespace string, updateF
 		return updateErr
 	})
 
-	if retryErr != nil {
-		return retryErr
-	}
-
-	return nil
+	return retryErr
 }
 
 func createRabbitmqCluster(client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
@@ -513,7 +509,7 @@ func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1bet
 
 func assertHttpReady(hostname string) {
 	EventuallyWithOffset(1, func() int {
-		client := &http.Client{Timeout: 5 * time.Second}
+		client := &http.Client{Timeout: 10 * time.Second}
 		url := fmt.Sprintf("http://%s:15672", hostname)
 
 		req, _ := http.NewRequest(http.MethodGet, url, nil)
