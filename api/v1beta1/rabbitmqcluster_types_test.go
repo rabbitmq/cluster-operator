@@ -33,10 +33,11 @@ import (
 
 var _ = Describe("RabbitmqCluster", func() {
 
+	var three int32 = 3
+
 	Context("RabbitmqClusterSpec", func() {
 		It("can be created with a single replica", func() {
 			created := generateRabbitmqClusterObject("rabbit1")
-
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
@@ -46,8 +47,7 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("can be created with three replicas", func() {
 			created := generateRabbitmqClusterObject("rabbit2")
-			created.Spec.Replicas = 3
-
+			created.Spec.Replicas = &three
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
@@ -94,8 +94,9 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("is validated", func() {
 			By("checking the replica count", func() {
+				five := int32(5)
 				invalidReplica := generateRabbitmqClusterObject("rabbit4")
-				invalidReplica.Spec.Replicas = 5
+				invalidReplica.Spec.Replicas = &five
 				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("Unsupported value: 5: supported values: \"1\", \"3\"")))
 			})
 
@@ -136,7 +137,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					storage := k8sresource.MustParse("987Gi")
 					storageClassName := "some-class"
 					rmqClusterInstance.Spec = RabbitmqClusterSpec{
-						Replicas:        int32(3),
+						Replicas:        &three,
 						Image:           "rabbitmq-image-from-cr",
 						ImagePullSecret: "my-super-secret",
 						Service: RabbitmqClusterServiceSpec{
@@ -199,10 +200,10 @@ var _ = Describe("RabbitmqCluster", func() {
 			When("CR is partially set", func() {
 				It("applies default values to missing properties if replicas is set", func() {
 					rmqClusterInstance.Spec = RabbitmqClusterSpec{
-						Replicas: 3,
+						Replicas: &three,
 					}
 					expectedClusterInstance := rmqClusterTemplate.DeepCopy()
-					expectedClusterInstance.Spec.Replicas = 3
+					expectedClusterInstance.Spec.Replicas = &three
 
 					instance := MergeDefaults(rmqClusterInstance)
 					Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
@@ -310,13 +311,14 @@ func getKey(cluster *RabbitmqCluster) types.NamespacedName {
 
 func generateRabbitmqClusterObject(clusterName string) *RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
+	one := int32(1)
 	return &RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
 			Namespace: "default",
 		},
 		Spec: RabbitmqClusterSpec{
-			Replicas: int32(1),
+			Replicas: &one,
 			Image:    "rabbitmq:3.8.3",
 			Service: RabbitmqClusterServiceSpec{
 				Type: "ClusterIP",

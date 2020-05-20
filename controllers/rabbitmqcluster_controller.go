@@ -324,7 +324,7 @@ func (r *RabbitmqClusterReconciler) allReplicasReady(ctx context.Context, rmq *r
 // enablePlugins - helper function to set the list of enabled plugins in a given RabbitmqCluster pods
 // `rabbitmq-plugins set` disables plugins that are not in the provided list
 func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqCluster) error {
-	for i := 0; i < int(rmq.Spec.Replicas); i++ {
+	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
 		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
 		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s",
 			strings.Join(resource.AppendIfUnique(resource.RequiredPlugins, rmq.Spec.Rabbitmq.AdditionalPlugins), " "))

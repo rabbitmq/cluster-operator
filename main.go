@@ -71,7 +71,7 @@ func main() {
 	}
 
 	if leaseDuration := getEnvInDuration("LEASE_DURATION"); leaseDuration != 0 {
-		log.Info("manager configured with lease duration",  "seconds", int(leaseDuration.Seconds()))
+		log.Info("manager configured with lease duration", "seconds", int(leaseDuration.Seconds()))
 		options.LeaseDuration = &leaseDuration
 	}
 
