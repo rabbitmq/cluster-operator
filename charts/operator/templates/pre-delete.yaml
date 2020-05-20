@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator-pre-delete
-    app.kubernetes.io/part-of: pivotal-rabbitmq
+    app.kubernetes.io/part-of: rabbitmq
   name: rabbitmq-cluster-operator-pre-delete
   annotations:
     "helm.sh/hook": pre-delete
@@ -21,7 +21,7 @@ metadata:
   labels:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator-pre-delete
-    app.kubernetes.io/part-of: pivotal-rabbitmq
+    app.kubernetes.io/part-of: rabbitmq
   name: rabbitmq-cluster-operator-pre-delete
 rules:
 - apiGroups:
@@ -40,7 +40,7 @@ metadata:
   labels:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator-pre-delete
-    app.kubernetes.io/part-of: pivotal-rabbitmq
+    app.kubernetes.io/part-of: rabbitmq
   annotations:
     "helm.sh/hook": pre-delete
     "helm.sh/hook-weight": "-1"
@@ -62,7 +62,7 @@ metadata:
   labels:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator-pre-delete
-    app.kubernetes.io/part-of: pivotal-rabbitmq
+    app.kubernetes.io/part-of: rabbitmq
   annotations:
     "helm.sh/hook": pre-delete
     "helm.sh/hook-delete-policy": hook-succeeded,hook-failed

@@ -109,7 +109,7 @@ var _ = Describe("StatefulSet", func() {
 						Labels: map[string]string{
 							"app.kubernetes.io/name":      instance.Name,
 							"app.kubernetes.io/component": "rabbitmq",
-							"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+							"app.kubernetes.io/part-of":   "rabbitmq",
 						},
 						OwnerReferences: []v1.OwnerReference{
 							{
@@ -256,13 +256,13 @@ var _ = Describe("StatefulSet", func() {
 				labels := statefulSet.Spec.Template.Labels
 				Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("rabbitmq"))
 			})
 
 			It("deletes the labels that are removed from the CR", func() {
 				existingLabels := map[string]string{
 					"app.kubernetes.io/name":      instance.Name,
-					"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+					"app.kubernetes.io/part-of":   "rabbitmq",
 					"this-was-the-previous-label": "should-be-deleted",
 				}
 
@@ -295,7 +295,7 @@ var _ = Describe("StatefulSet", func() {
 
 				existingLabels := map[string]string{
 					"app.kubernetes.io/name":      instance.Name,
-					"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+					"app.kubernetes.io/part-of":   "rabbitmq",
 					"this-was-the-previous-label": "should-be-deleted",
 				}
 				statefulSet.Labels = existingLabels
@@ -309,7 +309,7 @@ var _ = Describe("StatefulSet", func() {
 				labels := statefulSet.Labels
 				Expect(labels["app.kubernetes.io/name"]).To(Equal("foo"))
 				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("rabbitmq"))
 
 				By("deleting the labels that are removed from the CR")
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
@@ -323,7 +323,7 @@ var _ = Describe("StatefulSet", func() {
 				labels := statefulSet.Spec.Template.ObjectMeta.Labels
 				Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("rabbitmq"))
 			})
 		})
 
@@ -337,19 +337,19 @@ var _ = Describe("StatefulSet", func() {
 			BeforeEach(func() {
 				existingAnnotations = map[string]string{
 					"this-was-the-previous-annotation": "should-be-preserved",
-					"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+					"app.kubernetes.io/part-of":        "rabbitmq",
 					"app.k8s.io/something":             "something-amazing",
 				}
 
 				existingPodTemplateAnnotations = map[string]string{
 					"this-was-the-previous-pod-anno": "should-be-preserved",
-					"app.kubernetes.io/part-of":      "pivotal-rabbitmq-pod",
+					"app.kubernetes.io/part-of":      "rabbitmq-pod",
 					"app.k8s.io/something":           "something-amazing-on-pod",
 				}
 
 				existingPvcTemplateAnnotations = map[string]string{
 					"this-was-the-previous-pod-anno": "should-be-preserved-here",
-					"app.kubernetes.io/part-of":      "pivotal-rabbitmq-pvc",
+					"app.kubernetes.io/part-of":      "rabbitmq-pvc",
 					"app.k8s.io/something":           "something-amazing-on-pvc",
 				}
 
@@ -376,7 +376,7 @@ var _ = Describe("StatefulSet", func() {
 				expectedAnnotations := map[string]string{
 					"my-annotation":                    "i-like-this",
 					"this-was-the-previous-annotation": "should-be-preserved",
-					"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+					"app.kubernetes.io/part-of":        "rabbitmq",
 					"app.k8s.io/something":             "something-amazing",
 				}
 
@@ -397,7 +397,7 @@ var _ = Describe("StatefulSet", func() {
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				expectedAnnotations := map[string]string{
 					"my-annotation":                  "i-like-this",
-					"app.kubernetes.io/part-of":      "pivotal-rabbitmq-pod",
+					"app.kubernetes.io/part-of":      "rabbitmq-pod",
 					"this-was-the-previous-pod-anno": "should-be-preserved",
 					"app.k8s.io/something":           "something-amazing-on-pod",
 				}
@@ -418,7 +418,7 @@ var _ = Describe("StatefulSet", func() {
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				expectedAnnotations := map[string]string{
-					"app.kubernetes.io/part-of":      "pivotal-rabbitmq-pvc",
+					"app.kubernetes.io/part-of":      "rabbitmq-pvc",
 					"this-was-the-previous-pod-anno": "should-be-preserved-here",
 					"app.k8s.io/something":           "something-amazing-on-pvc",
 				}

@@ -10,7 +10,7 @@ metadata:
   labels:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator
-    app.kubernetes.io/part-of: pivotal-rabbitmq
+    app.kubernetes.io/part-of: rabbitmq
   name: rabbitmq-cluster-leader-election-role
   namespace: pivotal-rabbitmq-system
 rules:
@@ -48,7 +48,7 @@ metadata:
   labels:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator
-    app.kubernetes.io/part-of: pivotal-rabbitmq
+    app.kubernetes.io/part-of: rabbitmq
   name: rabbitmq-cluster-operator-role
 rules:
 - apiGroups:
@@ -260,7 +260,7 @@ metadata:
   labels:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator
-    app.kubernetes.io/part-of: pivotal-rabbitmq
+    app.kubernetes.io/part-of: rabbitmq
   name: rabbitmq-cluster-leader-election-rolebinding
   namespace: pivotal-rabbitmq-system
 roleRef:
@@ -278,7 +278,7 @@ metadata:
   labels:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator
-    app.kubernetes.io/part-of: pivotal-rabbitmq
+    app.kubernetes.io/part-of: rabbitmq
   name: rabbitmq-cluster-operator-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
