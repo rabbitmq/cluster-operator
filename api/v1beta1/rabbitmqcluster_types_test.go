@@ -78,6 +78,20 @@ var _ = Describe("RabbitmqCluster", func() {
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 		})
 
+		It("can be created with server side TLS", func() {
+			created := generateRabbitmqClusterObject("rabbit-tls")
+			created.Spec.TLS.SecretName = "tls-secret-name"
+			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+		})
+
+		It("can be queried if TLS is enabled", func() {
+			created := generateRabbitmqClusterObject("rabbit-tls")
+			Expect(created.TLSEnabled()).To(BeFalse())
+
+			created.Spec.TLS.SecretName = "tls-secret-name"
+			Expect(created.TLSEnabled()).To(BeTrue())
+		})
+
 		It("is validated", func() {
 			By("checking the replica count", func() {
 				invalidReplica := generateRabbitmqClusterObject("rabbit4")

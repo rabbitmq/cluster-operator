@@ -2,7 +2,6 @@ package system_tests
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -135,11 +134,9 @@ var _ = Describe("Operator", func() {
 		It("keeps rabbitmq server related configurations up-to-date", func() {
 			By("updating enabled plugins when additionalPlugins are modified", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
-				fetchedRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).To(Succeed())
-				fetchedRabbit.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
-				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
-				waitForRabbitmqRunning(fetchedRabbit)
+				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+					cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
+				})).To(Succeed())
 
 				Eventually(func() error {
 					_, err := kubectlExec(namespace,
@@ -152,20 +149,18 @@ var _ = Describe("Operator", func() {
 						"rabbitmq_top",
 					)
 					return err
-				}, 20*time.Second).Should(Succeed())
+				}, 40*time.Second).Should(Succeed())
 			})
 
 			By("updating the rabbitmq.conf file when additionalConfig are modified", func() {
-				// modify rabbitmqcluster.spec.rabbitmq.additionalConfig
-				fetchedRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-				Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}, fetchedRabbit)).NotTo(HaveOccurred())
-				fetchedRabbit.Spec.Rabbitmq.AdditionalConfig = `vm_memory_high_watermark_paging_ratio = 0.5
+				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+					cluster.Spec.Rabbitmq.AdditionalConfig = `vm_memory_high_watermark_paging_ratio = 0.5
 cluster_partition_handling = ignore
 cluster_keepalive_interval = 10000`
-				Expect(rmqClusterClient.Update(context.TODO(), fetchedRabbit)).To(Succeed())
+				})).To(Succeed())
 
 				// wait for statefulSet to be restarted
-				waitForStsRestart(clientSet, cluster.Namespace, cluster.ChildResourceName("server"))
+				waitForRabbitmqUpdate(cluster)
 
 				// verify that rabbitmq.conf contains provided configurations
 				output, err := kubectlExec(namespace,
@@ -268,6 +263,73 @@ cluster_keepalive_interval = 10000`
 				response, err := rabbitmqAlivenessTest(hostname, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
+			})
+		})
+	})
+
+	Context("TLS", func() {
+		When("TLS is correctly configured", func() {
+			var (
+				cluster    *rabbitmqv1beta1.RabbitmqCluster
+				hostname   string
+				username   string
+				password   string
+				caFilePath string
+			)
+
+			BeforeEach(func() {
+				cluster = generateRabbitmqCluster(namespace, "tls-test-rabbit")
+				cluster.Spec.Service.Type = "LoadBalancer"
+				cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
+				cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
+				cluster.Spec.Resources = &corev1.ResourceRequirements{
+					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
+					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+				}
+				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				waitForRabbitmqRunning(cluster)
+				waitForLoadBalancer(clientSet, cluster)
+
+				hostname = rabbitmqHostname(clientSet, cluster)
+				caFilePath = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
+
+				// Update CR with TLS secret name
+				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
+				})).To(Succeed())
+				// wait because the change in cluster condition is not fast enough
+				waitForRabbitmqUpdate(cluster)
+				waitForLoadBalancer(clientSet, cluster)
+			})
+
+			AfterEach(func() {
+				Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
+				Expect(k8sDeleteSecret("rabbitmq-tls-test-secret", namespace)).To(Succeed())
+			})
+
+			It("talks amqps with RabbitMQ", func() {
+				var err error
+				username, password, err = getRabbitmqUsernameAndPassword(clientSet, "pivotal-rabbitmq-system", "tls-test-rabbit")
+				Expect(err).NotTo(HaveOccurred())
+
+				// try to publish and consume a message on a amqps url
+				sentMessage := "Hello Rabbitmq!"
+				Expect(rabbitmqAMQPSPublishToNewQueue(sentMessage, username, password, hostname, caFilePath)).To(Succeed())
+
+				recievedMessage, err := rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(recievedMessage).To(Equal(sentMessage))
+			})
+		})
+
+		When("the TLS secret does not exist", func() {
+			cluster := generateRabbitmqCluster(namespace, "tls-test-rabbit-faulty")
+			cluster.Spec.TLS = rabbitmqv1beta1.TLSSpec{SecretName: "tls-secret-does-not-exist"}
+
+			It("reports a TLSError event with the reason", func() {
+				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				assertTLSError(cluster)
+				Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 			})
 		})
 	})

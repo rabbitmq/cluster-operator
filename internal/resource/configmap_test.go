@@ -97,7 +97,8 @@ cluster_formation.k8s.address_type = hostname
 cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling = pause_minority
-queue_master_locator = min-masters`
+queue_master_locator = min-masters
+`
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
@@ -125,6 +126,30 @@ my-config-property-1 = better-value`
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
 			Expect(ok).To(BeTrue())
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
+		})
+
+		Context("TLS", func() {
+			It("adds TLS config when TLS is enabled", func() {
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "rabbit-tls",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						TLS: rabbitmqv1beta1.TLSSpec{
+							SecretName: "tls-secret",
+						},
+					},
+				}
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
+				Expect(ok).To(BeTrue())
+				Expect(rabbitmqConf).To(ContainSubstring(`
+ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
+listeners.ssl.default=5671
+`))
+			})
 		})
 
 		Context("labels", func() {

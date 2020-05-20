@@ -427,6 +427,48 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
+		Context("TLS", func() {
+			It("adds a TLS volume to the pod template spec", func() {
+				instance.Spec.TLS.SecretName = "tls-secret"
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				filePermissions := int32(400)
+				secretEnforced := true
+				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
+					Name: "rabbitmq-tls",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName:  "tls-secret",
+							DefaultMode: &filePermissions,
+							Optional:    &secretEnforced,
+						},
+					},
+				}))
+			})
+
+			It("adds a TLS volume mount to the rabbitmq container", func() {
+				instance.Spec.TLS.SecretName = "tls-secret"
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+					Name:      "rabbitmq-tls",
+					MountPath: "/etc/rabbitmq-tls/",
+				}))
+			})
+
+			It("opens port 5671 on the rabbitmq container", func() {
+				instance.Spec.TLS.SecretName = "tls-secret"
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(rabbitmqContainerSpec.Ports).To(ContainElement(corev1.ContainerPort{
+					Name:          "amqps",
+					ContainerPort: 5671,
+				}))
+			})
+		})
+
 		It("updates the image pull secret; sets it back to default after deleting the configuration", func() {
 			stsBuilder.Instance.Spec.ImagePullSecret = "my-shiny-new-secret"
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())

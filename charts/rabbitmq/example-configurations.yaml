@@ -53,3 +53,6 @@ affinity:
               values:
                 - e2e-az1
                 - e2e-az2
+
+tls:
+  secretName: tls-secret

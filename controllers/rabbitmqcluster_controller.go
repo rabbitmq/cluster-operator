@@ -121,10 +121,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// Resource has been marked for deletion
 	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		logger.Info("Deleting RabbitmqCluster",
@@ -132,6 +128,38 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			"name", rabbitmqCluster.Name)
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
+	}
+
+	// TLS: check if specified, and if secret exists
+	if rabbitmqCluster.TLSEnabled() {
+		secretName := rabbitmqCluster.Spec.TLS.SecretName
+		logger.Info("TLS set, looking for secret", "secret", secretName, "namespace", rabbitmqCluster.Namespace)
+
+		// check if secret exists
+		secret := &corev1.Secret{}
+		if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
+			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
+				fmt.Sprintf("Failed to get TLS secret in namespace %v: %v", rabbitmqCluster.Namespace, err.Error()))
+			// retry after 10 seconds if not found
+			if errors.IsNotFound(err) {
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+			}
+
+			return ctrl.Result{}, err
+		}
+
+		// check if secret has the right keys
+		_, hasTLSKey := secret.Data["tls.key"]
+		_, hasTLSCert := secret.Data["tls.crt"]
+		if !hasTLSCert || !hasTLSKey {
+			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
+				fmt.Sprintf("The TLS secret %v in namespace %v must have the fields tls.crt and tls.key", secretName, rabbitmqCluster.Namespace))
+			return ctrl.Result{}, errors.NewBadRequest("The TLS secret must have the fields tls.crt and tls.key")
+		}
+	}
+
+	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)

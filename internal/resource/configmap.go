@@ -17,7 +17,13 @@ cluster_formation.k8s.address_type = hostname
 cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling = pause_minority
-queue_master_locator = min-masters`
+queue_master_locator = min-masters
+`
+	defaultTLSConf = `
+ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
+listeners.ssl.default=5671
+`
 )
 
 var RequiredPlugins = []string{
@@ -44,11 +50,14 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		configMap.Data = make(map[string]string)
 	}
 	configMap.Data["rabbitmq.conf"] = defaultRabbitmqConf
+	if builder.Instance.TLSEnabled() {
+		configMap.Data["rabbitmq.conf"] = configMap.Data["rabbitmq.conf"] + defaultTLSConf
+	}
 
 	// rabbitmq.conf takes the last provided value when multiple values of the same key are specified
 	// do not need to deduplicate keys to allow overwrite
 	if builder.Instance.Spec.Rabbitmq.AdditionalConfig != "" {
-		configMap.Data["rabbitmq.conf"] = defaultRabbitmqConf + "\n" + builder.Instance.Spec.Rabbitmq.AdditionalConfig
+		configMap.Data["rabbitmq.conf"] = configMap.Data["rabbitmq.conf"] + builder.Instance.Spec.Rabbitmq.AdditionalConfig
 	}
 	return nil
 }
