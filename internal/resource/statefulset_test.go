@@ -835,7 +835,8 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets the replica count of the StatefulSet to the instance value", func() {
-			instance.Spec.Replicas = 3
+			three := int32(3)
+			instance.Spec.Replicas = &three
 			cluster = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
@@ -860,13 +861,14 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 
 func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
+	one := int32(1)
 	return rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "foo-namespace",
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas:        int32(1),
+			Replicas:        &one,
 			Image:           "rabbitmq-image-from-cr",
 			ImagePullSecret: "my-super-secret",
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{

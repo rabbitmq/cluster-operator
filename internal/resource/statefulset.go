@@ -88,7 +88,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 
 	//Replicas
 	replicas := builder.Instance.Spec.Replicas
-	sts.Spec.Replicas = &replicas
+	sts.Spec.Replicas = replicas
 
 	//Update Strategy
 	zero := int32(0)

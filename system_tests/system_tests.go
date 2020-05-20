@@ -239,8 +239,9 @@ cluster_keepalive_interval = 10000`
 			var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 			BeforeEach(func() {
+				three := int32(3)
 				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
-				cluster.Spec.Replicas = 3
+				cluster.Spec.Replicas = &three
 				cluster.Spec.Service.Type = "LoadBalancer"
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
