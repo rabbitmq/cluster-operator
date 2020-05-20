@@ -5,8 +5,8 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: pivotal-rabbitmq
   name: rabbitmqclusters.rabbitmq.pivotal.io
 spec:

@@ -174,12 +174,12 @@ DOCKER_REGISTRY_PASSWORD_LOCAL=$(shell lpassd show "Shared-RabbitMQ for Kubernet
 docker-registry-secret: operator-namespace
 	echo "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username='$(DOCKER_REGISTRY_USERNAME_LOCAL)' --docker-password='$(DOCKER_REGISTRY_PASSWORD_LOCAL)' || true
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount p-rmq-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
 docker-registry-secret-ci: operator-namespace
 	echo "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username="$$DOCKER_REGISTRY_USERNAME" --docker-password="$$DOCKER_REGISTRY_PASSWORD" || true
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount p-rmq-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
 controller-gen:  ## download controller-gen if not in $PATH
 ifeq (, $(shell which controller-gen))

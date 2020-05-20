@@ -5,19 +5,19 @@ metadata:
   name: operator
   namespace: system
   labels:
-    app.kubernetes.io/name: p-rmq-operator
-    app.kubernetes.io/component: p-rmq-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator
+    app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: pivotal-rabbitmq
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: p-rmq-operator
+      app.kubernetes.io/name: rabbitmq-cluster-operator
   replicas: 1
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: p-rmq-operator
-        app.kubernetes.io/component: p-rmq-operator
+        app.kubernetes.io/name: rabbitmq-cluster-operator
+        app.kubernetes.io/component: rabbitmq-cluster-operator
         app.kubernetes.io/part-of: pivotal-rabbitmq
     spec:
       containers:

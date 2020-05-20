@@ -2,10 +2,10 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator-pre-delete
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator-pre-delete
     app.kubernetes.io/part-of: pivotal-rabbitmq
-  name: p-rmq-operator-pre-delete
+  name: rabbitmq-cluster-operator-pre-delete
   annotations:
     "helm.sh/hook": pre-delete
     "helm.sh/hook-delete-policy": hook-succeeded,hook-failed
@@ -19,10 +19,10 @@ metadata:
     "helm.sh/hook-delete-policy": hook-succeeded,hook-failed
   creationTimestamp: null
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator-pre-delete
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator-pre-delete
     app.kubernetes.io/part-of: pivotal-rabbitmq
-  name: p-rmq-operator-pre-delete
+  name: rabbitmq-cluster-operator-pre-delete
 rules:
 - apiGroups:
   - rabbitmq.pivotal.io
@@ -38,30 +38,30 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator-pre-delete
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator-pre-delete
     app.kubernetes.io/part-of: pivotal-rabbitmq
   annotations:
     "helm.sh/hook": pre-delete
     "helm.sh/hook-weight": "-1"
     "helm.sh/hook-delete-policy": hook-succeeded,hook-failed
-  name: p-rmq-operator-pre-delete-rolebinding
+  name: rabbitmq-cluster-operator-pre-delete-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: p-rmq-operator-pre-delete
+  name: rabbitmq-cluster-operator-pre-delete
 subjects:
 - kind: ServiceAccount
-  name: p-rmq-operator-pre-delete
+  name: rabbitmq-cluster-operator-pre-delete
   namespace: {{ .Release.Namespace }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: p-rmq-operator-pre-delete
+  name: rabbitmq-cluster-operator-pre-delete
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator-pre-delete
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator-pre-delete
     app.kubernetes.io/part-of: pivotal-rabbitmq
   annotations:
     "helm.sh/hook": pre-delete
@@ -70,7 +70,7 @@ spec:
   backoffLimit: 1
   template:
     spec:
-      serviceAccountName: p-rmq-operator-pre-delete
+      serviceAccountName: rabbitmq-cluster-operator-pre-delete
       restartPolicy: OnFailure
       containers:
       - name: pre-delete-job

@@ -3,8 +3,8 @@ kind: RoleBinding
 metadata:
   name: leader-election-rolebinding
   labels:
-    app.kubernetes.io/name: p-rmq-operator
-    app.kubernetes.io/component: p-rmq-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator
+    app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: pivotal-rabbitmq
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -12,5 +12,5 @@ roleRef:
   name: leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: p-rmq-operator
+  name: rabbitmq-cluster-operator
   namespace: pivotal-rabbitmq-system

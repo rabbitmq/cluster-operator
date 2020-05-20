@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: p-rmq-operator
+  name: rabbitmq-cluster-operator
   namespace: pivotal-rabbitmq-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: pivotal-rabbitmq
-  name: p-rmq-leader-election-role
+  name: rabbitmq-cluster-leader-election-role
   namespace: pivotal-rabbitmq-system
 rules:
 - apiGroups:
@@ -46,10 +46,10 @@ kind: ClusterRole
 metadata:
   creationTimestamp: null
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: pivotal-rabbitmq
-  name: p-rmq-operator-role
+  name: rabbitmq-cluster-operator-role
 rules:
 - apiGroups:
   - ""
@@ -258,33 +258,33 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: pivotal-rabbitmq
-  name: p-rmq-leader-election-rolebinding
+  name: rabbitmq-cluster-leader-election-rolebinding
   namespace: pivotal-rabbitmq-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: p-rmq-leader-election-role
+  name: rabbitmq-cluster-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: p-rmq-operator
+  name: rabbitmq-cluster-operator
   namespace: pivotal-rabbitmq-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: pivotal-rabbitmq
-  name: p-rmq-operator-rolebinding
+  name: rabbitmq-cluster-operator-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: p-rmq-operator-role
+  name: rabbitmq-cluster-operator-role
 subjects:
 - kind: ServiceAccount
-  name: p-rmq-operator
+  name: rabbitmq-cluster-operator
   namespace: pivotal-rabbitmq-system
