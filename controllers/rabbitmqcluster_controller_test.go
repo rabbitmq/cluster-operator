@@ -36,7 +36,7 @@ import (
 
 const (
 	ClusterCreationTimeout = 5 * time.Second
-	ClusterDeletionTimeout = 2 * time.Second
+	ClusterDeletionTimeout = 5 * time.Second
 )
 
 var _ = Describe("RabbitmqclusterController", func() {
