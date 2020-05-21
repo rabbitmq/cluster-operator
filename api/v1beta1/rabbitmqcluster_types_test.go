@@ -27,6 +27,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 
 	"golang.org/x/net/context"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -55,8 +56,19 @@ var _ = Describe("RabbitmqCluster", func() {
 			Expect(fetched).To(Equal(created))
 		})
 
-		It("can be deleted", func() {
+		It("can be created with five replicas", func() {
+			five := int32(5)
 			created := generateRabbitmqClusterObject("rabbit3")
+			created.Spec.Replicas = &five
+			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+
+			fetched := &RabbitmqCluster{}
+			Expect(k8sClient.Get(context.TODO(), getKey(created), fetched)).To(Succeed())
+			Expect(fetched).To(Equal(created))
+		})
+
+		It("can be deleted", func() {
+			created := generateRabbitmqClusterObject("rabbit4")
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
 			Expect(k8sClient.Delete(context.TODO(), created)).To(Succeed())
@@ -94,15 +106,17 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("is validated", func() {
 			By("checking the replica count", func() {
-				five := int32(5)
+				nOne := int32(-1)
 				invalidReplica := generateRabbitmqClusterObject("rabbit4")
-				invalidReplica.Spec.Replicas = &five
-				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("Unsupported value: 5: supported values: \"1\", \"3\"")))
+				invalidReplica.Spec.Replicas = &nOne
+				Expect(apierrors.IsInvalid(k8sClient.Create(context.TODO(), invalidReplica))).To(BeTrue())
+				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("spec.replicas in body should be greater than or equal to 0")))
 			})
 
 			By("checking the service type", func() {
 				invalidService := generateRabbitmqClusterObject("rabbit5")
 				invalidService.Spec.Service.Type = "ihateservices"
+				Expect(apierrors.IsInvalid(k8sClient.Create(context.TODO(), invalidService))).To(BeTrue())
 				Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("supported values: \"ClusterIP\", \"LoadBalancer\", \"NodePort\"")))
 			})
 		})
