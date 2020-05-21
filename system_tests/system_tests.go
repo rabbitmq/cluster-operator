@@ -32,7 +32,7 @@ var _ = Describe("Operator", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("Publish and consume a message", func() {
+	Context("Publish and consume a message in a 3 nodes cluster", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
@@ -41,7 +41,9 @@ var _ = Describe("Operator", func() {
 		)
 
 		BeforeEach(func() {
+			three := int32(3)
 			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
+			cluster.Spec.Replicas = &three
 			cluster.Spec.Service.Type = "LoadBalancer"
 			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
@@ -234,14 +236,14 @@ cluster_keepalive_interval = 10000`
 		})
 	})
 
-	Context("Clustering", func() {
-		When("RabbitmqCluster is deployed with 3 nodes", func() {
+	Context("Clustering with 5 nodes", func() {
+		When("RabbitmqCluster is deployed with 5 nodes", func() {
 			var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 			BeforeEach(func() {
-				three := int32(3)
+				five := int32(5)
 				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
-				cluster.Spec.Replicas = &three
+				cluster.Spec.Replicas = &five
 				cluster.Spec.Service.Type = "LoadBalancer"
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
