@@ -25,7 +25,11 @@ superseded-by:
   - [Proposal](#proposal)
     - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
       - [How do we apply overrides](#how-do-we-apply-overrides)
+      - [Override values take precedence](#override-values-take-precedence)
       - [How should we handle reconciliation errors](#how-should-we-handle-reconciliation-errors)
+    - [Additional context](#additional-context)
+      - [Top level properties](#top-level-properties)
+      - [kubernetes version requirement](#kubernetes-version-requirement)
     - [Update](#update)
     - [Risks and Mitigation](#risks-and-mitigation)
   - [Alternatives](#alternatives)
@@ -160,6 +164,12 @@ Using [Strategic Merge Patch](https://github.com/kubernetes/apimachinery/tree/ma
 
 _Side note_ Not all lists support this merging operation. For example, statefulSetSpec.volumeClaimTemplates does not support merge, only replace.
 
+#### Override values take precedence
+
+Values we currently expose in CRD spec top level will be able to configure through StatefulSet and ingress Service override. When users provide values both in the top level properties and in override, values in override will win. For example, if both `spec.replicas` and `spec.replicas.override.statefulSet.spec.replicas` are provided, value provided in `spec.replicas.override.statefulSet.spec.replicas` will take precedence. On the other hand, if replicas value is not provided in statefulSet override, operator will use the provided `spec.replicas` value or the default value if `spec.replicas` is not set neither.
+
+This also applies for map values, like annotations. Right now, there are two places where people can specify ingress service annotations: `metadata.annotations`, which is for annotations applied to all child resources including ingress Service; `spec.service.annotations`, which is ingress Service only. Since `annotations` is a map value and not a list value, there is no "merging" behavior if ingress Service annotation is specified in the override. Whatever users provided in `spec.overide.ingressService.metadata.annotations` will be used for ingress Service.
+
 #### How should we handle reconciliation errors
 
 By using kubernetes native types, we can get schema validations for free. However, there are errors that occur when creating and updating child resources. Our controller must find a consistent and obvious way to surface these errors as users actions are required to fix them. Such errors are only logged at the moment, which is not ideal.
@@ -171,6 +181,16 @@ Examples on reconcilation errors that happen during create and update:
 
 We should revisit/prioritize [github issue #10](https://github.com/pivotal/rabbitmq-for-kubernetes/issues/10) which requests a new status.condition to surface reconciliation errors.
 
+### Additional context
+
+#### Top level properties
+
+This proposal does not stop us from exposing more fields in top level CRD spec. We can continue to add more properties to top level CRD spec if we see a common use case for the properties. For example, if many users configure the override for the StatefulSet in a certain way, then we should probably think about how we can address the use case by providing a higher-level more concrete property in the CR for usability.
+
+#### kubernetes version requirement
+
+The proposal asks to use StatefulSet and Service k8s api objects directly in the code. At the moment, we use k8s api version `1.17`  which has a new set of golang marker defined in both StatefulSet and Service templates that are added since version `1.16` for server-side apply functionality. If we continue to use k8s api `1.17` and together with using k8s api `1.17` objects directly in our CRD, users have to deploy to a `1.16` cluster or above because `1.15` k8s api does not recognize new markers, specifically marker [`listType` and `listMapKeys`](https://kubernetes.io/docs/reference/using-api/api-concepts/#merge-strategy).
+
 ### Update
 
 Any update to the StatefulSet and ingress Service override will be reconciled by our controller. This means that certain updates will trigger reconciliation errors. In that case, reconciliation errors should be surfaced through status.conditions. Some updates on the pod template of the StatefulSet template will trigger a StatefulSet restart. My assumption here is that users who use these override knows what they are doing and triggering a StatefulSet restart won't be a concern for us.
@@ -179,11 +199,11 @@ Any update to the StatefulSet and ingress Service override will be reconciled by
 
 * Increase of possibility of user errors. There will be many more kubernetes related properties for users to configure. Without proper understanding, users are now exposed at a greater risk of misconfigured deployments.
 
-**Mitigation** Add the other layers of abstraction to our products. Users will then have a choice about their preferred granularity on how they would like to configure their RabbitMQ deployments.
+**Mitigation** This proposal keeps the existing high-level properties as they are, e.g. replicas, persistence, service type, images, etc. This proposal assumes that only a small fraction of people will have to need to use the override section of the CR. If they do, they have specific use cases and we expect them to have basic understanding about kubernetes prior to using our operator. In addition to that, we will add the other layers of abstraction to our products. Users will then have a choice about their preferred granularity on how they would like to configure their RabbitMQ deployments.
 
 * Two places to configure values to achieve the same effect can be confusing
 
-**Mitigation**  we will need to make it clear that the override section is to configure any values that users cannot access from the top level. 
+**Mitigation**  we will need to make it clear that the override section is to configure any values that users cannot access from the top level.
 
 ## Alternatives
 
@@ -193,7 +213,9 @@ Define our own StatefulSet and Service template to have better control over what
 
 ### Alternative 2
 
-A new structure for the CRD spec where it uses the StatefulSet, and Service kubernetes template directly in the spec. This has been explored from previous version of this KEP. It achieves the same level of flexibility and configurability as the this KEP's proposed solution. However, it has the downside of increasing complexity.
+A new structure for the CRD spec where it uses the StatefulSet and Service kubernetes templates directly in the spec. This has been explored from previous version of this KEP. It achieves the same level of flexibility and configurability as the this KEP's proposed solution.
+
+However, this alternative approach has the downside of increasing complexity. As users will need to understand  the internal resources behind the CRD to be able to configure common properties that we expose at top level today. For example, for users to configure rabbitmq image, instead of using `spec.image` at the top level, they will have to configure `spec.statefulSetTemplate.spec.template.spec.containers[0].image` with this alternative approach. In addition, if our controller fills in defaults for templates like what the controller currently does, CRD manifests will have the complete manifests of the statefulSet and ingress Service. CRD manifests will become harder to navigate and to modify for users after creation.
 
 ## Upgrade Strategy
 
