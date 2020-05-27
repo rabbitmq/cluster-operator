@@ -312,7 +312,7 @@ cluster_keepalive_interval = 10000`
 
 			It("talks amqps with RabbitMQ", func() {
 				var err error
-				username, password, err = getRabbitmqUsernameAndPassword(clientSet, "pivotal-rabbitmq-system", "tls-test-rabbit")
+				username, password, err = getRabbitmqUsernameAndPassword(clientSet, "rabbitmq-system", "tls-test-rabbit")
 				Expect(err).NotTo(HaveOccurred())
 
 				// try to publish and consume a message on a amqps url

@@ -6,8 +6,8 @@ is designed to be used by [Container Services Manager (KSM)](https://docs.pivota
 ## Operator chart
 
 The Operator chart is used to deploy the Operator components. This includes the
-`pivotal-rabbitmq-system` namespace and `RabbitmqCluster` CRD. This chart assumes
-that `pivotal-rabbitmq-system` namespace **does not exist** and it will **fail to
+`rabbitmq-system` namespace and `RabbitmqCluster` CRD. This chart assumes
+that `rabbitmq-system` namespace **does not exist** and it will **fail to
 deploy** if the namespace already exists.
 
 ### Structure
@@ -140,7 +140,7 @@ loosely held.
 
 - There will always be a username/password to authenticate to the registry.
 - Image registry requires authentication.
-- Namespace `pivotal-rabbitmq-system` does not exist.
+- Namespace `rabbitmq-system` does not exist.
 
 ## RabbitMQ chart
 <!-- TODO: to be written -->

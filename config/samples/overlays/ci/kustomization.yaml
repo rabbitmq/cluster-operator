@@ -1,4 +1,4 @@
 ---
-namespace: pivotal-rabbitmq-system-ci
+namespace: rabbitmq-system-ci
 bases:
 - ../../base
