@@ -1,5 +1,5 @@
 namespace: pivotal-rabbitmq-system
-namePrefix: p-rmq-
+namePrefix: rabbitmq-cluster-
 
 resources:
 - service_account.yaml

@@ -102,7 +102,7 @@ var _ = Context("IngressServices", func() {
 					}
 					expectedAnnotations := map[string]string{
 						"service_annotation_a":             "0.0.0.0/0",
-						"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+						"app.kubernetes.io/part-of":        "rabbitmq",
 						"app.k8s.io/something":             "something-amazing",
 						"this-was-the-previous-annotation": "should-be-preserved",
 						"kubernetes.io/other":              "i-like-this",
@@ -118,7 +118,7 @@ var _ = Context("IngressServices", func() {
 			When("CR instance does not have service annotations specified", func() {
 				It("generates the service annotations as specified", func() {
 					expectedAnnotations := map[string]string{
-						"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+						"app.kubernetes.io/part-of":        "rabbitmq",
 						"app.k8s.io/something":             "something-amazing",
 						"this-was-the-previous-annotation": "should-be-preserved",
 					}
@@ -143,7 +143,7 @@ var _ = Context("IngressServices", func() {
 					service := updateServiceWithAnnotations(rmqBuilder, instanceMetadataAnnotations, serviceAnnotations)
 					expectedAnnotations := map[string]string{
 						"my-annotation":                    "i-like-this",
-						"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+						"app.kubernetes.io/part-of":        "rabbitmq",
 						"app.k8s.io/something":             "something-amazing",
 						"this-was-the-previous-annotation": "should-be-preserved",
 					}
@@ -176,7 +176,7 @@ var _ = Context("IngressServices", func() {
 						"my-annotation":                    "i-like-this-more",
 						"my-second-annotation":             "i-like-this-also",
 						"service_annotation_a":             "0.0.0.0/0",
-						"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+						"app.kubernetes.io/part-of":        "rabbitmq",
 						"app.k8s.io/something":             "something-amazing",
 						"this-was-the-previous-annotation": "should-be-preserved",
 					}
@@ -211,7 +211,7 @@ var _ = Context("IngressServices", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"app.kubernetes.io/name":      instance.Name,
-							"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+							"app.kubernetes.io/part-of":   "rabbitmq",
 							"this-was-the-previous-label": "should-be-deleted",
 						},
 					},
@@ -228,7 +228,7 @@ var _ = Context("IngressServices", func() {
 				labels := ingressService.Labels
 				Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("rabbitmq"))
 			})
 
 			It("deletes the labels that are removed from the CR", func() {
@@ -418,7 +418,7 @@ func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, i
 			Namespace: "foo-namespace",
 			Annotations: map[string]string{
 				"this-was-the-previous-annotation": "should-be-preserved",
-				"app.kubernetes.io/part-of":        "pivotal-rabbitmq",
+				"app.kubernetes.io/part-of":        "rabbitmq",
 				"app.k8s.io/something":             "something-amazing",
 			},
 		},

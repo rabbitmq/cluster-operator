@@ -64,7 +64,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			"get",
 			"deployment",
 			"-l",
-			"app.kubernetes.io/name=p-rmq-operator",
+			"app.kubernetes.io/name=rabbitmq-cluster-operator",
 		)
 
 		Expect(err).NotTo(HaveOccurred())
