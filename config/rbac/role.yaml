@@ -165,7 +165,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - rabbitmq.pivotal.io
+  - rabbitmq.com
   resources:
   - rabbitmqclusters
   verbs:
@@ -177,7 +177,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rabbitmq.pivotal.io
+  - rabbitmq.com
   resources:
   - rabbitmqclusters/status
   verbs:

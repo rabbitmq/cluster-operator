@@ -113,7 +113,7 @@ var _ = Describe("StatefulSet", func() {
 						},
 						OwnerReferences: []v1.OwnerReference{
 							{
-								APIVersion:         "rabbitmq.pivotal.io/v1beta1",
+								APIVersion:         "rabbitmq.com/v1beta1",
 								Kind:               "RabbitmqCluster",
 								Name:               instance.Name,
 								UID:                "",

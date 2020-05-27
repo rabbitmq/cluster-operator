@@ -1,5 +1,5 @@
 // +kubebuilder:object:generate=true
-// +groupName=rabbitmq.pivotal.io
+// +groupName=rabbitmq.com
 package status
 
 import (

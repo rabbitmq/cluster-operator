@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: rabbitmq
-  name: rabbitmqclusters.rabbitmq.pivotal.io
+  name: rabbitmqclusters.rabbitmq.com
 spec:
   additionalPrinterColumns:
   - JSONPath: .metadata.creationTimestamp
@@ -17,7 +17,7 @@ spec:
   - JSONPath: .status.clusterStatus
     name: Status
     type: string
-  group: rabbitmq.pivotal.io
+  group: rabbitmq.com
   names:
     kind: RabbitmqCluster
     listKind: RabbitmqClusterList
