@@ -234,7 +234,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
 		// only enable plugins when all pods of the StatefulSet become ready
 		// requeue request after 10 seconds without error
-		logger.Info("Not all replicas ready yet; Requeue request to enable plugins on RabbitmqCluster",
+		logger.Info("Not all replicas ready yet; requeuing request to enable plugins on RabbitmqCluster",
 			"namespace", rabbitmqCluster.Namespace,
 			"name", rabbitmqCluster.Name)
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
