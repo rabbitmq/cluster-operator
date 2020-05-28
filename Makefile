@@ -81,12 +81,12 @@ destroy-ci: configure-kubectl-ci
 run: generate manifests fmt vet install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
 
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
-	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=pivotal-rabbitmq-system go run ./main.go
+	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=rabbitmq-system go run ./main.go
 
 delve: generate install deploy-namespace-rbac just-delve ## Deploys CRD, Namespace, RBACs and starts Delve debugger
 
 just-delve: ## Just starts Delve debugger
-	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=pivotal-rabbitmq-system dlv debug
+	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=rabbitmq-system dlv debug
 
 # Install CRDs into a cluster
 install: manifests
@@ -165,7 +165,7 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
 
 system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
-	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
+	NAMESPACE="rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
 
 DOCKER_REGISTRY_SECRET=p-rmq-registry-access
 DOCKER_REGISTRY_SERVER=dev.registry.pivotal.io
@@ -210,7 +210,7 @@ endif
 
 operator-namespace:
 ifeq (, $(K8S_OPERATOR_NAMESPACE))
-K8S_OPERATOR_NAMESPACE=pivotal-rabbitmq-system
+K8S_OPERATOR_NAMESPACE=rabbitmq-system
 endif
 
 ci-cluster:

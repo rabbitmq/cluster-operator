@@ -4,7 +4,7 @@ data:
 kind: Secret
 metadata:
   name: pivotal-registry
-  namespace: pivotal-rabbitmq-system
+  namespace: rabbitmq-system
 type: kubernetes.io/dockerconfigjson
 ---
 apiVersion: apps/v1
@@ -15,7 +15,7 @@ metadata:
     app.kubernetes.io/name: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: rabbitmq
   name: rabbitmq-cluster-operator
-  namespace: pivotal-rabbitmq-system
+  namespace: rabbitmq-system
 spec:
   replicas: 1
   selector:

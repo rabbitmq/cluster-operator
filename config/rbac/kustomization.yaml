@@ -1,4 +1,4 @@
-namespace: pivotal-rabbitmq-system
+namespace: rabbitmq-system
 namePrefix: rabbitmq-cluster-
 
 resources:

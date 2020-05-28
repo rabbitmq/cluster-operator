@@ -63,7 +63,7 @@ var (
 const (
 	ownerKey          = ".metadata.controller"
 	ownerKind         = "RabbitmqCluster"
-	deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.pivotal.io"
+	deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -92,8 +92,8 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch;delete
@@ -293,7 +293,7 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Conte
 			if sts.Spec.Template.ObjectMeta.Annotations == nil {
 				sts.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			sts.Spec.Template.ObjectMeta.Annotations["rabbitmq.pivotal.io/restartAt"] = time.Now().Format(time.RFC3339)
+			sts.Spec.Template.ObjectMeta.Annotations["rabbitmq.com/restartAt"] = time.Now().Format(time.RFC3339)
 			return r.Update(ctx, sts)
 		}); err != nil {
 			msg := fmt.Sprintf("Failed to restart StatefulSet %s of Namespace %s; rabbitmq.conf configuration may be outdated", rmq.ChildResourceName("server"), rmq.Namespace)

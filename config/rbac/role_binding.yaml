@@ -13,4 +13,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: rabbitmq-cluster-operator
-  namespace: pivotal-rabbitmq-system
+  namespace: rabbitmq-system

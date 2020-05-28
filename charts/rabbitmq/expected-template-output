@@ -1,6 +1,6 @@
 ---
 # Source: rabbitmq/templates/rabbitmq.yaml
-apiVersion: rabbitmq.pivotal.io/v1beta1
+apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster
 metadata:
   name: rabbitmq

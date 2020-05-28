@@ -25,7 +25,7 @@ metadata:
   name: rabbitmq-cluster-operator-pre-delete
 rules:
 - apiGroups:
-  - rabbitmq.pivotal.io
+  - rabbitmq.com
   resources:
   - rabbitmqclusters
   verbs:

@@ -1,5 +1,5 @@
 bases:
 - ../../base
 
-namespace: pivotal-rabbitmq-system
+namespace: rabbitmq-system
 

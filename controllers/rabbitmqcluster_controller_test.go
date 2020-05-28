@@ -167,7 +167,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					}
 
 					return ""
-				}, 5).Should(Equal("deletion.finalizers.rabbitmqclusters.rabbitmq.pivotal.io"))
+				}, 5).Should(Equal("deletion.finalizers.rabbitmqclusters.rabbitmq.com"))
 			})
 
 			By("setting the admin secret details in the custom resource status", func() {

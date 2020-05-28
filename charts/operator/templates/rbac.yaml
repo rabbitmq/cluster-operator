@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: rabbitmq-cluster-operator
-  namespace: pivotal-rabbitmq-system
+  namespace: rabbitmq-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -12,7 +12,7 @@ metadata:
     app.kubernetes.io/name: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: rabbitmq
   name: rabbitmq-cluster-leader-election-role
-  namespace: pivotal-rabbitmq-system
+  namespace: rabbitmq-system
 rules:
 - apiGroups:
   - ""
@@ -210,7 +210,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - rabbitmq.pivotal.io
+  - rabbitmq.com
   resources:
   - rabbitmqclusters
   verbs:
@@ -222,7 +222,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rabbitmq.pivotal.io
+  - rabbitmq.com
   resources:
   - rabbitmqclusters/status
   verbs:
@@ -262,7 +262,7 @@ metadata:
     app.kubernetes.io/name: rabbitmq-cluster-operator
     app.kubernetes.io/part-of: rabbitmq
   name: rabbitmq-cluster-leader-election-rolebinding
-  namespace: pivotal-rabbitmq-system
+  namespace: rabbitmq-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -270,7 +270,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: rabbitmq-cluster-operator
-  namespace: pivotal-rabbitmq-system
+  namespace: rabbitmq-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -287,4 +287,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: rabbitmq-cluster-operator
-  namespace: pivotal-rabbitmq-system
+  namespace: rabbitmq-system

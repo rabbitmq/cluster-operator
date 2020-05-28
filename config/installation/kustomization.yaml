@@ -1,7 +1,7 @@
 bases:
 - ../default/base
 
-namespace: pivotal-rabbitmq-system
+namespace: rabbitmq-system
 
 patches:
 - manager_deployment_patch.yaml
