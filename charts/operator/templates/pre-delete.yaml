@@ -27,7 +27,7 @@ rules:
 - apiGroups:
   - rabbitmq.com
   resources:
-  - rabbitmqclusters
+  - clusters
   verbs:
   - delete
   - get
@@ -75,4 +75,4 @@ spec:
       containers:
       - name: pre-delete-job
         image: "bitnami/kubectl:latest"
-        command: ["kubectl", "delete", "rabbitmqclusters", "--all", "--all-namespaces", "--wait"]
+        command: ["kubectl", "delete", "clusters", "--all", "--all-namespaces", "--wait"]

@@ -36,7 +36,7 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
-const controllerName = "rabbitmqcluster-controller"
+const controllerName = "rabbitmq-cluster-controller"
 
 var (
 	scheme = runtime.NewScheme()
@@ -103,7 +103,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.RabbitmqClusterReconciler{
+	err = (&controllers.ClusterReconciler{
 		Client:        mgr.GetClient(),
 		Log:           ctrl.Log.WithName(controllerName),
 		Scheme:        mgr.GetScheme(),

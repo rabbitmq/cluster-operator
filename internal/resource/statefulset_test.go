@@ -16,14 +16,14 @@ import (
 
 var _ = Describe("StatefulSet", func() {
 	var (
-		instance rabbitmqv1beta1.RabbitmqCluster
+		instance rabbitmqv1beta1.Cluster
 		scheme   *runtime.Scheme
 		cluster  *resource.RabbitmqResourceBuilder
 	)
 
 	Context("Build", func() {
 		BeforeEach(func() {
-			instance = generateRabbitmqCluster()
+			instance = generateCluster()
 
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
@@ -114,7 +114,7 @@ var _ = Describe("StatefulSet", func() {
 						OwnerReferences: []v1.OwnerReference{
 							{
 								APIVersion:         "rabbitmq.com/v1beta1",
-								Kind:               "RabbitmqCluster",
+								Kind:               "Cluster",
 								Name:               instance.Name,
 								UID:                "",
 								Controller:         &truth,
@@ -147,7 +147,7 @@ var _ = Describe("StatefulSet", func() {
 		)
 
 		BeforeEach(func() {
-			instance = generateRabbitmqCluster()
+			instance = generateCluster()
 
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
@@ -230,7 +230,7 @@ var _ = Describe("StatefulSet", func() {
 
 		Context("label inheritance", func() {
 			BeforeEach(func() {
-				instance = generateRabbitmqCluster()
+				instance = generateCluster()
 				instance.Namespace = "foo-namespace"
 				instance.Name = "foo"
 				instance.Labels = map[string]string{
@@ -859,23 +859,23 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 	return corev1.Container{}
 }
 
-func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
+func generateCluster() rabbitmqv1beta1.Cluster {
 	storage := k8sresource.MustParse("10Gi")
 	one := int32(1)
-	return rabbitmqv1beta1.RabbitmqCluster{
+	return rabbitmqv1beta1.Cluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "foo-namespace",
 		},
-		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+		Spec: rabbitmqv1beta1.ClusterSpec{
 			Replicas:        &one,
 			Image:           "rabbitmq-image-from-cr",
 			ImagePullSecret: "my-super-secret",
-			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+			Service: rabbitmqv1beta1.ClusterServiceSpec{
 				Type:        corev1.ServiceType("this-is-a-service"),
 				Annotations: map[string]string{},
 			},
-			Persistence: rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
+			Persistence: rabbitmqv1beta1.ClusterPersistenceSpec{
 				StorageClassName: nil,
 				Storage:          &storage,
 			},

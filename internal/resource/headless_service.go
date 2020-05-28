@@ -13,7 +13,7 @@ const (
 )
 
 type HeadlessServiceBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Instance *rabbitmqv1beta1.Cluster
 }
 
 func (builder *RabbitmqResourceBuilder) HeadlessService() *HeadlessServiceBuilder {

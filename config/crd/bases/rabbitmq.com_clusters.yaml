@@ -6,7 +6,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: rabbitmqclusters.rabbitmq.com
+  name: clusters.rabbitmq.com
 spec:
   additionalPrinterColumns:
   - JSONPath: .metadata.creationTimestamp
@@ -17,17 +17,17 @@ spec:
     type: string
   group: rabbitmq.com
   names:
-    kind: RabbitmqCluster
-    listKind: RabbitmqClusterList
-    plural: rabbitmqclusters
-    singular: rabbitmqcluster
+    kind: Cluster
+    listKind: ClusterList
+    plural: clusters
+    singular: cluster
   preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: RabbitmqCluster is the Schema for the rabbitmqclusters API
+      description: Cluster is the Schema for the clusters.rabbitmq.com API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -38,7 +38,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: Spec is the desired state of the RabbitmqCluster Custom Resource.
+          description: Spec is the desired state of the clusters.rabbitmq.com Custom Resource.
           properties:
             affinity:
               description: Affinity is a group of affinity scheduling rules.
@@ -382,19 +382,19 @@ spec:
                   type: object
               type: object
             image:
-              description: Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster.
+              description: Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the Cluster.
               type: string
             imagePullSecret:
               description: Name of the Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
               type: string
             persistence:
-              description: The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
+              description: The settings for the persistent storage desired for each Pod in the Cluster.
               properties:
                 storage:
                   anyOf:
                   - type: integer
                   - type: string
-                  description: The requested size of the persistent volume attached to each Pod in the RabbitmqCluster.
+                  description: The requested size of the persistent volume attached to each Pod in the Cluster.
                   pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                   x-kubernetes-int-or-string: true
                 storageClassName:
@@ -405,7 +405,7 @@ spec:
               description: Rabbitmq related configurations
               properties:
                 additionalConfig:
-                  description: Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modify this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
+                  description: Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modify this property on an existing Cluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
                   maxLength: 2000
                   type: string
                 additionalPlugins:
@@ -467,7 +467,7 @@ spec:
                   type: string
               type: object
             tolerations:
-              description: Tolerations is the list of Toleration resources attached to each Pod in the RabbitmqCluster.
+              description: Tolerations is the list of Toleration resources attached to each Pod in the Cluster.
               items:
                 description: The pod this Toleration is attached to tolerates any taint that matches the triple <key,value,effect> using the matching operator <operator>.
                 properties:
@@ -493,7 +493,7 @@ spec:
           - replicas
           type: object
         status:
-          description: Status presents the observed state of RabbitmqCluster
+          description: Status presents the observed state of Cluster
           properties:
             admin:
               description: Identifying information on internal resources
@@ -527,7 +527,7 @@ spec:
             clusterStatus:
               type: string
             conditions:
-              description: Set of Conditions describing the current state of the RabbitmqCluster
+              description: Set of Conditions describing the current state of the Cluster
               items:
                 properties:
                   lastTransitionTime:
@@ -544,7 +544,7 @@ spec:
                     description: True, False, or Unknown
                     type: string
                   type:
-                    description: Type indicates the scope of RabbitmqCluster status addressed by the condition.
+                    description: Type indicates the scope of Cluster status addressed by the condition.
                     type: string
                 required:
                 - status

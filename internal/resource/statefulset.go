@@ -29,7 +29,7 @@ func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
 }
 
 type StatefulSetBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Instance *rabbitmqv1beta1.Cluster
 	Scheme   *runtime.Scheme
 }
 
@@ -57,7 +57,7 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 	return sts, nil
 }
 
-func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
+func persistentVolumeClaim(instance *rabbitmqv1beta1.Cluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "persistence",
@@ -110,7 +110,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels, builder.Instance.Spec.TLS)
 
 	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
-		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
+		logger := ctrl.Log.WithName("statefulset").WithName("Cluster")
 		logger.Info(fmt.Sprintf("Warning: Memory request and limit are not equal for \"%s\". It is recommended that they be set to the same value", sts.GetName()))
 	}
 

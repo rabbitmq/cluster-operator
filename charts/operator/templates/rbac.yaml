@@ -212,7 +212,7 @@ rules:
 - apiGroups:
   - rabbitmq.com
   resources:
-  - rabbitmqclusters
+  - clusters
   verbs:
   - create
   - delete
@@ -224,7 +224,7 @@ rules:
 - apiGroups:
   - rabbitmq.com
   resources:
-  - rabbitmqclusters/status
+  - clusters/status
   verbs:
   - get
   - patch

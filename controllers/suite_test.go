@@ -26,8 +26,6 @@ import (
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/controllers"
 
-	// "github.com/pivotal/rabbitmq-for-kubernetes/internal/config"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -41,7 +39,7 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
-const controllerName = "rabbitmqcluster-controller"
+const controllerName = "rabbitmq-cluster-controller"
 
 var (
 	cfg        *rest.Config
@@ -97,7 +95,7 @@ func startManager(scheme *runtime.Scheme) {
 	Expect(err).NotTo(HaveOccurred())
 	client = mgr.GetClient()
 
-	reconciler := &controllers.RabbitmqClusterReconciler{
+	reconciler := &controllers.ClusterReconciler{
 		Client:    client,
 		Log:       ctrl.Log.WithName(controllerName),
 		Scheme:    mgr.GetScheme(),

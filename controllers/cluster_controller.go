@@ -62,12 +62,12 @@ var (
 
 const (
 	ownerKey          = ".metadata.controller"
-	ownerKind         = "RabbitmqCluster"
-	deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
+	ownerKind         = "Cluster"
+	deletionFinalizer = "deletion.finalizers.clusters.rabbitmq.com"
 )
 
-// RabbitmqClusterReconciler reconciles a RabbitmqCluster object
-type RabbitmqClusterReconciler struct {
+// ClusterReconciler reconciles a Cluster object
+type ClusterReconciler struct {
 	client.Client
 	Log           logr.Logger
 	Scheme        *runtime.Scheme
@@ -92,18 +92,18 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=rabbitmq.com,resources=clusters,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rabbitmq.com,resources=clusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
-func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	logger := r.Log
 
-	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
+	fetchedCluster, err := r.getCluster(ctx, req.NamespacedName)
 
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
@@ -112,34 +112,34 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{}, nil
 	}
 
-	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
+	cluster := rabbitmqv1beta1.MergeDefaults(*fetchedCluster)
 
-	if !reflect.DeepEqual(fetchedRabbitmqCluster.Spec, rabbitmqCluster.Spec) {
-		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
+	if !reflect.DeepEqual(fetchedCluster.Spec, cluster.Spec) {
+		if err := r.Client.Update(ctx, cluster); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Resource has been marked for deletion
-	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		logger.Info("Deleting RabbitmqCluster",
-			"namespace", rabbitmqCluster.Namespace,
-			"name", rabbitmqCluster.Name)
+	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		logger.Info("Deleting Cluster",
+			"namespace", cluster.Namespace,
+			"name", cluster.Name)
 		// Stop reconciliation as the item is being deleted
-		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
+		return ctrl.Result{}, r.prepareForDeletion(ctx, cluster)
 	}
 
 	// TLS: check if specified, and if secret exists
-	if rabbitmqCluster.TLSEnabled() {
-		secretName := rabbitmqCluster.Spec.TLS.SecretName
-		logger.Info("TLS set, looking for secret", "secret", secretName, "namespace", rabbitmqCluster.Namespace)
+	if cluster.TLSEnabled() {
+		secretName := cluster.Spec.TLS.SecretName
+		logger.Info("TLS set, looking for secret", "secret", secretName, "namespace", cluster.Namespace)
 
 		// check if secret exists
 		secret := &corev1.Secret{}
-		if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
-			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
-				fmt.Sprintf("Failed to get TLS secret in namespace %v: %v", rabbitmqCluster.Namespace, err.Error()))
+		if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: secretName}, secret); err != nil {
+			r.Recorder.Event(cluster, corev1.EventTypeWarning, "TLSError",
+				fmt.Sprintf("Failed to get TLS secret in namespace %v: %v", cluster.Namespace, err.Error()))
 			// retry after 10 seconds if not found
 			if errors.IsNotFound(err) {
 				return ctrl.Result{RequeueAfter: 10 * time.Second}, err
@@ -152,45 +152,45 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		_, hasTLSKey := secret.Data["tls.key"]
 		_, hasTLSCert := secret.Data["tls.crt"]
 		if !hasTLSCert || !hasTLSKey {
-			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
-				fmt.Sprintf("The TLS secret %v in namespace %v must have the fields tls.crt and tls.key", secretName, rabbitmqCluster.Namespace))
+			r.Recorder.Event(cluster, corev1.EventTypeWarning, "TLSError",
+				fmt.Sprintf("The TLS secret %v in namespace %v must have the fields tls.crt and tls.key", secretName, cluster.Namespace))
 			return ctrl.Result{}, errors.NewBadRequest("The TLS secret must have the fields tls.crt and tls.key")
 		}
 	}
 
-	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
+	if err := r.addFinalizerIfNeeded(ctx, cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
+	childResources, err := r.getChildResources(ctx, *cluster)
 
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	oldConditions := make([]status.RabbitmqClusterCondition, len(rabbitmqCluster.Status.Conditions))
-	copy(oldConditions, rabbitmqCluster.Status.Conditions)
-	rabbitmqCluster.Status.SetConditions(childResources)
+	oldConditions := make([]status.ClusterCondition, len(cluster.Status.Conditions))
+	copy(oldConditions, cluster.Status.Conditions)
+	cluster.Status.SetConditions(childResources)
 
-	if !reflect.DeepEqual(rabbitmqCluster.Status.Conditions, oldConditions) {
-		err = r.Status().Update(ctx, rabbitmqCluster)
+	if !reflect.DeepEqual(cluster.Status.Conditions, oldConditions) {
+		err = r.Status().Update(ctx, cluster)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	instanceSpec, err := json.Marshal(rabbitmqCluster.Spec)
+	instanceSpec, err := json.Marshal(cluster.Spec)
 	if err != nil {
 		logger.Error(err, "Failed to marshal cluster spec")
 	}
 
-	logger.Info("Start reconciling RabbitmqCluster",
-		"namespace", rabbitmqCluster.Namespace,
-		"name", rabbitmqCluster.Name,
+	logger.Info("Start reconciling Cluster",
+		"namespace", cluster.Namespace,
+		"name", cluster.Name,
 		"spec", string(instanceSpec))
 
 	resourceBuilder := resource.RabbitmqResourceBuilder{
-		Instance: rabbitmqCluster,
+		Instance: cluster,
 		Scheme:   r.Scheme,
 	}
 
@@ -206,7 +206,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 
 		//TODO this should be done in the builders
-		if err := controllerutil.SetControllerReference(rabbitmqCluster, resource.(metav1.Object), r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(cluster, resource.(metav1.Object), r.Scheme); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -219,49 +219,49 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 			return apiError
 		}); err != nil {
-			r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
+			r.logAndRecordOperationResult(cluster, resource, operationResult, err)
 			return ctrl.Result{}, err
 		}
 
-		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
-		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
+		r.logAndRecordOperationResult(cluster, resource, operationResult, err)
+		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, cluster)
 	}
 
-	if err := r.setAdminStatus(ctx, rabbitmqCluster); err != nil {
+	if err := r.setAdminStatus(ctx, cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
+	if err, ok := r.allReplicasReady(ctx, cluster); !ok {
 		// only enable plugins when all pods of the StatefulSet become ready
 		// requeue request after 10 seconds without error
-		logger.Info("Not all replicas ready yet; requeuing request to enable plugins on RabbitmqCluster",
-			"namespace", rabbitmqCluster.Namespace,
-			"name", rabbitmqCluster.Name)
+		logger.Info("Not all replicas ready yet; requeuing request to enable plugins on Cluster",
+			"namespace", cluster.Namespace,
+			"name", cluster.Name)
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 
-	if err := r.enablePlugins(rabbitmqCluster); err != nil {
+	if err := r.enablePlugins(cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("Finished reconciling RabbitmqCluster",
-		"namespace", rabbitmqCluster.Namespace,
-		"name", rabbitmqCluster.Name)
+	logger.Info("Finished reconciling Cluster",
+		"namespace", cluster.Namespace,
+		"name", cluster.Name)
 
 	return ctrl.Result{}, nil
 }
 
-func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *ClusterReconciler) setAdminStatus(ctx context.Context, rmq *rabbitmqv1beta1.Cluster) error {
 
-	adminStatus := &rabbitmqv1beta1.RabbitmqClusterAdmin{}
+	adminStatus := &rabbitmqv1beta1.ClusterAdmin{}
 
-	serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{
+	serviceRef := &rabbitmqv1beta1.ClusterServiceReference{
 		Name:      rmq.ChildResourceName("ingress"),
 		Namespace: rmq.Namespace,
 	}
 	adminStatus.ServiceReference = serviceRef
 
-	secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{
+	secretRef := &rabbitmqv1beta1.ClusterSecretReference{
 		Name:      rmq.ChildResourceName(resource.AdminSecretName),
 		Namespace: rmq.Namespace,
 		Keys: map[string]string{
@@ -283,7 +283,7 @@ func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rab
 
 // restartStatefulSetIfNeeded - helper function that annotate the StatefulSet PodTemplate with current timestamp
 // to trigger a restart of the all pods in the StatefulSet when ConfigMap is updated
-func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, resource runtime.Object, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) {
+func (r *ClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, resource runtime.Object, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.Cluster) {
 	if _, ok := resource.(*corev1.ConfigMap); ok && operationResult == controllerutil.OperationResultUpdated {
 		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}}
@@ -307,7 +307,7 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Conte
 }
 
 // allReplicasReady - helper function that checks if StatefulSet replicas are all ready
-func (r *RabbitmqClusterReconciler) allReplicasReady(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (error, bool) {
+func (r *ClusterReconciler) allReplicasReady(ctx context.Context, rmq *rabbitmqv1beta1.Cluster) (error, bool) {
 	sts := &appsv1.StatefulSet{}
 
 	if err := r.Get(ctx, types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}, sts); err != nil {
@@ -321,9 +321,9 @@ func (r *RabbitmqClusterReconciler) allReplicasReady(ctx context.Context, rmq *r
 	return nil, true
 }
 
-// enablePlugins - helper function to set the list of enabled plugins in a given RabbitmqCluster pods
+// enablePlugins - helper function to set the list of enabled plugins in a given Cluster pods
 // `rabbitmq-plugins set` disables plugins that are not in the provided list
-func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *ClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.Cluster) error {
 	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
 		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
 		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s",
@@ -340,13 +340,13 @@ func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqC
 		}
 	}
 
-	r.Log.Info("Successfully enabled plugins on RabbitmqCluster",
+	r.Log.Info("Successfully enabled plugins on Cluster",
 		"namespace", rmq.Namespace,
 		"name", rmq.Name)
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName string, command ...string) (string, error) {
+func (r *ClusterReconciler) exec(namespace, podName, containerName string, command ...string) (string, error) {
 	request := r.Clientset.CoreV1().RESTClient().
 		Post().
 		Resource("pods").
@@ -389,7 +389,7 @@ func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName strin
 
 // logAndRecordOperationResult - helper function to log and record events with message and error
 // it logs and records 'updated' and 'created' OperationResult, and ignores OperationResult 'unchanged'
-func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Object, resource runtime.Object, operationResult controllerutil.OperationResult, err error) {
+func (r *ClusterReconciler) logAndRecordOperationResult(rmq runtime.Object, resource runtime.Object, operationResult controllerutil.OperationResult, err error) {
 	if operationResult == controllerutil.OperationResultCreated && err == nil {
 		msg := fmt.Sprintf("created resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
 		r.Log.Info(msg)
@@ -424,18 +424,18 @@ func containsString(slice []string, s string) bool {
 	return false
 }
 
-func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	if containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
+func (r *ClusterReconciler) prepareForDeletion(ctx context.Context, cluster *rabbitmqv1beta1.Cluster) error {
+	if containsString(cluster.ObjectMeta.Finalizers, deletionFinalizer) {
 		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			sts := &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      rabbitmqCluster.ChildResourceName("server"),
-					Namespace: rabbitmqCluster.Namespace,
+					Name:      cluster.ChildResourceName("server"),
+					Namespace: cluster.Namespace,
 				},
 			}
 			// Add label on all Pods to be picked up in pre-stop hook via Downward API
-			if err := r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster); err != nil {
-				return fmt.Errorf(fmt.Sprintf("Failed to add deletion markers to RabbitmqCluster Pods: %s", err.Error()))
+			if err := r.addRabbitmqDeletionLabel(ctx, cluster); err != nil {
+				return fmt.Errorf(fmt.Sprintf("Failed to add deletion markers to Cluster Pods: %s", err.Error()))
 			}
 			// Delete StatefulSet immediately after changing pod labels to minimize risk of them respawning. There is a window where the StatefulSet could respawn Pods without the deletion label in this order. But we can't delete it before because the DownwardAPI doesn't update once a Pod enters Terminating
 			if err := r.Client.Delete(ctx, sts); client.IgnoreNotFound(err) != nil {
@@ -444,10 +444,10 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 
 			return nil
 		}); err != nil {
-			r.Log.Error(err, "RabbitmqCluster deletion")
+			r.Log.Error(err, "Cluster deletion")
 		}
 
-		if err := r.removeFinalizer(ctx, rabbitmqCluster); err != nil {
+		if err := r.removeFinalizer(ctx, cluster); err != nil {
 			r.Log.Error(err, "Failed to remove finalizer for deletion")
 			return err
 		}
@@ -455,21 +455,21 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	if err := controllerutil.RemoveFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {
+func (r *ClusterReconciler) removeFinalizer(ctx context.Context, cluster *rabbitmqv1beta1.Cluster) error {
+	if err := controllerutil.RemoveFinalizerWithError(cluster, deletionFinalizer); err != nil {
 		return err
 	}
 
-	if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
+	if err := r.Client.Update(ctx, cluster); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *ClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context, cluster *rabbitmqv1beta1.Cluster) error {
 	pods := &corev1.PodList{}
-	selector, err := labels.Parse(fmt.Sprintf("app.kubernetes.io/name=%s", rabbitmqCluster.Name))
+	selector, err := labels.Parse(fmt.Sprintf("app.kubernetes.io/name=%s", cluster.Name))
 	if err != nil {
 		return err
 	}
@@ -492,14 +492,14 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	// The RabbitmqCluster is not marked for deletion (no deletion timestamp) but does not have the deletion finalizer
-	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
-		if err := controllerutil.AddFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {
+func (r *ClusterReconciler) addFinalizerIfNeeded(ctx context.Context, cluster *rabbitmqv1beta1.Cluster) error {
+	// The Cluster is not marked for deletion (no deletion timestamp) but does not have the deletion finalizer
+	if cluster.ObjectMeta.DeletionTimestamp.IsZero() && !containsString(cluster.ObjectMeta.Finalizers, deletionFinalizer) {
+		if err := controllerutil.AddFinalizerWithError(cluster, deletionFinalizer); err != nil {
 			return err
 		}
 
-		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
+		if err := r.Client.Update(ctx, cluster); err != nil {
 			return err
 		}
 	}
@@ -507,7 +507,7 @@ func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, ra
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
+func (r *ClusterReconciler) getChildResources(ctx context.Context, rmq rabbitmqv1beta1.Cluster) ([]runtime.Object, error) {
 	sts := &appsv1.StatefulSet{}
 	endPoints := &corev1.Endpoints{}
 
@@ -530,19 +530,19 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq r
 	return []runtime.Object{sts, endPoints}, nil
 }
 
-func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
-	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
-	err := r.Get(ctx, NamespacedName, rabbitmqClusterInstance)
-	return rabbitmqClusterInstance, err
+func (r *ClusterReconciler) getCluster(ctx context.Context, NamespacedName types.NamespacedName) (*rabbitmqv1beta1.Cluster, error) {
+	cluster := &rabbitmqv1beta1.Cluster{}
+	err := r.Get(ctx, NamespacedName, cluster)
+	return cluster, err
 }
 
-func (r *RabbitmqClusterReconciler) getImagePullSecret(ctx context.Context, NamespacedName types.NamespacedName) (*corev1.Secret, error) {
+func (r *ClusterReconciler) getImagePullSecret(ctx context.Context, NamespacedName types.NamespacedName) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	err := r.Get(ctx, NamespacedName, secret)
 	return secret, err
 }
 
-func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	for _, resource := range []runtime.Object{&appsv1.StatefulSet{}, &corev1.ConfigMap{}, &corev1.Service{}} {
 		if err := mgr.GetFieldIndexer().IndexField(resource, ownerKey, addResourceToIndex); err != nil {
 			return err
@@ -550,7 +550,7 @@ func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&rabbitmqv1beta1.RabbitmqCluster{}).
+		For(&rabbitmqv1beta1.Cluster{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).

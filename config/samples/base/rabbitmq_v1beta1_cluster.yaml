@@ -1,7 +1,7 @@
 apiVersion: rabbitmq.com/v1beta1
-kind: RabbitmqCluster
+kind: Cluster
 metadata:
-  name: rabbitmqcluster-sample
+  name: sample
 spec:
   replicas: 1
   service:

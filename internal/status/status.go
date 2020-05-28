@@ -8,16 +8,16 @@ import (
 )
 
 const (
-	AllReplicasReady RabbitmqClusterConditionType = "AllReplicasReady"
-	ClusterAvailable RabbitmqClusterConditionType = "ClusterAvailable"
-	NoWarnings       RabbitmqClusterConditionType = "NoWarnings"
+	AllReplicasReady ClusterConditionType = "AllReplicasReady"
+	ClusterAvailable ClusterConditionType = "ClusterAvailable"
+	NoWarnings       ClusterConditionType = "NoWarnings"
 )
 
-type RabbitmqClusterConditionType string
+type ClusterConditionType string
 
-type RabbitmqClusterCondition struct {
-	// Type indicates the scope of RabbitmqCluster status addressed by the condition.
-	Type RabbitmqClusterConditionType `json:"type"`
+type ClusterCondition struct {
+	// Type indicates the scope of Cluster status addressed by the condition.
+	Type ClusterConditionType `json:"type"`
 	// True, False, or Unknown
 	Status corev1.ConditionStatus `json:"status"`
 	// The last time this Condition type changed.
@@ -28,8 +28,8 @@ type RabbitmqClusterCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
-func generateCondition(conditionType RabbitmqClusterConditionType) RabbitmqClusterCondition {
-	return RabbitmqClusterCondition{
+func generateCondition(conditionType ClusterConditionType) ClusterCondition {
+	return ClusterCondition{
 		Type:               conditionType,
 		Status:             corev1.ConditionUnknown,
 		LastTransitionTime: metav1.Time{},

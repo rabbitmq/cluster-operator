@@ -39,35 +39,35 @@ const (
 
 // +kubebuilder:object:root=true
 
-// RabbitmqCluster is the Schema for the rabbitmqclusters API
+// Cluster is the Schema for the clusters.rabbitmq.com API
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.clusterStatus"
-type RabbitmqCluster struct {
+type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RabbitmqClusterSpec   `json:"spec,omitempty"`
-	Status RabbitmqClusterStatus `json:"status,omitempty"`
+	Spec   ClusterSpec   `json:"spec,omitempty"`
+	Status ClusterStatus `json:"status,omitempty"`
 }
 
-// Spec is the desired state of the RabbitmqCluster Custom Resource.
-type RabbitmqClusterSpec struct {
+// Spec is the desired state of the clusters.rabbitmq.com Custom Resource.
+type ClusterSpec struct {
 	// Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5 replicas clusters are tested.
 	// +kubebuilder:validation:Minimum:=0
 	Replicas *int32 `json:"replicas"`
-	// Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster.
+	// Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the Cluster.
 	Image string `json:"image,omitempty"`
 	// Name of the Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
-	ImagePullSecret string                         `json:"imagePullSecret,omitempty"`
-	Service         RabbitmqClusterServiceSpec     `json:"service,omitempty"`
-	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
-	Resources       *corev1.ResourceRequirements   `json:"resources,omitempty"`
-	Affinity        *corev1.Affinity               `json:"affinity,omitempty"`
-	// Tolerations is the list of Toleration resources attached to each Pod in the RabbitmqCluster.
-	Tolerations []corev1.Toleration              `json:"tolerations,omitempty"`
-	Rabbitmq    RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
-	TLS         TLSSpec                          `json:"tls,omitempty"`
+	ImagePullSecret string                       `json:"imagePullSecret,omitempty"`
+	Service         ClusterServiceSpec           `json:"service,omitempty"`
+	Persistence     ClusterPersistenceSpec       `json:"persistence,omitempty"`
+	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Affinity        *corev1.Affinity             `json:"affinity,omitempty"`
+	// Tolerations is the list of Toleration resources attached to each Pod in the Cluster.
+	Tolerations []corev1.Toleration      `json:"tolerations,omitempty"`
+	Rabbitmq    ClusterConfigurationSpec `json:"rabbitmq,omitempty"`
+	TLS         TLSSpec                  `json:"tls,omitempty"`
 }
 
 type TLSSpec struct {
@@ -81,65 +81,65 @@ type TLSSpec struct {
 type Plugin string
 
 // Rabbitmq related configurations
-type RabbitmqClusterConfigurationSpec struct {
+type ClusterConfigurationSpec struct {
 	// List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.
 	// +kubebuilder:validation:MaxItems:=100
 	AdditionalPlugins []Plugin `json:"additionalPlugins,omitempty"`
-	// Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modify this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
+	// Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modify this property on an existing Cluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
 	// +kubebuilder:validation:MaxLength:=2000
 	AdditionalConfig string `json:"additionalConfig,omitempty"`
 }
 
-// The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
-type RabbitmqClusterPersistenceSpec struct {
+// The settings for the persistent storage desired for each Pod in the Cluster.
+type ClusterPersistenceSpec struct {
 	// StorageClassName is the name of the StorageClass to claim a PersistentVolume from.
 	StorageClassName *string `json:"storageClassName,omitempty"`
-	// The requested size of the persistent volume attached to each Pod in the RabbitmqCluster.
+	// The requested size of the persistent volume attached to each Pod in the Cluster.
 	Storage *k8sresource.Quantity `json:"storage,omitempty"`
 }
 
 // Settable attributes for the Ingress Service resource.
-type RabbitmqClusterServiceSpec struct {
+type ClusterServiceSpec struct {
 	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
 	Type corev1.ServiceType `json:"type,omitempty"`
 	// Annotations to add to the Ingress Service.
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// Status presents the observed state of RabbitmqCluster
-type RabbitmqClusterStatus struct {
+// Status presents the observed state of Cluster
+type ClusterStatus struct {
 	ClusterStatus string `json:"clusterStatus,omitempty"`
-	// Set of Conditions describing the current state of the RabbitmqCluster
-	Conditions []status.RabbitmqClusterCondition `json:"conditions"`
+	// Set of Conditions describing the current state of the Cluster
+	Conditions []status.ClusterCondition `json:"conditions"`
 
 	// Identifying information on internal resources
-	Admin *RabbitmqClusterAdmin `json:"admin,omitempty"`
+	Admin *ClusterAdmin `json:"admin,omitempty"`
 }
 
-type RabbitmqClusterAdmin struct {
-	SecretReference  *RabbitmqClusterSecretReference  `json:"secretReference,omitempty"`
-	ServiceReference *RabbitmqClusterServiceReference `json:"serviceReference,omitempty"`
+type ClusterAdmin struct {
+	SecretReference  *ClusterSecretReference  `json:"secretReference,omitempty"`
+	ServiceReference *ClusterServiceReference `json:"serviceReference,omitempty"`
 }
 
-type RabbitmqClusterSecretReference struct {
+type ClusterSecretReference struct {
 	Name      string            `json:"name"`
 	Namespace string            `json:"namespace"`
 	Keys      map[string]string `json:"keys"`
 }
 
-type RabbitmqClusterServiceReference struct {
+type ClusterServiceReference struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace"`
 }
 
-func (cluster *RabbitmqCluster) TLSEnabled() bool {
+func (cluster *Cluster) TLSEnabled() bool {
 	return cluster.Spec.TLS.SecretName != ""
 }
 
-func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
-	var existingAllPodsReadyCondition *status.RabbitmqClusterCondition
-	var existingClusterAvailableCondition *status.RabbitmqClusterCondition
-	var existingNoWarningsCondition *status.RabbitmqClusterCondition
+func (rmqStatus *ClusterStatus) SetConditions(resources []runtime.Object) {
+	var existingAllPodsReadyCondition *status.ClusterCondition
+	var existingClusterAvailableCondition *status.ClusterCondition
+	var existingNoWarningsCondition *status.ClusterCondition
 
 	for _, condition := range rmqStatus.Conditions {
 		switch condition.Type {
@@ -156,7 +156,7 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 	clusterAvailableCond := status.ClusterAvailableCondition(resources, existingClusterAvailableCondition)
 	noWarningsCond := status.NoWarningsCondition(resources, existingNoWarningsCondition)
 
-	currentStatusConditions := []status.RabbitmqClusterCondition{
+	currentStatusConditions := []status.ClusterCondition{
 		allReplicasReadyCond,
 		clusterAvailableCond,
 		noWarningsCond,
@@ -167,19 +167,19 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 
 // +kubebuilder:object:root=true
 
-// RabbitmqClusterList contains a list of RabbitmqCluster
-type RabbitmqClusterList struct {
+// ClusterList contains a list of Cluster
+type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []RabbitmqCluster `json:"items"`
+	Items           []Cluster `json:"items"`
 }
 
-func (r RabbitmqCluster) ChildResourceName(name string) string {
-	return strings.Join([]string{r.Name, "rabbitmq", name}, "-")
+func (c Cluster) ChildResourceName(name string) string {
+	return strings.Join([]string{c.Name, "rabbitmq", name}, "-")
 }
 
 func init() {
-	SchemeBuilder.Register(&RabbitmqCluster{}, &RabbitmqClusterList{})
+	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
 }
 
 func getDefaultPersistenceStorageQuantity() *k8sresource.Quantity {
@@ -189,14 +189,14 @@ func getDefaultPersistenceStorageQuantity() *k8sresource.Quantity {
 
 var one int32 = 1
 
-var rabbitmqClusterDefaults = RabbitmqCluster{
-	Spec: RabbitmqClusterSpec{
+var clusterDefaults = Cluster{
+	Spec: ClusterSpec{
 		Replicas: &one,
 		Image:    rabbitmqImage,
-		Service: RabbitmqClusterServiceSpec{
+		Service: ClusterServiceSpec{
 			Type: defaultServiceType,
 		},
-		Persistence: RabbitmqClusterPersistenceSpec{
+		Persistence: ClusterPersistenceSpec{
 			Storage: getDefaultPersistenceStorageQuantity(),
 		},
 		Resources: &corev1.ResourceRequirements{
@@ -212,32 +212,32 @@ var rabbitmqClusterDefaults = RabbitmqCluster{
 	},
 }
 
-func MergeDefaults(current RabbitmqCluster) *RabbitmqCluster {
-	var mergedRabbitmq RabbitmqCluster = current
+func MergeDefaults(current Cluster) *Cluster {
+	var mergedRabbitmq Cluster = current
 
-	emptyRabbitmq := RabbitmqCluster{}
+	emptyRabbitmq := Cluster{}
 	// Note: we do not check for ImagePullSecret or StorageClassName since the default and nil value are both "".
 	// The logic of the check would be 'if actual is an empty string, then set to an empty string'
 	// We also do not check for Annotations as the nil value will be the empty map.
 
 	if mergedRabbitmq.Spec.Replicas == emptyRabbitmq.Spec.Replicas {
-		mergedRabbitmq.Spec.Replicas = rabbitmqClusterDefaults.Spec.Replicas
+		mergedRabbitmq.Spec.Replicas = clusterDefaults.Spec.Replicas
 	}
 
 	if mergedRabbitmq.Spec.Image == emptyRabbitmq.Spec.Image {
-		mergedRabbitmq.Spec.Image = rabbitmqClusterDefaults.Spec.Image
+		mergedRabbitmq.Spec.Image = clusterDefaults.Spec.Image
 	}
 
 	if mergedRabbitmq.Spec.Service.Type == emptyRabbitmq.Spec.Service.Type {
-		mergedRabbitmq.Spec.Service.Type = rabbitmqClusterDefaults.Spec.Service.Type
+		mergedRabbitmq.Spec.Service.Type = clusterDefaults.Spec.Service.Type
 	}
 
 	if reflect.DeepEqual(mergedRabbitmq.Spec.Persistence.Storage, emptyRabbitmq.Spec.Persistence.Storage) {
-		mergedRabbitmq.Spec.Persistence.Storage = rabbitmqClusterDefaults.Spec.Persistence.Storage
+		mergedRabbitmq.Spec.Persistence.Storage = clusterDefaults.Spec.Persistence.Storage
 	}
 
 	if reflect.DeepEqual(mergedRabbitmq.Spec.Resources, emptyRabbitmq.Spec.Resources) {
-		mergedRabbitmq.Spec.Resources = rabbitmqClusterDefaults.Spec.Resources
+		mergedRabbitmq.Spec.Resources = clusterDefaults.Spec.Resources
 	}
 
 	return &mergedRabbitmq

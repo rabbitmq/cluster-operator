@@ -13,29 +13,29 @@ import (
 var _ = Describe("RabbitmqResourceBuilder", func() {
 	Context("ResourceBuilders", func() {
 		var (
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "test",
 					Namespace: "namespace",
 				},
 			}
 
-			rabbitmqCluster *resource.RabbitmqResourceBuilder
-			scheme          *runtime.Scheme
+			cluster *resource.RabbitmqResourceBuilder
+			scheme  *runtime.Scheme
 		)
 
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-			rabbitmqCluster = &resource.RabbitmqResourceBuilder{
+			cluster = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
 			}
 		})
 
 		It("returns the required resource builders in the expected order", func() {
-			resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
+			resourceBuilders, err := cluster.ResourceBuilders()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(len(resourceBuilders)).To(Equal(9))

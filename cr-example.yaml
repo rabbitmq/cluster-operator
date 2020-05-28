@@ -1,5 +1,5 @@
 apiVersion: rabbitmq.com/v1beta1
-kind: RabbitmqCluster
+kind: Cluster
 metadata:
   name: example
   namespace: example-namespace

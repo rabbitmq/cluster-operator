@@ -12,13 +12,13 @@ import (
 
 var _ = Describe("GenerateServerConfigMap", func() {
 	var (
-		instance         rabbitmqv1beta1.RabbitmqCluster
+		instance         rabbitmqv1beta1.Cluster
 		configMapBuilder *resource.ServerConfigMapBuilder
 		builder          *resource.RabbitmqResourceBuilder
 	)
 
 	BeforeEach(func() {
-		instance = rabbitmqv1beta1.RabbitmqCluster{
+		instance = rabbitmqv1beta1.Cluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
 				Namespace: "a namespace",
@@ -130,11 +130,11 @@ my-config-property-1 = better-value`
 
 		Context("TLS", func() {
 			It("adds TLS config when TLS is enabled", func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-tls",
 					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Spec: rabbitmqv1beta1.ClusterSpec{
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName: "tls-secret",
 						},
@@ -154,7 +154,7 @@ listeners.ssl.default=5671
 
 		Context("labels", func() {
 			BeforeEach(func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-labelled",
 					},
@@ -197,7 +197,7 @@ listeners.ssl.default=5671
 
 		Context("instance annotations", func() {
 			BeforeEach(func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-labelled",
 					},

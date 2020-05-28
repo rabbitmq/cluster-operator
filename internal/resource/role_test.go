@@ -13,13 +13,13 @@ import (
 var _ = Describe("Role", func() {
 	var (
 		role        *rbacv1.Role
-		instance    rabbitmqv1beta1.RabbitmqCluster
+		instance    rabbitmqv1beta1.Cluster
 		roleBuilder *resource.RoleBuilder
 		builder     *resource.RabbitmqResourceBuilder
 	)
 
 	BeforeEach(func() {
-		instance = rabbitmqv1beta1.RabbitmqCluster{
+		instance = rabbitmqv1beta1.Cluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
 				Namespace: "a namespace",
@@ -46,7 +46,7 @@ var _ = Describe("Role", func() {
 
 	Context("Update with instance labels", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -89,7 +89,7 @@ var _ = Describe("Role", func() {
 
 	Context("Update Rules", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -124,7 +124,7 @@ var _ = Describe("Role", func() {
 
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},

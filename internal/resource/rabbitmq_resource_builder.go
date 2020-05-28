@@ -6,7 +6,7 @@ import (
 )
 
 type RabbitmqResourceBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Instance *rabbitmqv1beta1.Cluster
 	Scheme   *runtime.Scheme
 }
 

@@ -32,43 +32,43 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("RabbitmqCluster", func() {
+var _ = Describe("Cluster", func() {
 
 	var three int32 = 3
 
-	Context("RabbitmqClusterSpec", func() {
+	Context("ClusterSpec", func() {
 		It("can be created with a single replica", func() {
-			created := generateRabbitmqClusterObject("rabbit1")
+			created := generateClusterObject("rabbit1")
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
-			fetched := &RabbitmqCluster{}
+			fetched := &Cluster{}
 			Expect(k8sClient.Get(context.TODO(), getKey(created), fetched)).To(Succeed())
 			Expect(fetched).To(Equal(created))
 		})
 
 		It("can be created with three replicas", func() {
-			created := generateRabbitmqClusterObject("rabbit2")
+			created := generateClusterObject("rabbit2")
 			created.Spec.Replicas = &three
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
-			fetched := &RabbitmqCluster{}
+			fetched := &Cluster{}
 			Expect(k8sClient.Get(context.TODO(), getKey(created), fetched)).To(Succeed())
 			Expect(fetched).To(Equal(created))
 		})
 
 		It("can be created with five replicas", func() {
 			five := int32(5)
-			created := generateRabbitmqClusterObject("rabbit3")
+			created := generateClusterObject("rabbit3")
 			created.Spec.Replicas = &five
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
-			fetched := &RabbitmqCluster{}
+			fetched := &Cluster{}
 			Expect(k8sClient.Get(context.TODO(), getKey(created), fetched)).To(Succeed())
 			Expect(fetched).To(Equal(created))
 		})
 
 		It("can be deleted", func() {
-			created := generateRabbitmqClusterObject("rabbit4")
+			created := generateClusterObject("rabbit4")
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
 			Expect(k8sClient.Delete(context.TODO(), created)).To(Succeed())
@@ -76,7 +76,7 @@ var _ = Describe("RabbitmqCluster", func() {
 		})
 
 		It("can be created with resource requests", func() {
-			created := generateRabbitmqClusterObject("rabbit-resource-request")
+			created := generateClusterObject("rabbit-resource-request")
 			created.Spec.Resources = &corev1.ResourceRequirements{
 				Limits: map[corev1.ResourceName]resource.Quantity{
 					corev1.ResourceCPU:    k8sresource.MustParse("100m"),
@@ -91,13 +91,13 @@ var _ = Describe("RabbitmqCluster", func() {
 		})
 
 		It("can be created with server side TLS", func() {
-			created := generateRabbitmqClusterObject("rabbit-tls")
+			created := generateClusterObject("rabbit-tls")
 			created.Spec.TLS.SecretName = "tls-secret-name"
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 		})
 
 		It("can be queried if TLS is enabled", func() {
-			created := generateRabbitmqClusterObject("rabbit-tls")
+			created := generateClusterObject("rabbit-tls")
 			Expect(created.TLSEnabled()).To(BeFalse())
 
 			created.Spec.TLS.SecretName = "tls-secret-name"
@@ -107,14 +107,14 @@ var _ = Describe("RabbitmqCluster", func() {
 		It("is validated", func() {
 			By("checking the replica count", func() {
 				nOne := int32(-1)
-				invalidReplica := generateRabbitmqClusterObject("rabbit4")
+				invalidReplica := generateClusterObject("rabbit4")
 				invalidReplica.Spec.Replicas = &nOne
 				Expect(apierrors.IsInvalid(k8sClient.Create(context.TODO(), invalidReplica))).To(BeTrue())
 				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("spec.replicas in body should be greater than or equal to 0")))
 			})
 
 			By("checking the service type", func() {
-				invalidService := generateRabbitmqClusterObject("rabbit5")
+				invalidService := generateClusterObject("rabbit5")
 				invalidService.Spec.Service.Type = "ihateservices"
 				Expect(apierrors.IsInvalid(k8sClient.Create(context.TODO(), invalidService))).To(BeTrue())
 				Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("supported values: \"ClusterIP\", \"LoadBalancer\", \"NodePort\"")))
@@ -122,20 +122,20 @@ var _ = Describe("RabbitmqCluster", func() {
 		})
 
 		Describe("ChildResourceName", func() {
-			It("prefixes the passed string with the name of the RabbitmqCluster name", func() {
-				resource := generateRabbitmqClusterObject("iam")
+			It("prefixes the passed string with the name of the Cluster name", func() {
+				resource := generateClusterObject("iam")
 				Expect(resource.ChildResourceName("great")).To(Equal("iam-rabbitmq-great"))
 			})
 		})
 
 		Context("Default settings", func() {
 			var (
-				rmqClusterInstance RabbitmqCluster
-				rmqClusterTemplate RabbitmqCluster
+				rmqClusterInstance Cluster
+				rmqClusterTemplate Cluster
 			)
 			BeforeEach(func() {
-				rmqClusterInstance = RabbitmqCluster{}
-				rmqClusterTemplate = *generateRabbitmqClusterObject("foo")
+				rmqClusterInstance = Cluster{}
+				rmqClusterTemplate = *generateClusterObject("foo")
 
 			})
 
@@ -150,17 +150,17 @@ var _ = Describe("RabbitmqCluster", func() {
 				It("outputs the CR", func() {
 					storage := k8sresource.MustParse("987Gi")
 					storageClassName := "some-class"
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					rmqClusterInstance.Spec = ClusterSpec{
 						Replicas:        &three,
 						Image:           "rabbitmq-image-from-cr",
 						ImagePullSecret: "my-super-secret",
-						Service: RabbitmqClusterServiceSpec{
+						Service: ClusterServiceSpec{
 							Type: corev1.ServiceType("this-is-a-service"),
 							Annotations: map[string]string{
 								"myannotation": "is-set",
 							},
 						},
-						Persistence: RabbitmqClusterPersistenceSpec{
+						Persistence: ClusterPersistenceSpec{
 							StorageClassName: &storageClassName,
 							Storage:          &storage,
 						},
@@ -200,7 +200,7 @@ var _ = Describe("RabbitmqCluster", func() {
 								Effect:   "NoSchedule",
 							},
 						},
-						Rabbitmq: RabbitmqClusterConfigurationSpec{
+						Rabbitmq: ClusterConfigurationSpec{
 							AdditionalPlugins: []Plugin{
 								"my-plugins",
 							},
@@ -213,7 +213,7 @@ var _ = Describe("RabbitmqCluster", func() {
 
 			When("CR is partially set", func() {
 				It("applies default values to missing properties if replicas is set", func() {
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					rmqClusterInstance.Spec = ClusterSpec{
 						Replicas: &three,
 					}
 					expectedClusterInstance := rmqClusterTemplate.DeepCopy()
@@ -224,7 +224,7 @@ var _ = Describe("RabbitmqCluster", func() {
 				})
 
 				It("applies default values to missing properties if image is set", func() {
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					rmqClusterInstance.Spec = ClusterSpec{
 						Image: "test-image",
 					}
 					expectedClusterInstance := rmqClusterTemplate.DeepCopy()
@@ -236,7 +236,7 @@ var _ = Describe("RabbitmqCluster", func() {
 
 				It("does not apply resource defaults if the resource object is an empty non-nil struct", func() {
 					expectedResources := &corev1.ResourceRequirements{}
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					rmqClusterInstance.Spec = ClusterSpec{
 						Resources: expectedResources,
 					}
 					expectedClusterInstance := rmqClusterTemplate.DeepCopy()
@@ -253,7 +253,7 @@ var _ = Describe("RabbitmqCluster", func() {
 							"cpu": k8sresource.MustParse("6"),
 						},
 					}
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
+					rmqClusterInstance.Spec = ClusterSpec{
 						Resources: expectedResources,
 					}
 					expectedClusterInstance := rmqClusterTemplate.DeepCopy()
@@ -265,9 +265,9 @@ var _ = Describe("RabbitmqCluster", func() {
 			})
 		})
 	})
-	Context("RabbitmqClusterStatus", func() {
+	Context("ClusterStatus", func() {
 		It("sets conditions based on inputs", func() {
-			rabbitmqClusterStatus := RabbitmqClusterStatus{}
+			clusterStatus := ClusterStatus{}
 			statefulset := &appsv1.StatefulSet{}
 			statefulset.Spec.Template.Spec.Containers = []corev1.Container{
 				{
@@ -306,35 +306,35 @@ var _ = Describe("RabbitmqCluster", func() {
 				},
 			}
 
-			rabbitmqClusterStatus.SetConditions([]runtime.Object{statefulset, endPoints})
+			clusterStatus.SetConditions([]runtime.Object{statefulset, endPoints})
 
-			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(3))
-			Expect(rabbitmqClusterStatus.Conditions[0].Type).To(Equal(status.AllReplicasReady))
-			Expect(rabbitmqClusterStatus.Conditions[1].Type).To(Equal(status.ClusterAvailable))
-			Expect(rabbitmqClusterStatus.Conditions[2].Type).To(Equal(status.NoWarnings))
+			Expect(clusterStatus.Conditions).To(HaveLen(3))
+			Expect(clusterStatus.Conditions[0].Type).To(Equal(status.AllReplicasReady))
+			Expect(clusterStatus.Conditions[1].Type).To(Equal(status.ClusterAvailable))
+			Expect(clusterStatus.Conditions[2].Type).To(Equal(status.NoWarnings))
 		})
 	})
 })
 
-func getKey(cluster *RabbitmqCluster) types.NamespacedName {
+func getKey(cluster *Cluster) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      cluster.Name,
 		Namespace: cluster.Namespace,
 	}
 }
 
-func generateRabbitmqClusterObject(clusterName string) *RabbitmqCluster {
+func generateClusterObject(clusterName string) *Cluster {
 	storage := k8sresource.MustParse("10Gi")
 	one := int32(1)
-	return &RabbitmqCluster{
+	return &Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
 			Namespace: "default",
 		},
-		Spec: RabbitmqClusterSpec{
+		Spec: ClusterSpec{
 			Replicas: &one,
 			Image:    "rabbitmq:3.8.3",
-			Service: RabbitmqClusterServiceSpec{
+			Service: ClusterServiceSpec{
 				Type: "ClusterIP",
 			},
 			Resources: &corev1.ResourceRequirements{
@@ -347,7 +347,7 @@ func generateRabbitmqClusterObject(clusterName string) *RabbitmqCluster {
 					"memory": k8sresource.MustParse("2Gi"),
 				},
 			},
-			Persistence: RabbitmqClusterPersistenceSpec{
+			Persistence: ClusterPersistenceSpec{
 				Storage: &storage,
 			},
 		},

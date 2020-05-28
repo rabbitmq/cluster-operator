@@ -46,7 +46,7 @@ Our current CRD spec has a limited number of exposed properties for users to con
 
 Today, users are currently limited to a set of kubernetes properties that we select and define in the CRD spec to configure their RabbitMQ deployments. This approach has its downside, as we are currently not getting enough concrete user feedbacks to justify or prioritize each use case. And, the effort of adding these properties is repetitive and does not scale.
 
-In our team roadmap we decided to coup the lack of user feedbacks by offering [different layers of abstractions](https://miro.com/app/board/o9J_kvlRPnc=/) to deploy RabbitMQ. The current `RabbitmqCluster` CRD, which is at the bottom of the abstraction layer, should provide little opinion on how users can configure their `RabbitmqCluster` instances. Instead, the CRD needs to allow users to customize it to whichever configurations that adhere to users' own requirements. For users with little specific requirements and just want to use an existing RabbitMQ configuration that their cluster operator has defined, they can use a different CRD from `RabbitmqCluster`.
+In our team roadmap we decided to coup the lack of user feedbacks by offering [different layers of abstractions](https://miro.com/app/board/o9J_kvlRPnc=/) to deploy RabbitMQ. The current `Cluster` CRD, which is at the bottom of the abstraction layer, should provide little opinion on how users can configure their `Cluster` instances. Instead, the CRD needs to allow users to customize it to whichever configurations that adhere to users' own requirements. For users with little specific requirements and just want to use an existing RabbitMQ configuration that their cluster operator has defined, they can use a different CRD from `Cluster`.
 
 ## Goals
 
@@ -59,7 +59,7 @@ In our team roadmap we decided to coup the lack of user feedbacks by offering [d
 
 ## Proposal
 
-This proposal adds the ability to override statefulSet and ingress service template directly through the CRD spec. Our operator creates 9 kubernetes child recourses directly for each `RabbitmqCluster`: ingress Service, headless Service, StatefulSet, ConfigMap, erlang cookie secret, admin secret, rbac role, role binding, service account. Among these resources, we allow users to partially configure the StatefulSet, the ingress Service, and the pods that StatefulSet creates. The proposal focuses on 2 child recourses: ingress Service and StatefulSet to increase configurability, since there is no obvious use case for now that involves configuring any of the other child resources. We can add overrides for other resources when we see fit in the future.
+This proposal adds the ability to override statefulSet and ingress service template directly through the CRD spec. Our operator creates 9 kubernetes child recourses directly for each `Cluster`: ingress Service, headless Service, StatefulSet, ConfigMap, erlang cookie secret, admin secret, rbac role, role binding, service account. Among these resources, we allow users to partially configure the StatefulSet, the ingress Service, and the pods that StatefulSet creates. The proposal focuses on 2 child recourses: ingress Service and StatefulSet to increase configurability, since there is no obvious use case for now that involves configuring any of the other child resources. We can add overrides for other resources when we see fit in the future.
 
 A brief summary of the proposed plan:
 * Add an override section to CRD spec which supports statefulSetOverride and ingressServiceOverride
@@ -67,27 +67,27 @@ A brief summary of the proposed plan:
 * When the same property is configured at the top level and the override level , override value wins
 
 ```go
-type RabbitmqCluster struct {
+type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec   RabbitmqClusterSpec   `json:"spec,omitempty"`
-	Status RabbitmqClusterStatus `json:"status,omitempty"`
+	Spec   ClusterSpec   `json:"spec,omitempty"`
+	Status ClusterStatus `json:"status,omitempty"`
 }
 
-type RabbitmqClusterSpec struct {
+type ClusterSpec struct {
 	Replicas int32 `json:"replicas"`
 	Image string `json:"image,omitempty"`
 	ImagePullSecret string                         `json:"imagePullSecret,omitempty"`
-	Service         RabbitmqClusterServiceSpec     `json:"service,omitempty"`
-	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
+	Service         ClusterServiceSpec     `json:"service,omitempty"`
+	Persistence     ClusterPersistenceSpec `json:"persistence,omitempty"`
 	Resources       *corev1.ResourceRequirements   `json:"resources,omitempty"`
 	Affinity        *corev1.Affinity               `json:"affinity,omitempty"`
 	Tolerations []corev1.Toleration              `json:"tolerations,omitempty"`
-	Rabbitmq    RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
-	Override   RabbitmqClusterOverrideSpec     `json:"rabbitmqClusterOverrideSpec,omitempty"`
+	Rabbitmq    ClusterConfigurationSpec `json:"rabbitmq,omitempty"`
+	Override   ClusterOverrideSpec     `json:"clusterOverrideSpec,omitempty"`
 }
 
-type RabbitmqClusterOverrideSpec struct {
+type ClusterOverrideSpec struct {
 	IngressService *corev1.Service     `json:"ingressService,omitempty"`
 	StatefulSet    *appsv1.StatefulSet `json:"statefulSet,omitempty"`
 }
@@ -114,7 +114,7 @@ Case 1) Addition to lists
 To add a side car container, users can specify the following manifest on creation:
 
 ```yaml
-kind: RabbitmqCluster
+kind: Cluster
   spec:
     override:
       statefulSet:
@@ -133,7 +133,7 @@ Case 2) Overwriting values in lists
 To modify the already defined `rabbitmq` container, users need to specify the `patchMergeKey` for the list of Containers in the PodTemplate, which is `name`, and values they'd like to override:
 
 ```yaml
-kind: RabbitmqCluster
+kind: Cluster
   spec:
   override:
     statefulSet:

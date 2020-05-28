@@ -60,7 +60,7 @@ As a RabbitMQ client (whether application or end user), I want to be sure that t
 ## Proposal
 
 - When `tls.secretName` is set in the CR:
-  - Block deployment of all RabbitMQCluster resources until the Secret can be retrieved
+  - Block deployment of all Cluster resources until the Secret can be retrieved
   - Mount the Secret as a volume on each RabbitMQ Pod
   - Set , `ssl_options.certfile`, `ssl_options.keyfile` in rabbitmq.conf to paths on the mount
   - Add `5671` to the Container Ports in the Pod Template
@@ -73,7 +73,7 @@ As a RabbitMQ client (whether application or end user), I want to be sure that t
 #### Story 1
 ```
 Given I have a RabbitMQ for Kubernetes operator deployed
-And I deploy a RabbitMQ broker via a RabbitmqCluster Custom Resource
+And I deploy a RabbitMQ broker via a Cluster Custom Resource
 And I specify the location of a valid certfile and private key file in the Custom Resource
 And my client trusts the CA used to sign the RabbitMQ broker's certificate
 When I send an AMPQ message over TLS (default port 5671)
@@ -85,7 +85,7 @@ And I can retrieve that message over the same port
 Given I have a KSM environment
 And a certificate manager is provisioned in the cluster with an appropriate CA
 And I deploy the RabbitMQ operator
-And I request a new RabbitMQCluster with TLS enabled
+And I request a new Cluster with TLS enabled
 When I send an AMPQ message over TLS (default port 5671)
 Then my message is succesfully stored on a queue in the RabbitMQ broker
 And I can retrieve that message over the same port
@@ -115,7 +115,7 @@ And I can retrieve that message over the same port
 
 #### KSM
 - `plans` are too high level an abstraction to expect users to provide certificate details. We should consider how an operator would be configured and deployed with the ability to inject certificates for all the TLS-enabled RabbitMQ brokers.
-- This proposal make cert-manager a dependency for KSM deployed RabbitMQ for K8s. A plan with `tls: true` will deploy a cert-manager CertificateRequest with the RabbitMQCluster. The changes implemented at the operator will then ensure that the deployed RabbitMQCluster has the mounted certs.
+- This proposal make cert-manager a dependency for KSM deployed RabbitMQ for K8s. A plan with `tls: true` will deploy a cert-manager CertificateRequest with the Cluster. The changes implemented at the operator will then ensure that the deployed Cluster has the mounted certs.
   - However, cert-manager is expects cluster-wide privileges. cert-manager also requires [Issuers](https://cert-manager.io/docs/concepts/issuer/) to be configured before Certificates can be issued. Both of these tasks seem out of scope and more general than RabbitMQ operator config. We are therefore assuming that cert-manager configuration will either be part of a higher-level Tanzu cluster setup or at least done ahead of Rabbit deployment.
 - bind.yaml needs to be configurable to enable ssl, specify the correct port and point to an https URI
 

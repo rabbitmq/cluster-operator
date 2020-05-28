@@ -9,12 +9,12 @@ import (
 )
 
 type ClusterAvailableConditionManager struct {
-	condition RabbitmqClusterCondition
+	condition ClusterCondition
 	endpoints *corev1.Endpoints
 }
 
 func ClusterAvailableCondition(resources []runtime.Object,
-	existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
+	existingCondition *ClusterCondition) ClusterCondition {
 
 	condition := generateCondition(ClusterAvailable)
 	if existingCondition != nil {

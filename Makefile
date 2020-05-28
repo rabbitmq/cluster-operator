@@ -59,7 +59,7 @@ deploy-manager-dev:
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/dev
 
-deploy-sample: ## Deploy RabbitmqCluster defined in config/sample/base
+deploy-sample: ## Deploy Cluster defined in config/sample/base
 	kubectl apply -k config/samples/base
 
 configure-kubectl-ci: ci-cluster

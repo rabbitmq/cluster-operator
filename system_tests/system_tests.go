@@ -34,7 +34,7 @@ var _ = Describe("Operator", func() {
 
 	Context("Publish and consume a message in a 3 nodes cluster", func() {
 		var (
-			cluster  *rabbitmqv1beta1.RabbitmqCluster
+			cluster  *rabbitmqv1beta1.Cluster
 			hostname string
 			username string
 			password string
@@ -42,7 +42,7 @@ var _ = Describe("Operator", func() {
 
 		BeforeEach(func() {
 			three := int32(3)
-			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
+			cluster = generateCluster(namespace, "basic-rabbit")
 			cluster.Spec.Replicas = &three
 			cluster.Spec.Service.Type = "LoadBalancer"
 			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
@@ -51,7 +51,7 @@ var _ = Describe("Operator", func() {
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 			}
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+			Expect(createCluster(rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
 			waitForLoadBalancer(clientSet, cluster)
@@ -93,7 +93,7 @@ var _ = Describe("Operator", func() {
 					"-n",
 					cluster.Namespace,
 					"get",
-					"rabbitmqclusters",
+					"clusters",
 					cluster.Name,
 					"-ojsonpath='{.status.conditions[?(@.type==\"AllReplicasReady\")].status}'",
 				)
@@ -104,7 +104,7 @@ var _ = Describe("Operator", func() {
 					"-n",
 					cluster.Namespace,
 					"get",
-					"rabbitmqclusters",
+					"clusters",
 					cluster.Name,
 					"-ojsonpath='{.status.conditions[?(@.type==\"ClusterAvailable\")].status}'",
 				)
@@ -115,17 +115,17 @@ var _ = Describe("Operator", func() {
 	})
 
 	Context("RabbitMQ configurations", func() {
-		var cluster *rabbitmqv1beta1.RabbitmqCluster
+		var cluster *rabbitmqv1beta1.Cluster
 
 		BeforeEach(func() {
-			cluster = generateRabbitmqCluster(namespace, "config-rabbit")
+			cluster = generateCluster(namespace, "config-rabbit")
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 			}
 
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+			Expect(createCluster(rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 		})
 
@@ -135,8 +135,8 @@ var _ = Describe("Operator", func() {
 
 		It("keeps rabbitmq server related configurations up-to-date", func() {
 			By("updating enabled plugins when additionalPlugins are modified", func() {
-				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
-				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+				// modify cluster.spec.rabbitmq.additionalPlugins
+				Expect(updateCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.Cluster) {
 					cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
 				})).To(Succeed())
 
@@ -155,7 +155,7 @@ var _ = Describe("Operator", func() {
 			})
 
 			By("updating the rabbitmq.conf file when additionalConfig are modified", func() {
-				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+				Expect(updateCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.Cluster) {
 					cluster.Spec.Rabbitmq.AdditionalConfig = `vm_memory_high_watermark_paging_ratio = 0.5
 cluster_partition_handling = ignore
 cluster_keepalive_interval = 10000`
@@ -180,14 +180,14 @@ cluster_keepalive_interval = 10000`
 
 	Context("Persistence", func() {
 		var (
-			cluster  *rabbitmqv1beta1.RabbitmqCluster
+			cluster  *rabbitmqv1beta1.Cluster
 			hostname string
 			username string
 			password string
 		)
 
 		BeforeEach(func() {
-			cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
+			cluster = generateCluster(namespace, "persistence-rabbit")
 			cluster.Spec.Service.Type = "LoadBalancer"
 			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
@@ -195,7 +195,7 @@ cluster_keepalive_interval = 10000`
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 			}
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+			Expect(createCluster(rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
 			waitForLoadBalancer(clientSet, cluster)
@@ -237,19 +237,19 @@ cluster_keepalive_interval = 10000`
 	})
 
 	Context("Clustering with 5 nodes", func() {
-		When("RabbitmqCluster is deployed with 5 nodes", func() {
-			var cluster *rabbitmqv1beta1.RabbitmqCluster
+		When("Cluster is deployed with 5 nodes", func() {
+			var cluster *rabbitmqv1beta1.Cluster
 
 			BeforeEach(func() {
 				five := int32(5)
-				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
+				cluster = generateCluster(namespace, "ha-rabbit")
 				cluster.Spec.Replicas = &five
 				cluster.Spec.Service.Type = "LoadBalancer"
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 				}
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				Expect(createCluster(rmqClusterClient, cluster)).To(Succeed())
 			})
 
 			AfterEach(func() {
@@ -273,7 +273,7 @@ cluster_keepalive_interval = 10000`
 	Context("TLS", func() {
 		When("TLS is correctly configured", func() {
 			var (
-				cluster    *rabbitmqv1beta1.RabbitmqCluster
+				cluster    *rabbitmqv1beta1.Cluster
 				hostname   string
 				username   string
 				password   string
@@ -281,7 +281,7 @@ cluster_keepalive_interval = 10000`
 			)
 
 			BeforeEach(func() {
-				cluster = generateRabbitmqCluster(namespace, "tls-test-rabbit")
+				cluster = generateCluster(namespace, "tls-test-rabbit")
 				cluster.Spec.Service.Type = "LoadBalancer"
 				cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
 				cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
@@ -289,7 +289,7 @@ cluster_keepalive_interval = 10000`
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 				}
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				Expect(createCluster(rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
 				waitForLoadBalancer(clientSet, cluster)
 
@@ -297,7 +297,7 @@ cluster_keepalive_interval = 10000`
 				caFilePath = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
 
 				// Update CR with TLS secret name
-				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+				Expect(updateCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.Cluster) {
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 				})).To(Succeed())
 				// wait because the change in cluster condition is not fast enough
@@ -326,11 +326,11 @@ cluster_keepalive_interval = 10000`
 		})
 
 		When("the TLS secret does not exist", func() {
-			cluster := generateRabbitmqCluster(namespace, "tls-test-rabbit-faulty")
+			cluster := generateCluster(namespace, "tls-test-rabbit-faulty")
 			cluster.Spec.TLS = rabbitmqv1beta1.TLSSpec{SecretName: "tls-secret-does-not-exist"}
 
 			It("reports a TLSError event with the reason", func() {
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				Expect(createCluster(rmqClusterClient, cluster)).To(Succeed())
 				assertTLSError(cluster)
 				Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 			})

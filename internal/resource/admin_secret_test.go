@@ -16,22 +16,22 @@ import (
 var _ = Describe("AdminSecret", func() {
 	var (
 		secret             *corev1.Secret
-		instance           rabbitmqv1beta1.RabbitmqCluster
-		rabbitmqCluster    *resource.RabbitmqResourceBuilder
+		instance           rabbitmqv1beta1.Cluster
+		cluster            *resource.RabbitmqResourceBuilder
 		adminSecretBuilder *resource.AdminSecretBuilder
 	)
 
 	BeforeEach(func() {
-		instance = rabbitmqv1beta1.RabbitmqCluster{
+		instance = rabbitmqv1beta1.Cluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
 				Namespace: "a namespace",
 			},
 		}
-		rabbitmqCluster = &resource.RabbitmqResourceBuilder{
+		cluster = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
-		adminSecretBuilder = rabbitmqCluster.AdminSecret()
+		adminSecretBuilder = cluster.AdminSecret()
 	})
 
 	Context("Build with defaults", func() {
@@ -70,7 +70,7 @@ var _ = Describe("AdminSecret", func() {
 
 	Context("Update with instance labels", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -113,7 +113,7 @@ var _ = Describe("AdminSecret", func() {
 
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},

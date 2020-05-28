@@ -11,14 +11,14 @@ import (
 
 var _ = Describe("HeadlessService", func() {
 	var (
-		instance       rabbitmqv1beta1.RabbitmqCluster
+		instance       rabbitmqv1beta1.Cluster
 		cluster        *resource.RabbitmqResourceBuilder
 		serviceBuilder *resource.HeadlessServiceBuilder
 		service        *corev1.Service
 	)
 
 	BeforeEach(func() {
-		instance = rabbitmqv1beta1.RabbitmqCluster{}
+		instance = rabbitmqv1beta1.Cluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
 		cluster = &resource.RabbitmqResourceBuilder{
@@ -43,7 +43,7 @@ var _ = Describe("HeadlessService", func() {
 
 	Context("Update with instance labels", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -86,7 +86,7 @@ var _ = Describe("HeadlessService", func() {
 
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -132,7 +132,7 @@ var _ = Describe("HeadlessService", func() {
 
 	Context("Update Spec", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-spec",
 				},

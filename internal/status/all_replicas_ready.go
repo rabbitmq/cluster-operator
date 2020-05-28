@@ -11,7 +11,7 @@ import (
 )
 
 func AllReplicasReadyCondition(resources []runtime.Object,
-	existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
+	existingCondition *ClusterCondition) ClusterCondition {
 
 	condition := generateCondition(AllReplicasReady)
 	if existingCondition != nil {

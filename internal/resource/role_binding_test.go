@@ -13,13 +13,13 @@ import (
 var _ = Describe("RoleBinding", func() {
 	var (
 		roleBinding        *rbacv1.RoleBinding
-		instance           rabbitmqv1beta1.RabbitmqCluster
+		instance           rabbitmqv1beta1.Cluster
 		roleBindingBuilder *resource.RoleBindingBuilder
 		builder            *resource.RabbitmqResourceBuilder
 	)
 
 	BeforeEach(func() {
-		instance = rabbitmqv1beta1.RabbitmqCluster{
+		instance = rabbitmqv1beta1.Cluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
 				Namespace: "a namespace",
@@ -46,7 +46,7 @@ var _ = Describe("RoleBinding", func() {
 
 	Context("Update", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -89,7 +89,7 @@ var _ = Describe("RoleBinding", func() {
 
 	Context("Update with required rules", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-rolebinding",
 				},
@@ -133,7 +133,7 @@ var _ = Describe("RoleBinding", func() {
 
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},

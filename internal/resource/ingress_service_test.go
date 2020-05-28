@@ -14,7 +14,7 @@ import (
 
 var _ = Context("IngressServices", func() {
 	var (
-		instance   rabbitmqv1beta1.RabbitmqCluster
+		instance   rabbitmqv1beta1.Cluster
 		rmqBuilder resource.RabbitmqResourceBuilder
 		scheme     *runtime.Scheme
 	)
@@ -24,7 +24,7 @@ var _ = Context("IngressServices", func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-			instance = generateRabbitmqCluster()
+			instance = generateCluster()
 			rmqBuilder = resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
@@ -53,7 +53,7 @@ var _ = Context("IngressServices", func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-			instance = generateRabbitmqCluster()
+			instance = generateCluster()
 			rmqBuilder = resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
@@ -62,12 +62,12 @@ var _ = Context("IngressServices", func() {
 
 		Context("TLS", func() {
 			It("opens port 5671 on the service", func() {
-				instance := &rabbitmqv1beta1.RabbitmqCluster{
+				instance := &rabbitmqv1beta1.Cluster{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "foo",
 						Namespace: "foo-namespace",
 					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Spec: rabbitmqv1beta1.ClusterSpec{
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName: "tls-secret",
 						},
@@ -195,7 +195,7 @@ var _ = Context("IngressServices", func() {
 			)
 			BeforeEach(func() {
 				serviceBuilder = rmqBuilder.IngressService()
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-labelled",
 					},
@@ -244,7 +244,7 @@ var _ = Context("IngressServices", func() {
 
 			BeforeEach(func() {
 				serviceBuilder = rmqBuilder.IngressService()
-				instance = generateRabbitmqCluster()
+				instance = generateCluster()
 
 				ingressService = &corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
@@ -397,14 +397,14 @@ var _ = Context("IngressServices", func() {
 })
 
 func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnnotations, serviceAnnotations map[string]string) *corev1.Service {
-	instance := &rabbitmqv1beta1.RabbitmqCluster{
+	instance := &rabbitmqv1beta1.Cluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:        "foo",
 			Namespace:   "foo-namespace",
 			Annotations: instanceAnnotations,
 		},
-		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+		Spec: rabbitmqv1beta1.ClusterSpec{
+			Service: rabbitmqv1beta1.ClusterServiceSpec{
 				Annotations: serviceAnnotations,
 			},
 		},

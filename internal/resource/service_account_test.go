@@ -13,13 +13,13 @@ import (
 var _ = Describe("ServiceAccount", func() {
 	var (
 		serviceAccount        *corev1.ServiceAccount
-		instance              rabbitmqv1beta1.RabbitmqCluster
+		instance              rabbitmqv1beta1.Cluster
 		serviceAccountBuilder *resource.ServiceAccountBuilder
 		builder               *resource.RabbitmqResourceBuilder
 	)
 
 	BeforeEach(func() {
-		instance = rabbitmqv1beta1.RabbitmqCluster{
+		instance = rabbitmqv1beta1.Cluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
 				Namespace: "a namespace",
@@ -47,7 +47,7 @@ var _ = Describe("ServiceAccount", func() {
 	Context("Update", func() {
 		Context("instance labels", func() {
 			BeforeEach(func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-labelled",
 					},
@@ -90,7 +90,7 @@ var _ = Describe("ServiceAccount", func() {
 
 		Context("instance annotations", func() {
 			BeforeEach(func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-labelled",
 					},

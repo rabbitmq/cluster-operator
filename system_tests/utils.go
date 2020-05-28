@@ -355,22 +355,22 @@ func getRabbitmqUsernameAndPassword(clientset *kubernetes.Clientset, namespace, 
 	return string(username), string(password), nil
 }
 
-func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
+func generateCluster(namespace, instanceName string) *rabbitmqv1beta1.Cluster {
 	one := int32(1)
-	return &rabbitmqv1beta1.RabbitmqCluster{
+	return &rabbitmqv1beta1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instanceName,
 			Namespace: namespace,
 		},
-		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+		Spec: rabbitmqv1beta1.ClusterSpec{
 			Replicas: &one,
 		},
 	}
 }
 
-//the updateFn can change properties of the RabbitmqCluster CR
-func updateRabbitmqCluster(client client.Client, name, namespace string, updateFn func(*rabbitmqv1beta1.RabbitmqCluster)) error {
-	var result rabbitmqv1beta1.RabbitmqCluster
+//the updateFn can change properties of the Cluster CR
+func updateCluster(client client.Client, name, namespace string, updateFn func(*rabbitmqv1beta1.Cluster)) error {
+	var result rabbitmqv1beta1.Cluster
 
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		getErr := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, &result)
@@ -386,15 +386,15 @@ func updateRabbitmqCluster(client client.Client, name, namespace string, updateF
 	return retryErr
 }
 
-func createRabbitmqCluster(client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	return client.Create(context.TODO(), rabbitmqCluster)
+func createCluster(client client.Client, cluster *rabbitmqv1beta1.Cluster) error {
+	return client.Create(context.TODO(), cluster)
 }
 
-func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
+func statefulSetPodName(cluster *rabbitmqv1beta1.Cluster, index int) string {
 	return cluster.ChildResourceName(strings.Join([]string{statefulSetSuffix, strconv.Itoa(index)}, "-"))
 }
 
-func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.Cluster) string {
 	service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	ExpectWithOffset(1, len(service.Status.LoadBalancer.Ingress)).To(BeNumerically(">", 0))
@@ -402,16 +402,16 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 	return service.Status.LoadBalancer.Ingress[0].IP
 }
 
-func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.Cluster) {
 	waitForRabbitmqNotRunningWithOffset(cluster, 2)
 	waitForRabbitmqRunningWithOffset(cluster, 2)
 }
 
-func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.Cluster) {
 	waitForRabbitmqRunningWithOffset(cluster, 2)
 }
 
-func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
+func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.Cluster, callStackOffset int) {
 	var err error
 
 	EventuallyWithOffset(callStackOffset, func() string {
@@ -419,7 +419,7 @@ func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluste
 			"-n",
 			cluster.Namespace,
 			"get",
-			"rabbitmqclusters",
+			"clusters",
 			cluster.Name,
 			"-ojsonpath='{.status.conditions[?(@.type==\"AllReplicasReady\")].status}'",
 		)
@@ -436,7 +436,7 @@ func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluste
 
 // the callStackOffset makes sure that failures point to the caller of the function
 // than the function itself
-func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
+func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.Cluster, callStackOffset int) {
 	var err error
 
 	EventuallyWithOffset(callStackOffset, func() string {
@@ -444,7 +444,7 @@ func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, 
 			"-n",
 			cluster.Namespace,
 			"get",
-			"rabbitmqclusters",
+			"clusters",
 			cluster.Name,
 			"-ojsonpath='{.status.conditions[?(@.type==\"AllReplicasReady\")].status}'",
 		)
@@ -460,7 +460,7 @@ func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, 
 }
 
 // asserts an event with reason: "TLSError", occurs for the cluster in it's namespace
-func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+func assertTLSError(cluster *rabbitmqv1beta1.Cluster) {
 	var err error
 
 	EventuallyWithOffset(1, func() string {
@@ -479,7 +479,7 @@ func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 }
 
-func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) {
+func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.Cluster) {
 	var err error
 
 	EventuallyWithOffset(1, func() string {

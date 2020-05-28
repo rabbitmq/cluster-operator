@@ -31,7 +31,7 @@ var _ = Describe("NoWarnings", func() {
 		}
 		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{sts}, nil)
 		By("having the correct type", func() {
-			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "NoWarnings"
+			var conditionType rabbitmqstatus.ClusterConditionType = "NoWarnings"
 			Expect(condition.Type).To(Equal(conditionType))
 		})
 
@@ -45,7 +45,7 @@ var _ = Describe("NoWarnings", func() {
 	It("is false if the memory request does not match the memory limit", func() {
 		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{memoryWarningStatefulSet()}, nil)
 		By("having the correct type", func() {
-			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "NoWarnings"
+			var conditionType rabbitmqstatus.ClusterConditionType = "NoWarnings"
 			Expect(condition.Type).To(Equal(conditionType))
 		})
 
@@ -70,7 +70,7 @@ var _ = Describe("NoWarnings", func() {
 	Context("condition transitions", func() {
 		var (
 			previousConditionTime time.Time
-			existingCondition     *rabbitmqstatus.RabbitmqClusterCondition
+			existingCondition     *rabbitmqstatus.ClusterCondition
 		)
 
 		BeforeEach(func() {
@@ -79,7 +79,7 @@ var _ = Describe("NoWarnings", func() {
 
 		Context("previous condition was true", func() {
 			BeforeEach(func() {
-				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				existingCondition = &rabbitmqstatus.ClusterCondition{
 					Status: corev1.ConditionTrue,
 					LastTransitionTime: metav1.Time{
 						Time: previousConditionTime,
@@ -122,7 +122,7 @@ var _ = Describe("NoWarnings", func() {
 
 		Context("previous condition was false", func() {
 			BeforeEach(func() {
-				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				existingCondition = &rabbitmqstatus.ClusterCondition{
 					Status: corev1.ConditionFalse,
 					LastTransitionTime: metav1.Time{
 						Time: previousConditionTime,
@@ -165,7 +165,7 @@ var _ = Describe("NoWarnings", func() {
 
 		Context("previous condition was unknown", func() {
 			BeforeEach(func() {
-				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				existingCondition = &rabbitmqstatus.ClusterCondition{
 					Status: corev1.ConditionUnknown,
 					LastTransitionTime: metav1.Time{
 						Time: previousConditionTime,

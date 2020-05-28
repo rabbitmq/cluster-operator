@@ -19,7 +19,7 @@ func (builder *RabbitmqResourceBuilder) IngressService() *IngressServiceBuilder 
 }
 
 type IngressServiceBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Instance *rabbitmqv1beta1.Cluster
 	Scheme   *runtime.Scheme
 }
 

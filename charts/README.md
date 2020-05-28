@@ -6,7 +6,7 @@ is designed to be used by [Container Services Manager (KSM)](https://docs.pivota
 ## Operator chart
 
 The Operator chart is used to deploy the Operator components. This includes the
-`rabbitmq-system` namespace and `RabbitmqCluster` CRD. This chart assumes
+`rabbitmq-system` namespace and `Cluster` CRD. This chart assumes
 that `rabbitmq-system` namespace **does not exist** and it will **fail to
 deploy** if the namespace already exists.
 

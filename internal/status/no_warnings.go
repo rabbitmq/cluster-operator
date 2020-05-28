@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func NoWarningsCondition(resources []runtime.Object, existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
+func NoWarningsCondition(resources []runtime.Object, existingCondition *ClusterCondition) ClusterCondition {
 	condition := generateCondition(NoWarnings)
 	if existingCondition != nil {
 		condition.LastTransitionTime = existingCondition.LastTransitionTime

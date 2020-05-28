@@ -14,7 +14,7 @@ import (
 var _ = Describe("ClusterAvailable", func() {
 	var (
 		childServiceEndpoints *corev1.Endpoints
-		existingCondition     *rabbitmqstatus.RabbitmqClusterCondition
+		existingCondition     *rabbitmqstatus.ClusterCondition
 	)
 
 	BeforeEach(func() {
@@ -89,7 +89,7 @@ var _ = Describe("ClusterAvailable", func() {
 
 		Context("previous condition was true", func() {
 			BeforeEach(func() {
-				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				existingCondition = &rabbitmqstatus.ClusterCondition{
 					Status: corev1.ConditionTrue,
 					LastTransitionTime: metav1.Time{
 						Time: previousConditionTime,
@@ -159,7 +159,7 @@ var _ = Describe("ClusterAvailable", func() {
 
 		Context("previous condition was false", func() {
 			BeforeEach(func() {
-				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				existingCondition = &rabbitmqstatus.ClusterCondition{
 					Status: corev1.ConditionFalse,
 					LastTransitionTime: metav1.Time{
 						Time: previousConditionTime,
@@ -229,7 +229,7 @@ var _ = Describe("ClusterAvailable", func() {
 
 		Context("previous condition was unknown", func() {
 			BeforeEach(func() {
-				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				existingCondition = &rabbitmqstatus.ClusterCondition{
 					Status: corev1.ConditionUnknown,
 					LastTransitionTime: metav1.Time{
 						Time: previousConditionTime,
