@@ -62,12 +62,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	operatorScopeNamespace := os.Getenv("OPERATOR_SCOPE_NAMESPACE")
+
 	options := ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      metricsAddr,
 		LeaderElection:          true,
 		LeaderElectionNamespace: operatorNamespace,
 		LeaderElectionID:        "rabbitmq-cluster-operator-leader-election",
+		Namespace:               operatorScopeNamespace,
 	}
 
 	if leaseDuration := getEnvInDuration("LEASE_DURATION"); leaseDuration != 0 {
