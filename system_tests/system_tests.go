@@ -236,40 +236,6 @@ cluster_keepalive_interval = 10000`
 		})
 	})
 
-	Context("Clustering with 5 nodes", func() {
-		When("RabbitmqCluster is deployed with 5 nodes", func() {
-			var cluster *rabbitmqv1beta1.RabbitmqCluster
-
-			BeforeEach(func() {
-				five := int32(5)
-				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
-				cluster.Spec.Replicas = &five
-				cluster.Spec.Service.Type = "LoadBalancer"
-				cluster.Spec.Resources = &corev1.ResourceRequirements{
-					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
-					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
-				}
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
-			})
-
-			AfterEach(func() {
-				Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
-			})
-
-			It("works", func() {
-				waitForRabbitmqRunning(cluster)
-				username, password, err := getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
-				waitForLoadBalancer(clientSet, cluster)
-				hostname := rabbitmqHostname(clientSet, cluster)
-				Expect(err).NotTo(HaveOccurred())
-
-				response, err := rabbitmqAlivenessTest(hostname, username, password)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(response.Status).To(Equal("ok"))
-			})
-		})
-	})
-
 	Context("TLS", func() {
 		When("TLS is correctly configured", func() {
 			var (
