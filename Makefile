@@ -163,7 +163,7 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services, and local-pat
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.8.1/manifests/metallb.yaml
 
 system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
-	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=3 --randomizeAllSpecs -r system_tests/
+	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=5 --randomizeAllSpecs -r system_tests/
 
 DOCKER_REGISTRY_SECRET=p-rmq-registry-access
 DOCKER_REGISTRY_SERVER=dev.registry.pivotal.io

@@ -52,6 +52,7 @@ var _ = Describe("Operator", func() {
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
+			waitForClusterAvailable(cluster)
 			waitForLoadBalancer(clientSet, cluster)
 
 			hostname = rabbitmqHostname(clientSet, cluster)
@@ -149,7 +150,7 @@ var _ = Describe("Operator", func() {
 						"rabbitmq_top",
 					)
 					return err
-				}, 40*time.Second).Should(Succeed())
+				}, 160*time.Second).Should(Succeed())
 			})
 
 			By("updating the rabbitmq.conf file when additionalConfig are modified", func() {
@@ -259,6 +260,7 @@ cluster_keepalive_interval = 10000`
 				waitForLoadBalancer(clientSet, cluster)
 				hostname := rabbitmqHostname(clientSet, cluster)
 				Expect(err).NotTo(HaveOccurred())
+				assertHttpReady(hostname)
 
 				response, err := rabbitmqAlivenessTest(hostname, username, password)
 				Expect(err).NotTo(HaveOccurred())
@@ -297,8 +299,7 @@ cluster_keepalive_interval = 10000`
 				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 				})).To(Succeed())
-				// wait because the change in cluster condition is not fast enough
-				waitForRabbitmqUpdate(cluster)
+				waitForTLSUpdate(cluster)
 				waitForLoadBalancer(clientSet, cluster)
 			})
 

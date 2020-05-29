@@ -412,6 +412,11 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 	return service.Status.LoadBalancer.Ingress[0].IP
 }
 
+func waitForTLSUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	waitForRabbitmqNotRunningWithOffset(cluster, 2)
+	waitForClusterAvailable(cluster)
+}
+
 func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	waitForRabbitmqNotRunningWithOffset(cluster, 2)
 	waitForRabbitmqRunningWithOffset(cluster, 2)
@@ -419,6 +424,33 @@ func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 
 func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	waitForRabbitmqRunningWithOffset(cluster, 2)
+}
+
+func waitForClusterAvailable(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	waitForClusterAvailableWithOffset(cluster, 2)
+}
+
+func waitForClusterAvailableWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
+	var err error
+
+	EventuallyWithOffset(callStackOffset, func() string {
+		output, err := kubectl(
+			"-n",
+			cluster.Namespace,
+			"get",
+			"rabbitmqclusters",
+			cluster.Name,
+			"-ojsonpath='{.status.conditions[?(@.type==\"ClusterAvailable\")].status}'",
+		)
+
+		if err != nil {
+			Expect(string(output)).To(ContainSubstring("not found"))
+		}
+
+		return string(output)
+	}, podCreationTimeout, 1).Should(Equal("'True'"))
+
+	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
 }
 
 func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
