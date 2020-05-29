@@ -81,12 +81,12 @@ destroy-ci: configure-kubectl-ci
 run: generate manifests fmt vet install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
 
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
-	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=pivotal-rabbitmq-system go run ./main.go
+	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=rabbitmq-system go run ./main.go
 
 delve: generate install deploy-namespace-rbac just-delve ## Deploys CRD, Namespace, RBACs and starts Delve debugger
 
 just-delve: ## Just starts Delve debugger
-	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=pivotal-rabbitmq-system dlv debug
+	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=rabbitmq-system dlv debug
 
 # Install CRDs into a cluster
 install: manifests
@@ -152,18 +152,21 @@ patch-kind: git-commit-sha
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(GIT_COMMIT)"'@' ./config/default/overlays/kind/manager_image_patch.yaml
 
-kind-prepare: ## Prepare KIND to support LoadBalancer services, and local-path StorageClass
-	# deploy and configure MetalLB to add support for LoadBalancer services
-	@kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.8.1/manifests/metallb.yaml
-	@kubectl apply -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
+kind-prepare: ## Prepare KIND to support LoadBalancer services
+	# Note that created LoadBalancer services will have an unreachable external IP
+	@kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
+	@kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
+	@kubectl apply -f config/metallb/config.yaml
+	@kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(shell openssl rand -base64 128)"
 
-kind-unprepare:  ## Remove KIND support for LoadBalancer services, and local-path StorageClass
+kind-unprepare:  ## Remove KIND support for LoadBalancer services
 	# remove MetalLB
-	@kubectl delete -f https://raw.githubusercontent.com/pivotal-k8s/kind-on-c/master/metallb-cm.yaml
-	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.8.1/manifests/metallb.yaml
+	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
+	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
 
 system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
-	NAMESPACE="pivotal-rabbitmq-system" ginkgo -nodes=5 --randomizeAllSpecs -r system_tests/
+	NAMESPACE="rabbitmq-system" ginkgo -nodes=5 --randomizeAllSpecs -r system_tests/
+
 
 DOCKER_REGISTRY_SECRET=p-rmq-registry-access
 DOCKER_REGISTRY_SERVER=dev.registry.pivotal.io
@@ -172,12 +175,12 @@ DOCKER_REGISTRY_PASSWORD_LOCAL=$(shell lpassd show "Shared-RabbitMQ for Kubernet
 docker-registry-secret: operator-namespace
 	echo "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username='$(DOCKER_REGISTRY_USERNAME_LOCAL)' --docker-password='$(DOCKER_REGISTRY_PASSWORD_LOCAL)' || true
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount p-rmq-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
 docker-registry-secret-ci: operator-namespace
 	echo "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username="$$DOCKER_REGISTRY_USERNAME" --docker-password="$$DOCKER_REGISTRY_PASSWORD" || true
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount p-rmq-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
 controller-gen:  ## download controller-gen if not in $PATH
 ifeq (, $(shell which controller-gen))
@@ -189,6 +192,9 @@ ifeq (, $(shell which controller-gen))
 	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.5 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
+ifeq (, $(GOBIN))
+GOBIN=$(GOPATH)/bin
+endif
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
@@ -205,7 +211,7 @@ endif
 
 operator-namespace:
 ifeq (, $(K8S_OPERATOR_NAMESPACE))
-K8S_OPERATOR_NAMESPACE=pivotal-rabbitmq-system
+K8S_OPERATOR_NAMESPACE=rabbitmq-system
 endif
 
 ci-cluster:

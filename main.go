@@ -67,11 +67,11 @@ func main() {
 		MetricsBindAddress:      metricsAddr,
 		LeaderElection:          true,
 		LeaderElectionNamespace: operatorNamespace,
-		LeaderElectionID:        "pivotal-rabbitmq-operator-leader-election",
+		LeaderElectionID:        "rabbitmq-cluster-operator-leader-election",
 	}
 
 	if leaseDuration := getEnvInDuration("LEASE_DURATION"); leaseDuration != 0 {
-		log.Info("manager configured with lease duration",  "seconds", int(leaseDuration.Seconds()))
+		log.Info("manager configured with lease duration", "seconds", int(leaseDuration.Seconds()))
 		options.LeaseDuration = &leaseDuration
 	}
 

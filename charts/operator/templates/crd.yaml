@@ -5,10 +5,10 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   labels:
-    app.kubernetes.io/component: p-rmq-operator
-    app.kubernetes.io/name: p-rmq-operator
-    app.kubernetes.io/part-of: pivotal-rabbitmq
-  name: rabbitmqclusters.rabbitmq.pivotal.io
+    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/name: rabbitmq-cluster-operator
+    app.kubernetes.io/part-of: rabbitmq
+  name: rabbitmqclusters.rabbitmq.com
 spec:
   additionalPrinterColumns:
   - JSONPath: .metadata.creationTimestamp
@@ -17,7 +17,7 @@ spec:
   - JSONPath: .status.clusterStatus
     name: Status
     type: string
-  group: rabbitmq.pivotal.io
+  group: rabbitmq.com
   names:
     kind: RabbitmqCluster
     listKind: RabbitmqClusterList
@@ -644,6 +644,29 @@ spec:
                     claim a PersistentVolume from.
                   type: string
               type: object
+            rabbitmq:
+              description: Rabbitmq related configurations
+              properties:
+                additionalConfig:
+                  description: Modify to add to the rabbitmq.conf file in addition
+                    to default configurations set by the operator. Modify this property
+                    on an existing RabbitmqCluster will trigger a StatefulSet rolling
+                    restart and will cause rabbitmq downtime.
+                  maxLength: 2000
+                  type: string
+                additionalPlugins:
+                  description: 'List of plugins to enable in addition to essential
+                    plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.'
+                  items:
+                    description: kubebuilder validating tags 'Pattern' and 'MaxLength'
+                      must be specified on string type. Alias type 'string' as 'Plugin'
+                      to specify schema validation on items of the list 'AdditionalPlugins'
+                    maxLength: 100
+                    pattern: ^\w+$
+                    type: string
+                  maxItems: 100
+                  type: array
+              type: object
             replicas:
               description: Replicas is the number of nodes in the RabbitMQ cluster.
                 Each node is deployed as a Replica in a StatefulSet.
@@ -742,6 +765,35 @@ spec:
         status:
           description: Status presents the observed state of RabbitmqCluster
           properties:
+            admin:
+              description: Identifying information on internal resources
+              properties:
+                secretReference:
+                  properties:
+                    keys:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  required:
+                  - keys
+                  - name
+                  - namespace
+                  type: object
+                serviceReference:
+                  properties:
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  required:
+                  - name
+                  - namespace
+                  type: object
+              type: object
             clusterStatus:
               type: string
             conditions:

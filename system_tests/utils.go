@@ -367,13 +367,14 @@ func getRabbitmqUsernameAndPassword(clientset *kubernetes.Clientset, namespace, 
 }
 
 func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
+	one := int32(1)
 	return &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instanceName,
 			Namespace: namespace,
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas: 1,
+			Replicas: &one,
 		},
 	}
 }
@@ -539,7 +540,7 @@ func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1bet
 		endpoints, _ := clientSet.CoreV1().Endpoints(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
 
 		for _, e := range endpoints.Subsets {
-			if len(e.NotReadyAddresses) > 0 || int32(len(e.Addresses)) != cluster.Spec.Replicas {
+			if len(e.NotReadyAddresses) > 0 || int32(len(e.Addresses)) != *cluster.Spec.Replicas {
 				return ""
 			}
 		}

@@ -86,7 +86,7 @@ var _ = Describe("AdminSecret", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app.kubernetes.io/name":      instance.Name,
-						"app.kubernetes.io/part-of":   "pivotal-rabbitmq",
+						"app.kubernetes.io/part-of":   "rabbitmq",
 						"this-was-the-previous-label": "should-be-deleted",
 					},
 				},
@@ -103,7 +103,7 @@ var _ = Describe("AdminSecret", func() {
 			labels := secret.Labels
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("pivotal-rabbitmq"))
+			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("rabbitmq"))
 		})
 
 		It("deletes the labels that are removed from the CR", func() {

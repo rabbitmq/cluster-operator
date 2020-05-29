@@ -63,7 +63,7 @@ var (
 const (
 	ownerKey          = ".metadata.controller"
 	ownerKind         = "RabbitmqCluster"
-	deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.pivotal.io"
+	deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -92,8 +92,8 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rabbitmq.pivotal.io,resources=rabbitmqclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch;delete
@@ -234,7 +234,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
 		// only enable plugins when all pods of the StatefulSet become ready
 		// requeue request after 10 seconds without error
-		logger.Info("Not all replicas are ready; unable to configure plugins on RabbitmqCluster",
+		logger.Info("Not all replicas ready yet; requeuing request to enable plugins on RabbitmqCluster",
 			"namespace", rabbitmqCluster.Namespace,
 			"name", rabbitmqCluster.Name)
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
@@ -293,7 +293,7 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Conte
 			if sts.Spec.Template.ObjectMeta.Annotations == nil {
 				sts.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			sts.Spec.Template.ObjectMeta.Annotations["rabbitmq.pivotal.io/restartAt"] = time.Now().Format(time.RFC3339)
+			sts.Spec.Template.ObjectMeta.Annotations["rabbitmq.com/restartAt"] = time.Now().Format(time.RFC3339)
 			return r.Update(ctx, sts)
 		}); err != nil {
 			msg := fmt.Sprintf("Failed to restart StatefulSet %s of Namespace %s; rabbitmq.conf configuration may be outdated", rmq.ChildResourceName("server"), rmq.Namespace)
@@ -324,7 +324,7 @@ func (r *RabbitmqClusterReconciler) allReplicasReady(ctx context.Context, rmq *r
 // enablePlugins - helper function to set the list of enabled plugins in a given RabbitmqCluster pods
 // `rabbitmq-plugins set` disables plugins that are not in the provided list
 func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqCluster) error {
-	for i := 0; i < int(rmq.Spec.Replicas); i++ {
+	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
 		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
 		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s",
 			strings.Join(resource.AppendIfUnique(resource.RequiredPlugins, rmq.Spec.Rabbitmq.AdditionalPlugins), " "))

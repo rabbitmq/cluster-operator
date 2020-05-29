@@ -53,9 +53,9 @@ type RabbitmqCluster struct {
 
 // Spec is the desired state of the RabbitmqCluster Custom Resource.
 type RabbitmqClusterSpec struct {
-	// Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet.
-	// +kubebuilder:validation:Enum=1;3
-	Replicas int32 `json:"replicas"`
+	// Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5 replicas clusters are tested.
+	// +kubebuilder:validation:Minimum:=0
+	Replicas *int32 `json:"replicas"`
 	// Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster.
 	Image string `json:"image,omitempty"`
 	// Name of the Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
@@ -187,9 +187,11 @@ func getDefaultPersistenceStorageQuantity() *k8sresource.Quantity {
 	return &tenGi
 }
 
+var one int32 = 1
+
 var rabbitmqClusterDefaults = RabbitmqCluster{
 	Spec: RabbitmqClusterSpec{
-		Replicas: 1,
+		Replicas: &one,
 		Image:    rabbitmqImage,
 		Service: RabbitmqClusterServiceSpec{
 			Type: defaultServiceType,

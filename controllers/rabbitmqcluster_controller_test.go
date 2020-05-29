@@ -43,6 +43,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	var (
 		rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
+		one             int32 = 1
 	)
 
 	Context("using minimal settings on the instance", func() {
@@ -53,7 +54,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "rabbitmq-one",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
+					Replicas: &one,
 				},
 			}
 
@@ -166,7 +167,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					}
 
 					return ""
-				}, 5).Should(Equal("deletion.finalizers.rabbitmqclusters.rabbitmq.pivotal.io"))
+				}, 5).Should(Equal("deletion.finalizers.rabbitmqclusters.rabbitmq.com"))
 			})
 
 			By("setting the admin secret details in the custom resource status", func() {
@@ -238,7 +239,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "rabbitmq-tls",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: 1,
+					Replicas: &one,
 					TLS: rabbitmqv1beta1.TLSSpec{
 						SecretName: "tls-secret",
 					},
@@ -274,7 +275,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 						Namespace: "rabbitmq-tls-namespace",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: 1,
+						Replicas: &one,
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName: "rabbitmq-tls-malformed",
 						},
@@ -303,7 +304,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 						Namespace: "rabbitmq-namespace",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: 1,
+						Replicas: &one,
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName: "tls-secret-does-not-exist",
 						},
@@ -351,7 +352,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					},
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
+					Replicas:        &one,
 					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
@@ -382,7 +383,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "rabbitmq-two",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
+					Replicas:        &one,
 					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
@@ -425,7 +426,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "rabbitmq-affinity",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
+					Replicas:        &one,
 					Affinity:        affinity,
 					ImagePullSecret: "rabbit-two-secret",
 				},
@@ -457,7 +458,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "rabbit-service-2",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
+					Replicas:        &one,
 					ImagePullSecret: "rabbit-service-secret",
 				},
 			}
@@ -484,7 +485,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "rabbit-resource-2",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
+					Replicas:        &one,
 					ImagePullSecret: "rabbit-resource-secret",
 				},
 			}
@@ -528,7 +529,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "rabbit-persistence-1",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
+					Replicas:        &one,
 					ImagePullSecret: "rabbit-resource-secret",
 				},
 			}
@@ -560,7 +561,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: "rabbitmq-cr-update",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
+					Replicas:        &one,
 					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
@@ -765,7 +766,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					Namespace: namespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        1,
+					Replicas:        &one,
 					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
