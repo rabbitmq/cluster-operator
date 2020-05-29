@@ -62,6 +62,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// If the environment variable is not set Getenv returns an empty string which ctrl.Options.Namespace takes to mean all namespaces should be watched
 	operatorScopeNamespace := os.Getenv("OPERATOR_SCOPE_NAMESPACE")
 
 	options := ctrl.Options{
