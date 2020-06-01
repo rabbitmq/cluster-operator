@@ -199,23 +199,14 @@ func connectAMQPS(username, password, hostname, caFilePath string) (conn *amqp.C
 	}
 	cfg.RootCAs.AppendCertsFromPEM(ca)
 
-	// create connection with retry
-	success := false
-	retry := 5
-	sleep := 5 * time.Second
-	for !success && retry > 0 {
+	for retry := 0; retry < 5; retry++ {
 		conn, err = amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:5671/", username, password, hostname), cfg)
-		if err != nil {
-			time.Sleep(sleep)
-			retry = retry - 1
-			continue
+		if err == nil {
+			return conn, nil
 		}
-		success = true
+		time.Sleep(5 * time.Second)
 	}
-	if !success {
-		return nil, err
-	}
-	return conn, nil
+	return nil, err
 }
 
 func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, caFilePath string) error {
