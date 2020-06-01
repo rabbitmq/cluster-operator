@@ -189,18 +189,29 @@ func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassw
 	return nil
 }
 
-func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, caFilePath string) error {
+func connectAMQPS(username, password, hostname, caFilePath string) (conn *amqp.Connection, err error) {
 	// create TLS config for amqps request
 	cfg := new(tls.Config)
 	cfg.RootCAs = x509.NewCertPool()
 	ca, err := ioutil.ReadFile(caFilePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cfg.RootCAs.AppendCertsFromPEM(ca)
 
+	for retry := 0; retry < 5; retry++ {
+		conn, err = amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:5671/", username, password, hostname), cfg)
+		if err == nil {
+			return conn, nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return nil, err
+}
+
+func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, caFilePath string) error {
 	// create connection
-	conn, err := amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:5671/", username, password, hostname), cfg)
+	conn, err := connectAMQPS(username, password, hostname, caFilePath)
 	if err != nil {
 		return err
 	}
@@ -242,17 +253,8 @@ func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, caFil
 }
 
 func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath string) (string, error) {
-	// create TLS config for amqps request
-	cfg := new(tls.Config)
-	cfg.RootCAs = x509.NewCertPool()
-	ca, err := ioutil.ReadFile(caFilePath)
-	if err != nil {
-		return "", err
-	}
-	cfg.RootCAs.AppendCertsFromPEM(ca)
-
 	// create connection
-	conn, err := amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:5671/", username, password, hostname), cfg)
+	conn, err := connectAMQPS(username, password, hostname, caFilePath)
 	if err != nil {
 		return "", err
 	}
@@ -402,6 +404,11 @@ func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.
 	return service.Status.LoadBalancer.Ingress[0].IP
 }
 
+func waitForTLSUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	waitForRabbitmqNotRunningWithOffset(cluster, 2)
+	waitForClusterAvailable(cluster)
+}
+
 func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	waitForRabbitmqNotRunningWithOffset(cluster, 2)
 	waitForRabbitmqRunningWithOffset(cluster, 2)
@@ -409,6 +416,33 @@ func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 
 func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	waitForRabbitmqRunningWithOffset(cluster, 2)
+}
+
+func waitForClusterAvailable(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	waitForClusterAvailableWithOffset(cluster, 2)
+}
+
+func waitForClusterAvailableWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
+	var err error
+
+	EventuallyWithOffset(callStackOffset, func() string {
+		output, err := kubectl(
+			"-n",
+			cluster.Namespace,
+			"get",
+			"rabbitmqclusters",
+			cluster.Name,
+			"-ojsonpath='{.status.conditions[?(@.type==\"ClusterAvailable\")].status}'",
+		)
+
+		if err != nil {
+			Expect(string(output)).To(ContainSubstring("not found"))
+		}
+
+		return string(output)
+	}, podCreationTimeout, 1).Should(Equal("'True'"))
+
+	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
 }
 
 func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
