@@ -62,12 +62,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// If the environment variable is not set Getenv returns an empty string which ctrl.Options.Namespace takes to mean all namespaces should be watched
+	operatorScopeNamespace := os.Getenv("OPERATOR_SCOPE_NAMESPACE")
+
 	options := ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      metricsAddr,
 		LeaderElection:          true,
 		LeaderElectionNamespace: operatorNamespace,
 		LeaderElectionID:        "rabbitmq-cluster-operator-leader-election",
+		Namespace:               operatorScopeNamespace,
 	}
 
 	if leaseDuration := getEnvInDuration("LEASE_DURATION"); leaseDuration != 0 {
