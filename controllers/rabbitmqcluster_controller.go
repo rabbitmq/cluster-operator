@@ -220,11 +220,24 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return apiError
 		}); err != nil {
 			r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
+
+			rabbitmqCluster.Status.SetCondition(status.Reconcilable, corev1.ConditionFalse, "ReconcileError", err.Error())
+			if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
+				r.Log.Error(writerErr, "Error trying to Update Custom Resource status")
+			}
+
 			return ctrl.Result{}, err
 		}
 
 		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
+	}
+
+	// Set Reconcilable to true here because all CRUD operations to Kube API related
+	// to child resources returned no error
+	rabbitmqCluster.Status.SetCondition(status.Reconcilable, corev1.ConditionTrue, "NoErrors", "Created or Updated all child resources")
+	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
+		r.Log.Error(writerErr, "Error trying to Update Custom Resource status")
 	}
 
 	if err := r.setAdminStatus(ctx, rabbitmqCluster); err != nil {

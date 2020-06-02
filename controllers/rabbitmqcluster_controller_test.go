@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
+	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -570,6 +571,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 			waitForClusterCreation(rabbitmqCluster, client)
+			// Why do we expect to find a CR object here?
+			// Does not the function waitForClusterCreation() implicitly do the same check?
 			Expect(client.Get(
 				context.TODO(),
 				types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
@@ -833,6 +836,74 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 
+	Context("RabbitMQ CR Reconcilable condition", func() {
+		var (
+			rabbitmqResource *rabbitmqv1beta1.RabbitmqCluster
+			crName           string
+		)
+
+		BeforeEach(func() {
+			crName = "irreconcilable"
+			rabbitmqResource = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      crName,
+					Namespace: "default",
+				},
+			}
+			rabbitmqResource.Spec.Replicas = &one
+		})
+
+		It("exposes Reconcilable condition", func() {
+			By("setting to False when spec is not valid", func() {
+				// Annotations must end in alphanumeric character. However KubeAPI will accept this manifest
+				rabbitmqResource.Spec.Service.Annotations = map[string]string{"thisIs-": "notValidForK8s"}
+				Expect(client.Create(context.Background(), rabbitmqResource)).To(Succeed())
+				waitForClusterCreation(rabbitmqResource, client)
+
+				Eventually(func() string {
+					someRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
+					Expect(client.Get(context.Background(), runtimeClient.ObjectKey{
+						Name:      crName,
+						Namespace: "default",
+					}, someRabbit)).To(Succeed())
+
+					for i := range someRabbit.Status.Conditions {
+						if someRabbit.Status.Conditions[i].Type == status.Reconcilable {
+							return fmt.Sprintf("Reconcilable status: %s", someRabbit.Status.Conditions[i].Status)
+						}
+					}
+					return "Reconcilable status: condition not present"
+				}, 5).Should(Equal("Reconcilable status: False"))
+			})
+
+			By("transitioning to True when a valid spec in updated", func() {
+				// We have to Get() the CR again because Reconcile() changes the object
+				// If we try to Update() without getting the latest version of the CR
+				// We are very likely to hit a Conflict error
+				Expect(client.Get(context.Background(), runtimeClient.ObjectKey{
+					Name:      crName,
+					Namespace: "default",
+				}, rabbitmqResource)).To(Succeed())
+				rabbitmqResource.Spec.Service.Annotations = map[string]string{"thisIs": "valid"}
+				Expect(client.Update(context.Background(), rabbitmqResource)).To(Succeed())
+
+				Eventually(func() string {
+					someRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
+					Expect(client.Get(context.Background(), runtimeClient.ObjectKey{
+						Name:      crName,
+						Namespace: "default",
+					}, someRabbit)).To(Succeed())
+
+					for i := range someRabbit.Status.Conditions {
+						if someRabbit.Status.Conditions[i].Type == status.Reconcilable {
+							return fmt.Sprintf("Reconcilable status: %s", someRabbit.Status.Conditions[i].Status)
+						}
+					}
+					return "Reconcilable status: condition not present"
+				}, 5).Should(Equal("Reconcilable status: True"))
+			})
+		})
+	})
 })
 
 // aggregateEventMsgs - helper function to aggregate all event messages for a given rabbitmqcluster

@@ -3,6 +3,8 @@
 package status
 
 import (
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -35,4 +37,16 @@ func generateCondition(conditionType RabbitmqClusterConditionType) RabbitmqClust
 		Status:             corev1.ConditionUnknown,
 		LastTransitionTime: metav1.Time{},
 	}
+}
+
+func (condition *RabbitmqClusterCondition) UpdateState(status corev1.ConditionStatus) {
+	if condition.Status != status {
+		condition.LastTransitionTime = metav1.Now()
+	}
+	condition.Status = status
+}
+
+func (condition *RabbitmqClusterCondition) UpdateReason(reason string, messages ...string) {
+	condition.Reason = reason
+	condition.Message = strings.Join(messages, ". ")
 }
