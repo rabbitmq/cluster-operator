@@ -836,7 +836,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 
-	Context("RabbitMQ CR Reconcilable condition", func() {
+	Context("RabbitMQ CR Reconciled condition", func() {
 		var (
 			rabbitmqResource *rabbitmqv1beta1.RabbitmqCluster
 			crName           string
@@ -853,7 +853,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqResource.Spec.Replicas = &one
 		})
 
-		It("exposes Reconcilable condition", func() {
+		It("exposes Reconciled condition", func() {
 			By("setting to False when spec is not valid", func() {
 				// Annotations must end in alphanumeric character. However KubeAPI will accept this manifest
 				rabbitmqResource.Spec.Service.Annotations = map[string]string{"thisIs-": "notValidForK8s"}
@@ -868,12 +868,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 					}, someRabbit)).To(Succeed())
 
 					for i := range someRabbit.Status.Conditions {
-						if someRabbit.Status.Conditions[i].Type == status.Reconcilable {
-							return fmt.Sprintf("Reconcilable status: %s", someRabbit.Status.Conditions[i].Status)
+						if someRabbit.Status.Conditions[i].Type == status.Reconciled {
+							return fmt.Sprintf("Reconciled status: %s", someRabbit.Status.Conditions[i].Status)
 						}
 					}
-					return "Reconcilable status: condition not present"
-				}, 5).Should(Equal("Reconcilable status: False"))
+					return "Reconciled status: condition not present"
+				}, 5).Should(Equal("Reconciled status: False"))
 			})
 
 			By("transitioning to True when a valid spec in updated", func() {
@@ -895,12 +895,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 					}, someRabbit)).To(Succeed())
 
 					for i := range someRabbit.Status.Conditions {
-						if someRabbit.Status.Conditions[i].Type == status.Reconcilable {
-							return fmt.Sprintf("Reconcilable status: %s", someRabbit.Status.Conditions[i].Status)
+						if someRabbit.Status.Conditions[i].Type == status.Reconciled {
+							return fmt.Sprintf("Reconciled status: %s", someRabbit.Status.Conditions[i].Status)
 						}
 					}
-					return "Reconcilable status: condition not present"
-				}, 5).Should(Equal("Reconcilable status: True"))
+					return "Reconciled status: condition not present"
+				}, 5).Should(Equal("Reconciled status: True"))
 			})
 		})
 	})

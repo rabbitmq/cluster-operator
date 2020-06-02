@@ -140,7 +140,7 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 	var existingAllPodsReadyCondition *status.RabbitmqClusterCondition
 	var existingClusterAvailableCondition *status.RabbitmqClusterCondition
 	var existingNoWarningsCondition *status.RabbitmqClusterCondition
-	var existingReconcilableCondition *status.RabbitmqClusterCondition
+	var existingReconciledCondition *status.RabbitmqClusterCondition
 
 	for _, condition := range rmqStatus.Conditions {
 		switch condition.Type {
@@ -150,8 +150,8 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 			existingClusterAvailableCondition = condition.DeepCopy()
 		case status.NoWarnings:
 			existingNoWarningsCondition = condition.DeepCopy()
-		case status.Reconcilable:
-			existingReconcilableCondition = condition.DeepCopy()
+		case status.Reconciled:
+			existingReconciledCondition = condition.DeepCopy()
 		}
 	}
 
@@ -159,28 +159,30 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 	clusterAvailableCond := status.ClusterAvailableCondition(resources, existingClusterAvailableCondition)
 	noWarningsCond := status.NoWarningsCondition(resources, existingNoWarningsCondition)
 
+	var reconciledCondition status.RabbitmqClusterCondition
+	if existingReconciledCondition != nil {
+		reconciledCondition = *existingReconciledCondition
+		reconciledCondition.UpdateState(corev1.ConditionFalse)
+		reconciledCondition.UpdateReason("ReconcileInProgress", "Reconciliation in progress")
+	} else {
+		reconciledCondition = status.ReconciledCondition(corev1.ConditionFalse, "ReconcileInProgress", "Reconciliation in progress")
+	}
+
 	currentStatusConditions := []status.RabbitmqClusterCondition{
 		allReplicasReadyCond,
 		clusterAvailableCond,
 		noWarningsCond,
-	}
-
-	// Reconcilable condition is set to False during the Reconcile of child resources in the event of an error
-	// We want to preserve the previous value or initialise the condition to true
-	if existingReconcilableCondition != nil {
-		currentStatusConditions = append(currentStatusConditions, *existingReconcilableCondition)
-	} else {
-		currentStatusConditions = append(currentStatusConditions, status.ReconcilableCondition(corev1.ConditionTrue, "NoErrors"))
+		reconciledCondition,
 	}
 
 	rmqStatus.Conditions = currentStatusConditions
 }
 
 func (rmqStatus *RabbitmqClusterStatus) SetCondition(condType status.RabbitmqClusterConditionType,
-	status corev1.ConditionStatus, reason string, messages ...string) {
+	condStatus corev1.ConditionStatus, reason string, messages ...string) {
 	for i := range rmqStatus.Conditions {
 		if rmqStatus.Conditions[i].Type == condType {
-			rmqStatus.Conditions[i].UpdateState(status)
+			rmqStatus.Conditions[i].UpdateState(condStatus)
 			rmqStatus.Conditions[i].UpdateReason(reason, messages...)
 			break
 		}

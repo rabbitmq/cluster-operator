@@ -308,10 +308,34 @@ var _ = Describe("RabbitmqCluster", func() {
 
 			rabbitmqClusterStatus.SetConditions([]runtime.Object{statefulset, endPoints})
 
-			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(3))
+			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(4))
 			Expect(rabbitmqClusterStatus.Conditions[0].Type).To(Equal(status.AllReplicasReady))
 			Expect(rabbitmqClusterStatus.Conditions[1].Type).To(Equal(status.ClusterAvailable))
 			Expect(rabbitmqClusterStatus.Conditions[2].Type).To(Equal(status.NoWarnings))
+			Expect(rabbitmqClusterStatus.Conditions[3].Type).To(Equal(status.Reconciled))
+		})
+
+		It("updates an arbitrary condition", func() {
+			someCondition := status.RabbitmqClusterCondition{}
+			someCondition.Type = status.RabbitmqClusterConditionType("a-type")
+			someCondition.Reason = "whynot"
+			someCondition.Status = corev1.ConditionStatus("perhaps")
+			someCondition.LastTransitionTime = metav1.Unix(10, 0)
+			rmqStatus := RabbitmqClusterStatus{
+				Conditions: []status.RabbitmqClusterCondition{someCondition},
+			}
+
+			rmqStatus.SetCondition(status.RabbitmqClusterConditionType("a-type"),
+				corev1.ConditionTrue, "some-reason", "my-message")
+
+			updatedCondition := rmqStatus.Conditions[0]
+			Expect(updatedCondition.Status).To(Equal(corev1.ConditionTrue))
+			Expect(updatedCondition.Reason).To(Equal("some-reason"))
+			Expect(updatedCondition.Message).To(Equal("my-message"))
+
+			notExpectedTime := metav1.Unix(10, 0)
+			Expect(updatedCondition.LastTransitionTime).NotTo(Equal(notExpectedTime))
+			Expect(updatedCondition.LastTransitionTime.Before(&notExpectedTime)).To(BeFalse())
 		})
 	})
 })
