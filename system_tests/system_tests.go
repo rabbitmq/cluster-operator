@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	ingressServiceSuffix = "ingress"
-	statefulSetSuffix    = "server"
+	clientServiceSuffix = "client"
+	statefulSetSuffix   = "server"
 )
 
 var _ = Describe("Operator", func() {

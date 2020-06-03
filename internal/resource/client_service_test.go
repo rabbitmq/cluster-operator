@@ -12,7 +12,7 @@ import (
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-var _ = Context("IngressServices", func() {
+var _ = Context("ClientServices", func() {
 	var (
 		instance   rabbitmqv1beta1.RabbitmqCluster
 		rmqBuilder resource.RabbitmqResourceBuilder
@@ -32,13 +32,13 @@ var _ = Context("IngressServices", func() {
 		})
 
 		It("Builds using the values from the CR", func() {
-			serviceBuilder := rmqBuilder.IngressService()
+			serviceBuilder := rmqBuilder.ClientService()
 			obj, err := serviceBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			service := obj.(*corev1.Service)
 
 			By("generates a service object with the correct name and labels", func() {
-				expectedName := instance.ChildResourceName("ingress")
+				expectedName := instance.ChildResourceName("client")
 				Expect(service.Name).To(Equal(expectedName))
 			})
 
@@ -74,16 +74,16 @@ var _ = Context("IngressServices", func() {
 					},
 				}
 				rmqBuilder.Instance = instance
-				serviceBuilder := rmqBuilder.IngressService()
-				ingressService := &corev1.Service{
+				serviceBuilder := rmqBuilder.ClientService()
+				svc := &corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo-service",
 						Namespace: "foo-namespace",
 					},
 				}
 
-				Expect(serviceBuilder.Update(ingressService)).To(Succeed())
-				Expect(ingressService.Spec.Ports).Should(ContainElement(corev1.ServicePort{
+				Expect(serviceBuilder.Update(svc)).To(Succeed())
+				Expect(svc.Spec.Ports).Should(ContainElement(corev1.ServicePort{
 					Name:     "amqps",
 					Protocol: "TCP",
 					Port:     5671,
@@ -190,11 +190,11 @@ var _ = Context("IngressServices", func() {
 
 		Context("Labels", func() {
 			var (
-				serviceBuilder *resource.IngressServiceBuilder
-				ingressService *corev1.Service
+				serviceBuilder *resource.ClientServiceBuilder
+				svc            *corev1.Service
 			)
 			BeforeEach(func() {
-				serviceBuilder = rmqBuilder.IngressService()
+				serviceBuilder = rmqBuilder.ClientService()
 				instance = rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-labelled",
@@ -207,7 +207,7 @@ var _ = Context("IngressServices", func() {
 					"foo/app.kubernetes.io": "edgecase",
 				}
 
-				ingressService = &corev1.Service{
+				svc = &corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"app.kubernetes.io/name":      instance.Name,
@@ -216,37 +216,37 @@ var _ = Context("IngressServices", func() {
 						},
 					},
 				}
-				err := serviceBuilder.Update(ingressService)
+				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("adds labels from the CR", func() {
-				testLabels(ingressService.Labels)
+				testLabels(svc.Labels)
 			})
 
 			It("restores the default labels", func() {
-				labels := ingressService.Labels
+				labels := svc.Labels
 				Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
 				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("rabbitmq"))
 			})
 
 			It("deletes the labels that are removed from the CR", func() {
-				Expect(ingressService.Labels).NotTo(HaveKey("this-was-the-previous-label"))
+				Expect(svc.Labels).NotTo(HaveKey("this-was-the-previous-label"))
 			})
 		})
 
 		Context("Service Type", func() {
 			var (
-				ingressService *corev1.Service
-				serviceBuilder *resource.IngressServiceBuilder
+				svc            *corev1.Service
+				serviceBuilder *resource.ClientServiceBuilder
 			)
 
 			BeforeEach(func() {
-				serviceBuilder = rmqBuilder.IngressService()
+				serviceBuilder = rmqBuilder.ClientService()
 				instance = generateRabbitmqCluster()
 
-				ingressService = &corev1.Service{
+				svc = &corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "rabbit-service-type-update-service",
 						Namespace: "foo-namespace",
@@ -255,29 +255,29 @@ var _ = Context("IngressServices", func() {
 			})
 
 			It("sets the service type to the value specified in the CR instance by default", func() {
-				err := serviceBuilder.Update(ingressService)
+				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 
 				expectedServiceType := "this-is-a-service"
-				Expect(string(ingressService.Spec.Type)).To(Equal(expectedServiceType))
+				Expect(string(svc.Spec.Type)).To(Equal(expectedServiceType))
 			})
 
 			It("adds a label selector with the instance name", func() {
-				err := serviceBuilder.Update(ingressService)
+				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(ingressService.Spec.Selector["app.kubernetes.io/name"]).To(Equal(instance.Name))
+				Expect(svc.Spec.Selector["app.kubernetes.io/name"]).To(Equal(instance.Name))
 			})
 
 			It("sets the onwer reference", func() {
-				err := serviceBuilder.Update(ingressService)
+				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(ingressService.ObjectMeta.OwnerReferences[0].Name).To(Equal("foo"))
+				Expect(svc.ObjectMeta.OwnerReferences[0].Name).To(Equal("foo"))
 			})
 
 			It("exposes the required ports", func() {
-				err := serviceBuilder.Update(ingressService)
+				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 
 				amqpPort := corev1.ServicePort{
@@ -290,22 +290,22 @@ var _ = Context("IngressServices", func() {
 					Port:     15672,
 					Protocol: corev1.ProtocolTCP,
 				}
-				Expect(ingressService.Spec.Ports).Should(ConsistOf(amqpPort, managementPort))
+				Expect(svc.Spec.Ports).Should(ConsistOf(amqpPort, managementPort))
 			})
 
 			It("updates the service type from ClusterIP to NodePort", func() {
-				ingressService.Spec.Type = corev1.ServiceTypeClusterIP
+				svc.Spec.Type = corev1.ServiceTypeClusterIP
 				serviceBuilder.Instance.Spec.Service.Type = "NodePort"
-				err := serviceBuilder.Update(ingressService)
+				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 
 				expectedServiceType := "NodePort"
-				Expect(string(ingressService.Spec.Type)).To(Equal(expectedServiceType))
+				Expect(string(svc.Spec.Type)).To(Equal(expectedServiceType))
 			})
 
 			It("preserves the same node ports after updating from LoadBalancer to NodePort", func() {
-				ingressService.Spec.Type = corev1.ServiceTypeLoadBalancer
-				ingressService.Spec.Ports = []corev1.ServicePort{
+				svc.Spec.Type = corev1.ServiceTypeLoadBalancer
+				svc.Spec.Ports = []corev1.ServicePort{
 					corev1.ServicePort{
 						Protocol: corev1.ProtocolTCP,
 						Port:     5672,
@@ -321,7 +321,7 @@ var _ = Context("IngressServices", func() {
 				}
 
 				serviceBuilder.Instance.Spec.Service.Type = "NodePort"
-				err := serviceBuilder.Update(ingressService)
+				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 
 				expectedAmqpServicePort := corev1.ServicePort{
@@ -337,13 +337,13 @@ var _ = Context("IngressServices", func() {
 					NodePort: 1234,
 				}
 
-				Expect(ingressService.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
-				Expect(ingressService.Spec.Ports).To(ContainElement(expectedManagementServicePort))
+				Expect(svc.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
+				Expect(svc.Spec.Ports).To(ContainElement(expectedManagementServicePort))
 			})
 
 			It("unsets nodePort after updating from NodePort to ClusterIP", func() {
-				ingressService.Spec.Type = corev1.ServiceTypeNodePort
-				ingressService.Spec.Ports = []corev1.ServicePort{
+				svc.Spec.Type = corev1.ServiceTypeNodePort
+				svc.Spec.Ports = []corev1.ServicePort{
 					corev1.ServicePort{
 						Protocol: corev1.ProtocolTCP,
 						Port:     5672,
@@ -353,7 +353,7 @@ var _ = Context("IngressServices", func() {
 				}
 
 				serviceBuilder.Instance.Spec.Service.Type = "ClusterIP"
-				err := serviceBuilder.Update(ingressService)
+				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 
 				// We cant set nodePort to nil because its a primitive
@@ -365,12 +365,12 @@ var _ = Context("IngressServices", func() {
 					NodePort: 0,
 				}
 
-				Expect(ingressService.Spec.Ports).To(ContainElement(expectedServicePort))
+				Expect(svc.Spec.Ports).To(ContainElement(expectedServicePort))
 			})
 
 			It("unsets the service type and node ports when service type is deleted from CR spec", func() {
-				ingressService.Spec.Type = corev1.ServiceTypeNodePort
-				ingressService.Spec.Ports = []corev1.ServicePort{
+				svc.Spec.Type = corev1.ServiceTypeNodePort
+				svc.Spec.Ports = []corev1.ServicePort{
 					corev1.ServicePort{
 						Protocol: corev1.ProtocolTCP,
 						Port:     5672,
@@ -380,7 +380,7 @@ var _ = Context("IngressServices", func() {
 				}
 
 				serviceBuilder.Instance.Spec.Service.Type = ""
-				err := serviceBuilder.Update(ingressService)
+				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 
 				expectedServicePort := corev1.ServicePort{
@@ -390,7 +390,7 @@ var _ = Context("IngressServices", func() {
 					NodePort: 0,
 				}
 
-				Expect(ingressService.Spec.Ports).To(ContainElement(expectedServicePort))
+				Expect(svc.Spec.Ports).To(ContainElement(expectedServicePort))
 			})
 		})
 	})
@@ -411,8 +411,8 @@ func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, i
 	}
 
 	rmqBuilder.Instance = instance
-	serviceBuilder := rmqBuilder.IngressService()
-	ingressService := &corev1.Service{
+	serviceBuilder := rmqBuilder.ClientService()
+	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo-service",
 			Namespace: "foo-namespace",
@@ -423,6 +423,6 @@ func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, i
 			},
 		},
 	}
-	Expect(serviceBuilder.Update(ingressService)).To(Succeed())
-	return ingressService
+	Expect(serviceBuilder.Update(svc)).To(Succeed())
+	return svc
 }

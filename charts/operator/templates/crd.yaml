@@ -702,12 +702,12 @@ spec:
                   type: object
               type: object
             service:
-              description: Settable attributes for the Ingress Service resource.
+              description: Settable attributes for the Client Service resource.
               properties:
                 annotations:
                   additionalProperties:
                     type: string
-                  description: Annotations to add to the Ingress Service.
+                  description: Annotations to add to the Client Service.
                   type: object
                 type:
                   description: Service Type string describes ingress methods for a

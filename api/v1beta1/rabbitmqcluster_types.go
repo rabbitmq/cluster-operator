@@ -98,11 +98,11 @@ type RabbitmqClusterPersistenceSpec struct {
 	Storage *k8sresource.Quantity `json:"storage,omitempty"`
 }
 
-// Settable attributes for the Ingress Service resource.
+// Settable attributes for the Client Service resource.
 type RabbitmqClusterServiceSpec struct {
 	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
 	Type corev1.ServiceType `json:"type,omitempty"`
-	// Annotations to add to the Ingress Service.
+	// Annotations to add to the Client Service.
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 

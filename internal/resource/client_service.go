@@ -11,28 +11,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (builder *RabbitmqResourceBuilder) IngressService() *IngressServiceBuilder {
-	return &IngressServiceBuilder{
+func (builder *RabbitmqResourceBuilder) ClientService() *ClientServiceBuilder {
+	return &ClientServiceBuilder{
 		Instance: builder.Instance,
 		Scheme:   builder.Scheme,
 	}
 }
 
-type IngressServiceBuilder struct {
+type ClientServiceBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
 	Scheme   *runtime.Scheme
 }
 
-func (builder *IngressServiceBuilder) Build() (runtime.Object, error) {
+func (builder *ClientServiceBuilder) Build() (runtime.Object, error) {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName("ingress"),
+			Name:      builder.Instance.ChildResourceName("client"),
 			Namespace: builder.Instance.Namespace,
 		},
 	}, nil
 }
 
-func (builder *IngressServiceBuilder) Update(object runtime.Object) error {
+func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
 	service := object.(*corev1.Service)
 	builder.setAnnotations(service)
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
@@ -94,7 +94,7 @@ func updatePorts(servicePorts []corev1.ServicePort, tlsEnabled bool) []corev1.Se
 
 }
 
-func (builder *IngressServiceBuilder) setAnnotations(service *corev1.Service) {
+func (builder *ClientServiceBuilder) setAnnotations(service *corev1.Service) {
 	if builder.Instance.Spec.Service.Annotations != nil {
 		service.Annotations = metadata.ReconcileAnnotations(metadata.ReconcileAndFilterAnnotations(service.Annotations, builder.Instance.Annotations), builder.Instance.Spec.Service.Annotations)
 	} else {
