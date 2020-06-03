@@ -64,8 +64,8 @@ As a RabbitMQ client (whether application or end user), I want to be sure that t
   - Mount the Secret as a volume on each RabbitMQ Pod
   - Set , `ssl_options.certfile`, `ssl_options.keyfile` in rabbitmq.conf to paths on the mount
   - Add `5671` to the Container Ports in the Pod Template
-  - Add `5671` to the port map in the Ingress Service
-- If we expose the Ingress Service template we can potentially depend on the user to specify the port
+  - Add `5671` to the port map in the Client Service
+- If we expose the Client Service template we can potentially depend on the user to specify the port
 - When deploying via KSM, a [Certificate Request](https://cert-manager.io/docs/concepts/certificaterequest/) is templated if the plan specified `tls: true`
 
 ### User Stories
@@ -94,7 +94,7 @@ And I can retrieve that message over the same port
 #### 'Turning on' TLS for a K8s deploy RabbitMQ cluster
 - (server-side) TLS for RabbitMQ protocols is enabled based on a set of settings in rabbitmq.conf. Two filepaths are the bare mimimum required configuration: `ssl_options.certfile`, `ssl_options.keyfile`, and `tls.ssl.default` (set to `5671`).
 - Our challenge is relating those settings to K8s resource configuration, and handling situations where they do not match.
-- With the proposed solution, when `tls.secretName` is set, we will set the relevant config in rabbitmq.conf, add the volume mount in the Pod Template, and add the Service Port in the Ingress Service. There are several potential or planned enhancements that create edge cases worth considering:
+- With the proposed solution, when `tls.secretName` is set, we will set the relevant config in rabbitmq.conf, add the volume mount in the Pod Template, and add the Service Port in the Client Service. There are several potential or planned enhancements that create edge cases worth considering:
   - Once we add the `additional_config` in the CR, the user could effectively disable TLS by setting their own values for `ssl_options`.
   - The user could also change `listeners.ssl.default` and the Service port would no longer be valid.
   - If we allow the Service to be templated the user could block the port neeeded for `listeners.ssl.default`

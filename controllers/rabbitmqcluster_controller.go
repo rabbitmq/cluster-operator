@@ -256,7 +256,7 @@ func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rab
 	adminStatus := &rabbitmqv1beta1.RabbitmqClusterAdmin{}
 
 	serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{
-		Name:      rmq.ChildResourceName("ingress"),
+		Name:      rmq.ChildResourceName("client"),
 		Namespace: rmq.Namespace,
 	}
 	adminStatus.ServiceReference = serviceRef
@@ -520,7 +520,7 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq r
 	}
 
 	if err := r.Client.Get(ctx,
-		types.NamespacedName{Name: rmq.ChildResourceName("ingress"), Namespace: rmq.Namespace},
+		types.NamespacedName{Name: rmq.ChildResourceName("client"), Namespace: rmq.Namespace},
 		endPoints); err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	} else if errors.IsNotFound(err) {

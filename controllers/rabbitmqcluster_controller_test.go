@@ -106,9 +106,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(secret.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
 
-			By("creating a rabbitmq ingress service", func() {
-				svc := service(rabbitmqCluster, "ingress")
-				Expect(svc.Name).To(Equal(rabbitmqCluster.ChildResourceName("ingress")))
+			By("creating a rabbitmq client service", func() {
+				svc := service(rabbitmqCluster, "client")
+				Expect(svc.Name).To(Equal(rabbitmqCluster.ChildResourceName("client")))
 				Expect(svc.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 				Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 			})
@@ -145,7 +145,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			By("recording SuccessfullCreate events for all child resources", func() {
 				allEventMsgs := aggregateEventMsgs(rabbitmqCluster, "SuccessfulCreate")
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("ingress"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("headless"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("server-conf"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("erlang-cookie"))))
@@ -193,7 +193,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(secretRef.Keys["password"]).To(Equal("password"))
 			})
 
-			By("setting the ingress service details in the custom resource status", func() {
+			By("setting the client service details in the custom resource status", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{}
 				Eventually(func() *rabbitmqv1beta1.RabbitmqClusterServiceReference {
@@ -210,7 +210,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					return nil
 				}, 5).ShouldNot(BeNil())
 
-				Expect(serviceRef.Name).To(Equal(rmq.ChildResourceName("ingress")))
+				Expect(serviceRef.Name).To(Equal(rmq.ChildResourceName("client")))
 				Expect(serviceRef.Namespace).To(Equal(rmq.Namespace))
 			})
 		})
@@ -445,10 +445,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 
-	Context("Ingress service configurations", func() {
+	Context("Client service configurations", func() {
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-			Expect(clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("ingress"), &metav1.DeleteOptions{}))
+			Expect(clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("client"), &metav1.DeleteOptions{}))
 		})
 
 		It("creates the service type and annotations as configured in instance spec", func() {
@@ -467,9 +467,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 
-			ingressSvc := service(rabbitmqCluster, "ingress")
-			Expect(ingressSvc.Spec.Type).Should(Equal(corev1.ServiceTypeLoadBalancer))
-			Expect(ingressSvc.Annotations).Should(HaveKeyWithValue("annotations", "cr-annotation"))
+			clientSvc := service(rabbitmqCluster, "client")
+			Expect(clientSvc.Spec.Type).Should(Equal(corev1.ServiceTypeLoadBalancer))
+			Expect(clientSvc.Annotations).Should(HaveKeyWithValue("annotations", "cr-annotation"))
 		})
 	})
 
@@ -550,9 +550,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	Context("Custom Resource updates", func() {
 		var (
-			rabbitmqCluster    *rabbitmqv1beta1.RabbitmqCluster
-			ingressServiceName string
-			statefulSetName    string
+			rabbitmqCluster   *rabbitmqv1beta1.RabbitmqCluster
+			clientServiceName string
+			statefulSetName   string
 		)
 		BeforeEach(func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
@@ -565,7 +565,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
-			ingressServiceName = rabbitmqCluster.ChildResourceName("ingress")
+			clientServiceName = rabbitmqCluster.ChildResourceName("client")
 			statefulSetName = rabbitmqCluster.ChildResourceName("server")
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
@@ -586,14 +586,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
 			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
 			Eventually(func() map[string]string {
-				ingressServiceName := rabbitmqCluster.ChildResourceName("ingress")
-				service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+				clientServiceName := rabbitmqCluster.ChildResourceName("client")
+				service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(clientServiceName, metav1.GetOptions{})
 				return service.Annotations
 			}, 1).Should(HaveKeyWithValue("test-key", "test-value"))
 
-			// verify that SuccessfulUpdate event is recorded for the ingress service
+			// verify that SuccessfulUpdate event is recorded for the client service
 			Expect(aggregateEventMsgs(rabbitmqCluster, "SuccessfulUpdate")).To(
-				ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("ingress"))))
+				ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client"))))
 		})
 
 		It("the CPU and memory requirements are updated", func() {
@@ -658,7 +658,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
 
 			Eventually(func() map[string]string {
-				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ingressServiceName, metav1.GetOptions{})
+				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(clientServiceName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return service.Labels
 			}, 1).Should(HaveKeyWithValue("foo", "bar"))
@@ -688,7 +688,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			// verify that SuccessfulUpdate events are recorded for all child resources
 			allEventMsgs := aggregateEventMsgs(rabbitmqCluster, "SuccessfulUpdate")
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
-			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("ingress"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client"))))
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("headless"))))
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("server-conf"))))
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("erlang-cookie"))))
@@ -702,7 +702,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster.Spec.Service.Type = "NodePort"
 			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
 			Eventually(func() string {
-				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("ingress"), metav1.GetOptions{})
+				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("client"), metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return string(service.Spec.Type)
 			}, 1).Should(Equal("NodePort"))
@@ -752,7 +752,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	Context("Recreate child resources after deletion", func() {
 		var (
-			ingressServiceName  string
+			clientServiceName   string
 			headlessServiceName string
 			stsName             string
 			configMapName       string
@@ -770,7 +770,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
-			ingressServiceName = rabbitmqCluster.ChildResourceName("ingress")
+			clientServiceName = rabbitmqCluster.ChildResourceName("client")
 			headlessServiceName = rabbitmqCluster.ChildResourceName("headless")
 			stsName = rabbitmqCluster.ChildResourceName("server")
 			configMapName = rabbitmqCluster.ChildResourceName("server-conf")
@@ -787,7 +787,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			oldConfMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			oldIngressSvc := service(rabbitmqCluster, "ingress")
+			oldClientSvc := service(rabbitmqCluster, "client")
 
 			oldHeadlessSvc := service(rabbitmqCluster, "headless")
 
@@ -795,7 +795,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Expect(clientSet.AppsV1().StatefulSets(namespace).Delete(stsName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 			Expect(clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
-			Expect(clientSet.CoreV1().Services(namespace).Delete(ingressServiceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().Services(namespace).Delete(clientServiceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 			Expect(clientSet.CoreV1().Services(namespace).Delete(headlessServiceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
 			Eventually(func() bool {
@@ -807,11 +807,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}, 5).Should(BeTrue())
 
 			Eventually(func() bool {
-				ingressSvc, err := clientSet.CoreV1().Services(namespace).Get(ingressServiceName, metav1.GetOptions{})
+				clientSvc, err := clientSet.CoreV1().Services(namespace).Get(clientServiceName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
-				return string(ingressSvc.UID) != string(oldIngressSvc.UID)
+				return string(clientSvc.UID) != string(oldClientSvc.UID)
 			}, 5).Should(BeTrue())
 
 			Eventually(func() bool {

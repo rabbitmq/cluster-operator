@@ -1,17 +1,17 @@
 template: |
-  local ingressFilterFunc(j) = std.length(std.findSubstr("rabbitmq-ingress", j.name)) > 0;
-  local ingressService = std.filter(ingressFilterFunc, $.services)[0];
+  local clientFilterFunc(j) = std.length(std.findSubstr("rabbitmq-client", j.name)) > 0;
+  local clientService = std.filter(clientFilterFunc, $.services)[0];
   local secretFilterFunc(j) = std.length(std.findSubstr("rabbitmq-admin", j.name)) > 0;
   local admin = std.filter(secretFilterFunc, $.secrets);
 
   local vhost = "%2F";
-  local ingress = if ingressService.spec.type == "LoadBalancer" then
-      if std.objectHas(ingressService.status.loadBalancer.ingress[0], "hostname") then
-        ingressService.status.loadBalancer.ingress[0].hostname
+  local ingress = if clientService.spec.type == "LoadBalancer" then
+      if std.objectHas(clientService.status.loadBalancer.ingress[0], "hostname") then
+        clientService.status.loadBalancer.ingress[0].hostname
       else
-        ingressService.status.loadBalancer.ingress[0].ip
+        clientService.status.loadBalancer.ingress[0].ip
     else
-      ingressService.spec.clusterIP;
+      clientService.spec.clusterIP;
   local adminUsername = admin[0].data['username'];
   local adminPassword = admin[0].data['password'];
   local mgmtURI = "http://" + ingress + ":15672/#/login/" + adminUsername + "/" + adminPassword;

@@ -43,7 +43,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			var ok bool
 			_, ok = resourceBuilders[0].(*resource.HeadlessServiceBuilder)
 			Expect(ok).Should(BeTrue())
-			_, ok = resourceBuilders[1].(*resource.IngressServiceBuilder)
+			_, ok = resourceBuilders[1].(*resource.ClientServiceBuilder)
 			Expect(ok).Should(BeTrue())
 			_, ok = resourceBuilders[2].(*resource.ErlangCookieBuilder)
 			Expect(ok).Should(BeTrue())

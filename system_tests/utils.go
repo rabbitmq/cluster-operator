@@ -397,7 +397,7 @@ func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) str
 }
 
 func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
-	service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
+	service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(clientServiceSuffix), metav1.GetOptions{})
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	ExpectWithOffset(1, len(service.Status.LoadBalancer.Ingress)).To(BeNumerically(">", 0))
 
@@ -517,7 +517,7 @@ func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1bet
 	var err error
 
 	EventuallyWithOffset(1, func() string {
-		svc, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
+		svc, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(clientServiceSuffix), metav1.GetOptions{})
 
 		if err != nil {
 			Expect(err).To(MatchError("not found"))
@@ -528,7 +528,7 @@ func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1bet
 			return ""
 		}
 
-		endpoints, _ := clientSet.CoreV1().Endpoints(cluster.Namespace).Get(cluster.ChildResourceName(ingressServiceSuffix), metav1.GetOptions{})
+		endpoints, _ := clientSet.CoreV1().Endpoints(cluster.Namespace).Get(cluster.ChildResourceName(clientServiceSuffix), metav1.GetOptions{})
 
 		for _, e := range endpoints.Subsets {
 			if len(e.NotReadyAddresses) > 0 || int32(len(e.Addresses)) != *cluster.Spec.Replicas {
