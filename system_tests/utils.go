@@ -37,7 +37,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const podCreationTimeout = 360 * time.Second
+const podCreationTimeout = 600 * time.Second
 
 func MustHaveEnv(name string) string {
 	value := os.Getenv(name)
