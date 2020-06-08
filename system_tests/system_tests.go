@@ -49,7 +49,7 @@ var _ = Describe("Operator", func() {
 			waitForClusterAvailable(cluster)
 
 			hostname = kubernetesNodeIp(clientSet)
-			port = rabbitmqIngressManagementNodePort(clientSet, cluster)
+			port = rabbitmqManagementNodePort(clientSet, cluster)
 
 			var err error
 			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
@@ -112,7 +112,6 @@ var _ = Describe("Operator", func() {
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "config-rabbit")
-			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
@@ -183,8 +182,6 @@ cluster_keepalive_interval = 10000`
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
 			cluster.Spec.Service.Type = "NodePort"
-			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
-			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
@@ -194,7 +191,7 @@ cluster_keepalive_interval = 10000`
 			waitForRabbitmqRunning(cluster)
 
 			hostname = kubernetesNodeIp(clientSet)
-			port = rabbitmqIngressManagementNodePort(clientSet, cluster)
+			port = rabbitmqManagementNodePort(clientSet, cluster)
 
 			var err error
 			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
@@ -255,7 +252,7 @@ cluster_keepalive_interval = 10000`
 			It("works", func() {
 				username, password, err := getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
 				hostname := kubernetesNodeIp(clientSet)
-				port := rabbitmqIngressManagementNodePort(clientSet, cluster)
+				port := rabbitmqManagementNodePort(clientSet, cluster)
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
@@ -269,27 +266,28 @@ cluster_keepalive_interval = 10000`
 	Context("TLS", func() {
 		When("TLS is correctly configured", func() {
 			var (
-				cluster    *rabbitmqv1beta1.RabbitmqCluster
-				hostname   string
-				username   string
-				password   string
-				caFilePath string
+				cluster       *rabbitmqv1beta1.RabbitmqCluster
+				hostname      string
+				amqpsNodePort string
+				username      string
+				password      string
+				caFilePath    string
 			)
 
 			BeforeEach(func() {
 				cluster = generateRabbitmqCluster(namespace, "tls-test-rabbit")
-				cluster.Spec.Service.Type = "LoadBalancer"
-				cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
-				cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
+				cluster.Spec.Service.Type = "NodePort"
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 				}
 				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
-				waitForLoadBalancer(clientSet, cluster)
+				waitForClusterAvailable(cluster)
 
-				hostname = rabbitmqHostname(clientSet, cluster)
+				// Passing a single hostname for certificate creation works because
+				// the AMPQS client is connecting using the same hostname
+				hostname = kubernetesNodeIp(clientSet)
 				caFilePath = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
 
 				// Update CR with TLS secret name
@@ -297,7 +295,7 @@ cluster_keepalive_interval = 10000`
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 				})).To(Succeed())
 				waitForTLSUpdate(cluster)
-				waitForLoadBalancer(clientSet, cluster)
+				amqpsNodePort = rabbitmqAMQPSNodePort(clientSet, cluster)
 			})
 
 			AfterEach(func() {
@@ -312,9 +310,9 @@ cluster_keepalive_interval = 10000`
 
 				// try to publish and consume a message on a amqps url
 				sentMessage := "Hello Rabbitmq!"
-				Expect(rabbitmqAMQPSPublishToNewQueue(sentMessage, username, password, hostname, caFilePath)).To(Succeed())
+				Expect(rabbitmqAMQPSPublishToNewQueue(sentMessage, username, password, hostname, amqpsNodePort, caFilePath)).To(Succeed())
 
-				recievedMessage, err := rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath)
+				recievedMessage, err := rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsNodePort, caFilePath)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(recievedMessage).To(Equal(sentMessage))
 			})

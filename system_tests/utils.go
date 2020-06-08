@@ -190,7 +190,7 @@ func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername,
 	return nil
 }
 
-func connectAMQPS(username, password, hostname, caFilePath string) (conn *amqp.Connection, err error) {
+func connectAMQPS(username, password, hostname, port, caFilePath string) (conn *amqp.Connection, err error) {
 	// create TLS config for amqps request
 	cfg := new(tls.Config)
 	cfg.RootCAs = x509.NewCertPool()
@@ -201,7 +201,7 @@ func connectAMQPS(username, password, hostname, caFilePath string) (conn *amqp.C
 	cfg.RootCAs.AppendCertsFromPEM(ca)
 
 	for retry := 0; retry < 5; retry++ {
-		conn, err = amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:5671/", username, password, hostname), cfg)
+		conn, err = amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:%v/", username, password, hostname, port), cfg)
 		if err == nil {
 			return conn, nil
 		}
@@ -210,9 +210,9 @@ func connectAMQPS(username, password, hostname, caFilePath string) (conn *amqp.C
 	return nil, err
 }
 
-func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, caFilePath string) error {
+func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, amqpsPort, caFilePath string) error {
 	// create connection
-	conn, err := connectAMQPS(username, password, hostname, caFilePath)
+	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
 	if err != nil {
 		return err
 	}
@@ -253,9 +253,9 @@ func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, caFil
 	return nil
 }
 
-func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath string) (string, error) {
+func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsPort, caFilePath string) (string, error) {
 	// create connection
-	conn, err := connectAMQPS(username, password, hostname, caFilePath)
+	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
 	if err != nil {
 		return "", err
 	}
@@ -426,14 +426,29 @@ func kubernetesNodeIp(clientSet *kubernetes.Clientset) string {
 	return nodeIp
 }
 
-func rabbitmqIngressManagementNodePort(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+func rabbitmqManagementNodePort(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
 	service, err := clientSet.CoreV1().Services(cluster.Namespace).
-		Get(cluster.ChildResourceName("ingress"), metav1.GetOptions{})
+		Get(cluster.ChildResourceName("client"), metav1.GetOptions{})
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	for _, port := range service.Spec.Ports {
 		if port.Name == "management" {
+			return strconv.Itoa(int(port.NodePort))
+		}
+	}
+
+	return ""
+}
+
+func rabbitmqAMQPSNodePort(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+	service, err := clientSet.CoreV1().Services(cluster.Namespace).
+		Get(cluster.ChildResourceName("client"), metav1.GetOptions{})
+
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	for _, port := range service.Spec.Ports {
+		if port.Name == "amqps" {
 			return strconv.Itoa(int(port.NodePort))
 		}
 	}
