@@ -291,6 +291,9 @@ func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsPort, c
 		false,  // no-wait
 		nil,    // args
 	)
+	if err != nil {
+		return "", err
+	}
 
 	// return first msg
 	for msg := range msgs {
@@ -456,14 +459,6 @@ func rabbitmqAMQPSNodePort(clientSet *kubernetes.Clientset, cluster *rabbitmqv1b
 	return ""
 }
 
-func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
-	service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(clientServiceSuffix), metav1.GetOptions{})
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	ExpectWithOffset(1, len(service.Status.LoadBalancer.Ingress)).To(BeNumerically(">", 0))
-
-	return service.Status.LoadBalancer.Ingress[0].IP
-}
-
 func waitForTLSUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	waitForRabbitmqNotRunningWithOffset(cluster, 2)
 	waitForClusterAvailable(cluster)
@@ -569,35 +564,6 @@ func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 
 		return string(output)
 	}, podCreationTimeout, 1*time.Second).Should(ContainSubstring("TLSError"))
-
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-}
-
-func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) {
-	var err error
-
-	EventuallyWithOffset(1, func() string {
-		svc, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(clientServiceSuffix), metav1.GetOptions{})
-
-		if err != nil {
-			Expect(err).To(MatchError("not found"))
-			return ""
-		}
-
-		if len(svc.Status.LoadBalancer.Ingress) == 0 || svc.Status.LoadBalancer.Ingress[0].IP == "" {
-			return ""
-		}
-
-		endpoints, _ := clientSet.CoreV1().Endpoints(cluster.Namespace).Get(cluster.ChildResourceName(clientServiceSuffix), metav1.GetOptions{})
-
-		for _, e := range endpoints.Subsets {
-			if len(e.NotReadyAddresses) > 0 || int32(len(e.Addresses)) != *cluster.Spec.Replicas {
-				return ""
-			}
-		}
-
-		return svc.Status.LoadBalancer.Ingress[0].IP
-	}, podCreationTimeout, 1).ShouldNot(BeEmpty())
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 }
