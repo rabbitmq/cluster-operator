@@ -329,12 +329,13 @@ func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqC
 		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s",
 			strings.Join(resource.AppendIfUnique(resource.RequiredPlugins, rmq.Spec.Rabbitmq.AdditionalPlugins), " "))
 
-		output, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", rabbitCommand)
+		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", rabbitCommand)
 
 		if err != nil {
+
 			r.Log.Error(err, fmt.Sprintf(
-				"Failed to enable plugins on pod %s in namespace %s, running command %s with output %s",
-				podName, rmq.Namespace, rabbitCommand, output))
+				"Failed to enable plugins on pod %s in namespace %s, running command %s with output: %s %s",
+				podName, rmq.Namespace, rabbitCommand, stdout, stderr))
 
 			return err
 		}
@@ -346,7 +347,7 @@ func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqC
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName string, command ...string) (string, error) {
+func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName string, command ...string) (string, string, error) {
 	request := r.Clientset.CoreV1().RESTClient().
 		Post().
 		Resource("pods").
@@ -363,7 +364,7 @@ func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName strin
 
 	exec, err := remotecommand.NewSPDYExecutor(r.ClusterConfig, "POST", request.URL())
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	stdOut := bytes.Buffer{}
@@ -377,14 +378,15 @@ func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName strin
 	})
 
 	if err != nil {
-		return "", err
+
+		return stdOut.String(), stdErr.String(), err
 	}
 
 	if stdErr.Len() > 0 {
-		return "", fmt.Errorf("%v", stdErr)
+		return stdOut.String(), stdErr.String(), fmt.Errorf("%v", stdErr)
 	}
 
-	return stdOut.String(), nil
+	return stdOut.String(), "", nil
 }
 
 // logAndRecordOperationResult - helper function to log and record events with message and error
