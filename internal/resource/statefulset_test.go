@@ -446,14 +446,20 @@ var _ = Describe("StatefulSet", func() {
 				}))
 			})
 
-			It("adds a TLS volume mount to the rabbitmq container", func() {
+			It("adds two TLS volume mounts to the rabbitmq container", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
 					Name:      "rabbitmq-tls",
-					MountPath: "/etc/rabbitmq-tls/",
+					MountPath: "/etc/rabbitmq-tls/tls.crt",
+					SubPath:   "tls.crt",
+				}))
+				Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+					Name:      "rabbitmq-tls",
+					MountPath: "/etc/rabbitmq-tls/tls.key",
+					SubPath:   "tls.key",
 				}))
 			})
 
@@ -466,6 +472,41 @@ var _ = Describe("StatefulSet", func() {
 					Name:          "amqps",
 					ContainerPort: 5671,
 				}))
+			})
+
+			Context("Mutual TLS", func() {
+
+				It("add a TLS CA cert volume mount to the rabbitmq container", func() {
+					instance.Spec.TLS.SecretName = "tls-secret"
+					instance.Spec.TLS.CaSecretName = "tls-secret"
+					instance.Spec.TLS.CaCertName = "ca.crt"
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+						Name:      "rabbitmq-tls",
+						MountPath: "/etc/rabbitmq-tls/ca.crt",
+						SubPath:   "ca.crt",
+					}))
+				})
+				It("adds a mutual TLS volume to the pod template spec", func() {
+					instance.Spec.TLS.SecretName = "tls-secret"
+					instance.Spec.TLS.SecretName = "mutual-tls-secret"
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					filePermissions := int32(400)
+					secretEnforced := true
+					Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
+						Name: "rabbitmq-mutual-tls",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName:  "mutual-tls-secret",
+								DefaultMode: &filePermissions,
+								Optional:    &secretEnforced,
+							},
+						},
+					}))
+				})
 			})
 		})
 

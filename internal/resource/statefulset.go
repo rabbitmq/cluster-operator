@@ -271,8 +271,49 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		// add volume mount
 		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 			Name:      "rabbitmq-tls",
-			MountPath: "/etc/rabbitmq-tls/",
+			MountPath: "/etc/rabbitmq-tls/tls.crt",
+			SubPath:   "tls.crt",
 		})
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name:      "rabbitmq-tls",
+			MountPath: "/etc/rabbitmq-tls/tls.key",
+			SubPath:   "tls.key",
+		})
+
+		if builder.Instance.MutualTLSEnabled() {
+			// add volume mount
+
+			if !builder.Instance.SingleTLSSecret() {
+				// add tls volume
+				filePermissions := int32(400)
+				secretEnforced := true
+				tlsCaSecretName := tlsSpec.CaSecretName
+				volumes = append(volumes, corev1.Volume{
+					Name: "rabbitmq-mutual-tls",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName:  tlsCaSecretName,
+							DefaultMode: &filePermissions,
+							Optional:    &secretEnforced,
+						},
+					},
+				})
+				//Mount new volume to same path as TLS cert and key
+				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+					Name:      "rabbitmq-mutual-tls",
+					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", builder.Instance.Spec.TLS.CaCertName),
+					SubPath:   "ca.crt",
+				})
+
+			} else {
+				//Mount CaCert in TLS Secret
+				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+					Name:      "rabbitmq-tls",
+					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", builder.Instance.Spec.TLS.CaCertName),
+					SubPath:   "ca.crt",
+				})
+			}
+		}
 	}
 
 	return corev1.PodTemplateSpec{

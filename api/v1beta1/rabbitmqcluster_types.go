@@ -71,7 +71,9 @@ type RabbitmqClusterSpec struct {
 }
 
 type TLSSpec struct {
-	SecretName string `json:"secretName,omitempty"`
+	SecretName   string `json:"secretName,omitempty"`
+	CaSecretName string `json:"caSecretName,omitempty"`
+	CaCertName   string `json:"caCertName,omitempty"`
 }
 
 // kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.
@@ -134,6 +136,14 @@ type RabbitmqClusterServiceReference struct {
 
 func (cluster *RabbitmqCluster) TLSEnabled() bool {
 	return cluster.Spec.TLS.SecretName != ""
+}
+
+func (cluster *RabbitmqCluster) MutualTLSEnabled() bool {
+	return cluster.Spec.TLS.CaSecretName != ""
+}
+
+func (cluster *RabbitmqCluster) SingleTLSSecret() bool {
+	return cluster.MutualTLSEnabled() && cluster.Spec.TLS.CaSecretName == cluster.Spec.TLS.SecretName
 }
 
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
