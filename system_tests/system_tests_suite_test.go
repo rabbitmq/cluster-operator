@@ -30,7 +30,7 @@ var (
 	specifiedStorageClassName = "persistent-test"
 )
 
-var _ = SynchronizedBeforeSuite(func() []byte {
+var _ = BeforeSuite(func() {
 	scheme := runtime.NewScheme()
 	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
@@ -38,7 +38,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	restConfig, err := createRestConfig()
 	Expect(err).NotTo(HaveOccurred())
 
-	rmqClusterClient, err := client.New(restConfig, client.Options{Scheme: scheme})
+	rmqClusterClient, err = client.New(restConfig, client.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
 
 	clientSet, err = createClientSet()
@@ -71,17 +71,4 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 		return output
 	}, 10, 1).Should(ContainSubstring("1/1"))
-
-	return nil
-}, func(data []byte) {
-	scheme := runtime.NewScheme()
-	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
-	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-
-	restConfig, err := createRestConfig()
-	Expect(err).NotTo(HaveOccurred())
-
-	rmqClusterClient, err = client.New(restConfig, client.Options{Scheme: scheme})
-	Expect(err).NotTo(HaveOccurred())
-
 })
