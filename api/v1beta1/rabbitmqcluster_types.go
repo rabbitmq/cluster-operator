@@ -140,7 +140,7 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 	var existingAllPodsReadyCondition *status.RabbitmqClusterCondition
 	var existingClusterAvailableCondition *status.RabbitmqClusterCondition
 	var existingNoWarningsCondition *status.RabbitmqClusterCondition
-	var existingReconciledCondition *status.RabbitmqClusterCondition
+	var existingReconcileCondition *status.RabbitmqClusterCondition
 
 	for _, condition := range rmqStatus.Conditions {
 		switch condition.Type {
@@ -150,8 +150,8 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 			existingClusterAvailableCondition = condition.DeepCopy()
 		case status.NoWarnings:
 			existingNoWarningsCondition = condition.DeepCopy()
-		case status.Reconciled:
-			existingReconciledCondition = condition.DeepCopy()
+		case status.ReconcileSuccess:
+			existingReconcileCondition = condition.DeepCopy()
 		}
 	}
 
@@ -160,12 +160,10 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 	noWarningsCond := status.NoWarningsCondition(resources, existingNoWarningsCondition)
 
 	var reconciledCondition status.RabbitmqClusterCondition
-	if existingReconciledCondition != nil {
-		reconciledCondition = *existingReconciledCondition
-		reconciledCondition.UpdateState(corev1.ConditionFalse)
-		reconciledCondition.UpdateReason("ReconcileInProgress", "Reconciliation in progress")
+	if existingReconcileCondition != nil {
+		reconciledCondition = *existingReconcileCondition
 	} else {
-		reconciledCondition = status.ReconciledCondition(corev1.ConditionFalse, "ReconcileInProgress", "Reconciliation in progress")
+		reconciledCondition = status.ReconcileSuccessCondition(corev1.ConditionUnknown, "Initialising", "")
 	}
 
 	currentStatusConditions := []status.RabbitmqClusterCondition{

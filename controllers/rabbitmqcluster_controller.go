@@ -118,6 +118,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
+		// TODO do we need to requeue?
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -141,6 +142,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
 				fmt.Sprintf("Failed to get TLS secret in namespace %v: %v", rabbitmqCluster.Namespace, err.Error()))
 			// retry after 10 seconds if not found
+			// TODO do we need to requeue if we are already returning an error, which automatically requeues?
 			if errors.IsNotFound(err) {
 				return ctrl.Result{RequeueAfter: 10 * time.Second}, err
 			}
@@ -154,6 +156,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		if !hasTLSCert || !hasTLSKey {
 			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
 				fmt.Sprintf("The TLS secret %v in namespace %v must have the fields tls.crt and tls.key", secretName, rabbitmqCluster.Namespace))
+			// TODO if we return with error, arent we gonna try forever?
 			return ctrl.Result{}, errors.NewBadRequest("The TLS secret must have the fields tls.crt and tls.key")
 		}
 	}
@@ -221,9 +224,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}); err != nil {
 			r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 
-			rabbitmqCluster.Status.SetCondition(status.Reconciled, corev1.ConditionFalse, "ReconcileError", err.Error())
+			rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "ReconcileError", err.Error())
 			if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
-				r.Log.Error(writerErr, "Error trying to Update Reconciled condition state",
+				r.Log.Error(writerErr, "Error trying to Update ReconcileSuccess condition state",
 					"namespace", rabbitmqCluster.Namespace,
 					"name", rabbitmqCluster.Name)
 			}
@@ -235,9 +238,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
 	}
 
-	// Set Reconciled to true here because all CRUD operations to Kube API related
+	// Set ReconcileSuccess to true here because all CRUD operations to Kube API related
 	// to child resources returned no error
-	rabbitmqCluster.Status.SetCondition(status.Reconciled, corev1.ConditionTrue, "NoErrors", "Created or Updated all child resources")
+	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionTrue, "NoErrors", "Created or Updated all child resources")
 	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
 		r.Log.Error(writerErr, "Error trying to Update Custom Resource status",
 			"namespace", rabbitmqCluster.Namespace,

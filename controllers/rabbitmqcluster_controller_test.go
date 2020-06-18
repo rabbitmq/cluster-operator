@@ -32,6 +32,7 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -571,13 +572,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 			waitForClusterCreation(rabbitmqCluster, client)
-			// Why do we expect to find a CR object here?
-			// Does not the function waitForClusterCreation() implicitly do the same check?
-			Expect(client.Get(
-				context.TODO(),
-				types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
-				rabbitmqCluster,
-			)).To(Succeed())
 		})
 
 		AfterEach(func() {
@@ -585,14 +579,33 @@ var _ = Describe("RabbitmqclusterController", func() {
 			waitForClusterDeletion(rabbitmqCluster, client)
 		})
 
+		updateWithRetry := func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
+			return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				objKey, err := runtimeClient.ObjectKeyFromObject(cr)
+				if err != nil {
+					return err
+				}
+
+				if err := client.Get(context.TODO(), objKey, cr); err != nil {
+					return err
+				}
+
+				mutateFn(cr)
+
+				return client.Update(context.TODO(), cr)
+			})
+		}
+
 		It("the service annotations are updated", func() {
-			rabbitmqCluster.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
+			})).To(Succeed())
+
 			Eventually(func() map[string]string {
 				clientServiceName := rabbitmqCluster.ChildResourceName("client")
 				service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(clientServiceName, metav1.GetOptions{})
 				return service.Annotations
-			}, 1).Should(HaveKeyWithValue("test-key", "test-value"))
+			}, 3).Should(HaveKeyWithValue("test-key", "test-value"))
 
 			// verify that SuccessfulUpdate event is recorded for the client service
 			Expect(aggregateEventMsgs(rabbitmqCluster, "SuccessfulUpdate")).To(
@@ -611,8 +624,10 @@ var _ = Describe("RabbitmqclusterController", func() {
 					corev1.ResourceMemory: k8sresource.MustParse("6Gi"),
 				},
 			}
-			rabbitmqCluster.Spec.Resources = expectedRequirements
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.Resources = expectedRequirements
+			})).To(Succeed())
 
 			Eventually(func() corev1.ResourceList {
 				stsName := rabbitmqCluster.ChildResourceName("server")
@@ -620,7 +635,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(err).NotTo(HaveOccurred())
 				resourceRequirements = sts.Spec.Template.Spec.Containers[0].Resources
 				return resourceRequirements.Requests
-			}, 1).Should(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Requests[corev1.ResourceCPU]))
+			}, 3).Should(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Requests[corev1.ResourceCPU]))
 			Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Limits[corev1.ResourceCPU]))
 
 			Expect(resourceRequirements.Requests).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Requests[corev1.ResourceMemory]))
@@ -632,61 +647,64 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("the rabbitmq image is updated", func() {
-			rabbitmqCluster.Spec.Image = "rabbitmq:3.8.0"
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.Image = "rabbitmq:3.8.0"
+			})).To(Succeed())
 
 			Eventually(func() string {
 				stsName := rabbitmqCluster.ChildResourceName("server")
 				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 				return sts.Spec.Template.Spec.Containers[0].Image
-			}, 1).Should(Equal("rabbitmq:3.8.0"))
+			}, 3).Should(Equal("rabbitmq:3.8.0"))
 		})
 
 		It("the rabbitmq ImagePullSecret is updated", func() {
-			rabbitmqCluster.Spec.ImagePullSecret = "my-new-secret"
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.ImagePullSecret = "my-new-secret"
+			})).To(Succeed())
 
 			Eventually(func() []corev1.LocalObjectReference {
 				stsName := rabbitmqCluster.ChildResourceName("server")
 				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 				Expect(len(sts.Spec.Template.Spec.ImagePullSecrets)).To(Equal(1))
 				return sts.Spec.Template.Spec.ImagePullSecrets
-			}, 1).Should(ConsistOf(corev1.LocalObjectReference{Name: "my-new-secret"}))
+			}, 3).Should(ConsistOf(corev1.LocalObjectReference{Name: "my-new-secret"}))
 		})
 
 		It("labels are updated", func() {
-			rabbitmqCluster.Labels = make(map[string]string)
-			rabbitmqCluster.Labels["foo"] = "bar"
-
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Labels = make(map[string]string)
+				r.Labels["foo"] = "bar"
+			})).To(Succeed())
 
 			Eventually(func() map[string]string {
 				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(clientServiceName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return service.Labels
-			}, 1).Should(HaveKeyWithValue("foo", "bar"))
+			}, 3).Should(HaveKeyWithValue("foo", "bar"))
 			var sts *appsv1.StatefulSet
 			Eventually(func() map[string]string {
 				sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 				return sts.Labels
-			}, 1).Should(HaveKeyWithValue("foo", "bar"))
+			}, 3).Should(HaveKeyWithValue("foo", "bar"))
 		})
 
 		It("instance annotations are updated", func() {
-			rabbitmqCluster.Annotations = make(map[string]string)
-			rabbitmqCluster.Annotations["anno-key"] = "anno-value"
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Annotations = make(map[string]string)
+				r.Annotations["anno-key"] = "anno-value"
+			})).To(Succeed())
 
 			Eventually(func() map[string]string {
 				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("headless"), metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return service.Annotations
-			}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
+			}, 3).Should(HaveKeyWithValue("anno-key", "anno-value"))
 			var sts *appsv1.StatefulSet
 			Eventually(func() map[string]string {
 				sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 				return sts.Annotations
-			}, 1).Should(HaveKeyWithValue("anno-key", "anno-value"))
+			}, 3).Should(HaveKeyWithValue("anno-key", "anno-value"))
 
 			// verify that SuccessfulUpdate events are recorded for all child resources
 			allEventMsgs := aggregateEventMsgs(rabbitmqCluster, "SuccessfulUpdate")
@@ -702,13 +720,15 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("service type is updated", func() {
-			rabbitmqCluster.Spec.Service.Type = "NodePort"
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.Service.Type = "NodePort"
+			})).To(Succeed())
+
 			Eventually(func() string {
 				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("client"), metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return string(service.Spec.Type)
-			}, 1).Should(Equal("NodePort"))
+			}, 3).Should(Equal("NodePort"))
 		})
 
 		It("affinity rules are updated", func() {
@@ -730,26 +750,29 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			rabbitmqCluster.Spec.Affinity = affinity
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
+			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.Affinity = affinity
+			})).To(Succeed())
+
 			Eventually(func() *corev1.Affinity {
 				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 				return sts.Spec.Template.Spec.Affinity
-			}, 1).Should(Equal(affinity))
+			}, 3).Should(Equal(affinity))
 
 			Expect(client.Get(
 				context.TODO(),
 				types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
 				rabbitmqCluster,
 			)).To(Succeed())
+
 			affinity = nil
-			rabbitmqCluster.Spec.Affinity = affinity
-			Expect(client.Update(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.Affinity = affinity
+			})).To(Succeed())
 			Eventually(func() *corev1.Affinity {
 				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
 				return sts.Spec.Template.Spec.Affinity
-			}, 1).Should(BeNil())
+			}, 3).Should(BeNil())
 		})
 	})
 
@@ -836,7 +859,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 	})
 
-	Context("RabbitMQ CR Reconciled condition", func() {
+	Context("RabbitMQ CR ReconcileSuccess condition", func() {
 		var (
 			rabbitmqResource *rabbitmqv1beta1.RabbitmqCluster
 			crName           string
@@ -853,7 +876,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqResource.Spec.Replicas = &one
 		})
 
-		It("exposes Reconciled condition", func() {
+		It("exposes ReconcileSuccess condition", func() {
 			By("setting to False when spec is not valid", func() {
 				// Annotations must end in alphanumeric character. However KubeAPI will accept this manifest
 				rabbitmqResource.Spec.Service.Annotations = map[string]string{"thisIs-": "notValidForK8s"}
@@ -868,12 +891,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 					}, someRabbit)).To(Succeed())
 
 					for i := range someRabbit.Status.Conditions {
-						if someRabbit.Status.Conditions[i].Type == status.Reconciled {
-							return fmt.Sprintf("Reconciled status: %s", someRabbit.Status.Conditions[i].Status)
+						if someRabbit.Status.Conditions[i].Type == status.ReconcileSuccess {
+							return fmt.Sprintf("ReconcileSuccess status: %s", someRabbit.Status.Conditions[i].Status)
 						}
 					}
-					return "Reconciled status: condition not present"
-				}, 5).Should(Equal("Reconciled status: False"))
+					return "ReconcileSuccess status: condition not present"
+				}, 5).Should(Equal("ReconcileSuccess status: False"))
 			})
 
 			By("transitioning to True when a valid spec in updated", func() {
@@ -895,12 +918,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 					}, someRabbit)).To(Succeed())
 
 					for i := range someRabbit.Status.Conditions {
-						if someRabbit.Status.Conditions[i].Type == status.Reconciled {
-							return fmt.Sprintf("Reconciled status: %s", someRabbit.Status.Conditions[i].Status)
+						if someRabbit.Status.Conditions[i].Type == status.ReconcileSuccess {
+							return fmt.Sprintf("ReconcileSuccess status: %s", someRabbit.Status.Conditions[i].Status)
 						}
 					}
-					return "Reconciled status: condition not present"
-				}, 5).Should(Equal("Reconciled status: True"))
+					return "ReconcileSuccess status: condition not present"
+				}, 5).Should(Equal("ReconcileSuccess status: True"))
 			})
 		})
 	})
@@ -955,7 +978,7 @@ func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 		}
 
 		if len(rabbitmqClusterCreated.Status.Conditions) == 0 {
-			return fmt.Sprintf("not ready")
+			return "not ready"
 		}
 
 		return "ready"

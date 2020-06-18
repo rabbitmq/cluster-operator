@@ -312,7 +312,7 @@ var _ = Describe("RabbitmqCluster", func() {
 			Expect(rabbitmqClusterStatus.Conditions[0].Type).To(Equal(status.AllReplicasReady))
 			Expect(rabbitmqClusterStatus.Conditions[1].Type).To(Equal(status.ClusterAvailable))
 			Expect(rabbitmqClusterStatus.Conditions[2].Type).To(Equal(status.NoWarnings))
-			Expect(rabbitmqClusterStatus.Conditions[3].Type).To(Equal(status.Reconciled))
+			Expect(rabbitmqClusterStatus.Conditions[3].Type).To(Equal(status.ReconcileSuccess))
 		})
 
 		It("updates an arbitrary condition", func() {

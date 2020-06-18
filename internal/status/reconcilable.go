@@ -7,8 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func ReconciledCondition(status corev1.ConditionStatus, reason, message string) RabbitmqClusterCondition {
-	condition := generateCondition(Reconciled)
+func ReconcileSuccessCondition(status corev1.ConditionStatus, reason, message string) RabbitmqClusterCondition {
+	condition := generateCondition(ReconcileSuccess)
 	condition.Status = status
 	condition.Reason = reason
 	condition.Message = message

@@ -13,7 +13,7 @@ const (
 	AllReplicasReady RabbitmqClusterConditionType = "AllReplicasReady"
 	ClusterAvailable RabbitmqClusterConditionType = "ClusterAvailable"
 	NoWarnings       RabbitmqClusterConditionType = "NoWarnings"
-	Reconciled       RabbitmqClusterConditionType = "Reconciled"
+	ReconcileSuccess RabbitmqClusterConditionType = "ReconcileSuccess"
 )
 
 type RabbitmqClusterConditionType string

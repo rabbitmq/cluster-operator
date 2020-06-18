@@ -9,11 +9,11 @@ import (
 	. "github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 )
 
-var _ = Describe("Reconciled", func() {
+var _ = Describe("ReconcileSuccess", func() {
 
 	It("has the required fields", func() {
-		reconcilableCondition := ReconciledCondition(corev1.ConditionTrue, "GreatSuccess", "SomeMessage")
-		Expect(reconcilableCondition.Type).To(Equal(RabbitmqClusterConditionType("Reconciled")))
+		reconcilableCondition := ReconcileSuccessCondition(corev1.ConditionTrue, "GreatSuccess", "SomeMessage")
+		Expect(reconcilableCondition.Type).To(Equal(RabbitmqClusterConditionType("ReconcileSuccess")))
 		Expect(reconcilableCondition.Status).To(Equal(corev1.ConditionStatus("True")))
 		Expect(reconcilableCondition.Reason).To(Equal("GreatSuccess"))
 		Expect(reconcilableCondition.Message).To(Equal("SomeMessage"))
