@@ -224,7 +224,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}); err != nil {
 			r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 
-			rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "ReconcileError", err.Error())
+			rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "Error", err.Error())
 			if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
 				r.Log.Error(writerErr, "Error trying to Update ReconcileSuccess condition state",
 					"namespace", rabbitmqCluster.Namespace,
@@ -240,7 +240,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// Set ReconcileSuccess to true here because all CRUD operations to Kube API related
 	// to child resources returned no error
-	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionTrue, "NoErrors", "Created or Updated all child resources")
+	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionTrue, "Success", "Created or Updated all child resources")
 	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
 		r.Log.Error(writerErr, "Error trying to Update Custom Resource status",
 			"namespace", rabbitmqCluster.Namespace,
