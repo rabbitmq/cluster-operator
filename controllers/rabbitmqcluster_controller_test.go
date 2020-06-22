@@ -226,7 +226,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				StringData: map[string]string{
 					"tls.crt": "this is a tls cert",
 					"tls.key": "this is a tls key",
-					"ca.crt":  "certificate",
+					"caCERT":  "certificate",
 				},
 			}
 			_, err := clientSet.CoreV1().Secrets("rabbitmq-mutual-tls").Create(&tlsSecret)
@@ -244,14 +244,23 @@ var _ = Describe("RabbitmqclusterController", func() {
 					TLS: rabbitmqv1beta1.TLSSpec{
 						SecretName:   "tls-secret",
 						CaSecretName: "tls-secret",
-						CaCertName:   "ca.crt",
+						CaCertName:   "caCERT",
 					},
 				},
 			}
 
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 			waitForClusterCreation(rabbitmqCluster, client)
+			sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			volumeMount := corev1.VolumeMount{
+				Name:      "rabbitmq-tls",
+				MountPath: "/etc/rabbitmq-tls/caCERT",
+				SubPath:   "caCERT",
+			}
+			Expect(sts.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(volumeMount))
 		})
+
 		It("Does not deploy if the cert name does not match the contents of the secret", func() {
 			tlsSecret := corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{

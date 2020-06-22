@@ -240,9 +240,9 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 	if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
 		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
 			fmt.Sprintf("Failed to get TLS secret in namespace %v: %v", rabbitmqCluster.Namespace, err.Error()))
-		// retry after 10 seconds if not found
+		// Don't requeue, Reconcile will be triggered again when the secret is deployed
 		if errors.IsNotFound(err) {
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+			return ctrl.Result{}, nil
 		}
 
 		return ctrl.Result{}, err
@@ -267,9 +267,9 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 		if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
 			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
 				fmt.Sprintf("Failed to get CA certificate secret in namespace %v: %v", rabbitmqCluster.Namespace, err.Error()))
-			// retry after 10 seconds if not found
+			// Don't requeue, Reconcile will be triggered again when the secret is deployed
 			if errors.IsNotFound(err) {
-				return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+				return ctrl.Result{}, nil
 			}
 
 			return ctrl.Result{}, err
@@ -283,7 +283,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
 				fmt.Sprintf("The TLS secret %v in namespace %v must have the field %v", secretName, rabbitmqCluster.Namespace, rabbitmqCluster.Spec.TLS.CaCertName))
 
-			return ctrl.Result{}, errors.NewBadRequest("The TLS secret must have the fields tls.crt and tls.key")
+			return ctrl.Result{}, errors.NewBadRequest(fmt.Sprintf("The TLS secret must have the field %s", rabbitmqCluster.Spec.TLS.CaCertName))
 		}
 	}
 	return ctrl.Result{}, nil

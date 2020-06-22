@@ -302,7 +302,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 					Name:      "rabbitmq-mutual-tls",
 					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", builder.Instance.Spec.TLS.CaCertName),
-					SubPath:   "ca.crt",
+					SubPath:   builder.Instance.Spec.TLS.CaCertName,
 				})
 
 			} else {
@@ -310,7 +310,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 					Name:      "rabbitmq-tls",
 					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", builder.Instance.Spec.TLS.CaCertName),
-					SubPath:   "ca.crt",
+					SubPath:   builder.Instance.Spec.TLS.CaCertName,
 				})
 			}
 		}
