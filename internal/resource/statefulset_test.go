@@ -496,20 +496,20 @@ var _ = Describe("StatefulSet", func() {
 				It("add a TLS CA cert volume mount to the rabbitmq container", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "mutual-tls-secret"
-					instance.Spec.TLS.CaCertName = "ca.crt"
+					instance.Spec.TLS.CaCertName = "caCertificate"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 					Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
 						Name:      "rabbitmq-mutual-tls",
-						MountPath: "/etc/rabbitmq-tls/ca.crt",
-						SubPath:   "ca.crt",
+						MountPath: "/etc/rabbitmq-tls/caCertificate",
+						SubPath:   "caCertificate",
 					}))
 				})
 				It("adds a mutual TLS volume to the pod template spec", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "mutual-tls-secret"
-					instance.Spec.TLS.CaCertName = "ca.crt"
+					instance.Spec.TLS.CaCertName = "caCertificate"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					filePermissions := int32(400)

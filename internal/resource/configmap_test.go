@@ -151,6 +151,34 @@ listeners.ssl.default=5671
 `))
 			})
 		})
+		Context("Mutual TLS", func() {
+			It("adds TLS config when TLS is enabled", func() {
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "rabbit-tls",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						TLS: rabbitmqv1beta1.TLSSpec{
+							SecretName:   "tls-secret",
+							CaSecretName: "tls-mutual-secret",
+							CaCertName:   "ca.certificate",
+						},
+					},
+				}
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
+				Expect(ok).To(BeTrue())
+				Expect(rabbitmqConf).To(ContainSubstring(`
+ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
+listeners.ssl.default=5671
+ssl_options.cacertfile=/etc/rabbitmq-tls/ca.certificate
+
+ssl_options.verify = verify_peer
+`))
+			})
+		})
 
 		Context("labels", func() {
 			BeforeEach(func() {
