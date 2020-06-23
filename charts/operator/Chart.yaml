@@ -8,17 +8,17 @@
 #
 
 name: rabbitmq-operator
-version: 0.3
+version: 0.4
 appVersion: 0.7.0-build.41
-description: Pivotal RabbitMQ for Kubernetes
+description: RabbitMQ Cluster Operator
 keywords:
 - rabbitmq
 - operator
 - message queue
 - AMQP
-home: https://pivotal.io/rabbitmq
+home: https://tanzu.vmware.com/rabbitmq
 icon: https://bitnami.com/assets/stacks/rabbitmq/img/rabbitmq-stack-220x234.png
 maintainers:
-- name: Pivotal
-  email: rabbitmq-for-k8s@pivotal.com
+- name: VMware
+  email: rabbitmq-for-k8s@groups.vmware.com
 engine: gotpl
