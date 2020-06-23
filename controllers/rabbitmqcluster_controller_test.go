@@ -1007,7 +1007,7 @@ func service(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, svcName string) *
 		var err error
 		svc, err = clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(serviceName, metav1.GetOptions{})
 		return err
-	}, 2).Should(Succeed())
+	}, 5).Should(Succeed())
 	return svc
 }
 
