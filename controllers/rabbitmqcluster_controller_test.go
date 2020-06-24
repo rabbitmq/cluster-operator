@@ -217,6 +217,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 
 	Context("Mutual TLS with single secret", func() {
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Eventually(func() bool {
+				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+				return apierrors.IsNotFound(err)
+			}, 5).Should(BeTrue())
+		})
 		It("Deploys successfully", func() {
 			tlsSecret := corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -305,6 +313,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 	})
 
 	Context("Mutual TLS with a seperate CA certificate secret", func() {
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Eventually(func() bool {
+				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+				return apierrors.IsNotFound(err)
+			}, 5).Should(BeTrue())
+		})
 		It("Does not deploy the RabbitmqCluster, and retries every 10 seconds", func() {
 			tlsSecret := corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -342,6 +358,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Eventually(func() string {
 				return aggregateEventMsgs(rabbitmqCluster, "TLSError")
 			}, tlsEventTimeout, tlsRetry).Should(ContainSubstring("Failed to get CA certificate secret"))
+			_, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
+			Expect(err).To(HaveOccurred())
 
 			// create missing secret
 			caCertSecret := corev1.Secret{
@@ -357,10 +375,73 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			waitForClusterCreation(rabbitmqCluster, client)
+			statefulSet(rabbitmqCluster)
+		})
+		It("Does not deploy if the cert name does not match the contents of the secret", func() {
+			tlsSecret := corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "tls-secret",
+					Namespace: "rabbitmq-mutual-tls-ca-missing",
+				},
+				StringData: map[string]string{
+					"tls.crt": "this is a tls cert",
+					"tls.key": "this is a tls key",
+				},
+			}
+			_, err := clientSet.CoreV1().Secrets("rabbitmq-mutual-tls-ca-missing").Create(&tlsSecret)
+			if !apierrors.IsAlreadyExists(err) {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			caCertSecret := corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ca-cert-secret",
+					Namespace: "rabbitmq-mutual-tls-ca-missing",
+				},
+				StringData: map[string]string{
+					"cacrt": "this is a ca cert",
+				},
+			}
+			_, err = clientSet.CoreV1().Secrets("rabbitmq-mutual-tls-ca-missing").Create(&caCertSecret)
+			if !apierrors.IsAlreadyExists(err) {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-mutual-tls-missing",
+					Namespace: "rabbitmq-mutual-tls-ca-missing",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas: &one,
+					TLS: rabbitmqv1beta1.TLSSpec{
+						SecretName:   "tls-secret",
+						CaSecretName: "ca-cert-secret",
+						CaCertName:   "ca.crt",
+					},
+				},
+			}
+
+			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+
+			tlsEventTimeout := 5 * time.Second
+			tlsRetry := 1 * time.Second
+			Eventually(func() string {
+				return aggregateEventMsgs(rabbitmqCluster, "TLSError")
+			}, tlsEventTimeout, tlsRetry).Should(
+				ContainSubstring("The TLS secret tls-secret in namespace rabbitmq-mutual-tls-ca-missing must have the field ca.crt"))
 		})
 	})
 
 	Context("TLS set on the instance", func() {
+		AfterEach(func() {
+			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Eventually(func() bool {
+				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+				return apierrors.IsNotFound(err)
+			}, 5).Should(BeTrue())
+		})
 		BeforeEach(func() {
 			tlsSecret := corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -440,7 +521,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		When("the TLS secret does not exist", func() {
-			It("fails to deploy the RabbitmqCluster, and retries every 10 seconds", func() {
+			It("fails to deploy the RabbitmqCluster until the secret is detected", func() {
 				rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "rabbitmq-tls-secret-does-not-exist",
@@ -460,6 +541,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Eventually(func() string {
 					return aggregateEventMsgs(rabbitmqCluster, "TLSError")
 				}, tlsEventTimeout, tlsRetry).Should(ContainSubstring("Failed to get TLS secret"))
+				_, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
+				Expect(err).To(HaveOccurred())
 
 				// create missing secret
 				tlsSecret := corev1.Secret{
@@ -472,10 +555,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 						"tls.key": "this is a tls key",
 					},
 				}
-				_, err := clientSet.CoreV1().Secrets("rabbitmq-namespace").Create(&tlsSecret)
+				_, err = clientSet.CoreV1().Secrets("rabbitmq-namespace").Create(&tlsSecret)
 				Expect(err).NotTo(HaveOccurred())
 
 				waitForClusterCreation(rabbitmqCluster, client)
+				statefulSet(rabbitmqCluster)
 			})
 		})
 
