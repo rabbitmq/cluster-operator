@@ -18,7 +18,6 @@ require (
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
 	github.com/prometheus/client_golang v1.2.1 // indirect
-	github.com/prometheus/common v0.7.0
 	github.com/prometheus/procfs v0.0.8 // indirect
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	go.uber.org/atomic v1.4.0 // indirect
