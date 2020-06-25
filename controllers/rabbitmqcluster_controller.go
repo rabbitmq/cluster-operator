@@ -271,7 +271,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 			logger.Info("mutual TLS set, looking for CA certificate secret", "secret", secretName, "namespace", rabbitmqCluster.Namespace)
 
 			// check if secret exists
-			secret := &corev1.Secret{}
+			secret = &corev1.Secret{}
 			if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
 				r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
 					fmt.Sprintf("Failed to get CA certificate secret in namespace %v: %v", rabbitmqCluster.Namespace, err.Error()))

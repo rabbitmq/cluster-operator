@@ -327,7 +327,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 				StringData: map[string]string{
 					"tls.crt": "this is a tls cert",
 					"tls.key": "this is a tls key",
-					"ca.crt":  "certificate",
 				},
 			}
 			_, err := clientSet.CoreV1().Secrets("rabbitmq-mutual-tls-ca").Create(&tlsSecret)
