@@ -1,18 +1,10 @@
-/*
-Copyright 2019 Pivotal.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// RabbitMQ Cluster Operator
+//
+// Copyright 2020 VMware, Inc. All Rights Reserved.
+//
+// This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance with the Mozilla Public License.
+//
+// This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
 
 package v1beta1
 
@@ -316,10 +308,34 @@ var _ = Describe("RabbitmqCluster", func() {
 
 			rabbitmqClusterStatus.SetConditions([]runtime.Object{statefulset, endPoints})
 
-			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(3))
+			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(4))
 			Expect(rabbitmqClusterStatus.Conditions[0].Type).To(Equal(status.AllReplicasReady))
 			Expect(rabbitmqClusterStatus.Conditions[1].Type).To(Equal(status.ClusterAvailable))
 			Expect(rabbitmqClusterStatus.Conditions[2].Type).To(Equal(status.NoWarnings))
+			Expect(rabbitmqClusterStatus.Conditions[3].Type).To(Equal(status.ReconcileSuccess))
+		})
+
+		It("updates an arbitrary condition", func() {
+			someCondition := status.RabbitmqClusterCondition{}
+			someCondition.Type = status.RabbitmqClusterConditionType("a-type")
+			someCondition.Reason = "whynot"
+			someCondition.Status = corev1.ConditionStatus("perhaps")
+			someCondition.LastTransitionTime = metav1.Unix(10, 0)
+			rmqStatus := RabbitmqClusterStatus{
+				Conditions: []status.RabbitmqClusterCondition{someCondition},
+			}
+
+			rmqStatus.SetCondition(status.RabbitmqClusterConditionType("a-type"),
+				corev1.ConditionTrue, "some-reason", "my-message")
+
+			updatedCondition := rmqStatus.Conditions[0]
+			Expect(updatedCondition.Status).To(Equal(corev1.ConditionTrue))
+			Expect(updatedCondition.Reason).To(Equal("some-reason"))
+			Expect(updatedCondition.Message).To(Equal("my-message"))
+
+			notExpectedTime := metav1.Unix(10, 0)
+			Expect(updatedCondition.LastTransitionTime).NotTo(Equal(notExpectedTime))
+			Expect(updatedCondition.LastTransitionTime.Before(&notExpectedTime)).To(BeFalse())
 		})
 	})
 })

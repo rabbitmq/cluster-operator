@@ -1,10 +1,17 @@
+// RabbitMQ Cluster Operator
+//
+// Copyright 2020 VMware, Inc. All Rights Reserved.
+//
+// This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance with the Mozilla Public License.
+//
+// This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+//
+
 package system_tests
 
 import (
 	"context"
 	"time"
-
-	"k8s.io/client-go/kubernetes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,20 +29,14 @@ const (
 
 var _ = Describe("Operator", func() {
 	var (
-		clientSet *kubernetes.Clientset
 		namespace = MustHaveEnv("NAMESPACE")
 	)
-
-	BeforeEach(func() {
-		var err error
-		clientSet, err = createClientSet()
-		Expect(err).NotTo(HaveOccurred())
-	})
 
 	Context("Publish and consume a message in a single node cluster", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
+			port     string
 			username string
 			password string
 		)
@@ -44,7 +45,7 @@ var _ = Describe("Operator", func() {
 			one := int32(1)
 			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
 			cluster.Spec.Replicas = &one
-			cluster.Spec.Service.Type = "LoadBalancer"
+			cluster.Spec.Service.Type = "NodePort"
 			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
 			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
@@ -55,14 +56,14 @@ var _ = Describe("Operator", func() {
 
 			waitForRabbitmqRunning(cluster)
 			waitForClusterAvailable(cluster)
-			waitForLoadBalancer(clientSet, cluster)
 
-			hostname = rabbitmqHostname(clientSet, cluster)
+			hostname = kubernetesNodeIp(clientSet)
+			port = rabbitmqManagementNodePort(clientSet, cluster)
 
 			var err error
 			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			assertHttpReady(hostname)
+			assertHttpReady(hostname, port)
 		})
 
 		AfterEach(func() {
@@ -71,7 +72,7 @@ var _ = Describe("Operator", func() {
 
 		It("works", func() {
 			By("being able to create a test queue and publish a message", func() {
-				response, err := rabbitmqAlivenessTest(hostname, username, password)
+				response, err := rabbitmqAlivenessTest(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
 			})
@@ -120,7 +121,6 @@ var _ = Describe("Operator", func() {
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "config-rabbit")
-			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
@@ -183,15 +183,14 @@ cluster_keepalive_interval = 10000`
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
+			port     string
 			username string
 			password string
 		)
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
-			cluster.Spec.Service.Type = "LoadBalancer"
-			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
-			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
+			cluster.Spec.Service.Type = "NodePort"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
@@ -199,14 +198,14 @@ cluster_keepalive_interval = 10000`
 			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
-			waitForLoadBalancer(clientSet, cluster)
 
-			hostname = rabbitmqHostname(clientSet, cluster)
+			hostname = kubernetesNodeIp(clientSet)
+			port = rabbitmqManagementNodePort(clientSet, cluster)
 
 			var err error
 			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			assertHttpReady(hostname)
+			assertHttpReady(hostname, port)
 		})
 
 		AfterEach(func() {
@@ -215,14 +214,15 @@ cluster_keepalive_interval = 10000`
 
 		It("persists messages after pod deletion", func() {
 			By("publishing a message", func() {
-				err := rabbitmqPublishToNewQueue(hostname, username, password)
+				err := rabbitmqPublishToNewQueue(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			By("consuming a message after RabbitMQ was restarted", func() {
-				assertHttpReady(hostname)
+				// We are asserting this in the BeforeEach. Is it necessary again here?
+				assertHttpReady(hostname, port)
 
-				message, err := rabbitmqGetMessageFromQueue(hostname, username, password)
+				message, err := rabbitmqGetMessageFromQueue(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(message.Payload).To(Equal("hello"))
 			})
@@ -245,12 +245,13 @@ cluster_keepalive_interval = 10000`
 				three := int32(3)
 				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
 				cluster.Spec.Replicas = &three
-				cluster.Spec.Service.Type = "LoadBalancer"
+				cluster.Spec.Service.Type = "NodePort"
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 				}
 				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				waitForRabbitmqRunning(cluster)
 			})
 
 			AfterEach(func() {
@@ -258,14 +259,13 @@ cluster_keepalive_interval = 10000`
 			})
 
 			It("works", func() {
-				waitForRabbitmqRunning(cluster)
 				username, password, err := getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
-				waitForLoadBalancer(clientSet, cluster)
-				hostname := rabbitmqHostname(clientSet, cluster)
+				hostname := kubernetesNodeIp(clientSet)
+				port := rabbitmqManagementNodePort(clientSet, cluster)
 				Expect(err).NotTo(HaveOccurred())
-				assertHttpReady(hostname)
+				assertHttpReady(hostname, port)
 
-				response, err := rabbitmqAlivenessTest(hostname, username, password)
+				response, err := rabbitmqAlivenessTest(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
 			})
@@ -275,27 +275,28 @@ cluster_keepalive_interval = 10000`
 	Context("TLS", func() {
 		When("TLS is correctly configured", func() {
 			var (
-				cluster    *rabbitmqv1beta1.RabbitmqCluster
-				hostname   string
-				username   string
-				password   string
-				caFilePath string
+				cluster       *rabbitmqv1beta1.RabbitmqCluster
+				hostname      string
+				amqpsNodePort string
+				username      string
+				password      string
+				caFilePath    string
 			)
 
 			BeforeEach(func() {
 				cluster = generateRabbitmqCluster(namespace, "tls-test-rabbit")
-				cluster.Spec.Service.Type = "LoadBalancer"
-				cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
-				cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
+				cluster.Spec.Service.Type = "NodePort"
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 				}
 				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
-				waitForLoadBalancer(clientSet, cluster)
+				waitForClusterAvailable(cluster)
 
-				hostname = rabbitmqHostname(clientSet, cluster)
+				// Passing a single hostname for certificate creation works because
+				// the AMPQS client is connecting using the same hostname
+				hostname = kubernetesNodeIp(clientSet)
 				caFilePath = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
 
 				// Update CR with TLS secret name
@@ -303,7 +304,7 @@ cluster_keepalive_interval = 10000`
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 				})).To(Succeed())
 				waitForTLSUpdate(cluster)
-				waitForLoadBalancer(clientSet, cluster)
+				amqpsNodePort = rabbitmqAMQPSNodePort(clientSet, cluster)
 			})
 
 			AfterEach(func() {
@@ -318,9 +319,9 @@ cluster_keepalive_interval = 10000`
 
 				// try to publish and consume a message on a amqps url
 				sentMessage := "Hello Rabbitmq!"
-				Expect(rabbitmqAMQPSPublishToNewQueue(sentMessage, username, password, hostname, caFilePath)).To(Succeed())
+				Expect(rabbitmqAMQPSPublishToNewQueue(sentMessage, username, password, hostname, amqpsNodePort, caFilePath)).To(Succeed())
 
-				recievedMessage, err := rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath)
+				recievedMessage, err := rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsNodePort, caFilePath)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(recievedMessage).To(Equal(sentMessage))
 			})

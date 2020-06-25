@@ -1,3 +1,12 @@
+// RabbitMQ Cluster Operator
+//
+// Copyright 2020 VMware, Inc. All Rights Reserved.
+//
+// This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance with the Mozilla Public License.
+//
+// This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+//
+
 package system_tests
 
 import (
@@ -27,6 +36,7 @@ import (
 	"github.com/cloudflare/cfssl/signer/local"
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/streadway/amqp"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -118,8 +128,8 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 	return
 }
 
-func rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) (*Message, error) {
-	getQueuesUrl := fmt.Sprintf("http://%s:15672/api/queues/%%2F/test-queue/get", rabbitmqHostName)
+func rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*Message, error) {
+	getQueuesUrl := fmt.Sprintf("http://%s:%s/api/queues/%%2F/test-queue/get", rabbitmqHostName, rabbitmqPort)
 	data := map[string]interface{}{
 		"vhost":    "/",
 		"name":     "test-queue",
@@ -152,15 +162,15 @@ type Message struct {
 	MessageCount int    `json:"message_count"`
 }
 
-func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) error {
-	url := fmt.Sprintf("http://%s:15672/api/queues/%%2F/test-queue", rabbitmqHostName)
+func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) error {
+	url := fmt.Sprintf("http://%s:%s/api/queues/%%2F/test-queue", rabbitmqHostName, rabbitmqPort)
 	_, err := makeRequest(url, http.MethodPut, rabbitmqUsername, rabbitmqPassword, []byte("{\"durable\": true}"))
 
 	if err != nil {
 		return err
 	}
 
-	url = fmt.Sprintf("http://%s:15672/api/exchanges/%%2F/amq.default/publish", rabbitmqHostName)
+	url = fmt.Sprintf("http://%s:%s/api/exchanges/%%2F/amq.default/publish", rabbitmqHostName, rabbitmqPort)
 	data := map[string]interface{}{
 		"vhost": "/",
 		"name":  "amq.default",
@@ -189,7 +199,7 @@ func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqUsername, rabbitmqPassw
 	return nil
 }
 
-func connectAMQPS(username, password, hostname, caFilePath string) (conn *amqp.Connection, err error) {
+func connectAMQPS(username, password, hostname, port, caFilePath string) (conn *amqp.Connection, err error) {
 	// create TLS config for amqps request
 	cfg := new(tls.Config)
 	cfg.RootCAs = x509.NewCertPool()
@@ -200,7 +210,7 @@ func connectAMQPS(username, password, hostname, caFilePath string) (conn *amqp.C
 	cfg.RootCAs.AppendCertsFromPEM(ca)
 
 	for retry := 0; retry < 5; retry++ {
-		conn, err = amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:5671/", username, password, hostname), cfg)
+		conn, err = amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:%v/", username, password, hostname, port), cfg)
 		if err == nil {
 			return conn, nil
 		}
@@ -209,9 +219,9 @@ func connectAMQPS(username, password, hostname, caFilePath string) (conn *amqp.C
 	return nil, err
 }
 
-func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, caFilePath string) error {
+func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, amqpsPort, caFilePath string) error {
 	// create connection
-	conn, err := connectAMQPS(username, password, hostname, caFilePath)
+	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
 	if err != nil {
 		return err
 	}
@@ -252,9 +262,9 @@ func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, caFil
 	return nil
 }
 
-func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath string) (string, error) {
+func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsPort, caFilePath string) (string, error) {
 	// create connection
-	conn, err := connectAMQPS(username, password, hostname, caFilePath)
+	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
 	if err != nil {
 		return "", err
 	}
@@ -290,6 +300,9 @@ func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath s
 		false,  // no-wait
 		nil,    // args
 	)
+	if err != nil {
+		return "", err
+	}
 
 	// return first msg
 	for msg := range msgs {
@@ -299,9 +312,9 @@ func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, caFilePath s
 	return "", nil
 }
 
-func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
+func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
-	url := fmt.Sprintf("http://%s:15672/api/aliveness-test/%%2F", rabbitmqHostName)
+	url := fmt.Sprintf("http://%s:%s/api/aliveness-test/%%2F", rabbitmqHostName, rabbitmqPort)
 
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	req.SetBasicAuth(rabbitmqUsername, rabbitmqPassword)
@@ -396,12 +409,63 @@ func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) str
 	return cluster.ChildResourceName(strings.Join([]string{statefulSetSuffix, strconv.Itoa(index)}, "-"))
 }
 
-func rabbitmqHostname(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
-	service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(clientServiceSuffix), metav1.GetOptions{})
+/*
+ * Helper function to fetch a Kubernetes Node IP. Node IPs are interesting
+ * to access NodePort type services.
+ */
+func kubernetesNodeIp(clientSet *kubernetes.Clientset) string {
+	nodes, err := clientSet.CoreV1().Nodes().List(metav1.ListOptions{})
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	ExpectWithOffset(1, len(service.Status.LoadBalancer.Ingress)).To(BeNumerically(">", 0))
+	ExpectWithOffset(1, nodes).ToNot(BeNil())
+	ExpectWithOffset(1, len(nodes.Items)).To(BeNumerically(">", 0))
 
-	return service.Status.LoadBalancer.Ingress[0].IP
+	var nodeIp string
+	for _, address := range nodes.Items[0].Status.Addresses {
+		// There are no order guarantees in this array. An Internal IP might come
+		// before an external IP or hostname. We want to return an external IP if
+		// available, or the internal IP.
+		// We don't want to return a hostname because it might not be resolvable by
+		// our local DNS
+		switch address.Type {
+		case corev1.NodeExternalIP:
+			return address.Address
+		case corev1.NodeInternalIP:
+			nodeIp = address.Address
+		}
+	}
+	// we did not find an external IP
+	// we might return empty or the internal IP
+	return nodeIp
+}
+
+func rabbitmqManagementNodePort(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+	service, err := clientSet.CoreV1().Services(cluster.Namespace).
+		Get(cluster.ChildResourceName("client"), metav1.GetOptions{})
+
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	for _, port := range service.Spec.Ports {
+		if port.Name == "management" {
+			return strconv.Itoa(int(port.NodePort))
+		}
+	}
+
+	return ""
+}
+
+func rabbitmqAMQPSNodePort(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+	service, err := clientSet.CoreV1().Services(cluster.Namespace).
+		Get(cluster.ChildResourceName("client"), metav1.GetOptions{})
+
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	for _, port := range service.Spec.Ports {
+		if port.Name == "amqps" {
+			return strconv.Itoa(int(port.NodePort))
+		}
+	}
+
+	return ""
 }
 
 func waitForTLSUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
@@ -513,39 +577,10 @@ func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 }
 
-func waitForLoadBalancer(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) {
-	var err error
-
-	EventuallyWithOffset(1, func() string {
-		svc, err := clientSet.CoreV1().Services(cluster.Namespace).Get(cluster.ChildResourceName(clientServiceSuffix), metav1.GetOptions{})
-
-		if err != nil {
-			Expect(err).To(MatchError("not found"))
-			return ""
-		}
-
-		if len(svc.Status.LoadBalancer.Ingress) == 0 || svc.Status.LoadBalancer.Ingress[0].IP == "" {
-			return ""
-		}
-
-		endpoints, _ := clientSet.CoreV1().Endpoints(cluster.Namespace).Get(cluster.ChildResourceName(clientServiceSuffix), metav1.GetOptions{})
-
-		for _, e := range endpoints.Subsets {
-			if len(e.NotReadyAddresses) > 0 || int32(len(e.Addresses)) != *cluster.Spec.Replicas {
-				return ""
-			}
-		}
-
-		return svc.Status.LoadBalancer.Ingress[0].IP
-	}, podCreationTimeout, 1).ShouldNot(BeEmpty())
-
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-}
-
-func assertHttpReady(hostname string) {
+func assertHttpReady(hostname, port string) {
 	EventuallyWithOffset(1, func() int {
 		client := &http.Client{Timeout: 10 * time.Second}
-		url := fmt.Sprintf("http://%s:15672", hostname)
+		url := fmt.Sprintf("http://%s:%s", hostname, port)
 
 		req, _ := http.NewRequest(http.MethodGet, url, nil)
 

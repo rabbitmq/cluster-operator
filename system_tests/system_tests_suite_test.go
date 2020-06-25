@@ -1,3 +1,12 @@
+// RabbitMQ Cluster Operator
+//
+// Copyright 2020 VMware, Inc. All Rights Reserved.
+//
+// This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance with the Mozilla Public License.
+//
+// This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+//
+
 package system_tests
 
 import (
@@ -30,7 +39,7 @@ var (
 	specifiedStorageClassName = "persistent-test"
 )
 
-var _ = SynchronizedBeforeSuite(func() []byte {
+var _ = BeforeSuite(func() {
 	scheme := runtime.NewScheme()
 	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
@@ -38,7 +47,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	restConfig, err := createRestConfig()
 	Expect(err).NotTo(HaveOccurred())
 
-	rmqClusterClient, err := client.New(restConfig, client.Options{Scheme: scheme})
+	rmqClusterClient, err = client.New(restConfig, client.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
 
 	clientSet, err = createClientSet()
@@ -71,17 +80,4 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 		return output
 	}, 10, 1).Should(ContainSubstring("1/1"))
-
-	return nil
-}, func(data []byte) {
-	scheme := runtime.NewScheme()
-	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
-	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-
-	restConfig, err := createRestConfig()
-	Expect(err).NotTo(HaveOccurred())
-
-	rmqClusterClient, err = client.New(restConfig, client.Options{Scheme: scheme})
-	Expect(err).NotTo(HaveOccurred())
-
 })

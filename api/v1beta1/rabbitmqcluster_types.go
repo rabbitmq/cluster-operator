@@ -1,18 +1,10 @@
-/*
-Copyright 2019 Pivotal.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// RabbitMQ Cluster Operator
+//
+// Copyright 2020 VMware, Inc. All Rights Reserved.
+//
+// This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance with the Mozilla Public License.
+//
+// This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
 
 package v1beta1
 
@@ -150,6 +142,7 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 	var existingAllPodsReadyCondition *status.RabbitmqClusterCondition
 	var existingClusterAvailableCondition *status.RabbitmqClusterCondition
 	var existingNoWarningsCondition *status.RabbitmqClusterCondition
+	var existingReconcileCondition *status.RabbitmqClusterCondition
 
 	for _, condition := range rmqStatus.Conditions {
 		switch condition.Type {
@@ -159,6 +152,8 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 			existingClusterAvailableCondition = condition.DeepCopy()
 		case status.NoWarnings:
 			existingNoWarningsCondition = condition.DeepCopy()
+		case status.ReconcileSuccess:
+			existingReconcileCondition = condition.DeepCopy()
 		}
 	}
 
@@ -166,13 +161,32 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 	clusterAvailableCond := status.ClusterAvailableCondition(resources, existingClusterAvailableCondition)
 	noWarningsCond := status.NoWarningsCondition(resources, existingNoWarningsCondition)
 
+	var reconciledCondition status.RabbitmqClusterCondition
+	if existingReconcileCondition != nil {
+		reconciledCondition = *existingReconcileCondition
+	} else {
+		reconciledCondition = status.ReconcileSuccessCondition(corev1.ConditionUnknown, "Initialising", "")
+	}
+
 	currentStatusConditions := []status.RabbitmqClusterCondition{
 		allReplicasReadyCond,
 		clusterAvailableCond,
 		noWarningsCond,
+		reconciledCondition,
 	}
 
 	rmqStatus.Conditions = currentStatusConditions
+}
+
+func (rmqStatus *RabbitmqClusterStatus) SetCondition(condType status.RabbitmqClusterConditionType,
+	condStatus corev1.ConditionStatus, reason string, messages ...string) {
+	for i := range rmqStatus.Conditions {
+		if rmqStatus.Conditions[i].Type == condType {
+			rmqStatus.Conditions[i].UpdateState(condStatus)
+			rmqStatus.Conditions[i].UpdateReason(reason, messages...)
+			break
+		}
+	}
 }
 
 // +kubebuilder:object:root=true

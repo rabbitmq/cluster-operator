@@ -1,17 +1,11 @@
 /*
-Copyright 2019 Pivotal.
+RabbitMQ Cluster Operator
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Copyright 2020 VMware, Inc. All Rights Reserved.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance with the Mozilla Public License.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
 */
 
 package controllers
@@ -118,6 +112,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
+		// TODO do we need to requeue?
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -199,11 +194,28 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return apiError
 		}); err != nil {
 			r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
+
+			rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "Error", err.Error())
+			if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
+				r.Log.Error(writerErr, "Error trying to Update ReconcileSuccess condition state",
+					"namespace", rabbitmqCluster.Namespace,
+					"name", rabbitmqCluster.Name)
+			}
+
 			return ctrl.Result{}, err
 		}
 
 		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
+	}
+
+	// Set ReconcileSuccess to true here because all CRUD operations to Kube API related
+	// to child resources returned no error
+	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionTrue, "Success", "Created or Updated all child resources")
+	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
+		r.Log.Error(writerErr, "Error trying to Update Custom Resource status",
+			"namespace", rabbitmqCluster.Namespace,
+			"name", rabbitmqCluster.Name)
 	}
 
 	if err := r.setAdminStatus(ctx, rabbitmqCluster); err != nil {
