@@ -100,6 +100,14 @@ var _ = Describe("RabbitmqCluster", func() {
 			created := generateRabbitmqClusterObject("rabbit-mutual-tls")
 			Expect(created.MutualTLSEnabled()).To(BeFalse())
 
+			created.Spec.TLS.SecretName = "tls-secret-name"
+			Expect(created.MutualTLSEnabled()).To(BeFalse())
+
+			created.Spec.TLS.SecretName = ""
+			created.Spec.TLS.CaSecretName = "tls-secret-name"
+			Expect(created.MutualTLSEnabled()).To(BeFalse())
+
+			created.Spec.TLS.SecretName = "tls-secret-name"
 			created.Spec.TLS.CaSecretName = "tls-secret-name"
 			Expect(created.MutualTLSEnabled()).To(BeTrue())
 		})

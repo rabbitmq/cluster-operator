@@ -131,7 +131,7 @@ func (cluster *RabbitmqCluster) TLSEnabled() bool {
 }
 
 func (cluster *RabbitmqCluster) MutualTLSEnabled() bool {
-	return cluster.Spec.TLS.CaSecretName != ""
+	return cluster.TLSEnabled() && cluster.Spec.TLS.CaSecretName != ""
 }
 
 func (cluster *RabbitmqCluster) SingleTLSSecret() bool {
