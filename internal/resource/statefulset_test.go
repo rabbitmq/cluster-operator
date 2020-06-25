@@ -455,11 +455,13 @@ var _ = Describe("StatefulSet", func() {
 					Name:      "rabbitmq-tls",
 					MountPath: "/etc/rabbitmq-tls/tls.crt",
 					SubPath:   "tls.crt",
+					ReadOnly:  true,
 				}))
 				Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
 					Name:      "rabbitmq-tls",
 					MountPath: "/etc/rabbitmq-tls/tls.key",
 					SubPath:   "tls.key",
+					ReadOnly:  true,
 				}))
 			})
 
@@ -487,6 +489,7 @@ var _ = Describe("StatefulSet", func() {
 						Name:      "rabbitmq-tls",
 						MountPath: "/etc/rabbitmq-tls/ca.crt",
 						SubPath:   "ca.crt",
+						ReadOnly:  true,
 					}))
 				})
 			})
@@ -504,6 +507,7 @@ var _ = Describe("StatefulSet", func() {
 						Name:      "rabbitmq-mutual-tls",
 						MountPath: "/etc/rabbitmq-tls/caCertificate",
 						SubPath:   "caCertificate",
+						ReadOnly:  true,
 					}))
 				})
 				It("adds a mutual TLS volume to the pod template spec", func() {
