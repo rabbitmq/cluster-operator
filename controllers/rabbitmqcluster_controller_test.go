@@ -261,6 +261,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Name:      "rabbitmq-tls",
 				MountPath: "/etc/rabbitmq-tls/caCERT",
 				SubPath:   "caCERT",
+				ReadOnly:  true,
 			}
 			Expect(sts.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(volumeMount))
 		})
