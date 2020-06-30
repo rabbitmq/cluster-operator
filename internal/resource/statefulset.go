@@ -64,7 +64,9 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 		},
 	}
 
-	// statefulSet Override
+	// StatefulSet Override
+	// override is applied to PVC, ServiceName & Selector
+	// other fields are handled in Update()
 	if builder.Instance.Spec.Override.StatefulSet != nil {
 		if builder.Instance.Spec.Override.StatefulSet.Spec != nil {
 			if builder.Instance.Spec.Override.StatefulSet.Spec.Selector != nil {
@@ -79,7 +81,7 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 				override := builder.Instance.Spec.Override.StatefulSet.Spec.VolumeClaimTemplates
 				pvcList := make([]corev1.PersistentVolumeClaim, len(override))
 				for i := range override {
-					objectMetaOverride(&pvcList[i].ObjectMeta, override[i].EmbeddedObjectMeta)
+					copyObjectMeta(&pvcList[i].ObjectMeta, override[i].EmbeddedObjectMeta)
 					pvcList[i].Spec = override[i].Spec
 					if err := controllerutil.SetControllerReference(builder.Instance, &pvcList[i], builder.Scheme); err != nil {
 						return nil, fmt.Errorf("failed setting controller reference: %v", err)
@@ -119,13 +121,6 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 	return []corev1.PersistentVolumeClaim{pvc}, nil
 }
 
-func objectMetaOverride(dst *metav1.ObjectMeta, src rabbitmqv1beta1.EmbeddedObjectMeta) {
-	dst.Name = src.Name
-	dst.Namespace = src.Namespace
-	dst.Labels = src.Labels
-	dst.Annotations = src.Annotations
-}
-
 func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	sts := object.(*appsv1.StatefulSet)
 
@@ -162,55 +157,71 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	}
 
 	if builder.Instance.Spec.Override.StatefulSet != nil {
-		stsOverride := builder.Instance.Spec.Override.StatefulSet
-		if stsOverride.EmbeddedObjectMeta != nil {
-			objectMetaOverride(&sts.ObjectMeta, *stsOverride.EmbeddedObjectMeta)
+		if err := builder.applyStsOverride(sts, builder.Instance.Spec.Override.StatefulSet); err != nil {
+			return fmt.Errorf("failed applying StatefulSet override: %v", err)
 		}
-		if stsOverride.Spec != nil {
-			if stsOverride.Spec.Replicas != nil {
-				sts.Spec.Replicas = stsOverride.Spec.Replicas
+	}
+	return nil
+}
+
+func (builder *StatefulSetBuilder) applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.StatefulSet) error {
+	if stsOverride.EmbeddedObjectMeta != nil {
+		copyObjectMeta(&sts.ObjectMeta, *stsOverride.EmbeddedObjectMeta)
+	}
+
+	if stsOverride.Spec != nil {
+		if stsOverride.Spec.Replicas != nil {
+			sts.Spec.Replicas = stsOverride.Spec.Replicas
+		}
+
+		if stsOverride.Spec.UpdateStrategy != nil {
+			sts.Spec.UpdateStrategy = *stsOverride.Spec.UpdateStrategy
+		}
+
+		if stsOverride.Spec.PodManagementPolicy != "" {
+			sts.Spec.PodManagementPolicy = stsOverride.Spec.PodManagementPolicy
+		}
+
+		if stsOverride.Spec.Template != nil {
+			if stsOverride.Spec.Template.EmbeddedObjectMeta != nil {
+				copyObjectMeta(&sts.Spec.Template.ObjectMeta, *stsOverride.Spec.Template.EmbeddedObjectMeta)
 			}
 
-			if stsOverride.Spec.UpdateStrategy != nil {
-				sts.Spec.UpdateStrategy = *stsOverride.Spec.UpdateStrategy
-			}
-
-			if stsOverride.Spec.PodManagementPolicy != "" {
-				sts.Spec.PodManagementPolicy = stsOverride.Spec.PodManagementPolicy
-			}
-
-			if stsOverride.Spec.Template != nil {
-				if stsOverride.Spec.Template.EmbeddedObjectMeta != nil {
-					objectMetaOverride(&sts.Spec.Template.ObjectMeta, *stsOverride.Spec.Template.EmbeddedObjectMeta)
-				}
-
-				originalPodSpec, err := json.Marshal(sts.Spec.Template.Spec)
+			if stsOverride.Spec.Template.Spec != nil {
+				patchedPodSpec, err := patchPodSpec(&sts.Spec.Template.Spec, stsOverride.Spec.Template.Spec)
 				if err != nil {
-					return fmt.Errorf("error marshalling statefulSet podSpec: %v", err)
-				}
-
-				patch, err := json.Marshal(stsOverride.Spec.Template.Spec)
-				if err != nil {
-					return fmt.Errorf("error marshalling statefulSet podSpec override: %v", err)
-				}
-
-				patchedJSON, err := strategicpatch.StrategicMergePatch(originalPodSpec, patch, corev1.PodSpec{})
-				if err != nil {
-					return fmt.Errorf("error patching podSpec Set: %v", err)
-				}
-
-				patchedPodSpec := corev1.PodSpec{}
-				err = json.Unmarshal(patchedJSON, &patchedPodSpec)
-				if err != nil {
-					return fmt.Errorf("error unmarshalling patched Stateful Set: %v", err)
+					return err
 				}
 
 				sts.Spec.Template.Spec = patchedPodSpec
 			}
 		}
 	}
-
 	return nil
+}
+
+func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, error) {
+	originalPodSpec, err := json.Marshal(podSpec)
+	if err != nil {
+		return corev1.PodSpec{}, fmt.Errorf("error marshalling statefulSet podSpec: %v", err)
+	}
+
+	patch, err := json.Marshal(podSpecOverride)
+	if err != nil {
+		return corev1.PodSpec{}, fmt.Errorf("error marshalling statefulSet podSpec override: %v", err)
+	}
+
+	patchedJSON, err := strategicpatch.StrategicMergePatch(originalPodSpec, patch, corev1.PodSpec{})
+	if err != nil {
+		return corev1.PodSpec{}, fmt.Errorf("error patching podSpec: %v", err)
+	}
+
+	patchedPodSpec := corev1.PodSpec{}
+	err = json.Unmarshal(patchedJSON, &patchedPodSpec)
+	if err != nil {
+		return corev1.PodSpec{}, fmt.Errorf("error unmarshalling patched Stateful Set: %v", err)
+	}
+	return patchedPodSpec, nil
 }
 
 func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string, tlsSpec rabbitmqv1beta1.TLSSpec) corev1.PodTemplateSpec {
@@ -512,4 +523,11 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			},
 		},
 	}
+}
+
+func copyObjectMeta(dst *metav1.ObjectMeta, src rabbitmqv1beta1.EmbeddedObjectMeta) {
+	dst.Name = src.Name
+	dst.Namespace = src.Namespace
+	dst.Labels = src.Labels
+	dst.Annotations = src.Annotations
 }
