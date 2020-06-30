@@ -4,9 +4,6 @@
 .PHONY: list
 
 # Image URL to use all building/pushing image targets
-CONTROLLER_IMAGE=dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator
-CI_IMAGE=us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
-GCP_PROJECT=cf-rabbitmq-for-k8s-bunny
 RABBITMQ_USERNAME=guest
 RABBITMQ_PASSWORD=guest
 
@@ -50,11 +47,6 @@ deploy-manager:  ## Deploy manager
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/base
 
-# Deploy manager in CI
-deploy-manager-ci:
-	kubectl apply -k config/crd
-	kubectl apply -k config/default/overlays/ci
-
 deploy-manager-dev:
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/dev
@@ -62,21 +54,11 @@ deploy-manager-dev:
 deploy-sample: ## Deploy RabbitmqCluster defined in config/sample/base
 	kubectl apply -k config/samples/base
 
-configure-kubectl-ci: ci-cluster
-	gcloud auth activate-service-account --key-file=$(KUBECTL_SECRET_TOKEN_PATH)
-	gcloud container clusters get-credentials $(CI_CLUSTER) --region europe-west1 --project $(GCP_PROJECT)
-
 destroy: ## Cleanup all controller artefacts
 	kubectl delete -k config/crd/ --ignore-not-found=true
 	kubectl delete -k config/default/base/ --ignore-not-found=true
 	kubectl delete -k config/rbac/ --ignore-not-found=true
 	kubectl delete -k config/namespace/base/ --ignore-not-found=true
-
-destroy-ci: configure-kubectl-ci
-	kubectl delete -k config/crd --ignore-not-found=true
-	kubectl delete -k config/default/overlays/ci --ignore-not-found=true
-	kubectl delete -k config/rbac/ --ignore-not-found=true
-	kubectl delete -k config/namespace/base --ignore-not-found=true
 
 run: generate manifests fmt vet install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
 
@@ -108,9 +90,6 @@ deploy-kind: git-commit-sha patch-kind manifests deploy-namespace-rbac ## Load o
 	kind load docker-image $(CONTROLLER_IMAGE):$(GIT_COMMIT)
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/kind
-
-# Deploy operator in the configured Kubernetes cluster in ~/.kube/config
-deploy-ci: configure-kubectl-ci patch-controller-image manifests deploy-namespace-rbac docker-registry-secret-ci deploy-manager-ci
 
 generate-installation-manifests:
 	mkdir -p installation
@@ -168,18 +147,9 @@ system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.k
 	NAMESPACE="rabbitmq-system" ginkgo -nodes=3 -randomizeAllSpecs -r system_tests/
 
 
-DOCKER_REGISTRY_SECRET=p-rmq-registry-access
-DOCKER_REGISTRY_SERVER=dev.registry.pivotal.io
-DOCKER_REGISTRY_USERNAME_LOCAL=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-dev-registry-ci" --notes | jq -r .name)
-DOCKER_REGISTRY_PASSWORD_LOCAL=$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-dev-registry-ci" --notes | jq -r .token)
 docker-registry-secret: operator-namespace
 	echo "creating registry secret and patching default service account"
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username='$(DOCKER_REGISTRY_USERNAME_LOCAL)' --docker-password='$(DOCKER_REGISTRY_PASSWORD_LOCAL)' || true
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
-
-docker-registry-secret-ci: operator-namespace
-	echo "creating registry secret and patching default service account"
-	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username="$$DOCKER_REGISTRY_USERNAME" --docker-password="$$DOCKER_REGISTRY_PASSWORD" || true
+	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username='$(DOCKER_REGISTRY_USERNAME)' --docker-password='$(DOCKER_REGISTRY_PASSWORD)' || true
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
 controller-gen:  ## download controller-gen if not in $PATH
@@ -200,22 +170,7 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
-patch-controller-image:
-	$(eval CONTROLER_IMAGE_NAME:=$(CONTROLLER_IMAGE):latest)
-ifneq (, $(CONTROLLER_IMAGE_DIGEST))
-	$(eval CONTROLER_IMAGE_NAME:=$(CONTROLLER_IMAGE):latest\@$(CONTROLLER_IMAGE_DIGEST))
-endif
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${CONTROLER_IMAGE_NAME}"'@' ./config/default/base/manager_image_patch.yaml
-
-
 operator-namespace:
 ifeq (, $(K8S_OPERATOR_NAMESPACE))
 K8S_OPERATOR_NAMESPACE=rabbitmq-system
 endif
-
-ci-cluster:
-ifeq (, $(CI_CLUSTER))
-CI_CLUSTER=ci-bunny
-endif
-
