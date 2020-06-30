@@ -96,6 +96,22 @@ var _ = Describe("RabbitmqCluster", func() {
 			Expect(created.TLSEnabled()).To(BeTrue())
 		})
 
+		It("can be queried if mutual TLS is enabled", func() {
+			created := generateRabbitmqClusterObject("rabbit-mutual-tls")
+			Expect(created.MutualTLSEnabled()).To(BeFalse())
+
+			created.Spec.TLS.SecretName = "tls-secret-name"
+			Expect(created.MutualTLSEnabled()).To(BeFalse())
+
+			created.Spec.TLS.SecretName = ""
+			created.Spec.TLS.CaSecretName = "tls-secret-name"
+			Expect(created.MutualTLSEnabled()).To(BeFalse())
+
+			created.Spec.TLS.SecretName = "tls-secret-name"
+			created.Spec.TLS.CaSecretName = "tls-secret-name"
+			Expect(created.MutualTLSEnabled()).To(BeTrue())
+		})
+
 		It("is validated", func() {
 			By("checking the replica count", func() {
 				nOne := int32(-1)

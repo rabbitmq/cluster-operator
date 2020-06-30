@@ -10,12 +10,14 @@
 package resource
 
 import (
+	"fmt"
+	"strings"
+
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"strings"
 )
 
 const (
@@ -32,6 +34,10 @@ queue_master_locator = min-masters
 ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
 listeners.ssl.default=5671
+`
+
+	defaultMutualTLSConf = `
+ssl_options.verify = verify_peer
 `
 )
 
@@ -61,6 +67,10 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap.Data["rabbitmq.conf"] = defaultRabbitmqConf
 	if builder.Instance.TLSEnabled() {
 		configMap.Data["rabbitmq.conf"] = configMap.Data["rabbitmq.conf"] + defaultTLSConf
+	}
+
+	if builder.Instance.MutualTLSEnabled() {
+		configMap.Data["rabbitmq.conf"] = configMap.Data["rabbitmq.conf"] + fmt.Sprintln("ssl_options.cacertfile=/etc/rabbitmq-tls/"+builder.Instance.Spec.TLS.CaCertName) + defaultMutualTLSConf
 	}
 
 	// rabbitmq.conf takes the last provided value when multiple values of the same key are specified
