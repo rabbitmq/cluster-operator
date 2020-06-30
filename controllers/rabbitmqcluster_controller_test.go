@@ -40,6 +40,22 @@ var _ = Describe("RabbitmqclusterController", func() {
 	var (
 		rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
 		one             int32 = 1
+		updateWithRetry       = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
+			return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				objKey, err := runtimeClient.ObjectKeyFromObject(cr)
+				if err != nil {
+					return err
+				}
+
+				if err := client.Get(context.TODO(), objKey, cr); err != nil {
+					return err
+				}
+
+				mutateFn(cr)
+
+				return client.Update(context.TODO(), cr)
+			})
+		}
 	)
 
 	Context("using minimal settings on the instance", func() {
@@ -573,23 +589,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 			waitForClusterDeletion(rabbitmqCluster, client)
 		})
 
-		updateWithRetry := func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
-			return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				objKey, err := runtimeClient.ObjectKeyFromObject(cr)
-				if err != nil {
-					return err
-				}
-
-				if err := client.Get(context.TODO(), objKey, cr); err != nil {
-					return err
-				}
-
-				mutateFn(cr)
-
-				return client.Update(context.TODO(), cr)
-			})
-		}
-
 		It("the service annotations are updated", func() {
 			Expect(updateWithRetry(rabbitmqCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
 				r.Spec.Service.Annotations = map[string]string{"test-key": "test-value"}
@@ -1009,12 +1008,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 					},
 				},
 			}
+			Expect(client.Create(context.Background(), stsOverrideCluster)).To(Succeed())
+			waitForClusterCreation(stsOverrideCluster, client)
 		})
 
-		It("creates a statefulset with the override applied", func() {
-			Expect(client.Create(context.TODO(), stsOverrideCluster)).To(Succeed())
-			waitForClusterCreation(stsOverrideCluster, client)
+		AfterEach(func() {
+			Expect(client.Delete(context.Background(), stsOverrideCluster)).To(Succeed())
+			waitForClusterDeletion(stsOverrideCluster, client)
+		})
 
+		It("creates a StatefulSet with the override applied", func() {
 			sts := statefulSet(stsOverrideCluster)
 			myStorage := k8sresource.MustParse("100Gi")
 			volumeMode := corev1.PersistentVolumeMode("Filesystem")
@@ -1150,6 +1153,31 @@ var _ = Describe("RabbitmqclusterController", func() {
 				}))
 
 			Expect(extractContainer(sts.Spec.Template.Spec.Containers, "additional-container").Image).To(Equal("my-great-image"))
+		})
+
+		It("updates", func() {
+			five := int32(5)
+
+			Expect(updateWithRetry(stsOverrideCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				stsOverrideCluster.Spec.Override.StatefulSet.Spec.Replicas = &five
+				stsOverrideCluster.Spec.Override.StatefulSet.Spec.Template.Spec.Containers = []corev1.Container{
+					{
+						Name:  "additional-container-2",
+						Image: "my-great-image-2",
+					},
+				}
+			})).To(Succeed())
+
+			Eventually(func() int32 {
+				sts := statefulSet(stsOverrideCluster)
+				return *sts.Spec.Replicas
+			}, 3).Should(Equal(int32(5)))
+
+			Eventually(func() string {
+				sts := statefulSet(stsOverrideCluster)
+				c := extractContainer(sts.Spec.Template.Spec.Containers, "additional-container-2")
+				return c.Image
+			}, 3).Should(Equal("my-great-image-2"))
 		})
 	})
 })
