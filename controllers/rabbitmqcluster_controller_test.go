@@ -921,7 +921,248 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 		})
 	})
+
+	Context("Stateful Set Override", func() {
+		var (
+			stsOverrideCluster *rabbitmqv1beta1.RabbitmqCluster
+			q, myStorage       k8sresource.Quantity
+			storageClassName   string
+		)
+
+		BeforeEach(func() {
+			storageClassName = "my-storage-class"
+			myStorage = k8sresource.MustParse("100Gi")
+			q, _ = k8sresource.ParseQuantity("10Gi")
+			ten := int32(10)
+			stsOverrideCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-sts-override",
+					Namespace: "rabbitmq-sts-override",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas: &ten,
+					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
+						StatefulSet: &rabbitmqv1beta1.StatefulSet{
+							Spec: &rabbitmqv1beta1.StatefulSetSpec{
+								VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+									{
+										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+											Name:      "persistence",
+											Namespace: "rabbitmq-sts-override",
+											Labels: map[string]string{
+												"app.kubernetes.io/name": "rabbitmq-sts-override",
+											},
+											Annotations: map[string]string{},
+										},
+										Spec: corev1.PersistentVolumeClaimSpec{
+											AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+											Resources: corev1.ResourceRequirements{
+												Requests: map[corev1.ResourceName]k8sresource.Quantity{
+													corev1.ResourceStorage: q,
+												},
+											},
+										},
+									},
+									{
+										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+											Name:      "disk-2",
+											Namespace: "rabbitmq-sts-override",
+											Labels: map[string]string{
+												"app.kubernetes.io/name": "rabbitmq-sts-override",
+											},
+										},
+										Spec: corev1.PersistentVolumeClaimSpec{
+											Resources: corev1.ResourceRequirements{
+												Requests: corev1.ResourceList{
+													corev1.ResourceStorage: myStorage,
+												},
+											},
+											StorageClassName: &storageClassName,
+										},
+									},
+								},
+								Template: &rabbitmqv1beta1.PodTemplateSpec{
+									Spec: &corev1.PodSpec{
+										HostNetwork: false,
+										Volumes: []corev1.Volume{
+											{
+												Name: "additional-config",
+												VolumeSource: corev1.VolumeSource{
+													ConfigMap: &corev1.ConfigMapVolumeSource{
+														LocalObjectReference: corev1.LocalObjectReference{
+															Name: "additional-config-confmap",
+														},
+													},
+												},
+											},
+										},
+										Containers: []corev1.Container{
+											{
+												Name:  "additional-container",
+												Image: "my-great-image",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+		})
+
+		It("creates a statefulset with the override applied", func() {
+			Expect(client.Create(context.TODO(), stsOverrideCluster)).To(Succeed())
+			waitForClusterCreation(stsOverrideCluster, client)
+
+			sts := statefulSet(stsOverrideCluster)
+			myStorage := k8sresource.MustParse("100Gi")
+			volumeMode := corev1.PersistentVolumeMode("Filesystem")
+			defaultMode := int32(420)
+
+			Expect(sts.ObjectMeta.Labels).To(Equal(map[string]string{
+				"app.kubernetes.io/name":      "rabbitmq-sts-override",
+				"app.kubernetes.io/component": "rabbitmq",
+				"app.kubernetes.io/part-of":   "rabbitmq",
+			}))
+
+			Expect(sts.Spec.ServiceName).To(Equal("rabbitmq-sts-override-rabbitmq-headless"))
+			Expect(sts.Spec.Selector.MatchLabels).To(Equal(map[string]string{
+				"app.kubernetes.io/name": "rabbitmq-sts-override",
+			}))
+
+			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Name).To(Equal("persistence"))
+			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Namespace).To(Equal("rabbitmq-sts-override"))
+			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Labels).To(Equal(
+				map[string]string{
+					"app.kubernetes.io/name": "rabbitmq-sts-override",
+				}))
+			Expect(sts.Spec.VolumeClaimTemplates[0].OwnerReferences[0].Name).To(Equal("rabbitmq-sts-override"))
+			Expect(sts.Spec.VolumeClaimTemplates[0].Spec).To(Equal(
+				corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					VolumeMode:  &volumeMode,
+					Resources: corev1.ResourceRequirements{
+						Requests: map[corev1.ResourceName]k8sresource.Quantity{
+							corev1.ResourceStorage: q,
+						},
+					},
+				}))
+
+			Expect(sts.Spec.VolumeClaimTemplates[1].ObjectMeta.Name).To(Equal("disk-2"))
+			Expect(sts.Spec.VolumeClaimTemplates[1].ObjectMeta.Namespace).To(Equal("rabbitmq-sts-override"))
+			Expect(sts.Spec.VolumeClaimTemplates[1].ObjectMeta.Labels).To(Equal(
+				map[string]string{
+					"app.kubernetes.io/name": "rabbitmq-sts-override",
+				}))
+			Expect(sts.Spec.VolumeClaimTemplates[1].OwnerReferences[0].Name).To(Equal("rabbitmq-sts-override"))
+			Expect(sts.Spec.VolumeClaimTemplates[1].Spec).To(Equal(
+				corev1.PersistentVolumeClaimSpec{
+					VolumeMode:       &volumeMode,
+					StorageClassName: &storageClassName,
+					Resources: corev1.ResourceRequirements{
+						Requests: map[corev1.ResourceName]k8sresource.Quantity{
+							corev1.ResourceStorage: myStorage,
+						},
+					},
+				}))
+
+			Expect(sts.Spec.Template.Spec.HostNetwork).To(BeFalse())
+			Expect(sts.Spec.Template.Spec.Volumes).To(ConsistOf(
+				corev1.Volume{
+					Name: "additional-config",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "additional-config-confmap",
+							},
+							DefaultMode: &defaultMode,
+						},
+					},
+				},
+				corev1.Volume{
+					Name: "rabbitmq-admin",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							DefaultMode: &defaultMode,
+							SecretName:  "rabbitmq-sts-override-rabbitmq-admin",
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "username",
+									Path: "username",
+								},
+								{
+									Key:  "password",
+									Path: "password",
+								},
+							},
+						},
+					},
+				},
+				corev1.Volume{
+					Name: "server-conf",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							DefaultMode: &defaultMode,
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "rabbitmq-sts-override-rabbitmq-server-conf",
+							},
+						},
+					},
+				},
+				corev1.Volume{
+					Name: "rabbitmq-etc",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+				corev1.Volume{
+					Name: "rabbitmq-erlang-cookie",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+				corev1.Volume{
+					Name: "erlang-cookie-secret",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							DefaultMode: &defaultMode,
+							SecretName:  "rabbitmq-sts-override-rabbitmq-erlang-cookie",
+						},
+					},
+				},
+				corev1.Volume{
+					Name: "pod-info",
+					VolumeSource: corev1.VolumeSource{
+						DownwardAPI: &corev1.DownwardAPIVolumeSource{
+							DefaultMode: &defaultMode,
+							Items: []corev1.DownwardAPIVolumeFile{
+								{
+									Path: "skipPreStopChecks",
+									FieldRef: &corev1.ObjectFieldSelector{
+										APIVersion: "v1",
+										FieldPath:  fmt.Sprintf("metadata.labels['%s']", "skipPreStopChecks"),
+									},
+								},
+							},
+						},
+					},
+				}))
+
+			Expect(extractContainer(sts.Spec.Template.Spec.Containers, "additional-container").Image).To(Equal("my-great-image"))
+		})
+	})
 })
+
+func extractContainer(containers []corev1.Container, containerName string) corev1.Container {
+	for _, container := range containers {
+		if container.Name == containerName {
+			return container
+		}
+	}
+
+	return corev1.Container{}
+}
 
 // aggregateEventMsgs - helper function to aggregate all event messages for a given rabbitmqcluster
 // and filters on a specific event reason string
