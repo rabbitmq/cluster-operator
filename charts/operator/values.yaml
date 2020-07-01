@@ -8,14 +8,14 @@
 #
 
 global:
-  imageRegistry: registry.pivotal.io
-  # This is Pivotal Network username/email address
+  imageRegistry: myregistry.com
+  # These are credentials to myregistry.com
   imageUsername:
   imagePassword:
 images:
   operator:
-    name: registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator
-    tag: "0.7.0-build.41"
+    name: myregistry.com/rabbitmq-cluster-operator
+    tag: "latest"
 leaseDuration:
 retryPeriod:
 renewDeadline:

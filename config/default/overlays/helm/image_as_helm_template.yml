@@ -14,7 +14,7 @@ spec:
   template:
     spec:
       imagePullSecrets:
-        - name: pivotal-registry
+        - name: myregistry
       containers:
         - name: operator
           # Make sure the output of 'kustomize build' returns the 'image' string in a single line

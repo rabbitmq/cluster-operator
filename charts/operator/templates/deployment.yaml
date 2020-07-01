@@ -1,17 +1,9 @@
-# RabbitMQ Cluster Operator
-#
-# Copyright 2020 VMware, Inc. All Rights Reserved.
-#
-# This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance with the Mozilla Public License.
-#
-# This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
-
 apiVersion: v1
 data:
   .dockerconfigjson: '{{ template "imagePullSecret" . }}'
 kind: Secret
 metadata:
-  name: pivotal-registry
+  name: myregistry
   namespace: rabbitmq-system
 type: kubernetes.io/dockerconfigjson
 ---
@@ -68,7 +60,7 @@ spec:
             cpu: 200m
             memory: 500Mi
       imagePullSecrets:
-      - name: pivotal-registry
+      - name: myregistry
       securityContext:
         fsGroup: 1000
         runAsGroup: 1000
