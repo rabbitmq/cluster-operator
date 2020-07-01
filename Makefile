@@ -3,10 +3,6 @@
 
 .PHONY: list
 
-# Image URL to use all building/pushing image targets
-RABBITMQ_USERNAME=guest
-RABBITMQ_PASSWORD=guest
-
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false"
 
@@ -86,8 +82,8 @@ deploy: manifests deploy-namespace-rbac docker-registry-secret deploy-manager ##
 deploy-dev: docker-build-dev patch-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
 deploy-kind: git-commit-sha patch-kind manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
-	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(CONTROLLER_IMAGE):$(GIT_COMMIT) .
-	kind load docker-image $(CONTROLLER_IMAGE):$(GIT_COMMIT)
+	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
+	kind load docker-image $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 	kubectl apply -k config/crd
 	kubectl apply -k config/default/overlays/kind
 
@@ -106,11 +102,11 @@ generate-helm-manifests:
 
 # Build the docker image
 docker-build: git-commit-sha
-	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(CONTROLLER_IMAGE):latest .
+	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):latest .
 
 # Push the docker image
 docker-push:
-	docker push $(CONTROLLER_IMAGE):latest
+	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):latest
 
 git-commit-sha:
 ifeq ("", git diff --stat)
@@ -120,16 +116,16 @@ GIT_COMMIT="$(shell git rev-parse --short HEAD)-"
 endif
 
 docker-build-dev: git-commit-sha
-	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(CONTROLLER_IMAGE):$(GIT_COMMIT) .
-	docker push $(CONTROLLER_IMAGE):$(GIT_COMMIT)
+	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
+	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 
 patch-dev: git-commit-sha
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(GIT_COMMIT)"'@' ./config/default/overlays/dev/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"'@' ./config/default/overlays/dev/manager_image_patch.yaml
 
 patch-kind: git-commit-sha
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(CONTROLLER_IMAGE):$(GIT_COMMIT)"'@' ./config/default/overlays/kind/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"'@' ./config/default/overlays/kind/manager_image_patch.yaml
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services
 	# Note that created LoadBalancer services will have an unreachable external IP
