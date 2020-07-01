@@ -76,8 +76,8 @@ type StatefulSet struct {
 	Spec *StatefulSetSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
-// StatefulSetSpec contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
-// Field RevisionHistoryLimit is omitted
+// StatefulSetSpec contains a subset of the fields included in k8s.io/api/apps/v1.StatefulSetSpec.
+// Field RevisionHistoryLimit is omitted.
 // Every field is made optional.
 type StatefulSetSpec struct {
 	// replicas is the desired number of replicas of the given Template.
@@ -173,8 +173,10 @@ type EmbeddedObjectMeta struct {
 	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
 }
 
+// PodTemplateSpec is an embedded version of k8s.io/api/core/v1.PodTemplateSpec.
+// It contains a reduced ObjectMeta.
 type PodTemplateSpec struct {
-	// Standard object's metadata.
+	// +optional
 	*EmbeddedObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Specification of the desired behavior of the pod.
@@ -183,12 +185,11 @@ type PodTemplateSpec struct {
 	Spec *corev1.PodSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
-// PersistentVolumeClaim is a user's request for and claim to a persistent volume
-// Field status is omitted
+// PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVolumeClaim.
+// It contains TypeMeta and a reduced ObjectMeta.
+// Field status is omitted.
 type PersistentVolumeClaim struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	EmbeddedObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 

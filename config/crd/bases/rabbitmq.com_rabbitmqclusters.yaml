@@ -466,7 +466,7 @@ spec:
                           description: template is the object that describes the pod that will be created if insufficient replicas are detected. Each pod stamped out by the StatefulSet will fulfill this Template, but have a unique identity from the rest of the StatefulSet.
                           properties:
                             metadata:
-                              description: Standard object's metadata.
+                              description: EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in StatefulSet, PersistentVolumeClaim, and PodTemplate
                               properties:
                                 annotations:
                                   additionalProperties:
@@ -4080,7 +4080,7 @@ spec:
                         volumeClaimTemplates:
                           description: volumeClaimTemplates is a list of claims that pods are allowed to reference. The StatefulSet controller is responsible for mapping network identities to claims in a way that maintains the identity of a pod. Every claim in this list must have at least one matching (by name) volumeMount in one container in the template. A claim in this list takes precedence over any volumes in the template, with the same name.
                           items:
-                            description: PersistentVolumeClaim is a user's request for and claim to a persistent volume Field status is omitted
+                            description: PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVolumeClaim. It contains TypeMeta and a reduced ObjectMeta. Field status is omitted.
                             properties:
                               apiVersion:
                                 description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -4089,7 +4089,7 @@ spec:
                                 description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
                                 type: string
                               metadata:
-                                description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                                description: EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in StatefulSet, PersistentVolumeClaim, and PodTemplate
                                 properties:
                                   annotations:
                                     additionalProperties:
