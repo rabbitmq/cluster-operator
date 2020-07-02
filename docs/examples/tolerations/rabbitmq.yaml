@@ -1,0 +1,11 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: tolerations
+spec:
+  replicas: 1
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "rabbitmq"
+      effect: "NoSchedule"
