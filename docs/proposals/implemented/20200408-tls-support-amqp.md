@@ -5,7 +5,7 @@ authors:
 reviewers:
   -
 creation-date: 2020-05-08
-status: provisional
+status: implemented
 ---
 
 # TLS Support - AMQP
