@@ -11,6 +11,8 @@ name: rabbitmq
 description: RabbitMQ Cluster
 apiVersion: v2
 version: 0.8.0
+appVersion: 3.8.5
+description: Pivotal RabbitMQ for Kubernetes
 keywords:
 - rabbitmq
 - message queue

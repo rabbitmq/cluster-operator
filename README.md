@@ -22,6 +22,17 @@ The RabbitMQ for Kubernetes [documentation](https://docs.pivotal.io/rabbitmq-kub
 - [Deploying a RabbitMQ cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/using.html)
 - [Monitoring the cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/monitoring.html)
 
+
+### Makefile
+
+#### Required environment variables
+
+- DOCKER_REGISTRY_SERVER: URL of docker registry containing the Operator image (e.g. `registry.my-company.com`)
+- DOCKER_REGISTRY_USERNAME: Username for accessing the docker registry
+- DOCKER_REGISTRY_PASSWORD: Password for accessing the docker registry
+- DOCKER_REGISTRY_SECRET: Name of Kubernetes secret in which to store the Docker registry username and password
+- OPERATOR_IMAGE: path to the Operator image within the registry specified in DOCKER_REGISTRY_SERVER (e.g. `rabbitmq/rabbitm-operator`). Note: OPERATOR_IMAGE should **not** include a leading slash (`/`)
+
 #### Make targets
 
 - **controller-gen** Download controller-gen if not in $PATH
