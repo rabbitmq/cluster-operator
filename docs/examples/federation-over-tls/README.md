@@ -1,6 +1,6 @@
 # Federation Over TLS Example
 
-This is the a more complex exmaple of deploying two `RabbitmqCluster`s and setting up federation between them. Upstream cluster has TLS enabled and therefore federation works over a TLS connection.
+This is the a more complex example of deploying two `RabbitmqCluster`s and setting up federation between them. Upstream cluster has TLS enabled and therefore federation works over a TLS connection.
 
 First, please follow [TLS example](../tls) to create a TLS secret. Once you have a secret, run the `setup.sh` script:
 
