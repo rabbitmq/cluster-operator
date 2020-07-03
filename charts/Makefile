@@ -9,14 +9,13 @@ list:
 
 # helm setup/configure
 DEPLOYMENT_NAME=rabbitmq-operator
-CHARTREPO_NAME=dev-pivnet
 
 setup: ## register the dev pivnet registry with helm
 	@echo "Registering Dev PivNet registry"
-	@helm repo add "${CHARTREPO_NAME}" \
-		https://dev.registry.pivotal.io/chartrepo/p-rabbitmq-for-kubernetes \
-		--username='$(shell lpassd show "Shared-RabbitMQ for Kubernetes/Pivnet user - shared" --username)' \
-		--password='$(shell lpassd show "Shared-RabbitMQ for Kubernetes/Pivnet user - shared" --password)'
+	@helm repo add "$$CHARTREPO_NAME" \
+		"$$HELM_REPO" \
+		--username="$$HELM_REPO_USERNAME" \
+		--password="$$HELM_REPO_PASSWORD"
 
 CHART_NAME=${CHARTREPO_NAME}/rabbitmq-operator
 destroy: ## helm uninstall operator chart
@@ -24,8 +23,8 @@ destroy: ## helm uninstall operator chart
 
 deploy: ## helm install latest version of operator chart hosted in Dev PivNet
 	helm -n default install "${DEPLOYMENT_NAME}" "${CHART_NAME}" \
-		--set global.imageUsername='$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-dev-registry-ci" --notes | jq -r .name)' \
-		--set global.imagePassword='$(shell lpassd show "Shared-RabbitMQ for Kubernetes/pivnet-dev-registry-ci" --notes | jq -r .token)' \
+		--set global.imageUsername="$$DOCKER_REGISTRY_USERNAME" \
+		--set global.imagePassword="$$DOCKER_REGISTRY_PASSWORD" \
 		--set global.imageRegistry="dev.registry.pivotal.io" \
 		--set images.operator.name="dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator" \
 		--set images.operator.tag="latest"
@@ -40,5 +39,3 @@ template:  ## helm template the operator chart
 
 values:  ## show helm operator chart values
 	@helm show values "${CHART_NAME}"
-
-# TODO: add make targets for ksm

@@ -727,6 +727,10 @@ spec:
               type: object
             tls:
               properties:
+                caCertName:
+                  type: string
+                caSecretName:
+                  type: string
                 secretName:
                   type: string
               type: object
