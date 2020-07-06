@@ -10,7 +10,7 @@ list:
 # helm setup/configure
 DEPLOYMENT_NAME=rabbitmq-operator
 
-setup: ## register the dev pivnet registry with helm
+setup: ## register the registry with helm
 	@echo "Registering chart repo"
 	@helm repo add "$$CHARTREPO_NAME" \
 		"$$HELM_REPO" \
