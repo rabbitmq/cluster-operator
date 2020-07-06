@@ -2,6 +2,8 @@
 
 The RabbitMQ for Kubernetes Operator is a way of managing [RabbitMQ](https://www.rabbitmq.com/) clusters deployed to [Kubernetes](https://kubernetes.io/). RabbitMQ for Kubernetes has been built using the [Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) implementation of the [operator pattern](https://coreos.com/blog/introducing-operators.html). This repository contains a [custom controller](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#custom-controllers) and [custom resource definition (CRD)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) designed for the lifecyle (creation, upgrade, graceful shutdown) of a RabbitMQ cluster.
 
+**Note**: this repository is under active development and is provided as **beta** software. Official support for this software is not provided; if you encounter any issues running this software, please feel free to [contribute to the project](#contributing).
+
 ## Quickstart
 
 ### Deploying on KinD
