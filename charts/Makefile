@@ -11,7 +11,7 @@ list:
 DEPLOYMENT_NAME=rabbitmq-operator
 
 setup: ## register the dev pivnet registry with helm
-	@echo "Registering Dev PivNet registry"
+	@echo "Registering chart repo"
 	@helm repo add "$$CHARTREPO_NAME" \
 		"$$HELM_REPO" \
 		--username="$$HELM_REPO_USERNAME" \
@@ -25,8 +25,8 @@ deploy: ## helm install latest version of operator chart hosted in Dev PivNet
 	helm -n default install "${DEPLOYMENT_NAME}" "${CHART_NAME}" \
 		--set global.imageUsername="$$DOCKER_REGISTRY_USERNAME" \
 		--set global.imagePassword="$$DOCKER_REGISTRY_PASSWORD" \
-		--set global.imageRegistry="dev.registry.pivotal.io" \
-		--set images.operator.name="dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator" \
+		--set global.imageRegistry="$$DOCKER_REGISTRY_SERVER" \
+		--set images.operator.name="$$DOCKER_REGISTRY_SERVER"/"$$OPERATOR_IMAGE" \
 		--set images.operator.tag="latest"
 
 deploy-local:
