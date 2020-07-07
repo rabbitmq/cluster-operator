@@ -11,6 +11,7 @@ The RabbitMQ for Kubernetes Operator is a way of managing [RabbitMQ](https://www
 The easiest way to set up a local development environment for running the RabbitMQ operator is using [KinD](https://kind.sigs.k8s.io/):
 
 1. Follow the KinD [installation guide](https://kind.sigs.k8s.io/#installation-and-usage) to deploy a Kubernetes cluster
+1. Ensure that all [Required environment variables](#required-environment-variables) are set in your environment
 1. Run `make deploy-kind`
 1. Check that the operator is running by running `kubectl get all --namespace=rabbitmq-system`
 1. Deploy a `RabbitMQCluster` custom resource. Refer to the [example YAML](./cr-example.yaml) and [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/using.html#configure) for available CR attributes
