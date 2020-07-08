@@ -677,11 +677,10 @@ spec:
               type: object
             replicas:
               description: Replicas is the number of nodes in the RabbitMQ cluster.
-                Each node is deployed as a Replica in a StatefulSet.
-              enum:
-              - 1
-              - 3
+                Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5
+                replicas clusters are tested.
               format: int32
+              minimum: 0
               type: integer
             resources:
               description: ResourceRequirements describes the compute resource requirements.
@@ -724,6 +723,15 @@ spec:
                   - ClusterIP
                   - LoadBalancer
                   - NodePort
+                  type: string
+              type: object
+            tls:
+              properties:
+                caCertName:
+                  type: string
+                caSecretName:
+                  type: string
+                secretName:
                   type: string
               type: object
             tolerations:

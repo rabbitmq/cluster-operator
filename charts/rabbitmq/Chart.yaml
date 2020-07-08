@@ -8,16 +8,15 @@
 #
 
 name: rabbitmq
-version: 0.1
+description: RabbitMQ Cluster
+apiVersion: v2
+version: 0.8.0
 appVersion: 3.8.5
 description: Pivotal RabbitMQ for Kubernetes
 keywords:
 - rabbitmq
 - message queue
 - AMQP
-home: https://pivotal.io/rabbitmq
-icon: https://bitnami.com/assets/stacks/rabbitmq/img/rabbitmq-stack-220x234.png
-maintainers:
-- name: Pivotal
-  email: rabbitmq-for-k8s@pivotal.com
+home:  https://www.rabbitmq.com
+icon: https://www.rabbitmq.com/img/rabbitmq_logo_strap.png
 engine: gotpl
