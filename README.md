@@ -15,10 +15,11 @@ The operator deploys RabbitMQ `3.8.5`, and requires a Kubernetes cluster of `1.1
 The easiest way to set up a local development environment for running the RabbitMQ operator is using [KinD](https://kind.sigs.k8s.io/):
 
 1. Follow the KinD [installation guide](https://kind.sigs.k8s.io/#installation-and-usage) to deploy a Kubernetes cluster
+1. Ensure that all [Required environment variables](#required-environment-variables) are set in your environment
 1. Run `make deploy-kind`
 1. Check that the operator is running by running `kubectl get all --namespace=rabbitmq-system`
-1. Deploy a `RabbitMQCluster` custom resource. Refer to the [example YAML](./cr-example.yaml) and [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/using.html#configure) for available CR attributes
-    1. Due to resource limitations on your Docker daemon, the Kubernetes might not be able to schedule all `RabbitmqCluter` nodes. Either [increase your Docker daemon's resource limits](https://docs.docker.com/docker-for-mac/#resources) or deploy the `RabbitmqCluster` custom resource with `resources: {}` to remove default `memory` and `cpu` resource settings.
+1. Deploy a `RabbitmqCluster` custom resource. Refer to the [example YAML](./cr-example.yaml) and [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/using.html#configure) for available CR attributes
+    1. Due to resource limitations on your Docker daemon, the Kubernetes might not be able to schedule all `RabbitmqCluster` nodes. Either [increase your Docker daemon's resource limits](https://docs.docker.com/docker-for-mac/#resources) or deploy the `RabbitmqCluster` custom resource with `resources: {}` to remove default `memory` and `cpu` resource settings.
     1. If you set the `serviceType` to `LoadBalancer`, run `make prepare-kind` to deploy a [MetalLB](https://metallb.universe.tf/) load balancer. This will allow the operator to complete the `RabbitmqCluster` provisioning by assign an arbitrary local IP address to the cluster's client service. Proper [network configuration](https://metallb.universe.tf/installation/network-addons/) is required to route traffic via the assigned IP address.
 
 ### Documentation
@@ -37,7 +38,7 @@ The RabbitMQ for Kubernetes [documentation](https://docs.pivotal.io/rabbitmq-kub
 - DOCKER_REGISTRY_USERNAME: Username for accessing the docker registry
 - DOCKER_REGISTRY_PASSWORD: Password for accessing the docker registry
 - DOCKER_REGISTRY_SECRET: Name of Kubernetes secret in which to store the Docker registry username and password
-- OPERATOR_IMAGE: path to the Operator image within the registry specified in DOCKER_REGISTRY_SERVER (e.g. `rabbitmq/rabbitm-operator`). Note: OPERATOR_IMAGE should **not** include a leading slash (`/`)
+- OPERATOR_IMAGE: path to the Operator image within the registry specified in DOCKER_REGISTRY_SERVER (e.g. `rabbitmq/cluster-operator`). Note: OPERATOR_IMAGE should **not** include a leading slash (`/`)
 
 #### Make targets
 
