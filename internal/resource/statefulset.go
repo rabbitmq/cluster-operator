@@ -67,28 +67,26 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 	// StatefulSet Override
 	// override is applied to PVC, ServiceName & Selector
 	// other fields are handled in Update()
-	if builder.Instance.Spec.Override.StatefulSet != nil {
-		if builder.Instance.Spec.Override.StatefulSet.Spec != nil {
-			if builder.Instance.Spec.Override.StatefulSet.Spec.Selector != nil {
-				sts.Spec.Selector = builder.Instance.Spec.Override.StatefulSet.Spec.Selector
-			}
+	if builder.Instance.Spec.Override.StatefulSet != nil && builder.Instance.Spec.Override.StatefulSet.Spec != nil {
+		if builder.Instance.Spec.Override.StatefulSet.Spec.Selector != nil {
+			sts.Spec.Selector = builder.Instance.Spec.Override.StatefulSet.Spec.Selector
+		}
 
-			if builder.Instance.Spec.Override.StatefulSet.Spec.ServiceName != "" {
-				sts.Spec.ServiceName = builder.Instance.Spec.Override.StatefulSet.Spec.ServiceName
-			}
+		if builder.Instance.Spec.Override.StatefulSet.Spec.ServiceName != "" {
+			sts.Spec.ServiceName = builder.Instance.Spec.Override.StatefulSet.Spec.ServiceName
+		}
 
-			if len(builder.Instance.Spec.Override.StatefulSet.Spec.VolumeClaimTemplates) != 0 {
-				override := builder.Instance.Spec.Override.StatefulSet.Spec.VolumeClaimTemplates
-				pvcList := make([]corev1.PersistentVolumeClaim, len(override))
-				for i := range override {
-					copyObjectMeta(&pvcList[i].ObjectMeta, override[i].EmbeddedObjectMeta)
-					pvcList[i].Spec = override[i].Spec
-					if err := controllerutil.SetControllerReference(builder.Instance, &pvcList[i], builder.Scheme); err != nil {
-						return nil, fmt.Errorf("failed setting controller reference: %v", err)
-					}
+		if len(builder.Instance.Spec.Override.StatefulSet.Spec.VolumeClaimTemplates) != 0 {
+			override := builder.Instance.Spec.Override.StatefulSet.Spec.VolumeClaimTemplates
+			pvcList := make([]corev1.PersistentVolumeClaim, len(override))
+			for i := range override {
+				copyObjectMeta(&pvcList[i].ObjectMeta, override[i].EmbeddedObjectMeta)
+				pvcList[i].Spec = override[i].Spec
+				if err := controllerutil.SetControllerReference(builder.Instance, &pvcList[i], builder.Scheme); err != nil {
+					return nil, fmt.Errorf("failed setting controller reference: %v", err)
 				}
-				sts.Spec.VolumeClaimTemplates = pvcList
 			}
+			sts.Spec.VolumeClaimTemplates = pvcList
 		}
 	}
 
@@ -526,8 +524,19 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 }
 
 func copyObjectMeta(dst *metav1.ObjectMeta, src rabbitmqv1beta1.EmbeddedObjectMeta) {
-	dst.Name = src.Name
-	dst.Namespace = src.Namespace
-	dst.Labels = src.Labels
-	dst.Annotations = src.Annotations
+	if src.Name != "" {
+		dst.Name = src.Name
+	}
+
+	if src.Namespace != "" {
+		dst.Namespace = src.Namespace
+	}
+
+	if src.Labels != nil {
+		dst.Labels = src.Labels
+	}
+
+	if src.Annotations != nil {
+		dst.Annotations = src.Annotations
+	}
 }

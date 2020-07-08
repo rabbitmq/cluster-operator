@@ -1034,6 +1034,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 				"app.kubernetes.io/name": "rabbitmq-sts-override",
 			}))
 
+			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(2))
+
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Name).To(Equal("persistence"))
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Namespace).To(Equal("rabbitmq-sts-override"))
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Labels).To(Equal(
