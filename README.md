@@ -80,5 +80,5 @@ This project follows the same code conventions as the [kubernetes golang code co
 
 ## Copyright
 
-(c) 2007-2020 VMware, Inc. or its affiliates.
+Copyright 2020 VMware, Inc. All Rights Reserved.
 
