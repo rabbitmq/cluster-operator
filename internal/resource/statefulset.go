@@ -403,10 +403,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							Value: "/opt/rabbitmq-secret/username",
 						},
 						{
-							Name:  "RABBITMQ_MNESIA_BASE",
-							Value: "/var/lib/rabbitmq/db",
-						},
-						{
 							Name: "MY_POD_NAME",
 							ValueFrom: &corev1.EnvVarSource{
 								FieldRef: &corev1.ObjectFieldSelector{
