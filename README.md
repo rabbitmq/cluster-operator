@@ -4,6 +4,10 @@ The RabbitMQ for Kubernetes Operator is a way of managing [RabbitMQ](https://www
 
 **Note**: this repository is under active development and is provided as **beta** software. Official support for this software is not provided; if you encounter any issues running this software, please feel free to [contribute to the project](#contributing).
 
+## Supported Versions
+
+The operator deploys RabbitMQ `3.8.5`, and requires a Kubernetes cluster of `1.16` or above.
+
 ## Quickstart
 
 ### Deploying on KinD
@@ -69,4 +73,12 @@ Also, run the system tests against a Kubernetes cluster:
 ### Code Conventions
 
 This project follows the same code conventions as the [kubernetes golang code conventions](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions). The kuberentes golang code conventions mostly refer to [Effective Go](https://golang.org/doc/effective_go.html) and the [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments). Please ensure your pull requests follow these guidlines.
+
+## License
+
+[Licensed under the MPL](LICENSE.txt), same as RabbitMQ server.
+
+## Copyright
+
+Copyright 2020 VMware, Inc. All Rights Reserved.
 
