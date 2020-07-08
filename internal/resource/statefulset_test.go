@@ -86,7 +86,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(*statefulSet.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 		})
 
-		It("creates the PersistentVolume template according to configurations in the  instance", func() {
+		It("creates the PersistentVolume template according to configurations in the instance", func() {
 			storage := k8sresource.MustParse("21Gi")
 			instance.Spec.Persistence.Storage = &storage
 			cluster = &resource.RabbitmqResourceBuilder{
@@ -727,10 +727,6 @@ var _ = Describe("StatefulSet", func() {
 				{
 					Name:  "RABBITMQ_DEFAULT_USER_FILE",
 					Value: "/opt/rabbitmq-secret/username",
-				},
-				{
-					Name:  "RABBITMQ_MNESIA_BASE",
-					Value: "/var/lib/rabbitmq/db",
 				},
 				{
 					Name: "MY_POD_NAME",
