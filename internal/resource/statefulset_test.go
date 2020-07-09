@@ -649,7 +649,7 @@ var _ = Describe("StatefulSet", func() {
 				},
 				corev1.VolumeMount{
 					Name:      "persistence",
-					MountPath: "/var/lib/rabbitmq/db/",
+					MountPath: "/var/lib/rabbitmq/mnesia/",
 				},
 				corev1.VolumeMount{
 					Name:      "rabbitmq-etc",
