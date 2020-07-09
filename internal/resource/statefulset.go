@@ -331,7 +331,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		},
 		{
 			Name:      "persistence",
-			MountPath: "/var/lib/rabbitmq/db/",
+			MountPath: "/var/lib/rabbitmq/mnesia/",
 		},
 		{
 			Name:      "rabbitmq-etc",
