@@ -8,7 +8,7 @@
 
 namespace: rabbitmq-system
 namePrefix: rabbitmq-cluster-
-bases:
+resources:
 # - ../../rbac
 - ../../manager
 # [WEBHOOK] Uncomment all the sections with [WEBHOOK] prefix to enable webhook.
