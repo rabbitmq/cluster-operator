@@ -5,7 +5,7 @@ just a few small guidelines you need to follow.
 
 ## GitHub issues
 
-RabbitMQ for Kubernetes team uses GitHub issues for feature development and bug tracking.
+RabbitMQ Cluster Kubernetes Operator team uses GitHub issues for feature development and bug tracking.
 The issues have specific information as to what the feature should do and what problem or
 use case is trying to resolve. Bug reports have a description of the actual behaviour and
 the expected behaviour, along with repro steps when possible. It is important to provide

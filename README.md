@@ -1,6 +1,6 @@
-# RabbitMQ for Kubernetes Operator
+# RabbitMQ Cluster Kubernetes Operator
 
-The RabbitMQ for Kubernetes Operator is a way of managing [RabbitMQ](https://www.rabbitmq.com/) clusters deployed to [Kubernetes](https://kubernetes.io/). RabbitMQ for Kubernetes has been built using the [Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) implementation of the [operator pattern](https://coreos.com/blog/introducing-operators.html). This repository contains a [custom controller](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#custom-controllers) and [custom resource definition (CRD)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) designed for the lifecyle (creation, upgrade, graceful shutdown) of a RabbitMQ cluster.
+Manage [RabbitMQ](https://www.rabbitmq.com/) clusters deployed to [Kubernetes](https://kubernetes.io/). The RabbitMQ Cluster Kubernetes Operator has been built using the [Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) implementation of the [operator pattern](https://coreos.com/blog/introducing-operators.html). This repository contains a [custom controller](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#custom-controllers) and [custom resource definition (CRD)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) designed for the lifecyle (creation, upgrade, graceful shutdown) of a RabbitMQ cluster.
 
 **Note**: this repository is under active development and is provided as **beta** software. Official support for this software is not provided; if you encounter any issues running this software, please feel free to [contribute to the project](#contributing).
 
@@ -24,7 +24,7 @@ The easiest way to set up a local development environment for running the Rabbit
 
 ### Documentation
 
-The RabbitMQ for Kubernetes [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/index.html) has steps to deploy to a Kubernetes cluster:
+RabbitMQ Cluster Kubernetes Operator [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/index.html) has steps to deploy to a Kubernetes cluster:
 - [Deploying an operator](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/installing.html)
 - [Deploying a RabbitMQ cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/using.html)
 - [Monitoring the cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/monitoring.html)
