@@ -2,17 +2,16 @@
 title: CRD Spec Refactor
 authors:
   - "@ChunyiLyu"
-reviewers:
-  -
 creation-date: 2020-03-10
-last-updated: 2020-05-12
-status: provisional
-see-also:
-replaces:
-superseded-by:
+last-updated: 2020-07-10
+status: implemented
 ---
 
 # CRD Spec Refactor
+
+## Status
+
+This KEP has already been implemented. For updated implementation details, refer to [PR #175](https://github.com/rabbitmq/cluster-operator/pull/175).
 
 ## Table of Contents
 
@@ -40,7 +39,7 @@ superseded-by:
 
 ## Summary
 
-Our current CRD spec has a limited number of exposed properties for users to configure which restricts supported use cases. This KEP proposes to add an override section as an additional way for users to configure their cluster. Users will be able to configure any field of the StatefulSet and client Service through editing the spec directly through this change.
+Our current CRD spec has a limited number of exposed properties for users to configure which restricts supported use cases. This KEP proposes to add an override section as an additional way for users to configure their cluster. Users will be able to configure any field of the StatefulSet and client Service through editing the spec directly through this change
 
 ## Motivation
 
