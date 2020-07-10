@@ -6,7 +6,7 @@ The RabbitMQ for Kubernetes Operator is a way of managing [RabbitMQ](https://www
 
 ## Supported Versions
 
-The operator deploys RabbitMQ `3.8.5`, and requires a Kubernetes cluster of `1.16` or above.
+The operator deploys RabbitMQ `3.8.5`, and requires a Kubernetes cluster of `1.16` or `1.17`.
 
 ## Quickstart
 
