@@ -40,21 +40,21 @@ manager: generate fmt vet
 	go build -o bin/manager main.go
 
 deploy-manager:  ## Deploy manager
-	kubectl apply -k config/crd
-	kubectl apply -k config/default/base
+	kustomize build config/crd | kubectl apply -f -
+	kustomize build config/default/base | kubectl apply -f -
 
 deploy-manager-dev:
-	kubectl apply -k config/crd
-	kubectl apply -k config/default/overlays/dev
+	kustomize build config/crd | kubectl apply -f -
+	kustomize build config/default/overlays/dev | kubectl apply -f -
 
 deploy-sample: ## Deploy RabbitmqCluster defined in config/sample/base
-	kubectl apply -k config/samples/base
+	kustomize build config/samples/base | kubectl apply -f -
 
 destroy: ## Cleanup all controller artefacts
-	kubectl delete -k config/crd/ --ignore-not-found=true
-	kubectl delete -k config/default/base/ --ignore-not-found=true
-	kubectl delete -k config/rbac/ --ignore-not-found=true
-	kubectl delete -k config/namespace/base/ --ignore-not-found=true
+	kustomize build config/crd/ | kubectl delete --ignore-not-found=true -f -
+	kustomize build config/default/base/ | kubectl delete --ignore-not-found=true -f -
+	kustomize build config/rbac/ | kubectl delete --ignore-not-found=true -f -
+	kustomize build config/namespace/base/ | kubectl delete --ignore-not-found=true -f -
 
 run: generate manifests fmt vet install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
 
@@ -71,11 +71,11 @@ install: manifests
 	kubectl apply -f config/crd/bases
 
 deploy-namespace-rbac:
-	kubectl apply -k config/namespace/base
-	kubectl apply -k config/rbac
+	kustomize build config/namespace/base | kubectl apply -f -
+	kustomize build config/rbac | kubectl apply -f -
 
 deploy-master: install deploy-namespace-rbac docker-registry-secret
-	kubectl apply -k config/default/base
+	kustomize build config/default/base | kubectl apply -f -
 
 deploy: manifests deploy-namespace-rbac docker-registry-secret deploy-manager ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config
 
@@ -84,8 +84,8 @@ deploy-dev: docker-build-dev patch-dev manifests deploy-namespace-rbac docker-re
 deploy-kind: git-commit-sha patch-kind manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
 	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	kind load docker-image $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
-	kubectl apply -k config/crd
-	kubectl apply -k config/default/overlays/kind
+	kustomize build config/crd | kubectl apply -f -
+	kustomize build config/default/overlays/kind | kubectl apply -f -
 
 generate-installation-manifests:
 	mkdir -p installation
