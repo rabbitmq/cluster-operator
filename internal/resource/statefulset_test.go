@@ -25,9 +25,10 @@ import (
 
 var _ = Describe("StatefulSet", func() {
 	var (
-		instance rabbitmqv1beta1.RabbitmqCluster
-		scheme   *runtime.Scheme
-		cluster  *resource.RabbitmqResourceBuilder
+		instance   rabbitmqv1beta1.RabbitmqCluster
+		scheme     *runtime.Scheme
+		cluster    *resource.RabbitmqResourceBuilder
+		stsBuilder *resource.StatefulSetBuilder
 	)
 
 	Context("Build", func() {
@@ -41,10 +42,10 @@ var _ = Describe("StatefulSet", func() {
 				Instance: &instance,
 				Scheme:   scheme,
 			}
+			stsBuilder = cluster.StatefulSet()
 		})
 
 		It("sets the name and namespace", func() {
-			stsBuilder := cluster.StatefulSet()
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			sts := obj.(*appsv1.StatefulSet)
@@ -54,7 +55,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets the right service name", func() {
-			stsBuilder := cluster.StatefulSet()
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -62,7 +62,6 @@ var _ = Describe("StatefulSet", func() {
 			Expect(statefulSet.Spec.ServiceName).To(Equal(instance.ChildResourceName("headless")))
 		})
 		It("adds the correct label selector", func() {
-			stsBuilder := cluster.StatefulSet()
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -73,12 +72,8 @@ var _ = Describe("StatefulSet", func() {
 
 		It("references the storageclassname when specified", func() {
 			storageClassName := "my-storage-class"
-			instance.Spec.Persistence.StorageClassName = &storageClassName
-			cluster = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-				Scheme:   scheme,
-			}
-			stsBuilder := cluster.StatefulSet()
+			cluster.Instance.Spec.Persistence.StorageClassName = &storageClassName
+
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -88,12 +83,8 @@ var _ = Describe("StatefulSet", func() {
 
 		It("creates the PersistentVolume template according to configurations in the instance", func() {
 			storage := k8sresource.MustParse("21Gi")
-			instance.Spec.Persistence.Storage = &storage
-			cluster = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
-				Scheme:   scheme,
-			}
-			stsBuilder := cluster.StatefulSet()
+			cluster.Instance.Spec.Persistence.Storage = &storage
+
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
@@ -106,7 +97,6 @@ var _ = Describe("StatefulSet", func() {
 				truth := true
 				q, _ := k8sresource.ParseQuantity("10Gi")
 
-				stsBuilder := cluster.StatefulSet()
 				obj, err := stsBuilder.Build()
 				Expect(err).NotTo(HaveOccurred())
 				statefulSet := obj.(*appsv1.StatefulSet)
@@ -148,7 +138,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 		Context("Override", func() {
 			It("overrides statefulSet.spec.selector", func() {
-				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+				cluster.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						Selector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
@@ -158,7 +148,6 @@ var _ = Describe("StatefulSet", func() {
 					},
 				}
 
-				stsBuilder := cluster.StatefulSet()
 				obj, err := stsBuilder.Build()
 				Expect(err).NotTo(HaveOccurred())
 				statefulSet := obj.(*appsv1.StatefulSet)
@@ -166,13 +155,12 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.spec.serviceName", func() {
-				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+				cluster.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						ServiceName: "mysevice",
 					},
 				}
 
-				stsBuilder := cluster.StatefulSet()
 				obj, err := stsBuilder.Build()
 				Expect(err).NotTo(HaveOccurred())
 				statefulSet := obj.(*appsv1.StatefulSet)
@@ -182,7 +170,7 @@ var _ = Describe("StatefulSet", func() {
 			It("overrides the PVC list", func() {
 				storageClass := "my-storage-class"
 				truth := true
-				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+				cluster.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
 							{
@@ -215,10 +203,6 @@ var _ = Describe("StatefulSet", func() {
 							},
 						},
 					},
-				}
-				cluster = &resource.RabbitmqResourceBuilder{
-					Instance: &instance,
-					Scheme:   scheme,
 				}
 				stsBuilder := cluster.StatefulSet()
 				obj, err := stsBuilder.Build()
@@ -283,12 +267,10 @@ var _ = Describe("StatefulSet", func() {
 		var (
 			statefulSet *appsv1.StatefulSet
 			stsBuilder  *resource.StatefulSetBuilder
-			affinity    *corev1.Affinity
 		)
 
 		BeforeEach(func() {
 			instance = generateRabbitmqCluster()
-
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
@@ -309,7 +291,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("creates the affinity rule as provided in the instance", func() {
-			affinity = &corev1.Affinity{
+			affinity := &corev1.Affinity{
 				NodeAffinity: &corev1.NodeAffinity{
 					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
 						NodeSelectorTerms: []corev1.NodeSelectorTerm{
