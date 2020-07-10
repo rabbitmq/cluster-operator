@@ -1254,10 +1254,6 @@ var _ = Describe("StatefulSet", func() {
 							Value: "/opt/rabbitmq-secret/username",
 						},
 						corev1.EnvVar{
-							Name:  "RABBITMQ_MNESIA_BASE",
-							Value: "/var/lib/rabbitmq/db",
-						},
-						corev1.EnvVar{
 							Name: "MY_POD_NAME",
 							ValueFrom: &corev1.EnvVarSource{
 								FieldRef: &corev1.ObjectFieldSelector{
@@ -1306,7 +1302,7 @@ var _ = Describe("StatefulSet", func() {
 						},
 						corev1.VolumeMount{
 							Name:      "persistence",
-							MountPath: "/var/lib/rabbitmq/db/",
+							MountPath: "/var/lib/rabbitmq/mnesia/",
 						},
 						corev1.VolumeMount{
 							Name:      "rabbitmq-etc",
