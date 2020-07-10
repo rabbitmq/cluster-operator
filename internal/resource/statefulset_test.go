@@ -27,7 +27,7 @@ var _ = Describe("StatefulSet", func() {
 	var (
 		instance   rabbitmqv1beta1.RabbitmqCluster
 		scheme     *runtime.Scheme
-		cluster    *resource.RabbitmqResourceBuilder
+		builder    *resource.RabbitmqResourceBuilder
 		stsBuilder *resource.StatefulSetBuilder
 	)
 
@@ -38,11 +38,11 @@ var _ = Describe("StatefulSet", func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-			cluster = &resource.RabbitmqResourceBuilder{
+			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
 			}
-			stsBuilder = cluster.StatefulSet()
+			stsBuilder = builder.StatefulSet()
 		})
 
 		It("sets the name and namespace", func() {
@@ -72,7 +72,7 @@ var _ = Describe("StatefulSet", func() {
 
 		It("references the storageclassname when specified", func() {
 			storageClassName := "my-storage-class"
-			cluster.Instance.Spec.Persistence.StorageClassName = &storageClassName
+			builder.Instance.Spec.Persistence.StorageClassName = &storageClassName
 
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -83,7 +83,7 @@ var _ = Describe("StatefulSet", func() {
 
 		It("creates the PersistentVolume template according to configurations in the instance", func() {
 			storage := k8sresource.MustParse("21Gi")
-			cluster.Instance.Spec.Persistence.Storage = &storage
+			builder.Instance.Spec.Persistence.Storage = &storage
 
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -138,7 +138,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 		Context("Override", func() {
 			It("overrides statefulSet.spec.selector", func() {
-				cluster.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						Selector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
@@ -155,7 +155,7 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.spec.serviceName", func() {
-				cluster.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						ServiceName: "mysevice",
 					},
@@ -170,7 +170,7 @@ var _ = Describe("StatefulSet", func() {
 			It("overrides the PVC list", func() {
 				storageClass := "my-storage-class"
 				truth := true
-				cluster.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
 							{
@@ -204,7 +204,7 @@ var _ = Describe("StatefulSet", func() {
 						},
 					},
 				}
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				obj, err := stsBuilder.Build()
 				Expect(err).NotTo(HaveOccurred())
 				statefulSet := obj.(*appsv1.StatefulSet)
@@ -275,12 +275,12 @@ var _ = Describe("StatefulSet", func() {
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
-			cluster = &resource.RabbitmqResourceBuilder{
+			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
 			}
 
-			stsBuilder = cluster.StatefulSet()
+			stsBuilder = builder.StatefulSet()
 
 			statefulSet = &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
@@ -315,15 +315,15 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets the owner reference", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(len(statefulSet.OwnerReferences)).To(Equal(1))
-			Expect(statefulSet.OwnerReferences[0].Name).To(Equal(cluster.Instance.Name))
+			Expect(statefulSet.OwnerReferences[0].Name).To(Equal(builder.Instance.Name))
 		})
 
 		It("specifies the upgrade policy", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			zero := int32(0)
 			updateStrategy := appsv1.StatefulSetUpdateStrategy{
@@ -366,7 +366,7 @@ var _ = Describe("StatefulSet", func() {
 				Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 				Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
-				cluster = &resource.RabbitmqResourceBuilder{
+				builder = &resource.RabbitmqResourceBuilder{
 					Instance: &instance,
 					Scheme:   scheme,
 				}
@@ -395,13 +395,13 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("has the labels from the instance on the statefulset", func() {
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				testLabels(statefulSet.Labels)
 			})
 
 			It("has the labels from the instance on the pod", func() {
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				podTemplate := statefulSet.Spec.Template
 				testLabels(podTemplate.Labels)
@@ -439,7 +439,7 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("adds the correct labels on the rabbitmq pods", func() {
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				labels := statefulSet.Spec.Template.ObjectMeta.Labels
@@ -665,14 +665,14 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets replicas", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(1)))
 		})
 
 		It("has resources requirements on the init container", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			resources := statefulSet.Spec.Template.Spec.InitContainers[0].Resources
@@ -683,7 +683,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("specifies required Container Ports", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			requiredContainerPorts := []int32{4369, 5672, 15672, 15692}
@@ -698,7 +698,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("uses required Environment Variables", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			requiredEnvVariables := []corev1.EnvVar{
@@ -751,7 +751,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("creates required Volume Mounts for the rabbitmq container", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -780,7 +780,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("defines the expected volumes", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(statefulSet.Spec.Template.Spec.Volumes).Should(ConsistOf(
@@ -851,21 +851,21 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("uses the correct service account", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(Equal(instance.ChildResourceName("server")))
 		})
 
 		It("mounts the service account in its pods", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(*statefulSet.Spec.Template.Spec.AutomountServiceAccountToken).To(BeTrue())
 		})
 
 		It("creates the required SecurityContext", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			rmqGID, rmqUID := int64(999), int64(999)
@@ -880,7 +880,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("defines a Readiness Probe", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -889,7 +889,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("templates the correct InitContainer", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			initContainers := statefulSet.Spec.Template.Spec.InitContainers
@@ -928,7 +928,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("adds the required terminationGracePeriodSeconds", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			gracePeriodSeconds := statefulSet.Spec.Template.Spec.TerminationGracePeriodSeconds
@@ -937,7 +937,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("checks mirror and querum queue status in preStop hook", func() {
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; while true; do rabbitmq-queues check_if_node_is_quorum_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; rabbitmq-queues check_if_node_is_mirror_sync_critical 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break; done"}
@@ -959,12 +959,12 @@ var _ = Describe("StatefulSet", func() {
 					},
 				}
 
-				cluster = &resource.RabbitmqResourceBuilder{
+				builder = &resource.RabbitmqResourceBuilder{
 					Instance: &instance,
 					Scheme:   scheme,
 				}
 
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				expectedCPURequest, _ := k8sresource.ParseQuantity("10m")
 				expectedMemoryRequest, _ := k8sresource.ParseQuantity("3Gi")
@@ -984,12 +984,12 @@ var _ = Describe("StatefulSet", func() {
 					Limits:   corev1.ResourceList{},
 				}
 
-				cluster = &resource.RabbitmqResourceBuilder{
+				builder = &resource.RabbitmqResourceBuilder{
 					Instance: &instance,
 					Scheme:   scheme,
 				}
 
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -1002,12 +1002,12 @@ var _ = Describe("StatefulSet", func() {
 			It("uses the instance ImagePullSecret and image reference when provided", func() {
 				instance.Spec.Image = "my-private-repo/rabbitmq:latest"
 				instance.Spec.ImagePullSecret = "my-great-secret"
-				cluster = &resource.RabbitmqResourceBuilder{
+				builder = &resource.RabbitmqResourceBuilder{
 					Instance: &instance,
 					Scheme:   scheme,
 				}
 
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:latest"))
@@ -1018,11 +1018,11 @@ var _ = Describe("StatefulSet", func() {
 		It("sets the replica count of the StatefulSet to the instance value", func() {
 			three := int32(3)
 			instance.Spec.Replicas = &three
-			cluster = &resource.RabbitmqResourceBuilder{
+			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
 			}
-			stsBuilder := cluster.StatefulSet()
+			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))
 		})
@@ -1035,7 +1035,7 @@ var _ = Describe("StatefulSet", func() {
 						Name: "my-name",
 					},
 				}
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				Expect(statefulSet.ObjectMeta.Name).To(Equal("my-name"))
 				Expect(statefulSet.ObjectMeta.Namespace).To(Equal(instance.Namespace))
@@ -1055,7 +1055,7 @@ var _ = Describe("StatefulSet", func() {
 						Namespace: "my-ns",
 					},
 				}
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				Expect(statefulSet.ObjectMeta.Name).To(Equal(instance.Name))
 				Expect(statefulSet.ObjectMeta.Namespace).To(Equal("my-ns"))
@@ -1077,7 +1077,7 @@ var _ = Describe("StatefulSet", func() {
 						},
 					},
 				}
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				Expect(statefulSet.ObjectMeta.Name).To(Equal(instance.Name))
 				Expect(statefulSet.ObjectMeta.Namespace).To(Equal(instance.Namespace))
@@ -1099,7 +1099,7 @@ var _ = Describe("StatefulSet", func() {
 						},
 					},
 				}
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				Expect(statefulSet.ObjectMeta.Name).To(Equal(instance.Name))
 				Expect(statefulSet.ObjectMeta.Namespace).To(Equal(instance.Namespace))
@@ -1115,7 +1115,7 @@ var _ = Describe("StatefulSet", func() {
 					},
 				}
 
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(10)))
 			})
@@ -1127,7 +1127,7 @@ var _ = Describe("StatefulSet", func() {
 					},
 				}
 
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				Expect(string(statefulSet.Spec.PodManagementPolicy)).To(Equal("my-policy"))
 			})
@@ -1145,7 +1145,7 @@ var _ = Describe("StatefulSet", func() {
 					},
 				}
 
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				Expect(string(statefulSet.Spec.UpdateStrategy.Type)).To(Equal("OnDelete"))
 				Expect(*statefulSet.Spec.UpdateStrategy.RollingUpdate.Partition).To(Equal(int32(1)))
@@ -1169,7 +1169,7 @@ var _ = Describe("StatefulSet", func() {
 							},
 						},
 					}
-					stsBuilder := cluster.StatefulSet()
+					stsBuilder := builder.StatefulSet()
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 					Expect(statefulSet.Spec.Template.ObjectMeta.Name).To(Equal("my-name"))
 					Expect(statefulSet.Spec.Template.ObjectMeta.Namespace).To(Equal("my-ns"))
@@ -1215,11 +1215,11 @@ var _ = Describe("StatefulSet", func() {
 						},
 					}
 
-					cluster = &resource.RabbitmqResourceBuilder{
+					builder = &resource.RabbitmqResourceBuilder{
 						Instance: &instance,
 						Scheme:   scheme,
 					}
-					stsBuilder := cluster.StatefulSet()
+					stsBuilder := builder.StatefulSet()
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
@@ -1326,11 +1326,11 @@ var _ = Describe("StatefulSet", func() {
 					},
 				}
 
-				cluster = &resource.RabbitmqResourceBuilder{
+				builder = &resource.RabbitmqResourceBuilder{
 					Instance: &instance,
 					Scheme:   scheme,
 				}
-				stsBuilder := cluster.StatefulSet()
+				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(4)))

@@ -26,7 +26,7 @@ var _ = Describe("ErlangCookie", func() {
 	var (
 		secret              *corev1.Secret
 		instance            rabbitmqv1beta1.RabbitmqCluster
-		rabbitmqCluster     *resource.RabbitmqResourceBuilder
+		builder             *resource.RabbitmqResourceBuilder
 		erlangCookieBuilder *resource.ErlangCookieBuilder
 	)
 
@@ -37,10 +37,10 @@ var _ = Describe("ErlangCookie", func() {
 				Namespace: "a namespace",
 			},
 		}
-		rabbitmqCluster = &resource.RabbitmqResourceBuilder{
+		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
-		erlangCookieBuilder = rabbitmqCluster.ErlangCookie()
+		erlangCookieBuilder = builder.ErlangCookie()
 	})
 
 	Context("Build with defaults", func() {

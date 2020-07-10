@@ -23,9 +23,9 @@ import (
 
 var _ = Context("ClientServices", func() {
 	var (
-		instance   rabbitmqv1beta1.RabbitmqCluster
-		rmqBuilder resource.RabbitmqResourceBuilder
-		scheme     *runtime.Scheme
+		instance rabbitmqv1beta1.RabbitmqCluster
+		builder  resource.RabbitmqResourceBuilder
+		scheme   *runtime.Scheme
 	)
 
 	Context("Build", func() {
@@ -34,14 +34,14 @@ var _ = Context("ClientServices", func() {
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			instance = generateRabbitmqCluster()
-			rmqBuilder = resource.RabbitmqResourceBuilder{
+			builder = resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
 			}
 		})
 
 		It("Builds using the values from the CR", func() {
-			serviceBuilder := rmqBuilder.ClientService()
+			serviceBuilder := builder.ClientService()
 			obj, err := serviceBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			service := obj.(*corev1.Service)
@@ -63,7 +63,7 @@ var _ = Context("ClientServices", func() {
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			instance = generateRabbitmqCluster()
-			rmqBuilder = resource.RabbitmqResourceBuilder{
+			builder = resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
 			}
@@ -82,8 +82,8 @@ var _ = Context("ClientServices", func() {
 						},
 					},
 				}
-				rmqBuilder.Instance = instance
-				serviceBuilder := rmqBuilder.ClientService()
+				builder.Instance = instance
+				serviceBuilder := builder.ClientService()
 				svc := &corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo-service",
@@ -119,7 +119,7 @@ var _ = Context("ClientServices", func() {
 						"k8s.io/other":                     "i-like-this",
 					}
 
-					service := updateServiceWithAnnotations(rmqBuilder, nil, serviceAnno)
+					service := updateServiceWithAnnotations(builder, nil, serviceAnno)
 					Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 				})
 			})
@@ -134,7 +134,7 @@ var _ = Context("ClientServices", func() {
 
 					var serviceAnnotations map[string]string = nil
 					var instanceAnnotations map[string]string = nil
-					service := updateServiceWithAnnotations(rmqBuilder, instanceAnnotations, serviceAnnotations)
+					service := updateServiceWithAnnotations(builder, instanceAnnotations, serviceAnnotations)
 					Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 				})
 			})
@@ -149,7 +149,7 @@ var _ = Context("ClientServices", func() {
 					}
 
 					var serviceAnnotations map[string]string = nil
-					service := updateServiceWithAnnotations(rmqBuilder, instanceMetadataAnnotations, serviceAnnotations)
+					service := updateServiceWithAnnotations(builder, instanceMetadataAnnotations, serviceAnnotations)
 					expectedAnnotations := map[string]string{
 						"my-annotation":                    "i-like-this",
 						"app.kubernetes.io/part-of":        "rabbitmq",
@@ -190,7 +190,7 @@ var _ = Context("ClientServices", func() {
 						"this-was-the-previous-annotation": "should-be-preserved",
 					}
 
-					service := updateServiceWithAnnotations(rmqBuilder, instanceAnnotations, serviceAnnotations)
+					service := updateServiceWithAnnotations(builder, instanceAnnotations, serviceAnnotations)
 
 					Expect(service.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 				})
@@ -203,7 +203,7 @@ var _ = Context("ClientServices", func() {
 				svc            *corev1.Service
 			)
 			BeforeEach(func() {
-				serviceBuilder = rmqBuilder.ClientService()
+				serviceBuilder = builder.ClientService()
 				instance = rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-labelled",
@@ -252,7 +252,7 @@ var _ = Context("ClientServices", func() {
 			)
 
 			BeforeEach(func() {
-				serviceBuilder = rmqBuilder.ClientService()
+				serviceBuilder = builder.ClientService()
 				instance = generateRabbitmqCluster()
 
 				svc = &corev1.Service{

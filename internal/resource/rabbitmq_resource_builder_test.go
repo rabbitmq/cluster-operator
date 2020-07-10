@@ -29,22 +29,22 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				},
 			}
 
-			rabbitmqCluster *resource.RabbitmqResourceBuilder
-			scheme          *runtime.Scheme
+			builder *resource.RabbitmqResourceBuilder
+			scheme  *runtime.Scheme
 		)
 
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-			rabbitmqCluster = &resource.RabbitmqResourceBuilder{
+			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
 			}
 		})
 
 		It("returns the required resource builders in the expected order", func() {
-			resourceBuilders, err := rabbitmqCluster.ResourceBuilders()
+			resourceBuilders, err := builder.ResourceBuilders()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(len(resourceBuilders)).To(Equal(9))

@@ -26,7 +26,7 @@ var _ = Describe("AdminSecret", func() {
 	var (
 		secret             *corev1.Secret
 		instance           rabbitmqv1beta1.RabbitmqCluster
-		rabbitmqCluster    *resource.RabbitmqResourceBuilder
+		builder            *resource.RabbitmqResourceBuilder
 		adminSecretBuilder *resource.AdminSecretBuilder
 	)
 
@@ -37,10 +37,10 @@ var _ = Describe("AdminSecret", func() {
 				Namespace: "a namespace",
 			},
 		}
-		rabbitmqCluster = &resource.RabbitmqResourceBuilder{
+		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
-		adminSecretBuilder = rabbitmqCluster.AdminSecret()
+		adminSecretBuilder = builder.AdminSecret()
 	})
 
 	Context("Build with defaults", func() {

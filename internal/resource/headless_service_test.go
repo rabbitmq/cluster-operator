@@ -21,7 +21,7 @@ import (
 var _ = Describe("HeadlessService", func() {
 	var (
 		instance       rabbitmqv1beta1.RabbitmqCluster
-		cluster        *resource.RabbitmqResourceBuilder
+		builder        *resource.RabbitmqResourceBuilder
 		serviceBuilder *resource.HeadlessServiceBuilder
 		service        *corev1.Service
 	)
@@ -30,10 +30,10 @@ var _ = Describe("HeadlessService", func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
-		cluster = &resource.RabbitmqResourceBuilder{
+		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 		}
-		serviceBuilder = cluster.HeadlessService()
+		serviceBuilder = builder.HeadlessService()
 	})
 
 	Context("Build", func() {
