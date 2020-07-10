@@ -73,7 +73,7 @@ Also, run the system tests against a Kubernetes cluster:
 
 ### Code Conventions
 
-This project follows the same code conventions as the [kubernetes golang code conventions](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions). The kuberentes golang code conventions mostly refer to [Effective Go](https://golang.org/doc/effective_go.html) and the [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments). Please ensure your pull requests follow these guidlines.
+This project follows the [Kubernetes Code Conventions for Go](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions), which in turn mostly refer to [Effective Go](https://golang.org/doc/effective_go.html) and [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments). Please ensure your pull requests follow these guidelines.
 
 ## License
 
