@@ -146,6 +146,137 @@ var _ = Describe("StatefulSet", func() {
 				Expect(actualPersistentVolumeClaim).To(Equal(expectedPersistentVolumeClaim))
 			})
 		})
+		Context("Override", func() {
+			It("overrides statefulSet.spec.selector", func() {
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"my-label": "my-label",
+							},
+						},
+					},
+				}
+
+				stsBuilder := cluster.StatefulSet()
+				obj, err := stsBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+				statefulSet := obj.(*appsv1.StatefulSet)
+				Expect(statefulSet.Spec.Selector.MatchLabels).To(Equal(map[string]string{"my-label": "my-label"}))
+			})
+
+			It("overrides statefulSet.spec.serviceName", func() {
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						ServiceName: "mysevice",
+					},
+				}
+
+				stsBuilder := cluster.StatefulSet()
+				obj, err := stsBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+				statefulSet := obj.(*appsv1.StatefulSet)
+				Expect(statefulSet.Spec.ServiceName).To(Equal("mysevice"))
+			})
+
+			It("overrides the PVC list", func() {
+				storageClass := "my-storage-class"
+				truth := true
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+							{
+								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+									Name:      "pert-1",
+									Namespace: instance.Namespace,
+								},
+								Spec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+										},
+									},
+									StorageClassName: &storageClass,
+								},
+							},
+							{
+								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+									Name:      "pert-2",
+									Namespace: instance.Namespace,
+								},
+								Spec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+										},
+									},
+									StorageClassName: &storageClass,
+								},
+							},
+						},
+					},
+				}
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance: &instance,
+					Scheme:   scheme,
+				}
+				stsBuilder := cluster.StatefulSet()
+				obj, err := stsBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+				statefulSet := obj.(*appsv1.StatefulSet)
+
+				Expect(statefulSet.Spec.VolumeClaimTemplates).To(ConsistOf(
+					corev1.PersistentVolumeClaim{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pert-1",
+							Namespace: "foo-namespace",
+							OwnerReferences: []v1.OwnerReference{
+								{
+									APIVersion:         "rabbitmq.com/v1beta1",
+									Kind:               "RabbitmqCluster",
+									Name:               instance.Name,
+									UID:                "",
+									Controller:         &truth,
+									BlockOwnerDeletion: &truth,
+								},
+							},
+						},
+						Spec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+								},
+							},
+							StorageClassName: &storageClass,
+						},
+					},
+					corev1.PersistentVolumeClaim{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pert-2",
+							Namespace: "foo-namespace",
+							OwnerReferences: []v1.OwnerReference{
+								{
+									APIVersion:         "rabbitmq.com/v1beta1",
+									Kind:               "RabbitmqCluster",
+									Name:               instance.Name,
+									UID:                "",
+									Controller:         &truth,
+									BlockOwnerDeletion: &truth,
+								},
+							},
+						},
+						Spec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+								},
+							},
+							StorageClassName: &storageClass,
+						},
+					},
+				))
+			})
+		})
 	})
 
 	Context("Update", func() {
@@ -917,8 +1048,323 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))
 		})
-	})
 
+		When("stateful set override are provided", func() {
+			It("overrides statefulSet.ObjectMeta.Name", func() {
+				instance.Annotations = map[string]string{"my-key": "my-value"}
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
+						Name: "my-name",
+					},
+				}
+				stsBuilder := cluster.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(statefulSet.ObjectMeta.Name).To(Equal("my-name"))
+				Expect(statefulSet.ObjectMeta.Namespace).To(Equal(instance.Namespace))
+				Expect(statefulSet.ObjectMeta.Labels).To(Equal(map[string]string{
+					"app.kubernetes.io/name":      instance.Name,
+					"app.kubernetes.io/component": "rabbitmq",
+					"app.kubernetes.io/part-of":   "rabbitmq",
+				}))
+
+				Expect(statefulSet.ObjectMeta.Annotations).To(Equal(map[string]string{"my-key": "my-value"}))
+			})
+
+			It("overrides statefulSet.ObjectMeta.Namespace", func() {
+				instance.Annotations = map[string]string{"my-key": "my-value"}
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
+						Namespace: "my-ns",
+					},
+				}
+				stsBuilder := cluster.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(statefulSet.ObjectMeta.Name).To(Equal(instance.Name))
+				Expect(statefulSet.ObjectMeta.Namespace).To(Equal("my-ns"))
+				Expect(statefulSet.ObjectMeta.Labels).To(Equal(map[string]string{
+					"app.kubernetes.io/name":      instance.Name,
+					"app.kubernetes.io/component": "rabbitmq",
+					"app.kubernetes.io/part-of":   "rabbitmq",
+				}))
+
+				Expect(statefulSet.ObjectMeta.Annotations).To(Equal(map[string]string{"my-key": "my-value"}))
+			})
+
+			It("overrides statefulSet.ObjectMeta.Annotations", func() {
+				instance.Annotations = map[string]string{"replace-me-key": "replace-me-value"}
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
+						Annotations: map[string]string{
+							"keep-me-key": "keep-me-value",
+						},
+					},
+				}
+				stsBuilder := cluster.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(statefulSet.ObjectMeta.Name).To(Equal(instance.Name))
+				Expect(statefulSet.ObjectMeta.Namespace).To(Equal(instance.Namespace))
+				Expect(statefulSet.ObjectMeta.Labels).To(Equal(map[string]string{
+					"app.kubernetes.io/name":      instance.Name,
+					"app.kubernetes.io/component": "rabbitmq",
+					"app.kubernetes.io/part-of":   "rabbitmq",
+				}))
+
+				Expect(statefulSet.ObjectMeta.Annotations).To(Equal(map[string]string{"keep-me-key": "keep-me-value"}))
+			})
+
+			It("overrides statefulSet.ObjectMeta.Labels", func() {
+				instance.Annotations = map[string]string{"my-key": "my-value"}
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
+						Labels: map[string]string{
+							"my-great-label": "my-great-label",
+						},
+					},
+				}
+				stsBuilder := cluster.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(statefulSet.ObjectMeta.Name).To(Equal(instance.Name))
+				Expect(statefulSet.ObjectMeta.Namespace).To(Equal(instance.Namespace))
+				Expect(statefulSet.ObjectMeta.Labels).To(Equal(map[string]string{"my-great-label": "my-great-label"}))
+				Expect(statefulSet.ObjectMeta.Annotations).To(Equal(map[string]string{"my-key": "my-value"}))
+			})
+
+			It("overrides statefulSet.spec.replicas", func() {
+				ten := int32(10)
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						Replicas: &ten,
+					},
+				}
+
+				stsBuilder := cluster.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(10)))
+			})
+
+			It("overrides statefulSet.spec.podManagementPolicy", func() {
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						PodManagementPolicy: "my-policy",
+					},
+				}
+
+				stsBuilder := cluster.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(string(statefulSet.Spec.PodManagementPolicy)).To(Equal("my-policy"))
+			})
+
+			It("overrides statefulSet.spec.UpdateStrategy", func() {
+				one := int32(1)
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						UpdateStrategy: &appsv1.StatefulSetUpdateStrategy{
+							Type: "OnDelete",
+							RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+								Partition: &one,
+							},
+						},
+					},
+				}
+
+				stsBuilder := cluster.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(string(statefulSet.Spec.UpdateStrategy.Type)).To(Equal("OnDelete"))
+				Expect(*statefulSet.Spec.UpdateStrategy.RollingUpdate.Partition).To(Equal(int32(1)))
+			})
+
+			Context("PodTemplateSpec", func() {
+				It("Overrides PodTemplateSpec objectMeta", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
+									Namespace: "my-ns",
+									Name:      "my-name",
+									Labels: map[string]string{
+										"my-label": "my-label",
+									},
+									Annotations: map[string]string{
+										"my-key": "my-value",
+									},
+								},
+							},
+						},
+					}
+					stsBuilder := cluster.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					Expect(statefulSet.Spec.Template.ObjectMeta.Name).To(Equal("my-name"))
+					Expect(statefulSet.Spec.Template.ObjectMeta.Namespace).To(Equal("my-ns"))
+					Expect(statefulSet.Spec.Template.ObjectMeta.Labels).To(Equal(map[string]string{"my-label": "my-label"}))
+					Expect(statefulSet.Spec.Template.ObjectMeta.Annotations).To(Equal(map[string]string{"my-key": "my-value"}))
+				})
+				It("Overrides PodSpec", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											Env: []corev1.EnvVar{
+												{
+													Name:  "RABBITMQ_DEFAULT_PASS_FILE",
+													Value: "my-password",
+												},
+												{
+													Name:  "test1",
+													Value: "test1",
+												},
+											},
+											VolumeMounts: []corev1.VolumeMount{
+												{
+													Name:      "test",
+													MountPath: "test-path",
+												},
+											},
+										},
+										{
+											Name:  "new-container-0",
+											Image: "my-image-0",
+										},
+										{
+											Name:  "new-container-1",
+											Image: "my-image-1",
+										},
+									},
+								},
+							},
+						},
+					}
+
+					cluster = &resource.RabbitmqResourceBuilder{
+						Instance: &instance,
+						Scheme:   scheme,
+					}
+					stsBuilder := cluster.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
+						corev1.EnvVar{
+							Name:  "RABBITMQ_DEFAULT_PASS_FILE",
+							Value: "my-password",
+						},
+						corev1.EnvVar{
+							Name:  "test1",
+							Value: "test1",
+						},
+						corev1.EnvVar{
+							Name:  "RABBITMQ_DEFAULT_USER_FILE",
+							Value: "/opt/rabbitmq-secret/username",
+						},
+						corev1.EnvVar{
+							Name:  "RABBITMQ_MNESIA_BASE",
+							Value: "/var/lib/rabbitmq/db",
+						},
+						corev1.EnvVar{
+							Name: "MY_POD_NAME",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath:  "metadata.name",
+									APIVersion: "v1",
+								},
+							},
+						},
+						corev1.EnvVar{
+							Name: "MY_POD_NAMESPACE",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath:  "metadata.namespace",
+									APIVersion: "v1",
+								},
+							},
+						},
+						corev1.EnvVar{
+							Name:  "K8S_SERVICE_NAME",
+							Value: instance.ChildResourceName("headless"),
+						},
+						corev1.EnvVar{
+							Name:  "RABBITMQ_USE_LONGNAME",
+							Value: "true",
+						},
+						corev1.EnvVar{
+							Name:  "RABBITMQ_NODENAME",
+							Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+						},
+						corev1.EnvVar{
+							Name:  "K8S_HOSTNAME_SUFFIX",
+							Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+						}))
+					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "new-container-0")).To(Equal(
+						corev1.Container{Name: "new-container-0", Image: "my-image-0"}))
+					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "new-container-1")).To(Equal(
+						corev1.Container{Name: "new-container-1", Image: "my-image-1"}))
+					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").VolumeMounts).To(ConsistOf(
+						corev1.VolumeMount{
+							Name:      "rabbitmq-admin",
+							MountPath: "/opt/rabbitmq-secret/",
+						},
+						corev1.VolumeMount{
+							Name:      "test",
+							MountPath: "test-path",
+						},
+						corev1.VolumeMount{
+							Name:      "persistence",
+							MountPath: "/var/lib/rabbitmq/db/",
+						},
+						corev1.VolumeMount{
+							Name:      "rabbitmq-etc",
+							MountPath: "/etc/rabbitmq/",
+						},
+						corev1.VolumeMount{
+							Name:      "rabbitmq-erlang-cookie",
+							MountPath: "/var/lib/rabbitmq/",
+						},
+						corev1.VolumeMount{
+							Name:      "pod-info",
+							MountPath: "/etc/pod-info/",
+						},
+					))
+
+				})
+
+			})
+
+			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {
+				two := int32(2)
+				four := int32(4)
+				instance.Spec.Image = "should-be-replaced-image"
+				instance.Spec.Replicas = &two
+
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						Replicas: &four,
+						Template: &rabbitmqv1beta1.PodTemplateSpec{
+							Spec: &corev1.PodSpec{
+								Containers: []corev1.Container{
+									{
+										Name:  "rabbitmq",
+										Image: "override-image",
+									},
+								},
+							},
+						},
+					},
+				}
+
+				cluster = &resource.RabbitmqResourceBuilder{
+					Instance: &instance,
+					Scheme:   scheme,
+				}
+				stsBuilder := cluster.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(4)))
+				Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Image).To(Equal("override-image"))
+			})
+
+		})
+	})
 })
 
 func extractContainer(containers []corev1.Container, containerName string) corev1.Container {
