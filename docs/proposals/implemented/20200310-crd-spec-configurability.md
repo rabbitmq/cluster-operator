@@ -11,7 +11,7 @@ status: implemented
 
 ## Status
 
-This KEP has already been implemented. For updated implementation details, refer to [PR #175](https://github.com/rabbitmq/cluster-operator/pull/175).
+This KEP has already been implemented. Different from what's outlined in this KEP, we had to define some custome types instead of using `appsv1.StatefulSet` directly. For updated implementation details, refer to [PR #175](https://github.com/rabbitmq/cluster-operator/pull/175).
 
 ## Table of Contents
 
@@ -39,7 +39,7 @@ This KEP has already been implemented. For updated implementation details, refer
 
 ## Summary
 
-Our current CRD spec has a limited number of exposed properties for users to configure which restricts supported use cases. This KEP proposes to add an override section as an additional way for users to configure their cluster. Users will be able to configure any field of the StatefulSet and client Service through editing the spec directly through this change
+Our current CRD spec has a limited number of exposed properties for users to configure which restricts supported use cases. This KEP proposes to add an override section as an additional way for users to configure their cluster. Users will be able to configure any field of the StatefulSet and client Service through editing the spec directly through this change.
 
 ## Motivation
 
