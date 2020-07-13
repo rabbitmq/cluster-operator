@@ -2,17 +2,16 @@
 title: CRD Spec Refactor
 authors:
   - "@ChunyiLyu"
-reviewers:
-  -
 creation-date: 2020-03-10
-last-updated: 2020-05-12
-status: provisional
-see-also:
-replaces:
-superseded-by:
+last-updated: 2020-07-10
+status: implemented
 ---
 
 # CRD Spec Refactor
+
+## Status
+
+This KEP has already been implemented. Different from what's outlined in this KEP, we had to define some custome types instead of using `appsv1.StatefulSet` directly. For updated implementation details, refer to [PR #175](https://github.com/rabbitmq/cluster-operator/pull/175).
 
 ## Table of Contents
 

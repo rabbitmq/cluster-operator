@@ -6,7 +6,8 @@ Manage [RabbitMQ](https://www.rabbitmq.com/) clusters deployed to [Kubernetes](h
 
 ## Supported Versions
 
-The operator deploys RabbitMQ `3.8.5`, and requires a Kubernetes cluster of `1.16` or above.
+The operator deploys RabbitMQ `3.8.5`, and requires a Kubernetes cluster of `1.16` or `1.17`.
+`RabbitmqCluster` CRD cannot be installed in a kuberentes `1.18` cluster because of a schema validation that ensures that properties defined as `list-map-keys` must either be required or have a default value ([related github issue](https://github.com/kubernetes/kubernetes/issues/91395)).
 
 ## Quickstart
 
