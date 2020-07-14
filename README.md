@@ -21,7 +21,7 @@ The easiest way to set up a local development environment for running the Rabbit
 1. Check that the operator is running by running `kubectl get all --namespace=rabbitmq-system`
 1. Deploy a `RabbitmqCluster` custom resource. Refer to the [example YAML](./cr-example.yaml) and [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/using.html#configure) for available CR attributes
     1. Due to resource limitations on your Docker daemon, the Kubernetes might not be able to schedule all `RabbitmqCluster` nodes. Either [increase your Docker daemon's resource limits](https://docs.docker.com/docker-for-mac/#resources) or deploy the `RabbitmqCluster` custom resource with `resources: {}` to remove default `memory` and `cpu` resource settings.
-    1. If you set the `serviceType` to `LoadBalancer`, run `make prepare-kind` to deploy a [MetalLB](https://metallb.universe.tf/) load balancer. This will allow the operator to complete the `RabbitmqCluster` provisioning by assign an arbitrary local IP address to the cluster's client service. Proper [network configuration](https://metallb.universe.tf/installation/network-addons/) is required to route traffic via the assigned IP address.
+    1. If you set the `serviceType` to `LoadBalancer`, run `make kind-prepare` to deploy a [MetalLB](https://metallb.universe.tf/) load balancer. This will allow the operator to complete the `RabbitmqCluster` provisioning by assign an arbitrary local IP address to the cluster's client service. Proper [network configuration](https://metallb.universe.tf/installation/network-addons/) is required to route traffic via the assigned IP address.
 
 ### Documentation
 
@@ -68,8 +68,8 @@ Before submitting a pull request, ensure all local tests pass:
 - `make integration-tests`
 
 <!-- TODO: generalise deployment process: make DOCKER_REGISTRY_SECRET and DOCKER_REGISTRY_SERVER configurable -->
-Also, run the system tests against a Kubernetes cluster:
-- `make deploy`
+Also, run the system tests with your local changes against a Kubernetes cluster:
+- `make deploy-dev`
 - `make system-tests`
 
 ### Code Conventions
