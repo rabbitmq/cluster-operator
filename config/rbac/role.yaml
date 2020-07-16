@@ -21,71 +21,26 @@ rules:
   - configmaps
   verbs:
   - create
-  - delete
   - get
   - list
-  - patch
   - update
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - configmaps/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - ""
   resources:
   - endpoints
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - endpoints/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - ""
   resources:
   - events
   verbs:
   - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumeclaims
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumeclaims/status
-  verbs:
   - get
   - patch
-  - update
 - apiGroups:
   - ""
   resources:
@@ -107,30 +62,18 @@ rules:
   - secrets
   verbs:
   - create
-  - delete
   - get
   - list
-  - patch
   - update
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - ""
   resources:
   - serviceaccounts
   verbs:
   - create
-  - delete
   - get
   - list
-  - patch
   - update
   - watch
 - apiGroups:
@@ -139,20 +82,10 @@ rules:
   - services
   verbs:
   - create
-  - delete
   - get
   - list
-  - patch
   - update
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - services/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - apps
   resources:
@@ -162,27 +95,16 @@ rules:
   - delete
   - get
   - list
-  - patch
   - update
   - watch
-- apiGroups:
-  - apps
-  resources:
-  - statefulsets/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - rabbitmq.com
   resources:
   - rabbitmqclusters
   verbs:
   - create
-  - delete
   - get
   - list
-  - patch
   - update
   - watch
 - apiGroups:
@@ -191,7 +113,6 @@ rules:
   - rabbitmqclusters/status
   verbs:
   - get
-  - patch
   - update
 - apiGroups:
   - rbac.authorization.k8s.io
@@ -199,10 +120,8 @@ rules:
   - rolebindings
   verbs:
   - create
-  - delete
   - get
   - list
-  - patch
   - update
   - watch
 - apiGroups:
@@ -211,9 +130,7 @@ rules:
   - roles
   verbs:
   - create
-  - delete
   - get
   - list
-  - patch
   - update
   - watch
