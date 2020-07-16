@@ -1049,11 +1049,15 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.ObjectMeta.Annotations", func() {
-				instance.Annotations = map[string]string{"replace-me-key": "replace-me-value"}
+				instance.Annotations = map[string]string{
+					"key1":    "value1",
+					"keep-me": "keep-me",
+				}
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
 						Annotations: map[string]string{
-							"keep-me-key": "keep-me-value",
+							"new-key": "new-value",
+							"key1":    "new-value",
 						},
 					},
 				}
@@ -1067,15 +1071,24 @@ var _ = Describe("StatefulSet", func() {
 					"app.kubernetes.io/part-of":   "rabbitmq",
 				}))
 
-				Expect(statefulSet.ObjectMeta.Annotations).To(Equal(map[string]string{"keep-me-key": "keep-me-value"}))
+				Expect(statefulSet.ObjectMeta.Annotations).To(Equal(map[string]string{
+					"new-key": "new-value",
+					"key1":    "new-value",
+					"keep-me": "keep-me",
+				}))
 			})
 
 			It("overrides statefulSet.ObjectMeta.Labels", func() {
 				instance.Annotations = map[string]string{"my-key": "my-value"}
+				instance.Labels = map[string]string{
+					"key1":    "value1",
+					"keep-me": "keep-me",
+				}
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
 						Labels: map[string]string{
-							"my-great-label": "my-great-label",
+							"new-label-key": "new-label-value",
+							"key1":          "new-value",
 						},
 					},
 				}
@@ -1083,8 +1096,15 @@ var _ = Describe("StatefulSet", func() {
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				Expect(statefulSet.ObjectMeta.Name).To(Equal(instance.Name))
 				Expect(statefulSet.ObjectMeta.Namespace).To(Equal(instance.Namespace))
-				Expect(statefulSet.ObjectMeta.Labels).To(Equal(map[string]string{"my-great-label": "my-great-label"}))
 				Expect(statefulSet.ObjectMeta.Annotations).To(Equal(map[string]string{"my-key": "my-value"}))
+				Expect(statefulSet.ObjectMeta.Labels).To(Equal(map[string]string{
+					"new-label-key":               "new-label-value",
+					"key1":                        "new-value",
+					"keep-me":                     "keep-me",
+					"app.kubernetes.io/component": "rabbitmq",
+					"app.kubernetes.io/part-of":   "rabbitmq",
+					"app.kubernetes.io/name":      "foo",
+				}))
 			})
 
 			It("overrides statefulSet.spec.replicas", func() {
@@ -1153,7 +1173,12 @@ var _ = Describe("StatefulSet", func() {
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 					Expect(statefulSet.Spec.Template.ObjectMeta.Name).To(Equal("my-name"))
 					Expect(statefulSet.Spec.Template.ObjectMeta.Namespace).To(Equal("my-ns"))
-					Expect(statefulSet.Spec.Template.ObjectMeta.Labels).To(Equal(map[string]string{"my-label": "my-label"}))
+					Expect(statefulSet.Spec.Template.ObjectMeta.Labels).To(Equal(map[string]string{
+						"my-label":                    "my-label",
+						"app.kubernetes.io/component": "rabbitmq",
+						"app.kubernetes.io/part-of":   "rabbitmq",
+						"app.kubernetes.io/name":      "foo",
+					}))
 					Expect(statefulSet.Spec.Template.ObjectMeta.Annotations).To(Equal(map[string]string{"my-key": "my-value"}))
 				})
 				It("Overrides PodSpec", func() {

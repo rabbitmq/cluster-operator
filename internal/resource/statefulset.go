@@ -563,20 +563,33 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 	}
 }
 
-func copyObjectMeta(dst *metav1.ObjectMeta, src rabbitmqv1beta1.EmbeddedObjectMeta) {
-	if src.Name != "" {
-		dst.Name = src.Name
+func copyObjectMeta(base *metav1.ObjectMeta, override rabbitmqv1beta1.EmbeddedObjectMeta) {
+	if override.Name != "" {
+		base.Name = override.Name
 	}
 
-	if src.Namespace != "" {
-		dst.Namespace = src.Namespace
+	if override.Namespace != "" {
+		base.Namespace = override.Namespace
 	}
 
-	if src.Labels != nil {
-		dst.Labels = src.Labels
+	if override.Labels != nil {
+		base.Labels = mergeMap(base.Labels, override.Labels)
 	}
 
-	if src.Annotations != nil {
-		dst.Annotations = src.Annotations
+	if override.Annotations != nil {
+		base.Annotations = mergeMap(base.Annotations, override.Annotations)
 	}
+}
+
+func mergeMap(base, override map[string]string) map[string]string {
+	result := base
+	if result == nil {
+		result = make(map[string]string)
+	}
+
+	for k, v := range override {
+		result[k] = v
+	}
+
+	return result
 }
