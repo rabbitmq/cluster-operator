@@ -1,0 +1,7 @@
+contact_links:
+  - name: RabbitMQ Discussions
+    url: https://github.com/rabbitmq/rabbitmq-server/discussions
+    about: Please ask and answer questions here.
+  - name: RabbitMQ Mailing list
+    url: https://groups.google.com/g/rabbitmq-users
+    about: If you prefer to ask/answer via email.
