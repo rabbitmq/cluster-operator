@@ -61,10 +61,12 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	configMap.Annotations = metadata.ReconcileAndFilterAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
+
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
 	}
-	configMap.Data["rabbitmq.conf"] = defaultRabbitmqConf
+
+	configMap.Data["rabbitmq.conf"] = defaultRabbitmqConf + fmt.Sprintln("cluster_name = "+builder.Instance.Name)
 	if builder.Instance.TLSEnabled() {
 		configMap.Data["rabbitmq.conf"] = configMap.Data["rabbitmq.conf"] + defaultTLSConf
 	}
