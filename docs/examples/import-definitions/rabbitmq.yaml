@@ -12,12 +12,12 @@ spec:
             containers:
             - name: rabbitmq
               volumeMounts:
-              - mountPath: /tmp/definitions
+              - mountPath: /path/to/exported/definitions.json
                 name: definitions
             volumes:
             - name: definitions
               configMap:
-                name: definitions # ConfigMap which contains the definitions you wish to import
+                name: definitions # Name of the ConfigMap which contains definitions you wish to import
   rabbitmq:
     additionalConfig: |
-      load_definitions = /tmp/definitions/def.json # Patch the the mounted definitions file
+      load_definitions = /path/to/exported/definitions.json # Path to the mounted definitions file
