@@ -23,15 +23,24 @@ The easiest way to set up a local development environment for running the Rabbit
     1. Due to resource limitations on your Docker daemon, the Kubernetes might not be able to schedule all `RabbitmqCluster` nodes. Either [increase your Docker daemon's resource limits](https://docs.docker.com/docker-for-mac/#resources) or deploy the `RabbitmqCluster` custom resource with `resources: {}` to remove default `memory` and `cpu` resource settings.
     1. If you set the `serviceType` to `LoadBalancer`, run `make kind-prepare` to deploy a [MetalLB](https://metallb.universe.tf/) load balancer. This will allow the operator to complete the `RabbitmqCluster` provisioning by assign an arbitrary local IP address to the cluster's client service. Proper [network configuration](https://metallb.universe.tf/installation/network-addons/) is required to route traffic via the assigned IP address.
 
-### Documentation
 
-RabbitMQ Cluster Kubernetes Operator [documentation](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/index.html) has steps to deploy to a Kubernetes cluster:
-- [Deploying an operator](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/installing.html)
-- [Deploying a RabbitMQ cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/using.html)
-- [Monitoring the cluster](https://docs.pivotal.io/rabbitmq-kubernetes/0-7/monitoring.html)
+## Documentation
+
+RabbitMQ Cluster Kubernetes Operator is covered by several guides:
+
+ - [Operator overview](https://www.rabbitmq.com/kubernetes/operator/operator-overview.html)
+ - [Deploying an operator](https://www.rabbitmq.com/kubernetes/operator/install-operator.html)
+ - [Deploying a RabbitMQ cluster](https://www.rabbitmq.com/kubernetes/operator/using-operator.html)
+ - [Monitoring the cluster](https://www.rabbitmq.com/kubernetes/operator/operator-monitoring.html)
+ - [Troubleshooting operator ployments](https://www.rabbitmq.com/kubernetes/operator/troubleshooting-operator.html)
+
+In addition, a number of [examples](./docs/examples) can be found in this repository.
+
+The doc guides are open source. The source can be found in the [RabbitMQ website repository](https://github.com/rabbitmq/rabbitmq-website/)
+under `site/kubernetes`.
 
 
-### Makefile
+## Makefile
 
 #### Required environment variables
 
