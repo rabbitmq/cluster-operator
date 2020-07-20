@@ -1,0 +1,23 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: import-definitions
+spec:
+  replicas: 1
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+            - name: rabbitmq
+              volumeMounts:
+              - mountPath: /path/to/exported/definitions.json
+                name: definitions
+            volumes:
+            - name: definitions
+              configMap:
+                name: definitions # Name of the ConfigMap which contains definitions you wish to import
+  rabbitmq:
+    additionalConfig: |
+      load_definitions = /path/to/exported/definitions.json # Path to the mounted definitions file
