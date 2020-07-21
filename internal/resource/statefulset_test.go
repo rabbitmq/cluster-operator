@@ -450,102 +450,122 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		Context("annotations", func() {
-			var (
-				existingAnnotations            map[string]string
-				existingPodTemplateAnnotations map[string]string
-				existingPvcTemplateAnnotations map[string]string
-			)
+			Context("default annotations", func() {
 
-			BeforeEach(func() {
-				existingAnnotations = map[string]string{
-					"this-was-the-previous-annotation": "should-be-preserved",
-					"app.kubernetes.io/part-of":        "rabbitmq",
-					"app.k8s.io/something":             "something-amazing",
-				}
+				BeforeEach(func() {
+					statefulSet.Spec.Template.Annotations = nil
+				})
 
-				existingPodTemplateAnnotations = map[string]string{
-					"this-was-the-previous-pod-anno": "should-be-preserved",
-					"app.kubernetes.io/part-of":      "rabbitmq-pod",
-					"app.k8s.io/something":           "something-amazing-on-pod",
-				}
+				It("Adds the default annotations to the pod template", func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-				existingPvcTemplateAnnotations = map[string]string{
-					"this-was-the-previous-pod-anno": "should-be-preserved-here",
-					"app.kubernetes.io/part-of":      "rabbitmq-pvc",
-					"app.k8s.io/something":           "something-amazing-on-pvc",
-				}
-
-				statefulSet.Annotations = existingAnnotations
-				statefulSet.Spec.Template.Annotations = existingPodTemplateAnnotations
-				statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
-					{},
-				}
-				statefulSet.Spec.VolumeClaimTemplates[0].Annotations = existingPvcTemplateAnnotations
+					Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("prometheus.io/scrape", "true"))
+					Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("prometheus.io/port", "15692"))
+				})
 			})
 
-			It("updates annotations", func() {
-				stsBuilder.Instance.Annotations = map[string]string{
-					"kubernetes.io/name":          "i-do-not-like-this",
-					"kubectl.kubernetes.io/name":  "i-do-not-like-this",
-					"k8s.io/name":                 "i-do-not-like-this",
-					"kubernetes.io/other":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/other": "i-do-not-like-this",
-					"k8s.io/other":                "i-do-not-like-this",
-					"my-annotation":               "i-like-this",
-				}
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			Context("annotation inheritance", func() {
+				var (
+					existingAnnotations            map[string]string
+					existingPodTemplateAnnotations map[string]string
+					existingPvcTemplateAnnotations map[string]string
+				)
 
-				expectedAnnotations := map[string]string{
-					"my-annotation":                    "i-like-this",
-					"this-was-the-previous-annotation": "should-be-preserved",
-					"app.kubernetes.io/part-of":        "rabbitmq",
-					"app.k8s.io/something":             "something-amazing",
-				}
+				BeforeEach(func() {
+					existingAnnotations = map[string]string{
+						"this-was-the-previous-annotation": "should-be-preserved",
+						"app.kubernetes.io/part-of":        "rabbitmq",
+						"app.k8s.io/something":             "something-amazing",
+					}
 
-				Expect(statefulSet.Annotations).To(Equal(expectedAnnotations))
-			})
+					existingPodTemplateAnnotations = map[string]string{
+						"prometheus.io/scrape":           "true",
+						"prometheus.io/port":             "15692",
+						"this-was-the-previous-pod-anno": "should-be-preserved",
+						"app.kubernetes.io/part-of":      "rabbitmq-pod",
+						"app.k8s.io/something":           "something-amazing-on-pod",
+					}
 
-			It("update annotations from the instance to the pod", func() {
-				stsBuilder.Instance.Annotations = map[string]string{
-					"kubernetes.io/name":          "i-do-not-like-this",
-					"kubectl.kubernetes.io/name":  "i-do-not-like-this",
-					"k8s.io/name":                 "i-do-not-like-this",
-					"kubernetes.io/other":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/other": "i-do-not-like-this",
-					"k8s.io/other":                "i-do-not-like-this",
-					"my-annotation":               "i-like-this",
-				}
+					existingPvcTemplateAnnotations = map[string]string{
+						"this-was-the-previous-pod-anno": "should-be-preserved-here",
+						"app.kubernetes.io/part-of":      "rabbitmq-pvc",
+						"app.k8s.io/something":           "something-amazing-on-pvc",
+					}
 
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-				expectedAnnotations := map[string]string{
-					"my-annotation":                  "i-like-this",
-					"app.kubernetes.io/part-of":      "rabbitmq-pod",
-					"this-was-the-previous-pod-anno": "should-be-preserved",
-					"app.k8s.io/something":           "something-amazing-on-pod",
-				}
+					statefulSet.Annotations = existingAnnotations
+					statefulSet.Spec.Template.Annotations = existingPodTemplateAnnotations
+					statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+						{},
+					}
+					statefulSet.Spec.VolumeClaimTemplates[0].Annotations = existingPvcTemplateAnnotations
+				})
 
-				Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedAnnotations))
-			})
+				It("updates annotations", func() {
+					stsBuilder.Instance.Annotations = map[string]string{
+						"kubernetes.io/name":          "i-do-not-like-this",
+						"kubectl.kubernetes.io/name":  "i-do-not-like-this",
+						"k8s.io/name":                 "i-do-not-like-this",
+						"kubernetes.io/other":         "i-do-not-like-this",
+						"kubectl.kubernetes.io/other": "i-do-not-like-this",
+						"k8s.io/other":                "i-do-not-like-this",
+						"my-annotation":               "i-like-this",
+					}
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			It("does not update annotations from the instance to the pvc template", func() {
-				stsBuilder.Instance.Annotations = map[string]string{
-					"kubernetes.io/name":          "i-do-not-like-this",
-					"kubectl.kubernetes.io/name":  "i-do-not-like-this",
-					"k8s.io/name":                 "i-do-not-like-this",
-					"kubernetes.io/other":         "i-do-not-like-this",
-					"kubectl.kubernetes.io/other": "i-do-not-like-this",
-					"k8s.io/other":                "i-do-not-like-this",
-					"my-annotation":               "i-do-not-like-this",
-				}
+					expectedAnnotations := map[string]string{
+						"my-annotation":                    "i-like-this",
+						"this-was-the-previous-annotation": "should-be-preserved",
+						"app.kubernetes.io/part-of":        "rabbitmq",
+						"app.k8s.io/something":             "something-amazing",
+					}
 
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-				expectedAnnotations := map[string]string{
-					"app.kubernetes.io/part-of":      "rabbitmq-pvc",
-					"this-was-the-previous-pod-anno": "should-be-preserved-here",
-					"app.k8s.io/something":           "something-amazing-on-pvc",
-				}
+					Expect(statefulSet.Annotations).To(Equal(expectedAnnotations))
+				})
 
-				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Annotations).To(Equal(expectedAnnotations))
+				It("update annotations from the instance to the pod", func() {
+					stsBuilder.Instance.Annotations = map[string]string{
+						"kubernetes.io/name":          "i-do-not-like-this",
+						"kubectl.kubernetes.io/name":  "i-do-not-like-this",
+						"k8s.io/name":                 "i-do-not-like-this",
+						"kubernetes.io/other":         "i-do-not-like-this",
+						"kubectl.kubernetes.io/other": "i-do-not-like-this",
+						"k8s.io/other":                "i-do-not-like-this",
+						"my-annotation":               "i-like-this",
+					}
+
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					expectedAnnotations := map[string]string{
+						"prometheus.io/scrape":           "true",
+						"prometheus.io/port":             "15692",
+						"my-annotation":                  "i-like-this",
+						"app.kubernetes.io/part-of":      "rabbitmq-pod",
+						"this-was-the-previous-pod-anno": "should-be-preserved",
+						"app.k8s.io/something":           "something-amazing-on-pod",
+					}
+
+					Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedAnnotations))
+				})
+
+				It("does not update annotations from the instance to the pvc template", func() {
+					stsBuilder.Instance.Annotations = map[string]string{
+						"kubernetes.io/name":          "i-do-not-like-this",
+						"kubectl.kubernetes.io/name":  "i-do-not-like-this",
+						"k8s.io/name":                 "i-do-not-like-this",
+						"kubernetes.io/other":         "i-do-not-like-this",
+						"kubectl.kubernetes.io/other": "i-do-not-like-this",
+						"k8s.io/other":                "i-do-not-like-this",
+						"my-annotation":               "i-do-not-like-this",
+					}
+
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					expectedAnnotations := map[string]string{
+						"app.kubernetes.io/part-of":      "rabbitmq-pvc",
+						"this-was-the-previous-pod-anno": "should-be-preserved-here",
+						"app.k8s.io/something":           "something-amazing-on-pvc",
+					}
+
+					Expect(statefulSet.Spec.VolumeClaimTemplates[0].Annotations).To(Equal(expectedAnnotations))
+				})
 			})
 		})
 
@@ -1179,7 +1199,11 @@ var _ = Describe("StatefulSet", func() {
 						"app.kubernetes.io/part-of":   "rabbitmq",
 						"app.kubernetes.io/name":      "foo",
 					}))
-					Expect(statefulSet.Spec.Template.ObjectMeta.Annotations).To(Equal(map[string]string{"my-key": "my-value"}))
+					Expect(statefulSet.Spec.Template.ObjectMeta.Annotations).To(Equal(map[string]string{
+						"my-key":               "my-value",
+						"prometheus.io/scrape": "true",
+						"prometheus.io/port":   "15692",
+					}))
 				})
 				It("Overrides PodSpec", func() {
 					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{

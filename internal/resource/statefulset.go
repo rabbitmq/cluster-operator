@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	appsv1 "k8s.io/api/apps/v1"
@@ -137,7 +138,11 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 
 	//Annotations
 	sts.Annotations = metadata.ReconcileAndFilterAnnotations(sts.Annotations, builder.Instance.Annotations)
-	podAnnotations := metadata.ReconcileAndFilterAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations)
+	defaultPodAnnotations := map[string]string{
+		"prometheus.io/scrape": "true",
+		"prometheus.io/port":   "15692",
+	}
+	podAnnotations := metadata.ReconcileAnnotations(defaultPodAnnotations, metadata.ReconcileAndFilterAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations))
 
 	//Labels
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
