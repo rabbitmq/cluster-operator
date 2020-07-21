@@ -32,7 +32,7 @@ RabbitMQ Cluster Kubernetes Operator is covered by several guides:
  - [Deploying an operator](https://www.rabbitmq.com/kubernetes/operator/install-operator.html)
  - [Deploying a RabbitMQ cluster](https://www.rabbitmq.com/kubernetes/operator/using-operator.html)
  - [Monitoring the cluster](https://www.rabbitmq.com/kubernetes/operator/operator-monitoring.html)
- - [Troubleshooting operator ployments](https://www.rabbitmq.com/kubernetes/operator/troubleshooting-operator.html)
+ - [Troubleshooting operator deployments](https://www.rabbitmq.com/kubernetes/operator/troubleshooting-operator.html)
 
 In addition, a number of [examples](./docs/examples) can be found in this repository.
 
