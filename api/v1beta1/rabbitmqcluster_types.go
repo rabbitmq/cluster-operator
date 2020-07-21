@@ -65,7 +65,17 @@ type RabbitmqClusterSpec struct {
 }
 
 type RabbitmqClusterOverrideSpec struct {
-	StatefulSet *StatefulSet `json:"statefulSet,omitempty"`
+	StatefulSet   *StatefulSet   `json:"statefulSet,omitempty"`
+	ClientService *ClientService `json:"clientService,omitempty"`
+}
+
+type ClientService struct {
+	// +optional
+	*EmbeddedObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// Spec defines the behavior of a service.
+	// https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+	// +optional
+	Spec *corev1.ServiceSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
 type StatefulSet struct {

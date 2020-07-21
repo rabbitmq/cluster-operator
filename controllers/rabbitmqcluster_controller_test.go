@@ -13,6 +13,7 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -1406,6 +1407,96 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}, 3).Should(Equal("my-great-image-2"))
 		})
 	})
+
+	Context("Client Service Override", func() {
+		var (
+			svcOverrideCluster *rabbitmqv1beta1.RabbitmqCluster
+		)
+
+		BeforeEach(func() {
+			svcOverrideCluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "svc-override",
+					Namespace: "svc-override",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas: &one,
+					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+						Type: "LoadBalancer",
+					},
+					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
+						ClientService: &rabbitmqv1beta1.ClientService{
+							Spec: &corev1.ServiceSpec{
+								Ports: []corev1.ServicePort{
+									{
+										Protocol: corev1.ProtocolTCP,
+										Port:     15535,
+										Name:     "additional-port",
+									},
+								},
+								Selector: map[string]string{
+									"a-selector": "a-label",
+								},
+								Type:                     "ClusterIP",
+								SessionAffinity:          "ClientIP",
+								PublishNotReadyAddresses: false,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(client.Create(context.Background(), svcOverrideCluster)).To(Succeed())
+			waitForClusterCreation(svcOverrideCluster, client)
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.Background(), svcOverrideCluster)).To(Succeed())
+			waitForClusterDeletion(svcOverrideCluster, client)
+		})
+
+		It("creates a Client Service with the override applied", func() {
+			amqpTargetPort := intstr.IntOrString{IntVal: int32(5672)}
+			managementTargetPort := intstr.IntOrString{IntVal: int32(15672)}
+			additionalTargetPort := intstr.IntOrString{IntVal: int32(15535)}
+			svc := service(svcOverrideCluster, "client")
+			Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
+			Expect(svc.Spec.Ports).To(ConsistOf(
+				corev1.ServicePort{
+					Name:       "amqp",
+					Port:       5672,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: amqpTargetPort,
+				},
+				corev1.ServicePort{
+					Name:       "management",
+					Port:       15672,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: managementTargetPort,
+				},
+				corev1.ServicePort{
+					Protocol:   corev1.ProtocolTCP,
+					Port:       15535,
+					Name:       "additional-port",
+					TargetPort: additionalTargetPort,
+				},
+			))
+			Expect(svc.Spec.Selector).To(Equal(map[string]string{"a-selector": "a-label", "app.kubernetes.io/name": "svc-override"}))
+			Expect(svc.Spec.SessionAffinity).To(Equal(corev1.ServiceAffinityClientIP))
+			Expect(svc.Spec.PublishNotReadyAddresses).To(BeFalse())
+		})
+
+		It("updates", func() {
+			Expect(updateWithRetry(svcOverrideCluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				svcOverrideCluster.Spec.Override.ClientService.Spec.Type = "LoadBalancer"
+			})).To(Succeed())
+
+			Eventually(func() corev1.ServiceType {
+				svc := service(svcOverrideCluster, "client")
+				return svc.Spec.Type
+			}, 5).Should(Equal(corev1.ServiceTypeLoadBalancer))
+		})
+	})
 })
 
 func extractContainer(containers []corev1.Container, containerName string) corev1.Container {
@@ -1439,7 +1530,7 @@ func statefulSet(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.State
 		var err error
 		sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
 		return err
-	}, 5).Should(Succeed())
+	}, 10).Should(Succeed())
 	return sts
 }
 
@@ -1450,7 +1541,7 @@ func service(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, svcName string) *
 		var err error
 		svc, err = clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(serviceName, metav1.GetOptions{})
 		return err
-	}, 5).Should(Succeed())
+	}, 10).Should(Succeed())
 	return svc
 }
 
