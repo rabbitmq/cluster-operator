@@ -46,8 +46,6 @@ var _ = Describe("Operator", func() {
 			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
 			cluster.Spec.Replicas = &one
 			cluster.Spec.Service.Type = "NodePort"
-			cluster.Spec.Image = "dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq:latest"
-			cluster.Spec.ImagePullSecret = "p-rmq-registry-access"
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},

@@ -16,5 +16,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: dev.registry.pivotal.io/p-rabbitmq-for-kubernetes/rabbitmq-for-kubernetes-operator:latest
+      - image: rabbitmqoperator/rabbitmq-cluster-kubernetes-operator:latest
         name: operator
