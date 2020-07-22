@@ -74,10 +74,7 @@ deploy-namespace-rbac:
 	kustomize build config/namespace/base | kubectl apply -f -
 	kustomize build config/rbac | kubectl apply -f -
 
-deploy-master: install deploy-namespace-rbac docker-registry-secret
-	kustomize build config/default/base | kubectl apply -f -
-
-deploy: manifests deploy-namespace-rbac docker-registry-secret deploy-manager ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config
+deploy: manifests deploy-namespace-rbac deploy-manager ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config
 
 deploy-dev: docker-build-dev patch-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
