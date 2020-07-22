@@ -137,6 +137,18 @@ my-config-property-1 = better-value`
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
 
+		It("sets data.advancedConfig when provided", func() {
+			instance.Spec.Rabbitmq.AdvancedConfig = `
+[
+  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
+].`
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			advancedConfig, ok := configMap.Data["advanced.config"]
+			Expect(ok).To(BeTrue())
+			Expect(advancedConfig).To(Equal("\n[\n  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}\n]."))
+
+		})
+
 		Context("TLS", func() {
 			It("adds TLS config when TLS is enabled", func() {
 				instance = rabbitmqv1beta1.RabbitmqCluster{
