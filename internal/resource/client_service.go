@@ -59,7 +59,7 @@ func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
 	}
 
 	if builder.Instance.Spec.Override.ClientService != nil {
-		if err := builder.applySvcOverride(service, builder.Instance.Spec.Override.ClientService); err != nil {
+		if err := applySvcOverride(service, builder.Instance.Spec.Override.ClientService); err != nil {
 			return fmt.Errorf("failed applying Client Service override: %v", err)
 		}
 	}
@@ -71,7 +71,7 @@ func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func (builder *ClientServiceBuilder) applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.ClientService) error {
+func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.ClientService) error {
 	if override.EmbeddedObjectMeta != nil {
 		copyObjectMeta(&svc.ObjectMeta, *override.EmbeddedObjectMeta)
 	}

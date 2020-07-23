@@ -151,7 +151,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	}
 
 	if builder.Instance.Spec.Override.StatefulSet != nil {
-		if err := builder.applyStsOverride(sts, builder.Instance.Spec.Override.StatefulSet); err != nil {
+		if err := applyStsOverride(sts, builder.Instance.Spec.Override.StatefulSet); err != nil {
 			return fmt.Errorf("failed applying StatefulSet override: %v", err)
 		}
 	}
@@ -162,7 +162,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func (builder *StatefulSetBuilder) applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.StatefulSet) error {
+func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.StatefulSet) error {
 	if stsOverride.EmbeddedObjectMeta != nil {
 		copyObjectMeta(&sts.ObjectMeta, *stsOverride.EmbeddedObjectMeta)
 	}
