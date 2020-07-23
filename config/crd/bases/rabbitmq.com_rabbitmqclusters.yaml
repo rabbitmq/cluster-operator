@@ -4474,7 +4474,7 @@ spec:
                   type: array
                 advancedConfig:
                   description: Specify any rabbitmq advanced.config configurations
-                  maxLength: 2000
+                  maxLength: 100000
                   type: string
               type: object
             replicas:

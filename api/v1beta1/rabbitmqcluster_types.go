@@ -220,7 +220,7 @@ type RabbitmqClusterConfigurationSpec struct {
 	// +kubebuilder:validation:MaxLength:=2000
 	AdditionalConfig string `json:"additionalConfig,omitempty"`
 	// Specify any rabbitmq advanced.config configurations
-	// +kubebuilder:validation:MaxLength:=2000
+	// +kubebuilder:validation:MaxLength:=100000
 	AdvancedConfig string `json:"advancedConfig,omitempty"`
 }
 
