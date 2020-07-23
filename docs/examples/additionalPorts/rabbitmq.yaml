@@ -3,6 +3,7 @@ kind: RabbitmqCluster
 metadata:
   name: rabbit
 spec:
+  replicas: 1
   override:
     clientService:
       spec:
