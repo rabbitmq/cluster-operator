@@ -10,7 +10,9 @@
 package resource
 
 import (
+	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
@@ -56,8 +58,46 @@ func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
 		}
 	}
 
+	if builder.Instance.Spec.Override.ClientService != nil {
+		if err := applySvcOverride(service, builder.Instance.Spec.Override.ClientService); err != nil {
+			return fmt.Errorf("failed applying Client Service override: %v", err)
+		}
+	}
+
 	if err := controllerutil.SetControllerReference(builder.Instance, service, builder.Scheme); err != nil {
 		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
+
+	return nil
+}
+
+func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.ClientService) error {
+	if override.EmbeddedLabelsAnnotations != nil {
+		copyLabelsAnnotations(&svc.ObjectMeta, *override.EmbeddedLabelsAnnotations)
+	}
+
+	if override.Spec != nil {
+		originalSvcSpec, err := json.Marshal(svc.Spec)
+		if err != nil {
+			return fmt.Errorf("error marshalling Client ServiceSpec: %v", err)
+		}
+
+		patch, err := json.Marshal(override.Spec)
+		if err != nil {
+			return fmt.Errorf("error marshalling Client ServiceSpec override: %v", err)
+		}
+
+		patchedJSON, err := strategicpatch.StrategicMergePatch(originalSvcSpec, patch, corev1.ServiceSpec{})
+		if err != nil {
+			return fmt.Errorf("error patching CLient ServiceSpec: %v", err)
+		}
+
+		patchedSvcSpec := corev1.ServiceSpec{}
+		err = json.Unmarshal(patchedJSON, &patchedSvcSpec)
+		if err != nil {
+			return fmt.Errorf("error unmarshalling patched Client ServiceSpec: %v", err)
+		}
+		svc.Spec = patchedSvcSpec
 	}
 
 	return nil
