@@ -278,7 +278,7 @@ var _ = Context("ClientServices", func() {
 				Expect(svc.Spec.Selector["app.kubernetes.io/name"]).To(Equal(instance.Name))
 			})
 
-			It("sets the onwer reference", func() {
+			It("sets the owner reference", func() {
 				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -400,6 +400,125 @@ var _ = Context("ClientServices", func() {
 				}
 
 				Expect(svc.Spec.Ports).To(ContainElement(expectedServicePort))
+			})
+		})
+
+		When("Override is provided", func() {
+			var (
+				svc            *corev1.Service
+				serviceBuilder *resource.ClientServiceBuilder
+			)
+
+			BeforeEach(func() {
+				serviceBuilder = builder.ClientService()
+				instance = generateRabbitmqCluster()
+
+				svc = &corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "foo-namespace",
+					},
+				}
+			})
+
+			It("overrides clientService.ObjectMeta", func() {
+				instance.Spec.Override.ClientService = &rabbitmqv1beta1.ClientService{
+					EmbeddedLabelsAnnotations: &rabbitmqv1beta1.EmbeddedLabelsAnnotations{
+						Labels: map[string]string{
+							"new-label-key": "new-label-value",
+						},
+						Annotations: map[string]string{
+							"new-key": "new-value",
+						},
+					},
+				}
+
+				err := serviceBuilder.Update(svc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(svc.ObjectMeta.Annotations).To(Equal(map[string]string{"new-key": "new-value"}))
+				Expect(svc.ObjectMeta.Labels).To(Equal(map[string]string{
+					"app.kubernetes.io/name":      instance.Name,
+					"app.kubernetes.io/component": "rabbitmq",
+					"app.kubernetes.io/part-of":   "rabbitmq",
+					"new-label-key":               "new-label-value",
+				}))
+			})
+
+			It("overrides ServiceSpec", func() {
+				var IPv4 corev1.IPFamily = "IPv4"
+				ten := int32(10)
+				instance.Spec.Override.ClientService = &rabbitmqv1beta1.ClientService{
+					Spec: &corev1.ServiceSpec{
+						Ports: []corev1.ServicePort{
+							{
+								Protocol: corev1.ProtocolUDP,
+								Port:     12345,
+								Name:     "my-new-port",
+							},
+						},
+						Selector: map[string]string{
+							"a-selector": "a-label",
+						},
+						Type:                     "NodePort",
+						SessionAffinity:          "ClientIP",
+						LoadBalancerSourceRanges: []string{"1000", "30000"},
+						ExternalName:             "my-external-name",
+						ExternalTrafficPolicy:    corev1.ServiceExternalTrafficPolicyTypeLocal,
+						HealthCheckNodePort:      1234,
+						PublishNotReadyAddresses: false,
+						SessionAffinityConfig: &corev1.SessionAffinityConfig{
+							ClientIP: &corev1.ClientIPConfig{
+								TimeoutSeconds: &ten,
+							},
+						},
+						IPFamily:     &IPv4,
+						TopologyKeys: []string{"a-topology-key"},
+					},
+				}
+
+				err := serviceBuilder.Update(svc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(svc.Spec.Ports).To(ConsistOf(
+					corev1.ServicePort{
+						Name:     "amqp",
+						Port:     5672,
+						Protocol: corev1.ProtocolTCP,
+					},
+					corev1.ServicePort{
+						Name:     "management",
+						Port:     15672,
+						Protocol: corev1.ProtocolTCP,
+					},
+					corev1.ServicePort{
+						Protocol: corev1.ProtocolUDP,
+						Port:     12345,
+						Name:     "my-new-port",
+					},
+				))
+				Expect(svc.Spec.Selector).To(Equal(map[string]string{"a-selector": "a-label", "app.kubernetes.io/name": "foo"}))
+				Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
+				Expect(svc.Spec.SessionAffinity).To(Equal(corev1.ServiceAffinityClientIP))
+				Expect(svc.Spec.LoadBalancerSourceRanges).To(Equal([]string{"1000", "30000"}))
+				Expect(svc.Spec.ExternalName).To(Equal("my-external-name"))
+				Expect(svc.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyTypeLocal))
+				Expect(svc.Spec.HealthCheckNodePort).To(Equal(int32(1234)))
+				Expect(svc.Spec.PublishNotReadyAddresses).To(BeFalse())
+				Expect(*svc.Spec.SessionAffinityConfig.ClientIP.TimeoutSeconds).To(Equal(int32(10)))
+				Expect(*svc.Spec.IPFamily).To(Equal(corev1.IPv4Protocol))
+				Expect(svc.Spec.TopologyKeys).To(Equal([]string{"a-topology-key"}))
+			})
+
+			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {
+				instance.Spec.Service.Type = "LoadBalancer"
+				instance.Spec.Override.ClientService = &rabbitmqv1beta1.ClientService{
+					Spec: &corev1.ServiceSpec{
+						Type: corev1.ServiceTypeNodePort,
+					},
+				}
+
+				err := serviceBuilder.Update(svc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeNodePort))
 			})
 		})
 	})

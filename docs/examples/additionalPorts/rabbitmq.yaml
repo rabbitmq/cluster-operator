@@ -1,0 +1,23 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbit
+spec:
+  replicas: 1
+  override:
+    clientService:
+      spec:
+        ports:
+          - name: additional-port # adds an additional port on the client service
+            protocol: TCP
+            port: 12345
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+              - name: rabbitmq
+                ports:
+                  - containerPort: 12345 # opens an additional port on the rabbitmq server container
+                    name: additional-port
+                    protocol: TCP
