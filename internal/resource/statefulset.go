@@ -163,8 +163,8 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 }
 
 func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.StatefulSet) error {
-	if stsOverride.EmbeddedObjectMeta != nil {
-		copyObjectMeta(&sts.ObjectMeta, *stsOverride.EmbeddedObjectMeta)
+	if stsOverride.EmbeddedLabelsAnnotations != nil {
+		copyLabelsAnnotations(&sts.ObjectMeta, *stsOverride.EmbeddedLabelsAnnotations)
 	}
 
 	if stsOverride.Spec != nil {
@@ -560,6 +560,16 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				},
 			},
 		},
+	}
+}
+
+func copyLabelsAnnotations(base *metav1.ObjectMeta, override rabbitmqv1beta1.EmbeddedLabelsAnnotations) {
+	if override.Labels != nil {
+		base.Labels = mergeMap(base.Labels, override.Labels)
+	}
+
+	if override.Annotations != nil {
+		base.Annotations = mergeMap(base.Annotations, override.Annotations)
 	}
 }
 

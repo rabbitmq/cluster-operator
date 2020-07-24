@@ -423,8 +423,7 @@ var _ = Context("ClientServices", func() {
 
 			It("overrides clientService.ObjectMeta", func() {
 				instance.Spec.Override.ClientService = &rabbitmqv1beta1.ClientService{
-					EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
-						Name: "my-name",
+					EmbeddedLabelsAnnotations: &rabbitmqv1beta1.EmbeddedLabelsAnnotations{
 						Labels: map[string]string{
 							"new-label-key": "new-label-value",
 						},
@@ -436,7 +435,6 @@ var _ = Context("ClientServices", func() {
 
 				err := serviceBuilder.Update(svc)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(svc.Name).To(Equal("my-name"))
 				Expect(svc.ObjectMeta.Annotations).To(Equal(map[string]string{"new-key": "new-value"}))
 				Expect(svc.ObjectMeta.Labels).To(Equal(map[string]string{
 					"app.kubernetes.io/name":      instance.Name,

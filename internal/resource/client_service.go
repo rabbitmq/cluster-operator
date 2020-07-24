@@ -72,8 +72,8 @@ func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
 }
 
 func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.ClientService) error {
-	if override.EmbeddedObjectMeta != nil {
-		copyObjectMeta(&svc.ObjectMeta, *override.EmbeddedObjectMeta)
+	if override.EmbeddedLabelsAnnotations != nil {
+		copyLabelsAnnotations(&svc.ObjectMeta, *override.EmbeddedLabelsAnnotations)
 	}
 
 	if override.Spec != nil {

@@ -71,7 +71,7 @@ type RabbitmqClusterOverrideSpec struct {
 
 type ClientService struct {
 	// +optional
-	*EmbeddedObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	*EmbeddedLabelsAnnotations `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Spec defines the behavior of a service.
 	// https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
@@ -80,7 +80,7 @@ type ClientService struct {
 
 type StatefulSet struct {
 	// +optional
-	*EmbeddedObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	*EmbeddedLabelsAnnotations `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Spec defines the desired identities of pods in this set.
 	// +optional
 	Spec *StatefulSetSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
@@ -144,9 +144,26 @@ type StatefulSetSpec struct {
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty" protobuf:"bytes,7,opt,name=updateStrategy"`
 }
 
+// It is used in ClientService and StatefulSet
+type EmbeddedLabelsAnnotations struct {
+	// Map of string keys and values that can be used to organize and categorize
+	// (scope and select) objects. May match selectors of replication controllers
+	// and services.
+	// More info: http://kubernetes.io/docs/user-guide/labels
+	// +optional
+	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+
+	// Annotations is an unstructured key value map stored with a resource that may be
+	// set by external tools to store and retrieve arbitrary metadata. They are not
+	// queryable and should be preserved when modifying objects.
+	// More info: http://kubernetes.io/docs/user-guide/annotations
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
+}
+
 // EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
 // Only fields which are relevant to embedded resources are included.
-// It is used in StatefulSet, PersistentVolumeClaim, and PodTemplate
+// It is used in PersistentVolumeClaim and PodTemplate
 type EmbeddedObjectMeta struct {
 	// Name must be unique within a namespace. Is required when creating resources, although
 	// some resources may allow a client to request the generation of an appropriate name

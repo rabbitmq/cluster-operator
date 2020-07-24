@@ -635,7 +635,7 @@ spec:
                 clientService:
                   properties:
                     metadata:
-                      description: EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in StatefulSet, PersistentVolumeClaim, and PodTemplate
+                      description: It is used in ClientService, and StatefulSet
                       properties:
                         annotations:
                           additionalProperties:
@@ -647,12 +647,6 @@ spec:
                             type: string
                           description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
                           type: object
-                        name:
-                          description: 'Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/identifiers#names'
-                          type: string
-                        namespace:
-                          description: "Namespace defines the space within each name must be unique. An empty namespace is equivalent to the \"default\" namespace, but \"default\" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty. \n Must be a DNS_LABEL. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/namespaces"
-                          type: string
                       type: object
                     spec:
                       description: Spec defines the behavior of a service. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
@@ -755,7 +749,7 @@ spec:
                 statefulSet:
                   properties:
                     metadata:
-                      description: EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in StatefulSet, PersistentVolumeClaim, and PodTemplate
+                      description: It is used in ClientService, and StatefulSet
                       properties:
                         annotations:
                           additionalProperties:
@@ -767,12 +761,6 @@ spec:
                             type: string
                           description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
                           type: object
-                        name:
-                          description: 'Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/identifiers#names'
-                          type: string
-                        namespace:
-                          description: "Namespace defines the space within each name must be unique. An empty namespace is equivalent to the \"default\" namespace, but \"default\" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty. \n Must be a DNS_LABEL. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/namespaces"
-                          type: string
                       type: object
                     spec:
                       description: Spec defines the desired identities of pods in this set.
