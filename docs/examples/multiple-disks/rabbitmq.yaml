@@ -1,0 +1,65 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: multiple-disks
+spec:
+  replicas: 1
+  rabbitmq:
+    advancedConfig: |
+      [
+          {ra, [
+              {wal_data_dir, '/var/lib/rabbitmq/quorum-wal'}
+          ]}
+      ].
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+              - name: rabbitmq
+                volumeMounts:
+                  - mountPath: /var/lib/rabbitmq/quorum-segments
+                    name: quorum-segments
+                  - mountPath: /var/lib/rabbitmq/quorum-wal
+                    name: quorum-wal
+                env:
+                  - name: RABBITMQ_QUORUM_DIR
+                    value: /var/lib/rabbitmq/quorum-segments
+        volumeClaimTemplates:
+          - apiVersion: v1
+            kind: PersistentVolumeClaim
+            metadata:
+              name: persistence
+              namespace: default
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 10Gi
+              volumeMode: Filesystem
+          - apiVersion: v1
+            kind: PersistentVolumeClaim
+            metadata:
+              name: quorum-wal
+              namespace: default
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 10Gi
+              volumeMode: Filesystem
+          - apiVersion: v1
+            kind: PersistentVolumeClaim
+            metadata:
+              name: quorum-segments
+              namespace: default
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 10Gi
+              volumeMode: Filesystem
