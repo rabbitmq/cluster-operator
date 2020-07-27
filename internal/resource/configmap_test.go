@@ -137,6 +137,19 @@ my-config-property-1 = better-value`
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
 
+		It("creates and populates a rabbitmq-env.conf when envConfig is provided", func() {
+			expectedRabbitmqEnvConf := `USE_LONGNAME=true
+CONSOLE_LOG=new`
+
+			instance.Spec.Rabbitmq.EnvConfig = `USE_LONGNAME=true
+CONSOLE_LOG=new`
+
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			envConf, ok := configMap.Data["rabbitmq-env.conf"]
+			Expect(ok).To(BeTrue())
+			Expect(envConf).To(Equal(expectedRabbitmqEnvConf))
+		})
+
 		Context("TLS", func() {
 			It("adds TLS config when TLS is enabled", func() {
 				instance = rabbitmqv1beta1.RabbitmqCluster{

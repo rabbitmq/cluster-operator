@@ -9,9 +9,10 @@
 package v1beta1
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
 	"reflect"
 	"strings"
+
+	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	corev1 "k8s.io/api/core/v1"
@@ -246,6 +247,9 @@ type RabbitmqClusterConfigurationSpec struct {
 	// Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modify this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
 	// +kubebuilder:validation:MaxLength:=2000
 	AdditionalConfig string `json:"additionalConfig,omitempty"`
+	// Modify to add to the rabbitmq-env.conf file. Modify this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
+	// +kubebuilder:validation:MaxLength:=100000
+	EnvConfig string `json:"envConfig,omitempty"`
 }
 
 // The settings for the persistent storage desired for each Pod in the RabbitmqCluster.

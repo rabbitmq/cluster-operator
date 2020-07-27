@@ -78,6 +78,10 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	if builder.Instance.Spec.Rabbitmq.AdditionalConfig != "" {
 		configMap.Data["rabbitmq.conf"] = configMap.Data["rabbitmq.conf"] + builder.Instance.Spec.Rabbitmq.AdditionalConfig
 	}
+
+	if builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
+		configMap.Data["rabbitmq-env.conf"] = builder.Instance.Spec.Rabbitmq.EnvConfig
+	}
 	return nil
 }
 
