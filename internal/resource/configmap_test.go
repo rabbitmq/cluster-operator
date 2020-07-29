@@ -60,7 +60,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				"rabbitmq_management]."
 
 			plugins, ok := configMap.Data["enabled_plugins"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'enabled_plugins' should be present")
 			Expect(plugins).To(Equal(expectedEnabledPlugins))
 		})
 
@@ -111,7 +111,7 @@ queue_master_locator = min-masters
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 			Expect(rabbitmqConf).To(Equal(defaultRabbitmqConf))
 		})
 
@@ -133,7 +133,7 @@ my-config-property-1 = better-value`
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
 		})
 
@@ -144,7 +144,7 @@ my-config-property-1 = better-value`
 ].`
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			advancedConfig, ok := configMap.Data["advanced.config"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'advanced.config' should be present")
 			Expect(advancedConfig).To(Equal("\n[\n  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}\n]."))
 
 		})
@@ -164,7 +164,7 @@ my-config-property-1 = better-value`
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-				Expect(ok).To(BeTrue())
+				Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 				Expect(rabbitmqConf).To(ContainSubstring(`
 ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
@@ -189,7 +189,7 @@ listeners.ssl.default=5671
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-				Expect(ok).To(BeTrue())
+				Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 				Expect(rabbitmqConf).To(ContainSubstring(`
 ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
