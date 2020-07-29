@@ -175,6 +175,25 @@ cluster_keepalive_interval = 10000`
 				Expect(string(output)).Should(ContainSubstring("cluster_partition_handling = ignore"))
 			})
 
+			By("updating the advanced.config file when advancedConfig are modifed", func() {
+				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+					cluster.Spec.Rabbitmq.AdvancedConfig = `[
+  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
+].`
+				})).To(Succeed())
+
+				// wait for statefulSet to be restarted
+				waitForRabbitmqUpdate(cluster)
+
+				output, err := kubectlExec(namespace,
+					statefulSetPodName(cluster, 0),
+					"cat",
+					"/etc/rabbitmq/advanced.config",
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(output)).Should(ContainSubstring("[\n  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}\n]."))
+			})
+
 			By("updating the rabbitmq-env.conf file when additionalConfig are modified", func() {
 				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.EnvConfig = `USE_LONGNAME=true

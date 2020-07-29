@@ -30,6 +30,7 @@ cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling = pause_minority
 queue_master_locator = min-masters
 `
+
 	defaultTLSConf = `
 ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
@@ -61,27 +62,49 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	configMap.Annotations = metadata.ReconcileAndFilterAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
+
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
 	}
-	configMap.Data["rabbitmq.conf"] = defaultRabbitmqConf
+
+	var rmqConfBuilder strings.Builder
+
+	_, err := fmt.Fprintf(&rmqConfBuilder, "%scluster_name = %s\n", defaultRabbitmqConf, builder.Instance.Name)
+	if err != nil {
+		return err
+	}
+
 	if builder.Instance.TLSEnabled() {
-		configMap.Data["rabbitmq.conf"] = configMap.Data["rabbitmq.conf"] + defaultTLSConf
+		_, err := rmqConfBuilder.WriteString(defaultTLSConf)
+		if err != nil {
+			return err
+		}
 	}
 
 	if builder.Instance.MutualTLSEnabled() {
-		configMap.Data["rabbitmq.conf"] = configMap.Data["rabbitmq.conf"] + fmt.Sprintln("ssl_options.cacertfile=/etc/rabbitmq-tls/"+builder.Instance.Spec.TLS.CaCertName) + defaultMutualTLSConf
+		fmt.Fprintf(&rmqConfBuilder, "%s%s\n%s", "ssl_options.cacertfile=/etc/rabbitmq-tls/",
+			builder.Instance.Spec.TLS.CaCertName,
+			defaultMutualTLSConf)
 	}
 
 	// rabbitmq.conf takes the last provided value when multiple values of the same key are specified
 	// do not need to deduplicate keys to allow overwrite
 	if builder.Instance.Spec.Rabbitmq.AdditionalConfig != "" {
-		configMap.Data["rabbitmq.conf"] = configMap.Data["rabbitmq.conf"] + builder.Instance.Spec.Rabbitmq.AdditionalConfig
+		_, err := rmqConfBuilder.WriteString(builder.Instance.Spec.Rabbitmq.AdditionalConfig)
+		if err != nil {
+			return err
+		}
+	}
+
+	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" {
+		configMap.Data["advanced.config"] = builder.Instance.Spec.Rabbitmq.AdvancedConfig
 	}
 
 	if builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
 		configMap.Data["rabbitmq-env.conf"] = builder.Instance.Spec.Rabbitmq.EnvConfig
 	}
+
+	configMap.Data["rabbitmq.conf"] = rmqConfBuilder.String()
 	return nil
 }
 

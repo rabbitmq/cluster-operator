@@ -60,7 +60,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				"rabbitmq_management]."
 
 			plugins, ok := configMap.Data["enabled_plugins"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'enabled_plugins' should be present")
 			Expect(plugins).To(Equal(expectedEnabledPlugins))
 		})
 
@@ -99,6 +99,15 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			}
 		})
 
+		It("returns a property 'cluster_name' with CR name as value in the default rabbitmq conf", func() {
+			// Making explicit that the CR does not have additional config and we are expecting the default
+			builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			Expect(configMap.Data).To(HaveKey("rabbitmq.conf"))
+			expectedProperty := "cluster_name = " + builder.Instance.Name
+			Expect(configMap.Data["rabbitmq.conf"]).To(ContainSubstring(expectedProperty))
+		})
+
 		It("returns the default rabbitmq conf when additionalConfig is not provided", func() {
 			defaultRabbitmqConf := `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host = kubernetes.default
@@ -107,11 +116,11 @@ cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling = pause_minority
 queue_master_locator = min-masters
-`
+cluster_name = ` + builder.Instance.Name + "\n"
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 			Expect(rabbitmqConf).To(Equal(defaultRabbitmqConf))
 		})
 
@@ -123,7 +132,8 @@ cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling = pause_minority
 queue_master_locator = min-masters
-cluster_formation.peer_discovery_backend = my-backend
+cluster_name = ` + builder.Instance.Name + "\n" +
+				`cluster_formation.peer_discovery_backend = my-backend
 my-config-property-0 = great-value
 my-config-property-1 = better-value`
 
@@ -133,8 +143,20 @@ my-config-property-1 = better-value`
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
+		})
+
+		It("sets data.advancedConfig when provided", func() {
+			instance.Spec.Rabbitmq.AdvancedConfig = `
+[
+  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
+].`
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			advancedConfig, ok := configMap.Data["advanced.config"]
+			Expect(ok).To(BeTrue(), "key 'advanced.config' should be present")
+			Expect(advancedConfig).To(Equal("\n[\n  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}\n]."))
+
 		})
 
 		It("creates and populates a rabbitmq-env.conf when envConfig is provided", func() {
@@ -165,7 +187,7 @@ CONSOLE_LOG=new`
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-				Expect(ok).To(BeTrue())
+				Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 				Expect(rabbitmqConf).To(ContainSubstring(`
 ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
@@ -190,7 +212,7 @@ listeners.ssl.default=5671
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-				Expect(ok).To(BeTrue())
+				Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 				Expect(rabbitmqConf).To(ContainSubstring(`
 ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
