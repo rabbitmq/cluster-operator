@@ -99,6 +99,15 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			}
 		})
 
+		It("returns a property 'cluster_name' with CR name as value in the default rabbitmq conf", func() {
+			// Making explicit that the CR does not have additional config and we are expecting the default
+			builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			Expect(configMap.Data).To(HaveKey("rabbitmq.conf"))
+			expectedProperty := "cluster_name = " + builder.Instance.Name
+			Expect(configMap.Data["rabbitmq.conf"]).To(ContainSubstring(expectedProperty))
+		})
+
 		It("returns the default rabbitmq conf when additionalConfig is not provided", func() {
 			defaultRabbitmqConf := `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host = kubernetes.default
@@ -107,7 +116,7 @@ cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling = pause_minority
 queue_master_locator = min-masters
-`
+cluster_name = ` + builder.Instance.Name + "\n"
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
@@ -123,7 +132,8 @@ cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling = pause_minority
 queue_master_locator = min-masters
-cluster_formation.peer_discovery_backend = my-backend
+cluster_name = ` + builder.Instance.Name + "\n" +
+				`cluster_formation.peer_discovery_backend = my-backend
 my-config-property-0 = great-value
 my-config-property-1 = better-value`
 
