@@ -38,14 +38,10 @@ spec:
       description: RabbitmqCluster is the Schema for the rabbitmqclusters API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -635,7 +631,7 @@ spec:
                 clientService:
                   properties:
                     metadata:
-                      description: It is used in ClientService, and StatefulSet
+                      description: It is used in ClientService and StatefulSet
                       properties:
                         annotations:
                           additionalProperties:
@@ -762,6 +758,23 @@ spec:
                           description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
                           type: object
                       type: object
+                  type: object
+                statefulSet:
+                  properties:
+                    metadata:
+                      description: It is used in ClientService and StatefulSet
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          description: 'Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations'
+                          type: object
+                        labels:
+                          additionalProperties:
+                            type: string
+                          description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+                          type: object
+                      type: object
                     spec:
                       description: Spec defines the desired identities of pods in this set.
                       properties:
@@ -809,7 +822,7 @@ spec:
                           description: template is the object that describes the pod that will be created if insufficient replicas are detected. Each pod stamped out by the StatefulSet will fulfill this Template, but have a unique identity from the rest of the StatefulSet.
                           properties:
                             metadata:
-                              description: EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in StatefulSet, PersistentVolumeClaim, and PodTemplate
+                              description: EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in PersistentVolumeClaim and PodTemplate
                               properties:
                                 annotations:
                                   additionalProperties:
@@ -4432,7 +4445,7 @@ spec:
                                 description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
                                 type: string
                               metadata:
-                                description: EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in StatefulSet, PersistentVolumeClaim, and PodTemplate
+                                description: EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in PersistentVolumeClaim and PodTemplate
                                 properties:
                                   annotations:
                                     additionalProperties:
@@ -4581,6 +4594,10 @@ spec:
                     type: string
                   maxItems: 100
                   type: array
+                advancedConfig:
+                  description: Specify any rabbitmq advanced.config configurations
+                  maxLength: 100000
+                  type: string
               type: object
             replicas:
               description: Replicas is the number of nodes in the RabbitMQ cluster.

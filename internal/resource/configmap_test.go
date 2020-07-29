@@ -60,7 +60,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				"rabbitmq_management]."
 
 			plugins, ok := configMap.Data["enabled_plugins"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'enabled_plugins' should be present")
 			Expect(plugins).To(Equal(expectedEnabledPlugins))
 		})
 
@@ -120,7 +120,7 @@ cluster_name = ` + builder.Instance.Name + "\n"
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 			Expect(rabbitmqConf).To(Equal(defaultRabbitmqConf))
 		})
 
@@ -143,8 +143,20 @@ my-config-property-1 = better-value`
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
+		})
+
+		It("sets data.advancedConfig when provided", func() {
+			instance.Spec.Rabbitmq.AdvancedConfig = `
+[
+  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
+].`
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			advancedConfig, ok := configMap.Data["advanced.config"]
+			Expect(ok).To(BeTrue(), "key 'advanced.config' should be present")
+			Expect(advancedConfig).To(Equal("\n[\n  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}\n]."))
+
 		})
 
 		Context("TLS", func() {
@@ -162,7 +174,7 @@ my-config-property-1 = better-value`
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-				Expect(ok).To(BeTrue())
+				Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 				Expect(rabbitmqConf).To(ContainSubstring(`
 ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
@@ -187,7 +199,7 @@ listeners.ssl.default=5671
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-				Expect(ok).To(BeTrue())
+				Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
 				Expect(rabbitmqConf).To(ContainSubstring(`
 ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile=/etc/rabbitmq-tls/tls.key

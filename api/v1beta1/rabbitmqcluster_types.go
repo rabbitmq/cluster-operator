@@ -246,6 +246,9 @@ type RabbitmqClusterConfigurationSpec struct {
 	// Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modify this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
 	// +kubebuilder:validation:MaxLength:=2000
 	AdditionalConfig string `json:"additionalConfig,omitempty"`
+	// Specify any rabbitmq advanced.config configurations
+	// +kubebuilder:validation:MaxLength:=100000
+	AdvancedConfig string `json:"advancedConfig,omitempty"`
 }
 
 // The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
