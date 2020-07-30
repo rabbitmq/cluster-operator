@@ -172,6 +172,12 @@ CONSOLE_LOG=new`
 			Expect(envConf).To(Equal(expectedRabbitmqEnvConf))
 		})
 
+		It("does not populate rabbitmq-env.conf when envConfig is nil", func() {
+			instance.Spec.Rabbitmq.EnvConfig = ""
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			Expect(configMap.Data).ToNot(HaveKey("rabbitmq-env.conf"))
+		})
+
 		Context("TLS", func() {
 			It("adds TLS config when TLS is enabled", func() {
 				instance = rabbitmqv1beta1.RabbitmqCluster{
