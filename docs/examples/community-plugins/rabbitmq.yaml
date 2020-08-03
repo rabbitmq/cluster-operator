@@ -1,0 +1,43 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: community-plugins
+spec:
+  replicas: 1
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+              - name: rabbitmq
+                volumeMounts:
+                  - mountPath: /opt/rabbitmq/community-plugins
+                    name: community-plugins
+            volumes:
+              - name: community-plugins
+                emptyDir: {}
+            initContainers:
+              - command:
+                  - sh
+                  - -c
+                  - curl -L -v https://github.com/rabbitmq/rabbitmq-message-timestamp/releases/download/v3.8.0/rabbitmq_message_timestamp-3.8.0.ez --output /community-plugins/rabbitmq_message_timestamp-3.8.0.ez
+                image: curlimages/curl
+                imagePullPolicy: IfNotPresent
+                name: copy-community-plugins
+                resources:
+                  limits:
+                    cpu: 100m
+                    memory: 500Mi
+                  requests:
+                    cpu: 100m
+                    memory: 500Mi
+                terminationMessagePolicy: FallbackToLogsOnError
+                volumeMounts:
+                  - mountPath: /community-plugins/
+                    name: community-plugins
+  rabbitmq:
+    additionalPlugins:
+      - rabbitmq_message_timestamp
+    envConfig: |
+      PLUGINS_DIR=/opt/rabbitmq/plugins:/opt/rabbitmq/community-plugins
