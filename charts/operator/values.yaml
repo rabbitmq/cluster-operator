@@ -8,13 +8,13 @@
 #
 
 global:
-  imageRegistry: myregistry.com
-  # These are credentials to myregistry.com
+  # provide these values if you want to pull the image from a local registry
+  imageRegistry:
   imageUsername:
   imagePassword:
 images:
   operator:
-    name: myregistry.com/rabbitmq-cluster-operator
+    name: rabbitmqoperator/rabbitmq-cluster-kubernetes-operator
     tag: "latest"
 leaseDuration:
 retryPeriod:
