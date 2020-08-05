@@ -9,9 +9,10 @@
 package v1beta1
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
 	"reflect"
 	"strings"
+
+	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
 	corev1 "k8s.io/api/core/v1"
@@ -227,9 +228,14 @@ type PersistentVolumeClaim struct {
 }
 
 type TLSSpec struct {
-	SecretName   string `json:"secretName,omitempty"`
+	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the server's private key & public certificate for TLS.
+	// The Secret must store these as tls.key and tls.crt, respectively.
+	SecretName string `json:"secretName,omitempty"`
+	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS.
+	// This Secret can be the same Secret as specified in SecretName.
 	CaSecretName string `json:"caSecretName,omitempty"`
-	CaCertName   string `json:"caCertName,omitempty"`
+	// The Secret defined in CaSecretName must store the Certificate Authority's public certificate under the key specified in CaCertName.
+	CaCertName string `json:"caCertName,omitempty"`
 }
 
 // kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.
