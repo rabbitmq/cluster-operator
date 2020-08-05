@@ -159,23 +159,23 @@ my-config-property-1 = better-value`
 
 		})
 
-		It("creates and populates a rabbitmq-env.conf when envConfig is provided", func() {
-			expectedRabbitmqEnvConf := `USE_LONGNAME=true
+		Context("rabbitmq-env.conf", func() {
+			It("creates and populates a rabbitmq-env.conf when envConfig is provided", func() {
+				expectedRabbitmqEnvConf := `USE_LONGNAME=true
 CONSOLE_LOG=new`
 
-			instance.Spec.Rabbitmq.EnvConfig = `USE_LONGNAME=true
+				instance.Spec.Rabbitmq.EnvConfig = `USE_LONGNAME=true
 CONSOLE_LOG=new`
 
-			Expect(configMapBuilder.Update(configMap)).To(Succeed())
-			envConf, ok := configMap.Data["rabbitmq-env.conf"]
-			Expect(ok).To(BeTrue())
-			Expect(envConf).To(Equal(expectedRabbitmqEnvConf))
-		})
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq-env.conf", expectedRabbitmqEnvConf))
+			})
 
-		It("does not populate rabbitmq-env.conf when envConfig is nil", func() {
-			instance.Spec.Rabbitmq.EnvConfig = ""
-			Expect(configMapBuilder.Update(configMap)).To(Succeed())
-			Expect(configMap.Data).ToNot(HaveKey("rabbitmq-env.conf"))
+			It("populates rabbitmq-env.conf to empty string when envConfig is empty", func() {
+				instance.Spec.Rabbitmq.EnvConfig = ""
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq-env.conf", ""))
+			})
 		})
 
 		Context("TLS", func() {

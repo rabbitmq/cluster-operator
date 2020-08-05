@@ -100,9 +100,7 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		configMap.Data["advanced.config"] = builder.Instance.Spec.Rabbitmq.AdvancedConfig
 	}
 
-	if builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
-		configMap.Data["rabbitmq-env.conf"] = builder.Instance.Spec.Rabbitmq.EnvConfig
-	}
+	configMap.Data["rabbitmq-env.conf"] = builder.Instance.Spec.Rabbitmq.EnvConfig
 
 	configMap.Data["rabbitmq.conf"] = rmqConfBuilder.String()
 	return nil
