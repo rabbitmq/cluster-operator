@@ -1,6 +1,6 @@
 # TLS Example
 
-You can enable TLS by setting `.spec.tls` to the name of a secret containing TLS certificate and key.
+You can enable TLS by setting `.spec.tls.secretName` to the name of a secret containing TLS certificate and key.
 
 First, you need to create a secret like this (assuming you already have `server.pem` and `server-key.pem` files):
 
