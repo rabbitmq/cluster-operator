@@ -59,9 +59,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				"rabbitmq_prometheus," +
 				"rabbitmq_management]."
 
-			plugins, ok := configMap.Data["enabled_plugins"]
-			Expect(ok).To(BeTrue(), "key 'enabled_plugins' should be present")
-			Expect(plugins).To(Equal(expectedEnabledPlugins))
+			Expect(configMap.Data).To(HaveKeyWithValue("enabled_plugins", expectedEnabledPlugins))
 		})
 
 		When("additionalPlugins are provided in instance spec", func() {
@@ -79,10 +77,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				obj, err := configMapBuilder.Build()
 				configMap = obj.(*corev1.ConfigMap)
 				Expect(err).NotTo(HaveOccurred())
-
-				plugins, ok := configMap.Data["enabled_plugins"]
-				Expect(ok).To(BeTrue())
-				Expect(plugins).To(Equal(expectedEnabledPlugins))
+				Expect(configMap.Data).To(HaveKeyWithValue("enabled_plugins", expectedEnabledPlugins))
 			})
 		})
 	})
@@ -119,9 +114,7 @@ queue_master_locator = min-masters
 cluster_name = ` + builder.Instance.Name + "\n"
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
-			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-			Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
-			Expect(rabbitmqConf).To(Equal(defaultRabbitmqConf))
+			Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", defaultRabbitmqConf))
 		})
 
 		It("appends configurations to the default rabbitmq.conf when additionalConfig is provided", func() {
@@ -142,21 +135,24 @@ my-config-property-0 = great-value
 my-config-property-1 = better-value`
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
-			rabbitmqConf, ok := configMap.Data["rabbitmq.conf"]
-			Expect(ok).To(BeTrue(), "key 'rabbitmq.conf' should be present")
-			Expect(rabbitmqConf).To(Equal(expectedRabbitmqConf))
+			Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
 		})
 
-		It("sets data.advancedConfig when provided", func() {
-			instance.Spec.Rabbitmq.AdvancedConfig = `
+		Context("advanced.config", func() {
+			It("sets data.advancedConfig when provided", func() {
+				instance.Spec.Rabbitmq.AdvancedConfig = `
 [
   {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
 ].`
-			Expect(configMapBuilder.Update(configMap)).To(Succeed())
-			advancedConfig, ok := configMap.Data["advanced.config"]
-			Expect(ok).To(BeTrue(), "key 'advanced.config' should be present")
-			Expect(advancedConfig).To(Equal("\n[\n  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}\n]."))
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("advanced.config", "\n[\n  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}\n]."))
+			})
 
+			It("does set data.advancedConfig when empty", func() {
+				instance.Spec.Rabbitmq.AdvancedConfig = ""
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).ToNot(HaveKey("advanced.config"))
+			})
 		})
 
 		Context("rabbitmq-env.conf", func() {
