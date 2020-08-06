@@ -187,7 +187,22 @@ CONSOLE_LOG=new`
 			It("populates rabbitmq-env.conf to empty string when envConfig is empty", func() {
 				instance.Spec.Rabbitmq.EnvConfig = ""
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq-env.conf", ""))
+				Expect(configMap.Data).ToNot(HaveKey("rabbitmq-env.conf"))
+			})
+
+			Context("rabbitmq-env.conf is set", func() {
+				When("new envConf is empty", func() {
+					It("removes rabbitmq-env.conf key from configMap", func() {
+						instance.Spec.Rabbitmq.EnvConfig = `USE_LONGNAME=true`
+
+						Expect(configMapBuilder.Update(configMap)).To(Succeed())
+						Expect(configMap.Data).To(HaveKey("rabbitmq-env.conf"))
+
+						instance.Spec.Rabbitmq.EnvConfig = ""
+						Expect(configMapBuilder.Update(configMap)).To(Succeed())
+						Expect(configMap.Data).ToNot(HaveKey("rabbitmq-env.conf"))
+					})
+				})
 			})
 		})
 
