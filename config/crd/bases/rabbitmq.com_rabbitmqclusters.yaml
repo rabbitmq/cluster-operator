@@ -4577,7 +4577,7 @@ spec:
               properties:
                 additionalConfig:
                   description: Modify to add to the rabbitmq.conf file in addition
-                    to default configurations set by the operator. Modify this property
+                    to default configurations set by the operator. Modifying this property
                     on an existing RabbitmqCluster will trigger a StatefulSet rolling
                     restart and will cause rabbitmq downtime.
                   maxLength: 2000
@@ -4596,6 +4596,12 @@ spec:
                   type: array
                 advancedConfig:
                   description: Specify any rabbitmq advanced.config configurations
+                  maxLength: 100000
+                  type: string
+                envConfig:
+                  description: Modify to add to the rabbitmq-env.conf file. Modifying
+                    this property on an existing RabbitmqCluster will trigger a StatefulSet
+                    rolling restart and will cause rabbitmq downtime.
                   maxLength: 100000
                   type: string
               type: object

@@ -87,19 +87,21 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 			defaultMutualTLSConf)
 	}
 
+	rmqProperties := builder.Instance.Spec.Rabbitmq
 	// rabbitmq.conf takes the last provided value when multiple values of the same key are specified
 	// do not need to deduplicate keys to allow overwrite
-	if builder.Instance.Spec.Rabbitmq.AdditionalConfig != "" {
-		_, err := rmqConfBuilder.WriteString(builder.Instance.Spec.Rabbitmq.AdditionalConfig)
+	if rmqProperties.AdditionalConfig != "" {
+		_, err := rmqConfBuilder.WriteString(rmqProperties.AdditionalConfig)
 		if err != nil {
 			return err
 		}
 	}
 
-	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" {
-		configMap.Data["advanced.config"] = builder.Instance.Spec.Rabbitmq.AdvancedConfig
-	}
 	configMap.Data["rabbitmq.conf"] = rmqConfBuilder.String()
+
+	updateProperty(configMap.Data, "advanced.config", rmqProperties.AdvancedConfig)
+	updateProperty(configMap.Data, "rabbitmq-env.conf", rmqProperties.EnvConfig)
+
 	return nil
 }
 
@@ -131,4 +133,12 @@ func AppendIfUnique(a []string, b []rabbitmqv1beta1.Plugin) []string {
 		}
 	}
 	return set
+}
+
+func updateProperty(configMapData map[string]string, key string, value string) {
+	if value == "" {
+		delete(configMapData, key)
+	} else {
+		configMapData[key] = value
+	}
 }

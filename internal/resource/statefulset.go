@@ -449,6 +449,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					Command: []string{
 						"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
 							"cp /tmp/rabbitmq/advanced.config /etc/rabbitmq/advanced.config ; " +
+							"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf ; " +
 							"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +

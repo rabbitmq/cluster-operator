@@ -193,6 +193,26 @@ cluster_keepalive_interval = 10000`
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(output)).Should(ContainSubstring("[\n  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}\n]."))
 			})
+
+			By("updating the rabbitmq-env.conf file when additionalConfig are modified", func() {
+				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+					cluster.Spec.Rabbitmq.EnvConfig = `USE_LONGNAME=true
+CONSOLE_LOG=new`
+				})).To(Succeed())
+
+				// wait for statefulSet to be restarted
+				waitForRabbitmqUpdate(cluster)
+
+				// verify that rabbitmq-env.conf contains provided configurations
+				output, err := kubectlExec(namespace,
+					statefulSetPodName(cluster, 0),
+					"cat",
+					"/etc/rabbitmq/rabbitmq-env.conf",
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(output)).Should(ContainSubstring("USE_LONGNAME=true"))
+				Expect(string(output)).Should(ContainSubstring("CONSOLE_LOG=new"))
+			})
 		})
 	})
 
