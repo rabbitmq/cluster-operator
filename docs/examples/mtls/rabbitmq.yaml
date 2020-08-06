@@ -1,0 +1,10 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: mtls
+spec:
+  replicas: 1
+  tls:
+    secretName: tls-secret
+    caSecretName: ca-secret
+    caCertName: ca.crt
