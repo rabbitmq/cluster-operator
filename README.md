@@ -45,10 +45,13 @@ under `site/kubernetes`.
 #### Required environment variables
 
 - DOCKER_REGISTRY_SERVER: URL of docker registry containing the Operator image (e.g. `registry.my-company.com`)
+- OPERATOR_IMAGE: path to the Operator image within the registry specified in DOCKER_REGISTRY_SERVER (e.g. `rabbitmq/cluster-operator`). Note: OPERATOR_IMAGE should **not** include a leading slash (`/`)
+
+When running `make deploy-dev`, additionally:
+
 - DOCKER_REGISTRY_USERNAME: Username for accessing the docker registry
 - DOCKER_REGISTRY_PASSWORD: Password for accessing the docker registry
 - DOCKER_REGISTRY_SECRET: Name of Kubernetes secret in which to store the Docker registry username and password
-- OPERATOR_IMAGE: path to the Operator image within the registry specified in DOCKER_REGISTRY_SERVER (e.g. `rabbitmq/cluster-operator`). Note: OPERATOR_IMAGE should **not** include a leading slash (`/`)
 
 #### Make targets
 
