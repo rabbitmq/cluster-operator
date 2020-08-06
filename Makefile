@@ -14,7 +14,6 @@ list:    ## list Makefile targets
 unit-tests: generate fmt vet manifests ## Run unit tests
 	ginkgo -r api/ internal/
 
-
 integration-tests: generate fmt vet manifests ## Run integration tests
 	ginkgo -r controllers/
 
@@ -138,7 +137,6 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services
 
 system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
 	NAMESPACE="rabbitmq-system" ginkgo -nodes=3 -randomizeAllSpecs -r system_tests/
-
 
 docker-registry-secret: operator-namespace
 	echo "creating registry secret and patching default service account"
