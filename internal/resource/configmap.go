@@ -96,7 +96,9 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		}
 	}
 
-	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" {
+	if builder.Instance.Spec.Rabbitmq.AdvancedConfig == "" {
+		delete(configMap.Data, "advanced.config")
+	} else {
 		configMap.Data["advanced.config"] = builder.Instance.Spec.Rabbitmq.AdvancedConfig
 	}
 

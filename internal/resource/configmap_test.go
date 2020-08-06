@@ -153,6 +153,23 @@ my-config-property-1 = better-value`
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).ToNot(HaveKey("advanced.config"))
 			})
+
+			Context("advanced.config is set", func() {
+				When("new advanced.config is empty", func() {
+					It("removes advanced.config key from configMap", func() {
+						instance.Spec.Rabbitmq.AdvancedConfig = `
+[
+  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
+].`
+						Expect(configMapBuilder.Update(configMap)).To(Succeed())
+						Expect(configMap.Data).To(HaveKey("advanced.config"))
+
+						instance.Spec.Rabbitmq.AdvancedConfig = ""
+						Expect(configMapBuilder.Update(configMap)).To(Succeed())
+						Expect(configMap.Data).ToNot(HaveKey("advanced.config"))
+					})
+				})
+			})
 		})
 
 		Context("rabbitmq-env.conf", func() {
