@@ -21,35 +21,39 @@ see-also:
 
 ## Table of Contents
 
-A table of contents is helpful for quickly jumping to sections of a proposal and for highlighting
-any additional information provided beyond the standard proposal template.
-[Tools for generating](https://github.com/ekalinin/github-markdown-toc) a table of contents from markdown are available.
+<!--ts-->
+   * [RabbitMQ Cluster Operator Versioning &amp; Release Strategy](#rabbitmq-cluster-operator-versioning--release-strategy)
+      * [Table of Contents](#table-of-contents)
+      * [Glossary](#glossary)
+         * [Preferred / Storage version](#preferred--storage-version)
+      * [Summary](#summary)
+      * [Motivation](#motivation)
+         * [Goals](#goals)
+            * [Discovery](#discovery)
+            * [Comprehension](#comprehension)
+            * [Support](#support)
+            * [Consumption](#consumption)
+         * [Non-Goals/Future Work](#non-goalsfuture-work)
+      * [Versioning of related software &amp; dependencies](#versioning-of-related-software--dependencies)
+         * [RabbitMQ](#rabbitmq)
+         * [Kubernetes &amp; components](#kubernetes--components)
+         * [Other operators](#other-operators)
+      * [Options](#options)
+         * [Release per-commit](#release-per-commit)
+         * [SemVer](#semver)
+         * [FerVer](#ferver)
+         * [CalVer](#calver)
+      * [Proposal - versioning](#proposal---versioning)
+         * [Alternatives](#alternatives)
+      * [Proposal - releasing](#proposal---releasing)
+      * [User Stories](#user-stories)
+         * [Story 1 - New patch release of RabbitMQ](#story-1---new-patch-release-of-rabbitmq)
+         * [Story 2 - New minor release of RabbitMQ](#story-2---new-minor-release-of-rabbitmq)
+      * [Implementation History](#implementation-history)
 
-- [Title](#title)
-  - [Table of Contents](#table-of-contents)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Goals](#goals)
-    - [Non-Goals](#non-goals)
-  - [Proposal](#proposal)
-    - [User Stories [optional]](#user-stories-optional)
-      - [Story 1](#story-1)
-      - [Story 2](#story-2)
-    - [Implementation Details/Notes/Constraints [optional]](#implementation-detailsnotesconstraints-optional)
-    - [Risks and Mitigations](#risks-and-mitigations)
-  - [Design Details](#design-details)
-    - [Test Plan](#test-plan)
-    - [Graduation Criteria](#graduation-criteria)
-      - [Examples](#examples)
-        - [Alpha -> Beta Graduation](#alpha---beta-graduation)
-        - [Beta -> GA Graduation](#beta---ga-graduation)
-        - [Removing a deprecated flag](#removing-a-deprecated-flag)
-    - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
-    - [Version Skew Strategy](#version-skew-strategy)
-  - [Implementation History](#implementation-history)
-  - [Drawbacks [optional]](#drawbacks-optional)
-  - [Alternatives [optional]](#alternatives-optional)
-  - [Infrastructure Needed [optional]](#infrastructure-needed-optional)
+<!-- Added by: conno, at: Fri Aug  7 14:37:52 UTC 2020 -->
+
+<!--te-->
 
 ## Glossary
 
@@ -110,7 +114,6 @@ This proposal deliberately avoids the term 'best practice'. This is for two reas
 - Consistency with similar software is definitely an advantage to reduce confusion of a user, however is not the only consideration to be made
 - Best practices do not remain 'best' forever
 
-
 ## Versioning of related software & dependencies
 
 ### RabbitMQ
@@ -134,7 +137,9 @@ After scrolling through [OperatorHub.io](https://operatorhub.io/), it appears th
 
 ### Release per-commit
 
-### CalVer
+Currently, at least internally, we generate a new release per-commit. This involves tagging the operator Docker image for every commit to this repo. As more people try out the operator, the ability to
+help any people who encounter issues is hindered by this approach - instead of asking what version they are on, we have to find out a whole SHA of the commit. It also becomes difficult to offer
+technical support in the way of fixes, save for simply asking them to upgrade (we're not going to fork off every commit and backport fixes!).
 
 ### SemVer
 
@@ -142,42 +147,126 @@ After scrolling through [OperatorHub.io](https://operatorhub.io/), it appears th
 theoretically one could automatically consume any MINOR or PATCH changes without fear of breakages. The model of SemVer works well where there is a use case for maintainance branches of code; it is theoretically possible that any MINOR or PATCH
 changes can be backported over to old MAJOR versions of the software.
 
-One issue with SemVer is that it attempts to give equal weight to all breaking changes, resulting in major version explosion. Due to commercial support policies, this may result in the required support of many major versions of a product.
-It also makes it harder to ship small improvements that require interface changes. Consider what a MAJOR version change might look like in the operator. At the very least, with Kubernetes cluster versions being deprecated quarterly,
-the operator arguably would need a MAJOR version change every quarter to correctly inform of breaking changes. 
+SemVer is certainly ambitious. [Critics of the versioning system](https://gist.github.com/jashkenas/cbd2b088e20279ae2c8e) claim it attempts to compress too much contextual information about changes into a single number change,
+ultimately misleading the consumers of the software by providing false confidence in especially MINOR changes. There is an implicit association of 3-digit versioning with SemVer, meaning that regardless of if a project follows
+SemVer or not, there is a likelihood that consumers of the software will draw conclusions about whether they can upgrade safely from this version number, without reading the changelog.
 
+One issue with SemVer is that it attempts to give equal weight to all breaking changes, resulting in major version explosion. If a piece of software introduces a change that breaks
+only 5% of users, SemVer would have that be a MAJOR version bump. This would be true even if no-one used the feature that was being removed in a breaking fashion.
+The Kuberenetes API allows us to create and deprecate API versions as often we please (provided we continue to support them for a fixed term after announcing deprecation).
 
+Following strict-SemVer, every time we remove one of these, it's a MAJOR change, even if it's a beta API group.
+Due to commercial support policies, this may result in the required support of many major versions of a product at a time.
 
-## Proposal
+Perhaps this is why many operators remain in a v0.x.x state - the benefit of being able to ship useful changes without hindrance of maintaining old MAJOR versions is appealing, however one must question if these projects
+are actually gaining any benefit from SemVer at all in such a state.
 
+Ultimately, if the operator uses a SemVer-like versioning system, it runs the risk of confusing users. If the operator bumped the default RabbitMQ image from 3.8.3 to 3.8.4, strict-SemVer would result in a MAJOR
+version change of the operator, since a small number of users may experience a breaking change. However, it would be surprising for a user to look at the changelog and see the only difference was a PATCH version bump
+in RabbitMQ, and a nightmare for developers to attempt to maintain many MAJOR branches every time a sometimes-breaking change came out. Would a user bump from operator version 1.2.3 to 2.0.0 based solely on the version number?
+Probably not. Would they if they knew that the bump resulted from a PATCH change in RabbitMQ which had only a small chance of breaking them, having read the changelog? Probably! Representing such changes in purely
+SemVer form carries too little context of the changes being made, especially where we have so many different types of dependency, each with their own versioning scheme.
 
+An alternative is following non-strict SemVer, or in other words, using the three numbers as a rough human-interpretable representation of the extent of changes. This way, MAJOR version bumps are saved for when the change feels
+to the developers significant enough to warrant maintaining a pre-bump MAJOR branch. While this runs the risk of misleading some users affected by breaking changes in MINOR or PATCH bumps, it would be 'familiar' to users, potentially
+increasing adoption, and may lead to users more frequently updating due to fewer MAJOR version bumps (for better or worse).
 
+### FerVer
 
-### User Stories
+[Fear Driven Versioning](https://github.com/jaredly/ferver) is more a representation of observed practices than a theoretical framework for versioning. FerVer is suitable for projects where the focus is on breaking changes only: MAJOR
+and MINOR version bumps are both reserved for breaking changes, where the demarcation between the two is judged by some measurement of severity; a breaking change affecting 5% of users would likely be a MINOR version. FerVer favours
+bumping MINOR versions liberally, and reserves the 0.x.x versioning for [development channels](https://github.com/jaredly/ferver/blob/master/dev-channel.md).
 
-#### Story 1 - New patch release of RabbitMQ
+[An interesting quirk](https://github.com/jaredly/ferver/blame/master/dev-channel.md#L13-L16) is that all versions x.y.z where x > 0 must correlate to a development version 0.y.z. For example, 1.15.2 corresponds to the development version 0.15.2. Thus, you develop on the 0.y.z branch and release your development version as x.y.z when it's "stable".
 
-#### Story 2 - 
+FerVer appears more human-friendly than SemVer - the question of breakingness becomes less binary and more interpretive. Theoretically, it returns the significance of the changelog, and encourages
+humans to not automatically consume without investigating the consequences. It is less used, however - at time of writing I couldn't find anything that uses it in earnest! It's likely that a user
+may see the 3-number version scheme and assume the existence of a SemVer-like contract of absolutely no breakingness from MINOR version bumps.
 
-### Implementation Details/Notes/Constraints
+### CalVer
 
-- What are some important details that didn't come across above.
-- What are the caveats to the implementation?
-- Go in to as much detail as necessary here.
-- Talk about core concepts and how they releate.
+[Calendar Versioning](https://calver.org/) directs the significance of version numbers away from arbitrary numbers representing compatibility, and towards real dates. The canonical example (har-har) of this versioning system is Ubuntu,
+which has used CalVer since its release.
 
-### Risks and Mitigations
+CalVer leaves more to the owning repo to decide upon the contract of versioning. CalVer provides a [composible scheme](https://calver.org/overview.html#scheme) of time-based elements to include in version numbers. Some repos use purely
+time-based components, where others use a hybrid of time and traditional MAJOR/MINOR/MICRO numbers. CalVer is not a one-size-fits-all scheme, and can be designed around the needs of the repo; this is especially useful for
+software with commercial support policies - it becomes trivial to determine whether a piece of software is still in commercial support.
 
-- What are the risks of this proposal and how do we mitigate? Think broadly.
-- How will UX be reviewed and by whom?
-- How will security be reviewed and by whom?
-- Consider including folks that also work outside the SIG or subproject.
+CalVer also gets around some of the version paralysis that SemVer-like schemes suffer; [when CockroachDB made the switch](https://www.cockroachlabs.com/blog/calendar-versioning/), they saw less frustration with internal debates over
+what qualified as a MAJOR version bump, and could set expectations of release schedules more easily. Users naturally perceive a MAJOR version bump as more significant than a MINOR bump;
+where CockroachDB were releasing large new features without breaking API changes, CalVer allowed for the same excitement as would have been reserved for a MAJOR SemVer version bump.
 
-## Alternatives
+On the other hand, some configurations of CalVer may be incompatible with opinionated tooling which assumes the presence of a three-digit version number, as in SemVer. There may be less support for CalVer versioning systems in
+third-party tools such as [release notes & versioning](https://github.com/release-drafter/release-drafter) helpers.
 
-The `Alternatives` section is used to highlight and record other possible approaches to delivering the value proposed by a proposal.
+There is also sometimes confusion from developers interacting with a product following CalVer. Since versioning has become synonymous with SemVer and SemVer-like versioning,
+[there is sometimes pushback](https://github.com/saltstack/salt/issues/15406) where the commonly-held practice is not followed.
 
-## Additional Details
+The power and drawback of CalVer is its modular nature - projects following the scheme can design their versioning as suits them, however they must be accountable to explaining the scheme,
+through a VERSIONING.md, or something of similar ilk.
+
+## Proposal - versioning
+
+For the operator, attempting to represent the extent of a change in absence of the changelog is difficult. There is a lot of information a user would want to know about a change, including:
+
+- The range of supported versions of:
+  - RabbitMQ
+  - Kubernetes
+  - API versions of the RabbitmqCluster resource
+- The storage version of the RabbitmqCluster resource
+- The default version of RabbitMQ used in pods
+- Fixes to the operator code or Dockerfile
+
+Any of these might involve a breaking change (with the exception of the storage version, as the API Server is required to be able to convert between versions), regardless of whether the subcomponents themselves
+are bumping a MAJOR, MINOR or PATCH/MICRO version number. For any given operator upgrade, we would expect users to consult the changelog in order to investigate the changes and the impact it would have on
+their system.
+
+My recommendation is that the project begins to follow a hybrid CalVer versioning scheme:
+
+```
+YYYY.MINOR.MICRO
+```
+
+This matches the versioning scheme of Pip, JetBrains PyCharm, Unity & Spring Cloud.
+
+The year date component exists for supportability purposes: assuming a commercial support schedule of 18 months, a user may look at a version number and it is either from the current year,
+from last year (and they should probably update) or from the year before that (and they should definitely update). Realistically one could include the months in this version, but whether that
+would encourage more adoption of later versions is dubious.
+
+As for the difference between MINOR and MICRO, I propose that the only change that can be a MICRO change are:
+
+- Bugfixes to the operator or its Docker image
+- Bumping the default RabbitMQ image to a new patch version (see [Proposal - releasing](#proposal---releasing)
+
+Anything else, breaking or otherwise, feature or otherwise, is a MINOR version change. This way users can safely consume MICRO changes, while remaining on the latest RabbitMQ image, without worry
+(Once upgrade is handled safely).
+
+### Alternatives
+
+One alternative to the proposed CalVer scheme is:
+
+```
+(YY)YY.0M.MICRO
+```
+
+This matches the versioning scheme of Ubuntu & Slack for Mobile.
+
+This scheme focuses more on the release date than the caliber of the release. Here, there is no differentiation between MINOR and MICRO changes, either through significance or breakingness.
+It may be preferable if we decide that the operator is unlikely to require backports of functionality (since the operator is already required to maintain multiple API versions by the
+Kubernetes Deprecation policy). It also encourages users to check the release notes for every release, though may lead to some users being confused by potentially breaking changes in a version bump that
+only consists of the last number bumping.
+
+## Proposal - releasing
+
+TBC
+
+## User Stories
+
+TBC
+
+### Story 1 - New patch release of RabbitMQ
+
+### Story 2 - New minor release of RabbitMQ
 
 ## Implementation History
 
