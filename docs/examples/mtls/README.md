@@ -5,13 +5,16 @@ You must set `.spec.tls.secretName` to the name of a secret containing the Rabbi
 and set `spec.tls.caSecretName` to the name of a secret containing the certificate of the Certificate Authority which
 has signed the certificates of your RabbitMQ clients.
 
-First, you need to create the server Secret like this (assuming you already have `server.pem` and `server-key.pem` files):
+First, you need to create the Secret which will contain the public certificate and private key to be used for TLS on the RabbitMQ nodes.
+Assuming you already have these created and accessible as `server.pem` and `server-key.pem`, respectively, this Secret can be created by running:
 
 ```shell
 kubectl create secret tls tls-secret --cert=server.pem --key=server-key.pem
 ```
 
-Next, you must create the Secret containing the CA's certificate like this (assuming you already have a `ca.pem` file):
+In order to use mTLS, the RabbitMQ nodes must trust a Certificate Authority which has signed the public certificates of any clients which try to connect.
+You must create a Secret containing the CA's public certificate so that the RabbitMQ nodes know to trust any certifiates signed by the CA.
+Assuming the CA's certificate is accessible as `ca.pem`, you can create this Secret by running:
 
 ```shell
 kubectl create secret generic ca-secret --from-file=ca.crt=ca.pem

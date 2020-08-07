@@ -4658,7 +4658,7 @@ spec:
                 caSecretName:
                   description: Name of a Secret in the same Namespace as the RabbitmqCluster,
                     containing the Certificate Authority's public certificate for
-                    TLS. This Secret can be the same Secret as specified in SecretName.
+                    TLS. This can be the same as SecretName.
                   type: string
                 secretName:
                   description: Name of a Secret in the same Namespace as the RabbitmqCluster,
