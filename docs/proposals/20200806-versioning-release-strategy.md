@@ -11,7 +11,7 @@ reviewers:
   - "@michaelklishin"
   - "@Zerpet"
 creation-date: 2020-08-06
-last-updated: 2020-08-06
+last-updated: 2020-08-07
 status: provisional
 see-also:
   - https://github.com/rabbitmq/cluster-operator/issues/190
@@ -270,5 +270,5 @@ TBC
 
 ## Implementation History
 
-- [ ] MM/DD/YYYY: Open proposal PR
+- [x] 2020-08-07: Open proposal PR
 
