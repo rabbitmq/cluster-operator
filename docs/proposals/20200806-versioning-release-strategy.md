@@ -46,12 +46,23 @@ see-also:
       * [Proposal - versioning](#proposal---versioning)
          * [Alternatives](#alternatives)
       * [Proposal - releasing](#proposal---releasing)
+         * [Compatibility](#compatibility)
+            * [Supported range of RabbitMQ versions](#supported-range-of-rabbitmq-versions)
+            * [Supported range of Kubernetes server versions](#supported-range-of-kubernetes-server-versions)
+            * [API Versions](#api-versions)
+         * [GitHub Release](#github-release)
+            * [Release notes](#release-notes)
+            * [Artefacts](#artefacts)
       * [User Stories](#user-stories)
-         * [Story 1 - New patch release of RabbitMQ](#story-1---new-patch-release-of-rabbitmq)
-         * [Story 2 - New minor release of RabbitMQ](#story-2---new-minor-release-of-rabbitmq)
+         * [Story 1 - Consuming the latest operator release](#story-1---consuming-the-latest-operator-release)
+         * [Story 2 - Consuming a specific operator release](#story-2---consuming-a-specific-operator-release)
+         * [Story 3 - Consuming the latest commit of the operator](#story-3---consuming-the-latest-commit-of-the-operator)
+         * [Story 4 - New patch release of RabbitMQ](#story-4---new-patch-release-of-rabbitmq)
+         * [Story 5 - New minor release of RabbitMQ](#story-5---new-minor-release-of-rabbitmq)
+         * [Story 6 - Release of API Group rabbitmq.com/v2](#story-6---release-of-api-group-rabbitmqcomv2)
       * [Implementation History](#implementation-history)
 
-<!-- Added by: conno, at: Fri Aug  7 14:37:52 UTC 2020 -->
+<!-- Added by: coro, at: Mon Aug 10 14:50:15 UTC 2020 -->
 
 <!--te-->
 
