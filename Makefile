@@ -76,7 +76,7 @@ deploy-namespace-rbac:
 
 deploy: manifests deploy-namespace-rbac deploy-manager ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config
 
-deploy-dev: docker-build-dev patch-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
+deploy-dev: check-env-docker-credentials docker-build-dev patch-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
 deploy-kind: check-env-docker-repo git-commit-sha patch-kind manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
 	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
