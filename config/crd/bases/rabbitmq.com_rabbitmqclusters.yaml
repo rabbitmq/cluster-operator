@@ -4658,10 +4658,18 @@ spec:
             tls:
               properties:
                 caCertName:
+                  description: The Secret defined in CaSecretName must store the Certificate
+                    Authority's public certificate under the key specified in CaCertName.
                   type: string
                 caSecretName:
+                  description: Name of a Secret in the same Namespace as the RabbitmqCluster,
+                    containing the Certificate Authority's public certificate for
+                    TLS. This can be the same as SecretName.
                   type: string
                 secretName:
+                  description: Name of a Secret in the same Namespace as the RabbitmqCluster,
+                    containing the server's private key & public certificate for TLS.
+                    The Secret must store these as tls.key and tls.crt, respectively.
                   type: string
               type: object
             tolerations:
