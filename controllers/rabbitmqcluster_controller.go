@@ -245,7 +245,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 	secret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
 		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
-			fmt.Sprintf("Failed to get TLS secret in namespace %v: %v", rabbitmqCluster.Namespace, err.Error()))
+			fmt.Sprintf("Failed to get TLS secret %v in namespace %v: %v", secretName, rabbitmqCluster.Namespace, err.Error()))
 		return ctrl.Result{}, err
 	}
 	// check if secret has the right keys
@@ -268,7 +268,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 			secret = &corev1.Secret{}
 			if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
 				r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
-					fmt.Sprintf("Failed to get CA certificate secret in namespace %v: %v", rabbitmqCluster.Namespace, err.Error()))
+					fmt.Sprintf("Failed to get CA certificate secret %v in namespace %v: %v", secretName, rabbitmqCluster.Namespace, err.Error()))
 				return ctrl.Result{}, err
 			}
 		}
@@ -470,11 +470,11 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 			}
 			// Add label on all Pods to be picked up in pre-stop hook via Downward API
 			if err := r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster); err != nil {
-				return fmt.Errorf(fmt.Sprintf("Failed to add deletion markers to RabbitmqCluster Pods: %s", err.Error()))
+				return fmt.Errorf("Failed to add deletion markers to RabbitmqCluster Pods: %s", err.Error())
 			}
 			// Delete StatefulSet immediately after changing pod labels to minimize risk of them respawning. There is a window where the StatefulSet could respawn Pods without the deletion label in this order. But we can't delete it before because the DownwardAPI doesn't update once a Pod enters Terminating
 			if err := r.Client.Delete(ctx, sts); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf(fmt.Sprintf("Cannot delete StatefulSet: %s", err.Error()))
+				return fmt.Errorf("Cannot delete StatefulSet: %s", err.Error())
 			}
 
 			return nil
@@ -520,7 +520,7 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 		pod := &pods.Items[i]
 		pod.Labels[resource.DeletionMarker] = "true"
 		if err := r.Client.Update(ctx, pod); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf(fmt.Sprintf("Cannot Update Pod %s in Namespace %s: %s", pod.Name, pod.Namespace, err.Error()))
+			return fmt.Errorf("Cannot Update Pod %s in Namespace %s: %s", pod.Name, pod.Namespace, err.Error())
 		}
 	}
 
@@ -565,16 +565,10 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq r
 	return []runtime.Object{sts, endPoints}, nil
 }
 
-func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, NamespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
+func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, namespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
 	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
-	err := r.Get(ctx, NamespacedName, rabbitmqClusterInstance)
+	err := r.Get(ctx, namespacedName, rabbitmqClusterInstance)
 	return rabbitmqClusterInstance, err
-}
-
-func (r *RabbitmqClusterReconciler) getImagePullSecret(ctx context.Context, NamespacedName types.NamespacedName) (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	err := r.Get(ctx, NamespacedName, secret)
-	return secret, err
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
