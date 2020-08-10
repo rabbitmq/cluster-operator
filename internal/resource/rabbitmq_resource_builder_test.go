@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
+	. "github.com/rabbitmq/cluster-operator/internal/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -47,27 +48,24 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			resourceBuilders, err := builder.ResourceBuilders()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(len(resourceBuilders)).To(Equal(9))
+			expectedLen := 9
+			Expect(len(resourceBuilders)).To(Equal(expectedLen))
 
-			var ok bool
-			_, ok = resourceBuilders[0].(*resource.HeadlessServiceBuilder)
-			Expect(ok).Should(BeTrue())
-			_, ok = resourceBuilders[1].(*resource.ClientServiceBuilder)
-			Expect(ok).Should(BeTrue())
-			_, ok = resourceBuilders[2].(*resource.ErlangCookieBuilder)
-			Expect(ok).Should(BeTrue())
-			_, ok = resourceBuilders[3].(*resource.AdminSecretBuilder)
-			Expect(ok).Should(BeTrue())
-			_, ok = resourceBuilders[4].(*resource.ServerConfigMapBuilder)
-			Expect(ok).Should(BeTrue())
-			_, ok = resourceBuilders[5].(*resource.ServiceAccountBuilder)
-			Expect(ok).Should(BeTrue())
-			_, ok = resourceBuilders[6].(*resource.RoleBuilder)
-			Expect(ok).Should(BeTrue())
-			_, ok = resourceBuilders[7].(*resource.RoleBindingBuilder)
-			Expect(ok).Should(BeTrue())
-			_, ok = resourceBuilders[8].(*resource.StatefulSetBuilder)
-			Expect(ok).Should(BeTrue())
+			expectedBuildersInOrder := []ResourceBuilder{
+				&HeadlessServiceBuilder{},
+				&ClientServiceBuilder{},
+				&ErlangCookieBuilder{},
+				&AdminSecretBuilder{},
+				&ServerConfigMapBuilder{},
+				&ServiceAccountBuilder{},
+				&RoleBuilder{},
+				&RoleBindingBuilder{},
+				&StatefulSetBuilder{},
+			}
+
+			for i := 0; i < expectedLen; i++ {
+				Expect(resourceBuilders[i]).To(BeAssignableToTypeOf(expectedBuildersInOrder[i]))
+			}
 		})
 	})
 })
