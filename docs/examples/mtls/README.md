@@ -22,7 +22,7 @@ kubectl create secret generic ca-secret --from-file=ca.crt=ca.pem
 
 These Secrets can also be created by [Cert Manager](https://cert-manager.io/).
 
-Once the secrets exist, you can deploy this example like this:
+Once the secrets exist, you can deploy this example as follows:
 
 ```shell
 kubectl apply -f rabbitmq.yaml

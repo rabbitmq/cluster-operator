@@ -11,7 +11,7 @@ kubectl create secret tls tls-secret --cert=server.pem --key=server-key.pem
 
 This secret can also be created by [Cert Manager](https://cert-manager.io/).
 
-Once the secret exists, you can deploy this example like this:
+Once the secret exists, you can deploy this example as follows:
 
 ```shell
 kubectl apply -f rabbitmq.yaml
