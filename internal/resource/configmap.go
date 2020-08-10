@@ -42,12 +42,6 @@ ssl_options.verify = verify_peer
 `
 )
 
-var RequiredPlugins = []string{
-	"rabbitmq_peer_discovery_k8s", // required for clustering
-	"rabbitmq_prometheus",         // enforce prometheus metrics
-	"rabbitmq_management",
-}
-
 type ServerConfigMapBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
 }
@@ -106,33 +100,16 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 }
 
 func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
+	plugins := NewRabbitMQPlugins(builder.Instance.Spec.Rabbitmq.AdditionalPlugins)
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(serverConfigMapName),
 			Namespace: builder.Instance.Namespace,
 		},
 		Data: map[string]string{
-			"enabled_plugins": "[" + strings.Join(AppendIfUnique(RequiredPlugins, builder.Instance.Spec.Rabbitmq.AdditionalPlugins), ",") + "].",
+			"enabled_plugins": "[" + strings.Join(plugins.DesiredPlugins(), ",") + "].",
 		},
 	}, nil
-}
-
-func AppendIfUnique(a []string, b []rabbitmqv1beta1.Plugin) []string {
-	data := make([]string, len(b))
-	for i := range data {
-		data[i] = string(b[i])
-	}
-
-	check := make(map[string]bool)
-	list := append(a, data...)
-	set := make([]string, 0)
-	for _, s := range list {
-		if _, value := check[s]; !value {
-			check[s] = true
-			set = append(set, s)
-		}
-	}
-	return set
 }
 
 func updateProperty(configMapData map[string]string, key string, value string) {
