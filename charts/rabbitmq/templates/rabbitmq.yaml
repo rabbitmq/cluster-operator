@@ -68,14 +68,27 @@ spec:
 
   {{- if .Values.rabbitmq }}
   rabbitmq:
+    
     {{- if .Values.rabbitmq.additionalPlugins }}
     additionalPlugins:
 {{ toYaml .Values.rabbitmq.additionalPlugins | indent 4 }}
     {{- end }}
+    
     {{- if .Values.rabbitmq.additionalConfig }}
     additionalConfig:
 {{ toYaml .Values.rabbitmq.additionalConfig | indent 4 }}
     {{- end }}
+
+    {{- if .Values.rabbitmq.envConfig }}
+    envConfig:
+{{ toYaml .Values.rabbitmq.envConfig | indent 4 }}
+    {{- end }}
+
+    {{- if .Values.rabbitmq.advancedConfig }}
+    advancedConfig:
+{{ toYaml .Values.rabbitmq.advancedConfig | indent 4 }}
+    {{- end }}
+
   {{- end }}
 
   {{- if .Values.tls }}
@@ -83,4 +96,9 @@ spec:
     {{- if .Values.tls.secretName }}
     secretName: {{ .Values.tls.secretName }}
     {{- end }}
+  {{- end }}
+
+  {{- if .Values.override }}
+  override:
+{{ toYaml .Values.override | indent 4 }}
   {{- end }}
