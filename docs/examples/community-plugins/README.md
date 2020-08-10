@@ -4,6 +4,8 @@
 
 We'll keep investigating alternative options but for the time being, creating a custom image with the required plugins and just enabling them through `additionalPlugins` seems like a better idea.
 
+**NOTE**: Please raise issues related to community plugins with the community - our team does not maintain these plugins.
+
 You can deploy this example like this:
 
 ```shell
