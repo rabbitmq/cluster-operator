@@ -11,7 +11,7 @@ reviewers:
   - "@michaelklishin"
   - "@Zerpet"
 creation-date: 2020-08-06
-last-updated: 2020-08-07
+last-updated: 2020-08-10
 status: provisional
 see-also:
   - https://github.com/rabbitmq/cluster-operator/issues/190
@@ -258,15 +258,119 @@ only consists of the last number bumping.
 
 ## Proposal - releasing
 
-TBC
+### Compatibility
+
+Each release will have an implicit association with each of the following sections. It is assumed that there will be sufficient automated checking of each of these compatibilities through smoke tests in CI to warrant 'supporting' them.
+
+#### Supported range of RabbitMQ versions
+
+Each release of the operator will have a minimum & maximum version of RabbitMQ that is supported for that release. This shall be determined thus:
+
+**Maximum**: By default, the latest RabbitMQ version that is GA at time of release of the operator release.
+**Minimum**: By default, the earliest RabbitMQ version that is GA which is needed for minimum functionality of the operator (at time of writing, 3.8.0).
+
+These are subject to change with each release; for example, if a future operator release required a minimum of RabbitMQ 3.8.9, the Minimum RabbitMQ version would change. Such a change in Minimum version would not be performed in a MICRO version change. The Maximum RabbitMQ version may change in a MICRO release, provided the newly-supported RabbitMQ release is not a new minor version of RabbitMQ.
+
+Each release does not lock a user into a specific version of RabbitMQ - while the default is set per-release, they are free to change the deployment manifest to a supported version for that release. As mentioned before, if this default changes in a release of the operator, it will be a MICRO version change if it is a patch release of RabbitMQ, or MINOR otherwise.
+
+I am proposing that we do not reject manifest changes to versions of RabbitMQ that lie outside the supported range for the release, for testability purposes.
+
+From user feedback, we saw an expectation that for new releases of RabbitMQ, there was an expectation that the operator would need to upgrade first so that it knew how to handle the new RabbitMQ version in the cluster. This expectation is held with the above described pattern; users would upgrade their operator to support a new Maximum RabbitMQ version, and then upgrade their RabbitMQ nodes.
+
+In the future, we may decide to test future RabbitMQ release candidates with older versions of the operator. This would allow us to backport support for new RabbitMQ versions to older versions of the operator, meaning a user would not have to upgrade their operator to support a new version of RabbitMQ. This is likely a future goal and not the first step to make now.
+
+#### Supported range of Kubernetes server versions
+
+Each release will support a Minimum and Maximum Kubernetes server version. At time of writing, that is 1.15-1.17. This should usually just match the range of GA versions of Kubernetes server available at time of release of the operator version. There may be times where a version does not support a GA version of Kubernetes, such as right now with 1.18. Cases like these should be the exception, and should be called out explicitly in the release notes of the operator.
+
+#### API Versions
+
+Each release supports a range of API versions for the resources managed by the operator. This support aligns with the [Kubernetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/).
+
+For the case of Rule #4b, a 'release' is counted as a MINOR version release of the operator, and not a MICRO version release. This ensures that an API version can only be deprecated or removed in a MINOR release.
+
+### GitHub Release
+
+Each release of the operator generates a GitHub release for the new version. The RabbitMQ Core team may know some good tooling for generating these releases through CI.
+
+#### Release notes
+
+The release notes should be seen as the go-to place to decide whether and how to consume a new operator release. The release notes should maintain a table detailing the range of supported RabbitMQ, Kubernetes & CR API versions for each release, and explicitly call out where a new release drops or deprecates support for one of these.
+
+Each release should also include the Preferred / Storage version of the API Group that the operator manages, and announce deprecation of older API versions.
+
+#### Artefacts
+
+For now, I propose the only artefact we publish per-version is the output of kustomize commands used to generate the operator manifest (see [this issue](https://github.com/rabbitmq/cluster-operator/issues/228#issuecomment-668506070)).
+
+This would allow a user to install the operator into their cluster with just one kubectl command.
 
 ## User Stories
 
-TBC
+The following are some draft user stories for common operations or upgrade considerations.
 
-### Story 1 - New patch release of RabbitMQ
+### Story 1 - Consuming the latest operator release
 
-### Story 2 - New minor release of RabbitMQ
+As a user who wants to install the latest version of the RabbitMQ Cluster Operator, I can read the README.md of the repo and see an instruction to run on my cluster:
+```
+kubectl create -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/rabbitmq-cluster-operator.yaml
+```
+
+When I run this command, I can see that the RabbitMQ Cluster Operator is installed on my cluster, using the version of the operator Docker image corresponding to the latest release, and I can create a RabbitmqCluster resource on my cluster.
+
+### Story 2 - Consuming a specific operator release
+
+As a user who wants to install a specific version of the RabbitMQ Cluster Operator, I can read the README.md of the repo and see an instruction to run on my cluster:
+```
+kubectl create -f https://github.com/rabbitmq/cluster-operator/releases/download/$RMQ_OPERATOR_VERSION/rabbitmq-cluster-operator.yaml
+```
+
+When I run this command, I can see that the RabbitMQ Cluster Operator is installed on my cluster, using the version of the operator Docker image corresponding to the specific release, and I can create a RabbitmqCluster resource on my cluster.
+
+### Story 3 - Consuming the latest commit of the operator
+
+As a user who wants to install the latest commit of the RabbitMQ Cluster Operator, I can read the README.md of the repo and see an instruction to run on my cluster:
+```
+kustomize build github.com/rabbitmq/cluster-operator//config/namespace/base | kubectl apply -f -
+kustomize build github.com/rabbitmq/cluster-operator//config/rbac/ | k apply -f -
+kustomize build github.com/rabbitmq/cluster-operator//config/crd/ | k apply -f -
+kustomize build github.com/rabbitmq/cluster-operator//config/default/base/ | k apply -f - # Note this command doesn't at time of writing work
+```
+(or better, a single command to run all of these)
+
+When I run this command, I can see that the RabbitMQ Cluster Operator is installed on my cluster, using the latest tag of the operator Docker image, and I can create a RabbitmqCluster resource on my cluster.
+
+### Story 4 - New patch release of RabbitMQ
+
+As a user of RabbitMQ on Kubernetes, I see there is a new patch version of RabbitMQ available through RabbitMQ's website.
+When I go to the Cluster Operator repo, I see a new MICRO release of the operator.
+I can consume this by running in my cluster:
+```
+kubectl replace -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/rabbitmq-cluster-operator.yaml
+```
+or by changing `spec.template.spec.image` to the tag corresponding to the new version of the operator in the operator deployment manifest.
+I can see that pods are recreated with the new patch versioned image of RabbitMQ.
+
+### Story 5 - New minor release of RabbitMQ
+
+As a user of RabbitMQ on Kubernetes, I see there is a new minor version of RabbitMQ available through RabbitMQ's website with some features I would like to consume.
+When I go to the Cluster Operator repo, I see a new MINOR release of the operator, and in the release notes I see I can use the new RabbitMQ feature with the operator by providing additional config.
+
+I can consume the new operator version by running in my cluster:
+```
+kubectl replace -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/rabbitmq-cluster-operator.yaml
+```
+or by changing `spec.template.spec.image` to the tag corresponding to the new version of the operator in the operator deployment manifest.
+I can see that pods are recreated with the new minor versioned image of RabbitMQ.
+
+### Story 6 - Release of API Group rabbitmq.com/v2
+
+As a user of the Cluster Operator, I see from looking at the GitHub release notes that there is a new MINOR release of the operator.
+I can see from the release notes that there is a new API Group rabbitmq.com/v2, and that rabbitmq.com/v1 is now considered deprecated.
+I can see that the preferred / storage version of this new release is still v1.
+I can see that there is action required upon me to migrate to the new version of the API, and that I have 12 months to make the transtition before the API is removed.
+
+At the time of the following MINOR release of the operator, I can see that the preferred / storage version is now v2.
 
 ## Implementation History
 
