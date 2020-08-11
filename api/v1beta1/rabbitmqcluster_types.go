@@ -280,10 +280,15 @@ type RabbitmqClusterServiceSpec struct {
 type RabbitmqClusterStatus struct {
 	ClusterStatus string `json:"clusterStatus,omitempty"`
 	// Set of Conditions describing the current state of the RabbitmqCluster
-	Conditions []status.RabbitmqClusterCondition `json:"conditions"`
+	Conditions []status.RabbitmqClusterCondition `json:"conditions,omitempty"`
 
 	// Identifying information on internal resources
 	Admin *RabbitmqClusterAdmin `json:"admin,omitempty"`
+
+	// Binding exposes a secret containing the binding information for this
+	// RabbitmqCluster. It implements the service binding Provisioned Service
+	// duck type.
+	Binding *corev1.LocalObjectReference `json:"binding,omitempty"`
 }
 
 type RabbitmqClusterAdmin struct {

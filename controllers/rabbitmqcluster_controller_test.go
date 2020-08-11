@@ -13,7 +13,6 @@ package controllers_test
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -27,6 +26,7 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/retry"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -186,14 +186,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 			By("setting the admin secret details in the custom resource status", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{}
+				bindingRef := &corev1.LocalObjectReference{}
 				Eventually(func() *rabbitmqv1beta1.RabbitmqClusterSecretReference {
 					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 					if err != nil {
 						return nil
 					}
 
-					if rmq.Status.Admin != nil && rmq.Status.Admin.SecretReference != nil {
+					if rmq.Status.Admin != nil && rmq.Status.Admin.SecretReference != nil && rmq.Status.Binding != nil {
 						secretRef = rmq.Status.Admin.SecretReference
+						bindingRef = rmq.Status.Binding
 						return secretRef
 					}
 
@@ -204,6 +206,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(secretRef.Namespace).To(Equal(rmq.Namespace))
 				Expect(secretRef.Keys["username"]).To(Equal("username"))
 				Expect(secretRef.Keys["password"]).To(Equal("password"))
+
+				Expect(bindingRef.Name).To(Equal(rmq.ChildResourceName(resource.AdminSecretName)))
 			})
 
 			By("setting the client service details in the custom resource status", func() {

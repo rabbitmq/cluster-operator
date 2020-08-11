@@ -10,6 +10,9 @@
 package resource
 
 import (
+	"fmt"
+	"net/url"
+
 	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
 	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
@@ -19,6 +22,8 @@ import (
 
 const (
 	AdminSecretName = "admin"
+	BindingType     = "rabbitmq"
+	BindingProvider = "rabbitmq-cluster-operator"
 )
 
 type AdminSecretBuilder struct {
@@ -49,6 +54,21 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 		return nil, err
 	}
 
+	port := "5672"
+	scheme := "amqp"
+	if builder.Instance.TLSEnabled() {
+		// TODO configure for TLS
+		// port = "5671"
+		// scheme = "amqps"
+	}
+
+	host := fmt.Sprintf("%s.%s.svc", builder.Instance.ChildResourceName("client"), builder.Instance.Namespace)
+	uri := url.URL{
+		Scheme: scheme,
+		User:   url.UserPassword(username, password),
+		Host:   fmt.Sprintf("%s:%s", host, port),
+	}
+
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(AdminSecretName),
@@ -56,8 +76,14 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
+			"type":     []byte(BindingType),
+			"provider": []byte(BindingProvider),
+			"scheme":   []byte(scheme),
+			"host":     []byte(host),
+			"port":     []byte(port),
 			"username": []byte(username),
 			"password": []byte(password),
+			"uri":      []byte(uri.String()),
 		},
 	}, nil
 }

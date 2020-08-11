@@ -11,6 +11,8 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+	"fmt"
+	"net/url"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,6 +76,45 @@ var _ = Describe("AdminSecret", func() {
 			decodedPassword, err := b64.URLEncoding.DecodeString(string(password))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(decodedPassword)).To(Equal(24))
+		})
+
+		It("creates the service binding required fields", func() {
+			bindingType, ok := secret.Data["type"]
+			Expect(ok).NotTo(BeFalse())
+			Expect(string(bindingType)).To(Equal("rabbitmq"))
+
+			provider, ok := secret.Data["provider"]
+			Expect(ok).NotTo(BeFalse())
+			Expect(string(provider)).To(Equal("rabbitmq-cluster-operator"))
+		})
+
+		It("creates the scheme, host, port and uri fields", func() {
+			username, ok := secret.Data["username"]
+			Expect(ok).NotTo(BeFalse())
+
+			password, ok := secret.Data["password"]
+			Expect(ok).NotTo(BeFalse())
+
+			scheme, ok := secret.Data["scheme"]
+			Expect(ok).NotTo(BeFalse())
+			Expect(string(scheme)).To(Equal("amqp"))
+
+			host, ok := secret.Data["host"]
+			Expect(ok).NotTo(BeFalse())
+			Expect(string(host)).To(Equal(fmt.Sprintf("%s.%s.svc", instance.ChildResourceName("client"), instance.Namespace)))
+
+			port, ok := secret.Data["port"]
+			Expect(ok).NotTo(BeFalse())
+			Expect(string(port)).To(Equal("5672"))
+
+			uri, ok := secret.Data["uri"]
+			Expect(ok).NotTo(BeFalse())
+			expectedUri := url.URL{
+				Scheme: string(scheme),
+				User:   url.UserPassword(string(username), string(password)),
+				Host:   fmt.Sprintf("%s:%s", host, port),
+			}
+			Expect(string(uri)).To(Equal(expectedUri.String()))
 		})
 	})
 

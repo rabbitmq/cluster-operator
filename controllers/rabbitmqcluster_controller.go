@@ -304,8 +304,11 @@ func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rab
 	}
 	adminStatus.SecretReference = secretRef
 
-	if !reflect.DeepEqual(rmq.Status.Admin, adminStatus) {
+	bindingRef := &corev1.LocalObjectReference{Name: secretRef.Name}
+
+	if !reflect.DeepEqual(rmq.Status.Admin, adminStatus) || !reflect.DeepEqual(rmq.Status.Binding, bindingRef) {
 		rmq.Status.Admin = adminStatus
+		rmq.Status.Binding = bindingRef
 		if err := r.Status().Update(ctx, rmq); err != nil {
 			return err
 		}

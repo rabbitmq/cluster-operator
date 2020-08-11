@@ -4748,6 +4748,16 @@ spec:
                   - namespace
                   type: object
               type: object
+            binding:
+              description: Binding exposes a secret containing the binding information
+                for this RabbitmqCluster. It implements the service binding Provisioned
+                Service duck type.
+              properties:
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    TODO: Add other useful fields. apiVersion, kind, uid?'
+                  type: string
+              type: object
             clusterStatus:
               type: string
             conditions:
@@ -4777,8 +4787,6 @@ spec:
                 - type
                 type: object
               type: array
-          required:
-          - conditions
           type: object
       type: object
   version: v1beta1
