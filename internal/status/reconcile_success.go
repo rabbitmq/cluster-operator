@@ -8,10 +8,11 @@ import (
 )
 
 func ReconcileSuccessCondition(status corev1.ConditionStatus, reason, message string) RabbitmqClusterCondition {
-	condition := generateCondition(ReconcileSuccess)
-	condition.Status = status
-	condition.Reason = reason
-	condition.Message = message
-	condition.LastTransitionTime = metav1.Time{Time: time.Now()}
-	return condition
+	return RabbitmqClusterCondition{
+		Type:               ReconcileSuccess,
+		Status:             status,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             reason,
+		Message:            message,
+	}
 }
