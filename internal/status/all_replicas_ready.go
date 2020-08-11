@@ -27,8 +27,8 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 		condition.LastTransitionTime = existingCondition.LastTransitionTime
 	}
 
-	for index := range resources {
-		switch resource := resources[index].(type) {
+	for _, res := range resources {
+		switch resource := res.(type) {
 		case *appsv1.StatefulSet:
 			if resource == nil {
 				condition.Status = corev1.ConditionUnknown
