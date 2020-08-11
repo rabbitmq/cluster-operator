@@ -20,7 +20,7 @@ import (
 )
 
 func NoWarningsCondition(resources []runtime.Object, existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
-	condition := generateCondition(NoWarnings)
+	condition := newRabbitmqClusterCondition(NoWarnings)
 	if existingCondition != nil {
 		condition.LastTransitionTime = existingCondition.LastTransitionTime
 	}

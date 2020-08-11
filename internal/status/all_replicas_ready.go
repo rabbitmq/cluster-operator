@@ -22,7 +22,7 @@ import (
 func AllReplicasReadyCondition(resources []runtime.Object,
 	existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
 
-	condition := generateCondition(AllReplicasReady)
+	condition := newRabbitmqClusterCondition(AllReplicasReady)
 	if existingCondition != nil {
 		condition.LastTransitionTime = existingCondition.LastTransitionTime
 	}

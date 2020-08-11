@@ -25,7 +25,7 @@ type ClusterAvailableConditionManager struct {
 func ClusterAvailableCondition(resources []runtime.Object,
 	existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
 
-	condition := generateCondition(ClusterAvailable)
+	condition := newRabbitmqClusterCondition(ClusterAvailable)
 	if existingCondition != nil {
 		condition.LastTransitionTime = existingCondition.LastTransitionTime
 	}

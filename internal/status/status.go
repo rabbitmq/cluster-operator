@@ -40,7 +40,7 @@ type RabbitmqClusterCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
-func generateCondition(conditionType RabbitmqClusterConditionType) RabbitmqClusterCondition {
+func newRabbitmqClusterCondition(conditionType RabbitmqClusterConditionType) RabbitmqClusterCondition {
 	return RabbitmqClusterCondition{
 		Type:               conditionType,
 		Status:             corev1.ConditionUnknown,
