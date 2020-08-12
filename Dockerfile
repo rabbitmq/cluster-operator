@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.13 as builder
+FROM golang:1.15 as builder
 
 WORKDIR /workspace
 # Copy the go source
@@ -11,22 +11,27 @@ COPY internal/ internal/
 COPY go.mod go.mod
 COPY go.sum go.sum
 
-
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -tags timetzdata -o manager main.go
 
-FROM ubuntu:latest
+# ---------------------------------------
+FROM alpine:latest as etc-builder
+
+RUN echo "rabbitmq-cluster-operator:x:1000:" > /etc/group && \
+    echo "rabbitmq-cluster-operator:x:1000:1000::/home/rabbitmq-cluster-operator:/usr/sbin/nologin" > /etc/passwd
+
+RUN apk add -U --no-cache ca-certificates
+
+# ---------------------------------------
+FROM scratch
 
 ARG GIT_COMMIT
 LABEL GitCommit=$GIT_COMMIT
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
-
-# Create operator system user & group
-RUN set -eux; \
-	groupadd --gid 1000 --system rabbitmq-cluster-operator; \
-	useradd --uid 1000 --system --gid rabbitmq-cluster-operator rabbitmq-cluster-operator
+COPY --from=etc-builder /etc/passwd /etc/group /etc/
+COPY --from=etc-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 USER 1000:1000
 
