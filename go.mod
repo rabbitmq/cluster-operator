@@ -1,4 +1,4 @@
-module github.com/pivotal/rabbitmq-for-kubernetes
+module github.com/rabbitmq/cluster-operator
 
 go 1.13
 

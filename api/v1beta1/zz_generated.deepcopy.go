@@ -15,7 +15,7 @@ This product may include a number of subcomponents with separate copyright notic
 package v1beta1
 
 import (
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
+	"github.com/rabbitmq/cluster-operator/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

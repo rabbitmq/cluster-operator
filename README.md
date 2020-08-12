@@ -68,7 +68,7 @@ under `site/kubernetes`.
 
 ## Contributing
 
-This project follows the typical GitHub pull request model. Before starting any work, please either comment on an [existing issue](https://github.com/pivotal/rabbitmq-for-kubernetes/issues), or file a new one.
+This project follows the typical GitHub pull request model. Before starting any work, please either comment on an [existing issue](https://github.com/rabbitmq/cluster-operator/issues), or file a new one.
 
 ### Testing
 
