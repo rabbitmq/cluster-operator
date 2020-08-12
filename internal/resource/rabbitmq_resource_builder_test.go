@@ -48,7 +48,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			resourceBuilders, err := builder.ResourceBuilders()
 			Expect(err).NotTo(HaveOccurred())
 
-			expectedLen := 9
+			expectedLen := 10
 			Expect(len(resourceBuilders)).To(Equal(expectedLen))
 
 			expectedBuildersInOrder := []ResourceBuilder{
@@ -56,6 +56,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				&ClientServiceBuilder{},
 				&ErlangCookieBuilder{},
 				&AdminSecretBuilder{},
+				&RabbitmqPluginsConfigMapBuilder{},
 				&ServerConfigMapBuilder{},
 				&ServiceAccountBuilder{},
 				&RoleBuilder{},

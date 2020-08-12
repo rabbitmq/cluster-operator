@@ -13,8 +13,9 @@ package controllers_test
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,7 +54,6 @@ var _ = Describe("RabbitmqclusterController", func() {
 				}
 
 				mutateFn(cr)
-
 				return client.Update(context.TODO(), cr)
 			})
 		}
@@ -74,6 +74,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
 			waitForClusterCreation(rabbitmqCluster, client)
 		})
+
 		AfterEach(func() {
 			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
 			Eventually(func() bool {
@@ -85,10 +86,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 		It("works", func() {
 			By("creating a statefulset with default configurations", func() {
-				statefulSetName := rabbitmqCluster.ChildResourceName("server")
 				sts := statefulSet(rabbitmqCluster)
-				Expect(sts.Name).To(Equal(statefulSetName))
 
+				Expect(sts.Name).To(Equal(rabbitmqCluster.ChildResourceName("server")))
 				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 
 				Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
@@ -97,6 +97,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			By("creating the server conf configmap", func() {
 				configMapName := rabbitmqCluster.ChildResourceName("server-conf")
+				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(configMap.Name).To(Equal(configMapName))
+				Expect(configMap.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
+			})
+
+			By("creating the plugins conf configmap", func() {
+				configMapName := rabbitmqCluster.ChildResourceName("plugins-conf")
 				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(configMap.Name).To(Equal(configMapName))
@@ -160,6 +168,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("headless"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("plugins-conf"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("server-conf"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("erlang-cookie"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("admin"))))
@@ -202,8 +211,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 				Expect(secretRef.Name).To(Equal(rmq.ChildResourceName(resource.AdminSecretName)))
 				Expect(secretRef.Namespace).To(Equal(rmq.Namespace))
-				Expect(secretRef.Keys["username"]).To(Equal("username"))
-				Expect(secretRef.Keys["password"]).To(Equal("password"))
+				Expect(secretRef.Keys).To(HaveKeyWithValue("username", "username"))
+				Expect(secretRef.Keys).To(HaveKeyWithValue("password", "password"))
 			})
 
 			By("setting the client service details in the custom resource status", func() {
@@ -930,6 +939,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client"))))
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("headless"))))
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("server-conf"))))
+			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("plugins-conf"))))
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("erlang-cookie"))))
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("admin"))))
 			Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.ServiceAccount", rabbitmqCluster.ChildResourceName("server"))))
@@ -1340,6 +1350,18 @@ var _ = Describe("RabbitmqclusterController", func() {
 						},
 					},
 				},
+				corev1.Volume{
+					Name: "plugins-conf",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							DefaultMode: &defaultMode,
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "rabbitmq-sts-override-rabbitmq-plugins-conf",
+							},
+						},
+					},
+				},
+
 				corev1.Volume{
 					Name: "rabbitmq-etc",
 					VolumeSource: corev1.VolumeSource{

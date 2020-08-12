@@ -22,6 +22,7 @@ type RabbitmqResourceBuilder struct {
 type ResourceBuilder interface {
 	Update(runtime.Object) error
 	Build() (runtime.Object, error)
+	UpdateRequiresStsRestart() bool
 }
 
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, error) {
@@ -30,6 +31,7 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, e
 		builder.ClientService(),
 		builder.ErlangCookie(),
 		builder.AdminSecret(),
+		builder.RabbitmqPluginsConfigMap(),
 		builder.ServerConfigMap(),
 		builder.ServiceAccount(),
 		builder.Role(),

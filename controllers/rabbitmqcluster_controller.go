@@ -197,7 +197,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return ctrl.Result{}, err
 		}
 
-		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
+		r.restartStatefulSetIfNeeded(ctx, builder, operationResult, rabbitmqCluster)
 	}
 
 	// Set ReconcileSuccess to true here because all CRUD operations to Kube API related
@@ -312,9 +312,9 @@ func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rab
 }
 
 // restartStatefulSetIfNeeded - helper function that annotates the StatefulSet PodTemplate with current timestamp
-// to trigger a restart of the all pods in the StatefulSet when ConfigMap is updated
-func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, resource runtime.Object, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) {
-	if _, ok := resource.(*corev1.ConfigMap); ok && operationResult == controllerutil.OperationResultUpdated {
+// to trigger a restart of the all pods in the StatefulSet when builder requires StatefulSet to be updated
+func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, builder resource.ResourceBuilder, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) {
+	if builder.UpdateRequiresStsRestart() && operationResult == controllerutil.OperationResultUpdated {
 		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}}
 			if err := r.Get(ctx, types.NamespacedName{Name: sts.Name, Namespace: sts.Namespace}, sts); err != nil {
