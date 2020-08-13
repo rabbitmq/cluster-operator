@@ -20,6 +20,8 @@ integration-tests: generate fmt vet manifests ## Run integration tests
 
 manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
+	./hack/add-notice-to-yaml.sh config/rbac/role.yaml
+	./hack/add-notice-to-yaml.sh config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml
 
 # Run go fmt against code
 fmt:
