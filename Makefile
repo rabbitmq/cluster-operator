@@ -4,7 +4,7 @@
 .PHONY: list
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false"
+CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false, crdVersions=v1"
 
 # Insert a comment starting with '##' after a target, and it will be printed by 'make' and 'make list'
 list:    ## list Makefile targets
