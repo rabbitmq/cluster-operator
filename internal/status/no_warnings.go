@@ -19,14 +19,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func NoWarningsCondition(resources []runtime.Object, existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
+func NoWarningsCondition(resources []runtime.Object, oldCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
 	condition := newRabbitmqClusterCondition(NoWarnings)
-	if existingCondition != nil {
-		condition.LastTransitionTime = existingCondition.LastTransitionTime
+	if oldCondition != nil {
+		condition.LastTransitionTime = oldCondition.LastTransitionTime
 	}
 
-	for index := range resources {
-		switch resource := resources[index].(type) {
+	for _, res := range resources {
+		switch resource := res.(type) {
 		case *appsv1.StatefulSet:
 			if resource == nil {
 				condition.Status = corev1.ConditionUnknown
@@ -48,7 +48,7 @@ func NoWarningsCondition(resources []runtime.Object, existingCondition *Rabbitmq
 	}
 
 assignLastTransitionTime:
-	if existingCondition == nil || existingCondition.Status != condition.Status {
+	if oldCondition == nil || oldCondition.Status != condition.Status {
 		condition.LastTransitionTime = metav1.Time{
 			Time: time.Now(),
 		}

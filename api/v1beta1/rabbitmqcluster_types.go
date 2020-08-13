@@ -315,43 +315,41 @@ func (cluster *RabbitmqCluster) SingleTLSSecret() bool {
 }
 
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
-	var existingAllPodsReadyCondition *status.RabbitmqClusterCondition
-	var existingClusterAvailableCondition *status.RabbitmqClusterCondition
-	var existingNoWarningsCondition *status.RabbitmqClusterCondition
-	var existingReconcileCondition *status.RabbitmqClusterCondition
+	var oldAllPodsReadyCondition *status.RabbitmqClusterCondition
+	var oldClusterAvailableCondition *status.RabbitmqClusterCondition
+	var oldNoWarningsCondition *status.RabbitmqClusterCondition
+	var oldReconcileCondition *status.RabbitmqClusterCondition
 
 	for _, condition := range rmqStatus.Conditions {
 		switch condition.Type {
 		case status.AllReplicasReady:
-			existingAllPodsReadyCondition = condition.DeepCopy()
+			oldAllPodsReadyCondition = condition.DeepCopy()
 		case status.ClusterAvailable:
-			existingClusterAvailableCondition = condition.DeepCopy()
+			oldClusterAvailableCondition = condition.DeepCopy()
 		case status.NoWarnings:
-			existingNoWarningsCondition = condition.DeepCopy()
+			oldNoWarningsCondition = condition.DeepCopy()
 		case status.ReconcileSuccess:
-			existingReconcileCondition = condition.DeepCopy()
+			oldReconcileCondition = condition.DeepCopy()
 		}
 	}
 
-	allReplicasReadyCond := status.AllReplicasReadyCondition(resources, existingAllPodsReadyCondition)
-	clusterAvailableCond := status.ClusterAvailableCondition(resources, existingClusterAvailableCondition)
-	noWarningsCond := status.NoWarningsCondition(resources, existingNoWarningsCondition)
+	allReplicasReadyCond := status.AllReplicasReadyCondition(resources, oldAllPodsReadyCondition)
+	clusterAvailableCond := status.ClusterAvailableCondition(resources, oldClusterAvailableCondition)
+	noWarningsCond := status.NoWarningsCondition(resources, oldNoWarningsCondition)
 
 	var reconciledCondition status.RabbitmqClusterCondition
-	if existingReconcileCondition != nil {
-		reconciledCondition = *existingReconcileCondition
+	if oldReconcileCondition != nil {
+		reconciledCondition = *oldReconcileCondition
 	} else {
 		reconciledCondition = status.ReconcileSuccessCondition(corev1.ConditionUnknown, "Initialising", "")
 	}
 
-	currentStatusConditions := []status.RabbitmqClusterCondition{
+	rmqStatus.Conditions = []status.RabbitmqClusterCondition{
 		allReplicasReadyCond,
 		clusterAvailableCond,
 		noWarningsCond,
 		reconciledCondition,
 	}
-
-	rmqStatus.Conditions = currentStatusConditions
 }
 
 func (rmqStatus *RabbitmqClusterStatus) SetCondition(condType status.RabbitmqClusterConditionType,

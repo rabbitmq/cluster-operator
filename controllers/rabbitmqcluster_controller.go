@@ -141,8 +141,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	rabbitmqCluster.Status.SetConditions(childResources)
 
 	if !reflect.DeepEqual(rabbitmqCluster.Status.Conditions, oldConditions) {
-		err = r.Status().Update(ctx, rabbitmqCluster)
-		if err != nil {
+		if err = r.Status().Update(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
