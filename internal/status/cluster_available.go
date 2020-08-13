@@ -23,15 +23,15 @@ type ClusterAvailableConditionManager struct {
 }
 
 func ClusterAvailableCondition(resources []runtime.Object,
-	existingCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
+	oldCondition *RabbitmqClusterCondition) RabbitmqClusterCondition {
 
 	condition := newRabbitmqClusterCondition(ClusterAvailable)
-	if existingCondition != nil {
-		condition.LastTransitionTime = existingCondition.LastTransitionTime
+	if oldCondition != nil {
+		condition.LastTransitionTime = oldCondition.LastTransitionTime
 	}
 
-	for index := range resources {
-		switch resource := resources[index].(type) {
+	for _, res := range resources {
+		switch resource := res.(type) {
 		case *corev1.Endpoints:
 			if resource == nil {
 				condition.Status = corev1.ConditionUnknown
@@ -55,7 +55,7 @@ func ClusterAvailableCondition(resources []runtime.Object,
 	}
 
 assignLastTransitionTime:
-	if existingCondition == nil || existingCondition.Status != condition.Status {
+	if oldCondition == nil || oldCondition.Status != condition.Status {
 		condition.LastTransitionTime = metav1.Time{
 			Time: time.Now(),
 		}
