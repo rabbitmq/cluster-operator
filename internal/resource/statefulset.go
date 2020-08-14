@@ -68,17 +68,18 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 	// StatefulSet Override
 	// override is applied to PVC, ServiceName & Selector
 	// other fields are handled in Update()
-	if builder.Instance.Spec.Override.StatefulSet != nil && builder.Instance.Spec.Override.StatefulSet.Spec != nil {
-		if builder.Instance.Spec.Override.StatefulSet.Spec.Selector != nil {
-			sts.Spec.Selector = builder.Instance.Spec.Override.StatefulSet.Spec.Selector
+	overrideSts := builder.Instance.Spec.Override.StatefulSet
+	if overrideSts != nil && overrideSts.Spec != nil {
+		if overrideSts.Spec.Selector != nil {
+			sts.Spec.Selector = overrideSts.Spec.Selector
 		}
 
-		if builder.Instance.Spec.Override.StatefulSet.Spec.ServiceName != "" {
-			sts.Spec.ServiceName = builder.Instance.Spec.Override.StatefulSet.Spec.ServiceName
+		if overrideSts.Spec.ServiceName != "" {
+			sts.Spec.ServiceName = overrideSts.Spec.ServiceName
 		}
 
-		if len(builder.Instance.Spec.Override.StatefulSet.Spec.VolumeClaimTemplates) != 0 {
-			override := builder.Instance.Spec.Override.StatefulSet.Spec.VolumeClaimTemplates
+		if len(overrideSts.Spec.VolumeClaimTemplates) != 0 {
+			override := overrideSts.Spec.VolumeClaimTemplates
 			pvcList := make([]corev1.PersistentVolumeClaim, len(override))
 			for i := range override {
 				copyObjectMeta(&pvcList[i].ObjectMeta, override[i].EmbeddedObjectMeta)

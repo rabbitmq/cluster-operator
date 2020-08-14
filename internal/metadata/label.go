@@ -16,7 +16,7 @@ import (
 type label map[string]string
 
 func Label(instanceName string) label {
-	return map[string]string{
+	return label{
 		"app.kubernetes.io/name":      instanceName,
 		"app.kubernetes.io/component": "rabbitmq",
 		"app.kubernetes.io/part-of":   "rabbitmq",
@@ -36,7 +36,7 @@ func GetLabels(instanceName string, instanceLabels map[string]string) label {
 }
 
 func LabelSelector(instanceName string) label {
-	return map[string]string{
+	return label{
 		"app.kubernetes.io/name": instanceName,
 	}
 }
