@@ -10,6 +10,14 @@
 resources:
 - manager.yaml
 
-patches:
+patchesStrategicMerge:
 - security_context_patch.yaml
 - service_account_patch.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rabbitmq-system
+images:
+- name: controller
+  newName: rabbitmqoperator/rabbitmq-cluster-kubernetes-operator-dev
+  newTag: latest
+namePrefix: rabbitmq-cluster-
