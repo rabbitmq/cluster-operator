@@ -53,7 +53,7 @@ In our team roadmap we decided to coup the lack of user feedbacks by offering [d
 
 ## Non-Goals/Future Work
 
-* Increase flexibility at configuring RabbitMQ. We have already addressed this problem with the work on [rabbitmq conf](https://github.com/pivotal/rabbitmq-for-kubernetes/pull/91) and [enabled plugins](https://github.com/pivotal/rabbitmq-for-kubernetes/pull/87). In the future, we may add support for advanced configuration file. However that is out of scope for this KEP.
+* Increase flexibility at configuring RabbitMQ. We have already addressed this problem with the work on [rabbitmq conf](https://github.com/rabbitmq/cluster-operator/pull/91) and [enabled plugins](https://github.com/rabbitmq/cluster-operator/pull/87). In the future, we may add support for advanced configuration file. However that is out of scope for this KEP.
 * To provide detailed guidelines on how to configure each property. I assume that users who choose to configure the StatefulSet and client Service override know their specific use cases, and how to use kubernetes.
 
 ## Proposal
@@ -178,7 +178,7 @@ Examples on reconcilation errors that happen during create and update:
 * Updates to StatefulSet spec for fields other than 'replicas', 'template', and 'updateStrategy' are forbidden and will only return errors during update calls.
 * Set client Service ports protocol to values other than "TCP", "UDP", and "SCTP" will return an error on create or update.
 
-We should revisit/prioritize [github issue #10](https://github.com/pivotal/rabbitmq-for-kubernetes/issues/10) which requests a new status.condition to surface reconciliation errors.
+We should revisit/prioritize [github issue #10](https://github.com/rabbitmq/cluster-operator/issues/10) which requests a new status.condition to surface reconciliation errors.
 
 ### Additional context
 

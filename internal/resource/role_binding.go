@@ -14,8 +14,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	"github.com/rabbitmq/cluster-operator/internal/metadata"
 )
 
 const (

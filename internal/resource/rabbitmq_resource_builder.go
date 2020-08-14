@@ -10,7 +10,7 @@
 package resource
 
 import (
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

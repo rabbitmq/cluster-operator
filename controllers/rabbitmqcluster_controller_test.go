@@ -18,9 +18,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/resource"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/status"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	"github.com/rabbitmq/cluster-operator/internal/resource"
+	"github.com/rabbitmq/cluster-operator/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

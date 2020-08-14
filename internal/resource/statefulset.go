@@ -13,8 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	rabbitmqv1beta1 "github.com/pivotal/rabbitmq-for-kubernetes/api/v1beta1"
-	"github.com/pivotal/rabbitmq-for-kubernetes/internal/metadata"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
