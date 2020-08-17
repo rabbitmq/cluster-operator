@@ -178,16 +178,16 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 
 		var operationResult controllerutil.OperationResult
-		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+		err = clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			var apiError error
 			operationResult, apiError = controllerutil.CreateOrUpdate(ctx, r, resource, func() error {
 				return builder.Update(resource)
 			})
 
 			return apiError
-		}); err != nil {
-			r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
-
+		})
+		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
+		if err != nil {
 			rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "Error", err.Error())
 			if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
 				r.Log.Error(writerErr, "Error trying to Update ReconcileSuccess condition state",
@@ -198,7 +198,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return ctrl.Result{}, err
 		}
 
-		r.logAndRecordOperationResult(rabbitmqCluster, resource, operationResult, err)
 		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
 	}
 
