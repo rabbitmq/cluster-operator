@@ -172,33 +172,31 @@ func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.Stat
 		copyLabelsAnnotations(&sts.ObjectMeta, *stsOverride.EmbeddedLabelsAnnotations)
 	}
 
-	if stsOverride.Spec != nil {
-		if stsOverride.Spec.Replicas != nil {
-			sts.Spec.Replicas = stsOverride.Spec.Replicas
+	if stsOverride.Spec == nil {
+		return nil
+	}
+	if stsOverride.Spec.Replicas != nil {
+		sts.Spec.Replicas = stsOverride.Spec.Replicas
+	}
+	if stsOverride.Spec.UpdateStrategy != nil {
+		sts.Spec.UpdateStrategy = *stsOverride.Spec.UpdateStrategy
+	}
+	if stsOverride.Spec.PodManagementPolicy != "" {
+		sts.Spec.PodManagementPolicy = stsOverride.Spec.PodManagementPolicy
+	}
+
+	if stsOverride.Spec.Template == nil {
+		return nil
+	}
+	if stsOverride.Spec.Template.EmbeddedObjectMeta != nil {
+		copyObjectMeta(&sts.Spec.Template.ObjectMeta, *stsOverride.Spec.Template.EmbeddedObjectMeta)
+	}
+	if stsOverride.Spec.Template.Spec != nil {
+		patchedPodSpec, err := patchPodSpec(&sts.Spec.Template.Spec, stsOverride.Spec.Template.Spec)
+		if err != nil {
+			return err
 		}
-
-		if stsOverride.Spec.UpdateStrategy != nil {
-			sts.Spec.UpdateStrategy = *stsOverride.Spec.UpdateStrategy
-		}
-
-		if stsOverride.Spec.PodManagementPolicy != "" {
-			sts.Spec.PodManagementPolicy = stsOverride.Spec.PodManagementPolicy
-		}
-
-		if stsOverride.Spec.Template != nil {
-			if stsOverride.Spec.Template.EmbeddedObjectMeta != nil {
-				copyObjectMeta(&sts.Spec.Template.ObjectMeta, *stsOverride.Spec.Template.EmbeddedObjectMeta)
-			}
-
-			if stsOverride.Spec.Template.Spec != nil {
-				patchedPodSpec, err := patchPodSpec(&sts.Spec.Template.Spec, stsOverride.Spec.Template.Spec)
-				if err != nil {
-					return err
-				}
-
-				sts.Spec.Template.Spec = patchedPodSpec
-			}
-		}
+		sts.Spec.Template.Spec = patchedPodSpec
 	}
 	return nil
 }
