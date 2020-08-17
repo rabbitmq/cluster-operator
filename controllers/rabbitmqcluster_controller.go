@@ -214,7 +214,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{}, err
 	}
 
-	if err, ok := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
+	if ok, err := r.allReplicasReady(ctx, rabbitmqCluster); !ok {
 		// only enable plugins when all pods of the StatefulSet become ready
 		// requeue request after 10 seconds without error
 		logger.Info("Not all replicas ready yet; requeuing request to enable plugins on RabbitmqCluster",
@@ -312,7 +312,7 @@ func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rab
 	return nil
 }
 
-// restartStatefulSetIfNeeded - helper function that annotate the StatefulSet PodTemplate with current timestamp
+// restartStatefulSetIfNeeded - helper function that annotates the StatefulSet PodTemplate with current timestamp
 // to trigger a restart of the all pods in the StatefulSet when ConfigMap is updated
 func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, resource runtime.Object, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) {
 	if _, ok := resource.(*corev1.ConfigMap); ok && operationResult == controllerutil.OperationResultUpdated {
@@ -338,18 +338,18 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Conte
 }
 
 // allReplicasReady - helper function that checks if StatefulSet replicas are all ready
-func (r *RabbitmqClusterReconciler) allReplicasReady(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (error, bool) {
+func (r *RabbitmqClusterReconciler) allReplicasReady(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (bool, error) {
 	sts := &appsv1.StatefulSet{}
 
 	if err := r.Get(ctx, types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}, sts); err != nil {
-		return client.IgnoreNotFound(err), false
+		return false, client.IgnoreNotFound(err)
 	}
 
 	if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
-		return nil, false
+		return false, nil
 	}
 
-	return nil, true
+	return true, nil
 }
 
 // enablePlugins - helper function to set the list of enabled plugins in a given RabbitmqCluster pods
