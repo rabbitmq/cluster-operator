@@ -125,8 +125,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	sts := object.(*appsv1.StatefulSet)
 
 	//Replicas
-	replicas := builder.Instance.Spec.Replicas
-	sts.Spec.Replicas = replicas
+	sts.Spec.Replicas = builder.Instance.Spec.Replicas
 
 	//Update Strategy
 	zero := int32(0)
