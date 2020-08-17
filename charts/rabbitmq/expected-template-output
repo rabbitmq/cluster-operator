@@ -60,5 +60,27 @@ spec:
     additionalConfig:
     |
       cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+    envConfig:
+    |
+      PLUGINS_DIR=/opt/rabbitmq/plugins:/opt/rabbitmq/community-plugins
+    advancedConfig:
+    |
+      advancedConfig: |
+        [
+            {ra, [
+                {wal_data_dir, '/var/lib/rabbitmq/quorum-wal'}
+            ]}
+        ].
   tls:
     secretName: tls-secret
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+            - name: rabbitmq
+              ports:
+              - containerPort: 12345
+                name: additional-port
+                protocol: TCP
