@@ -3,6 +3,7 @@ cover.out
 **/*.yaml-e
 bin/
 .idea/
+.envrc
 tags
 installation/
 !config/installation/
