@@ -19,5 +19,3 @@ spec:
       memory: 2Gi
   service:
     type: ClusterIP
-  tolerations:
-  - {}
