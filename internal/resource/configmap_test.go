@@ -52,34 +52,6 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			Expect(configMap.Name).To(Equal(builder.Instance.ChildResourceName("server-conf")))
 			Expect(configMap.Namespace).To(Equal(builder.Instance.Namespace))
 		})
-
-		It("returns a ConfigMap with required plugins", func() {
-			expectedEnabledPlugins := "[" +
-				"rabbitmq_peer_discovery_k8s," +
-				"rabbitmq_prometheus," +
-				"rabbitmq_management]."
-
-			Expect(configMap.Data).To(HaveKeyWithValue("enabled_plugins", expectedEnabledPlugins))
-		})
-
-		When("additionalPlugins are provided in instance spec", func() {
-			It("appends provided plugins to a list of required ones and removes duplicates", func() {
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "rabbitmq_top", "my_great_plugin"}
-
-				expectedEnabledPlugins := "[" +
-					"rabbitmq_peer_discovery_k8s," +
-					"rabbitmq_prometheus," +
-					"rabbitmq_management," +
-					"rabbitmq_shovel," +
-					"rabbitmq_top," +
-					"my_great_plugin]."
-
-				obj, err := configMapBuilder.Build()
-				configMap = obj.(*corev1.ConfigMap)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(configMap.Data).To(HaveKeyWithValue("enabled_plugins", expectedEnabledPlugins))
-			})
-		})
 	})
 
 	Context("Update", func() {

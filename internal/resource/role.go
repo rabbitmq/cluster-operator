@@ -31,6 +31,10 @@ func (builder *RabbitmqResourceBuilder) Role() *RoleBuilder {
 	}
 }
 
+func (builder *RoleBuilder) UpdateRequiresStsRestart() bool {
+	return false
+}
+
 func (builder *RoleBuilder) Update(object runtime.Object) error {
 	role := object.(*rbacv1.Role)
 	role.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)

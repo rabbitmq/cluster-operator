@@ -198,7 +198,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return ctrl.Result{}, err
 		}
 
-		r.restartStatefulSetIfNeeded(ctx, resource, operationResult, rabbitmqCluster)
+		r.restartStatefulSetIfNeeded(ctx, builder, operationResult, rabbitmqCluster)
 	}
 
 	// Set ReconcileSuccess to true here because all CRUD operations to Kube API related
@@ -313,9 +313,9 @@ func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rab
 }
 
 // restartStatefulSetIfNeeded - helper function that annotates the StatefulSet PodTemplate with current timestamp
-// to trigger a restart of the all pods in the StatefulSet when ConfigMap is updated
-func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, resource runtime.Object, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) {
-	if _, ok := resource.(*corev1.ConfigMap); ok && operationResult == controllerutil.OperationResultUpdated {
+// to trigger a restart of the all pods in the StatefulSet when builder requires StatefulSet to be updated
+func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, builder resource.ResourceBuilder, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) {
+	if builder.UpdateRequiresStsRestart() && operationResult == controllerutil.OperationResultUpdated {
 		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}}
 			if err := r.Get(ctx, types.NamespacedName{Name: sts.Name, Namespace: sts.Namespace}, sts); err != nil {
@@ -355,10 +355,10 @@ func (r *RabbitmqClusterReconciler) allReplicasReady(ctx context.Context, rmq *r
 // enablePlugins - helper function to set the list of enabled plugins in a given RabbitmqCluster pods
 // `rabbitmq-plugins set` disables plugins that are not in the provided list
 func (r *RabbitmqClusterReconciler) enablePlugins(rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+	plugins := resource.NewRabbitMQPlugins(rmq.Spec.Rabbitmq.AdditionalPlugins)
 	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
 		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
-		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s",
-			strings.Join(resource.AppendIfUnique(resource.RequiredPlugins, rmq.Spec.Rabbitmq.AdditionalPlugins), " "))
+		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s", plugins.AsString(" "))
 
 		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", rabbitCommand)
 
@@ -423,28 +423,25 @@ func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName strin
 // logAndRecordOperationResult - helper function to log and record events with message and error
 // it logs and records 'updated' and 'created' OperationResult, and ignores OperationResult 'unchanged'
 func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Object, resource runtime.Object, operationResult controllerutil.OperationResult, err error) {
-	if operationResult == controllerutil.OperationResultCreated && err == nil {
-		msg := fmt.Sprintf("created resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
+	var operation string
+	if operationResult == controllerutil.OperationResultCreated {
+		operation = "create"
+	}
+
+	if operationResult == controllerutil.OperationResultUpdated {
+		operation = "update"
+	}
+
+	if err == nil {
+		msg := fmt.Sprintf("%sd resource %s of Type %T", operation, resource.(metav1.Object).GetName(), resource.(metav1.Object))
 		r.Log.Info(msg)
-		r.Recorder.Event(rmq, corev1.EventTypeNormal, "SuccessfulCreate", msg)
+		r.Recorder.Event(rmq, corev1.EventTypeNormal, fmt.Sprintf("Successful%s", strings.Title(operation)), msg)
 	}
 
-	if operationResult == controllerutil.OperationResultCreated && err != nil {
-		msg := fmt.Sprintf("failed to create resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
+	if err != nil {
+		msg := fmt.Sprintf("failed to %s resource %s of Type %T", operation, resource.(metav1.Object).GetName(), resource.(metav1.Object))
 		r.Log.Error(err, msg)
-		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedCreate", msg)
-	}
-
-	if operationResult == controllerutil.OperationResultUpdated && err == nil {
-		msg := fmt.Sprintf("updated resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
-		r.Log.Info(msg)
-		r.Recorder.Event(rmq, corev1.EventTypeNormal, "SuccessfulUpdate", msg)
-	}
-
-	if operationResult == controllerutil.OperationResultUpdated && err != nil {
-		msg := fmt.Sprintf("failed to update resource %s of Type %T", resource.(metav1.Object).GetName(), resource.(metav1.Object))
-		r.Log.Error(err, msg)
-		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedUpdate", msg)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, fmt.Sprintf("Failed%s", strings.Title(operation)), msg)
 	}
 }
 
@@ -592,69 +589,36 @@ func addResourceToIndex(rawObj runtime.Object) []string {
 	switch resourceObject := rawObj.(type) {
 	case *appsv1.StatefulSet:
 		owner := metav1.GetControllerOf(resourceObject)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
-			return nil
-		}
-		return []string{owner.Name}
+		return validateAndGetOwner(owner)
 	case *corev1.ConfigMap:
 		owner := metav1.GetControllerOf(resourceObject)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
-			return nil
-		}
-		return []string{owner.Name}
+		return validateAndGetOwner(owner)
 	case *corev1.Service:
 		owner := metav1.GetControllerOf(resourceObject)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
-			return nil
-		}
-		return []string{owner.Name}
+		return validateAndGetOwner(owner)
 	case *rbacv1.Role:
 		owner := metav1.GetControllerOf(resourceObject)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
-			return nil
-		}
-		return []string{owner.Name}
+		return validateAndGetOwner(owner)
 	case *rbacv1.RoleBinding:
 		owner := metav1.GetControllerOf(resourceObject)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
-			return nil
-		}
-		return []string{owner.Name}
+		return validateAndGetOwner(owner)
 	case *corev1.ServiceAccount:
 		owner := metav1.GetControllerOf(resourceObject)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
-			return nil
-		}
-		return []string{owner.Name}
+		return validateAndGetOwner(owner)
 	case *corev1.Secret:
 		owner := metav1.GetControllerOf(resourceObject)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
-			return nil
-		}
-		return []string{owner.Name}
-
+		return validateAndGetOwner(owner)
 	default:
 		return nil
 	}
+}
+
+func validateAndGetOwner(owner *metav1.OwnerReference) []string {
+	if owner == nil {
+		return nil
+	}
+	if owner.APIVersion != apiGVStr || owner.Kind != ownerKind {
+		return nil
+	}
+	return []string{owner.Name}
 }

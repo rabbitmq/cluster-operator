@@ -833,6 +833,16 @@ var _ = Describe("StatefulSet", func() {
 					},
 				},
 				corev1.Volume{
+					Name: "plugins-conf",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: instance.ChildResourceName("plugins-conf"),
+							},
+						},
+					},
+				},
+				corev1.Volume{
 					Name: "rabbitmq-etc",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
@@ -923,7 +933,7 @@ var _ = Describe("StatefulSet", func() {
 					"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 					"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
 					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
-					"cp /tmp/rabbitmq/enabled_plugins /etc/rabbitmq/enabled_plugins " +
+					"cp /tmp/rabbitmq-plugins/enabled_plugins /etc/rabbitmq/enabled_plugins " +
 					"&& chown 999:999 /etc/rabbitmq/enabled_plugins",
 			}))
 
@@ -932,6 +942,11 @@ var _ = Describe("StatefulSet", func() {
 					Name:      "server-conf",
 					MountPath: "/tmp/rabbitmq/",
 				},
+				corev1.VolumeMount{
+					Name:      "plugins-conf",
+					MountPath: "/tmp/rabbitmq-plugins/",
+				},
+
 				corev1.VolumeMount{
 					Name:      "rabbitmq-etc",
 					MountPath: "/etc/rabbitmq/",

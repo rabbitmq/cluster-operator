@@ -31,6 +31,10 @@ func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
 	}
 }
 
+func (builder *AdminSecretBuilder) UpdateRequiresStsRestart() bool {
+	return false
+}
+
 func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
 	secret := object.(*corev1.Secret)
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)

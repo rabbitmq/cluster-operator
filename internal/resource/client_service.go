@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -32,6 +33,10 @@ func (builder *RabbitmqResourceBuilder) ClientService() *ClientServiceBuilder {
 type ClientServiceBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
 	Scheme   *runtime.Scheme
+}
+
+func (builder *ClientServiceBuilder) UpdateRequiresStsRestart() bool {
+	return false
 }
 
 func (builder *ClientServiceBuilder) Build() (runtime.Object, error) {
