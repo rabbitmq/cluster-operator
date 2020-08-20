@@ -11,6 +11,7 @@ package resource
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"gopkg.in/ini.v1"
@@ -86,7 +87,7 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 
 	rmqProperties := builder.Instance.Spec.Rabbitmq
 	if err := cfg.Append([]byte(rmqProperties.AdditionalConfig)); err != nil {
-		return err
+		return fmt.Errorf("failed to append spec.rabbitmq.additionalConfig: %w", err)
 	}
 
 	var rmqConfBuffer bytes.Buffer

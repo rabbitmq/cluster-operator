@@ -82,7 +82,7 @@ cluster_name                                    = ` + builder.Instance.Name + "\
 			})
 		})
 
-		When("additionalConfig is provided", func() {
+		When("valid additionalConfig is provided", func() {
 			BeforeEach(func() {
 				instance.Spec.Rabbitmq.AdditionalConfig = `cluster_formation.peer_discovery_backend = my-backend
 my-config-property-0 = great-value
@@ -104,6 +104,17 @@ my-config-property-1                            = better-value
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
+			})
+		})
+
+		When("invalid additionalConfig is provided", func() {
+			BeforeEach(func() {
+				instance.Spec.Rabbitmq.AdditionalConfig = " = invalid"
+			})
+
+			It("errors", func() {
+				Expect(configMapBuilder.Update(configMap)).To(MatchError(
+					"failed to append spec.rabbitmq.additionalConfig: error creating new key: empty key name"))
 			})
 		})
 
