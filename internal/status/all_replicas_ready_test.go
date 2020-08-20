@@ -23,16 +23,16 @@ import (
 
 var _ = Describe("AllReplicasReady", func() {
 	var (
-		sts               *appsv1.StatefulSet
-		existingCondition *rabbitmqstatus.RabbitmqClusterCondition
-		desiredReplicas   int32 = 5
+		sts             *appsv1.StatefulSet
+		oldCondition    *rabbitmqstatus.RabbitmqClusterCondition
+		desiredReplicas int32 = 5
 	)
 
 	BeforeEach(func() {
 		sts = &appsv1.StatefulSet{
 			Status: appsv1.StatefulSetStatus{},
 		}
-		existingCondition = nil
+		oldCondition = nil
 
 	})
 
@@ -44,7 +44,7 @@ var _ = Describe("AllReplicasReady", func() {
 			})
 
 			It("returns the expected condition", func() {
-				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&corev1.Endpoints{}, sts}, existingCondition)
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&corev1.Endpoints{}, sts}, oldCondition)
 
 				By("having status true and reason message", func() {
 					Expect(condition.Status).To(Equal(corev1.ConditionTrue))
@@ -60,7 +60,7 @@ var _ = Describe("AllReplicasReady", func() {
 			})
 
 			It("returns a condition with state false", func() {
-				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
 				By("having status false and reason", func() {
 					Expect(condition.Status).To(Equal(corev1.ConditionFalse))
@@ -76,7 +76,7 @@ var _ = Describe("AllReplicasReady", func() {
 			})
 
 			It("returns a condition with state unknown", func() {
-				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
 				By("having status unknown and reason", func() {
 					Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
@@ -112,7 +112,7 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&corev1.Endpoints{}, sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&corev1.Endpoints{}, sts}, oldCondition)
 					Expect(condition.LastTransitionTime).ToNot(Equal(emptyTime))
 				})
 			})
@@ -124,7 +124,7 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 					Expect(condition.LastTransitionTime).ToNot(Equal(emptyTime))
 				})
 			})
@@ -135,7 +135,7 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 					Expect(condition.LastTransitionTime).ToNot(Equal(emptyTime))
 				})
 			})
@@ -143,7 +143,7 @@ var _ = Describe("AllReplicasReady", func() {
 
 		Context("previous condition was false", func() {
 			BeforeEach(func() {
-				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				oldCondition = &rabbitmqstatus.RabbitmqClusterCondition{
 					Status: corev1.ConditionFalse,
 					LastTransitionTime: metav1.Time{
 						Time: previousConditionTime,
@@ -158,13 +158,13 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
-					Expect(existingCondition).NotTo(BeNil())
-					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
+					Expect(oldCondition).NotTo(BeNil())
+					oldConditionTime := oldCondition.LastTransitionTime.DeepCopy()
 
-					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
-					Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
+					Expect(condition.LastTransitionTime.Equal(oldConditionTime)).To(BeFalse())
+					Expect(condition.LastTransitionTime.Before(oldConditionTime)).To(BeFalse())
 				})
 			})
 
@@ -175,11 +175,11 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("does not update transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
-					Expect(existingCondition).NotTo(BeNil())
-					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
-					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeTrue())
+					Expect(oldCondition).NotTo(BeNil())
+					oldConditionTime := oldCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(oldConditionTime)).To(BeTrue())
 				})
 			})
 
@@ -189,19 +189,19 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
-					Expect(existingCondition).NotTo(BeNil())
-					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
-					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
-					Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
+					Expect(oldCondition).NotTo(BeNil())
+					oldConditionTime := oldCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(oldConditionTime)).To(BeFalse())
+					Expect(condition.LastTransitionTime.Before(oldConditionTime)).To(BeFalse())
 				})
 			})
 		})
 
 		Context("previous condition was true", func() {
 			BeforeEach(func() {
-				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				oldCondition = &rabbitmqstatus.RabbitmqClusterCondition{
 					Status: corev1.ConditionTrue,
 					LastTransitionTime: metav1.Time{
 						Time: previousConditionTime,
@@ -216,11 +216,11 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("does not update transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
-					Expect(existingCondition).NotTo(BeNil())
-					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
-					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeTrue())
+					Expect(oldCondition).NotTo(BeNil())
+					oldConditionTime := oldCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(oldConditionTime)).To(BeTrue())
 				})
 			})
 
@@ -231,12 +231,12 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
-					Expect(existingCondition).NotTo(BeNil())
-					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
-					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
-					Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
+					Expect(oldCondition).NotTo(BeNil())
+					oldConditionTime := oldCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(oldConditionTime)).To(BeFalse())
+					Expect(condition.LastTransitionTime.Before(oldConditionTime)).To(BeFalse())
 				})
 			})
 
@@ -246,19 +246,19 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
-					Expect(existingCondition).NotTo(BeNil())
-					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
-					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
-					Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
+					Expect(oldCondition).NotTo(BeNil())
+					oldConditionTime := oldCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(oldConditionTime)).To(BeFalse())
+					Expect(condition.LastTransitionTime.Before(oldConditionTime)).To(BeFalse())
 				})
 			})
 		})
 
 		Context("previous condition was unknown", func() {
 			BeforeEach(func() {
-				existingCondition = &rabbitmqstatus.RabbitmqClusterCondition{
+				oldCondition = &rabbitmqstatus.RabbitmqClusterCondition{
 					Status: corev1.ConditionUnknown,
 					LastTransitionTime: metav1.Time{
 						Time: previousConditionTime,
@@ -273,12 +273,12 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
-					Expect(existingCondition).NotTo(BeNil())
-					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
-					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
-					Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
+					Expect(oldCondition).NotTo(BeNil())
+					oldConditionTime := oldCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(oldConditionTime)).To(BeFalse())
+					Expect(condition.LastTransitionTime.Before(oldConditionTime)).To(BeFalse())
 				})
 			})
 
@@ -289,12 +289,12 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
-					Expect(existingCondition).NotTo(BeNil())
-					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
-					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeFalse())
-					Expect(condition.LastTransitionTime.Before(existingConditionTime)).To(BeFalse())
+					Expect(oldCondition).NotTo(BeNil())
+					oldConditionTime := oldCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(oldConditionTime)).To(BeFalse())
+					Expect(condition.LastTransitionTime.Before(oldConditionTime)).To(BeFalse())
 				})
 			})
 
@@ -304,11 +304,11 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("does not update transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, existingCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{sts}, oldCondition)
 
-					Expect(existingCondition).NotTo(BeNil())
-					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
-					Expect(condition.LastTransitionTime.Equal(existingConditionTime)).To(BeTrue())
+					Expect(oldCondition).NotTo(BeNil())
+					oldConditionTime := oldCondition.LastTransitionTime.DeepCopy()
+					Expect(condition.LastTransitionTime.Equal(oldConditionTime)).To(BeTrue())
 				})
 			})
 		})
