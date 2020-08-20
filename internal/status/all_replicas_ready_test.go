@@ -25,6 +25,7 @@ var _ = Describe("AllReplicasReady", func() {
 	var (
 		sts               *appsv1.StatefulSet
 		existingCondition *rabbitmqstatus.RabbitmqClusterCondition
+		desiredReplicas   int32 = 5
 	)
 
 	BeforeEach(func() {
@@ -39,7 +40,7 @@ var _ = Describe("AllReplicasReady", func() {
 		When("all replicas are ready", func() {
 			BeforeEach(func() {
 				sts.Status.ReadyReplicas = 5
-				sts.Status.Replicas = 5
+				sts.Spec.Replicas = &desiredReplicas
 			})
 
 			It("returns the expected condition", func() {
@@ -54,8 +55,8 @@ var _ = Describe("AllReplicasReady", func() {
 
 		When("some replicas are not ready", func() {
 			BeforeEach(func() {
-				sts.Status.ReadyReplicas = 3
-				sts.Status.Replicas = 5
+				sts.Status.ReadyReplicas = 0
+				sts.Spec.Replicas = nil // defaults to 1
 			})
 
 			It("returns a condition with state false", func() {
@@ -64,7 +65,7 @@ var _ = Describe("AllReplicasReady", func() {
 				By("having status false and reason", func() {
 					Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 					Expect(condition.Reason).To(Equal("NotAllPodsReady"))
-					Expect(condition.Message).ToNot(BeEmpty())
+					Expect(condition.Message).To(Equal("0/1 Pods ready"))
 				})
 			})
 		})
@@ -107,7 +108,7 @@ var _ = Describe("AllReplicasReady", func() {
 			When("transitions to true", func() {
 				BeforeEach(func() {
 					sts.Status.ReadyReplicas = 5
-					sts.Status.Replicas = 5
+					sts.Spec.Replicas = &desiredReplicas
 				})
 
 				It("updates the transition time", func() {
@@ -119,7 +120,7 @@ var _ = Describe("AllReplicasReady", func() {
 			When("transitions to false", func() {
 				BeforeEach(func() {
 					sts.Status.ReadyReplicas = 3
-					sts.Status.Replicas = 5
+					sts.Spec.Replicas = &desiredReplicas
 				})
 
 				It("updates the transition time", func() {
@@ -153,7 +154,7 @@ var _ = Describe("AllReplicasReady", func() {
 			When("transitions to true", func() {
 				BeforeEach(func() {
 					sts.Status.ReadyReplicas = 5
-					sts.Status.Replicas = 5
+					sts.Spec.Replicas = &desiredReplicas
 				})
 
 				It("updates the transition time", func() {
@@ -170,7 +171,7 @@ var _ = Describe("AllReplicasReady", func() {
 			When("remains false", func() {
 				BeforeEach(func() {
 					sts.Status.ReadyReplicas = 3
-					sts.Status.Replicas = 5
+					sts.Spec.Replicas = &desiredReplicas
 				})
 
 				It("does not update transition time", func() {
@@ -211,7 +212,7 @@ var _ = Describe("AllReplicasReady", func() {
 			When("remains true", func() {
 				BeforeEach(func() {
 					sts.Status.ReadyReplicas = 5
-					sts.Status.Replicas = 5
+					sts.Spec.Replicas = &desiredReplicas
 				})
 
 				It("does not update transition time", func() {
@@ -226,7 +227,7 @@ var _ = Describe("AllReplicasReady", func() {
 			When("transitions to false", func() {
 				BeforeEach(func() {
 					sts.Status.ReadyReplicas = 3
-					sts.Status.Replicas = 5
+					sts.Spec.Replicas = &desiredReplicas
 				})
 
 				It("updates the transition time", func() {
@@ -268,7 +269,7 @@ var _ = Describe("AllReplicasReady", func() {
 			When("transitions to true", func() {
 				BeforeEach(func() {
 					sts.Status.ReadyReplicas = 5
-					sts.Status.Replicas = 5
+					sts.Spec.Replicas = &desiredReplicas
 				})
 
 				It("updates the transition time", func() {
@@ -284,7 +285,7 @@ var _ = Describe("AllReplicasReady", func() {
 			When("transitions to false", func() {
 				BeforeEach(func() {
 					sts.Status.ReadyReplicas = 3
-					sts.Status.Replicas = 5
+					sts.Spec.Replicas = &desiredReplicas
 				})
 
 				It("updates the transition time", func() {

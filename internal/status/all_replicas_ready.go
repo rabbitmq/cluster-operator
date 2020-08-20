@@ -37,7 +37,11 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 				goto assignLastTransitionTime
 			}
 
-			if resource.Status.Replicas == resource.Status.ReadyReplicas {
+			var desiredReplicas int32 = 1
+			if resource.Spec.Replicas != nil {
+				desiredReplicas = *resource.Spec.Replicas
+			}
+			if desiredReplicas == resource.Status.ReadyReplicas {
 				condition.Status = corev1.ConditionTrue
 				condition.Reason = "AllPodsAreReady"
 				goto assignLastTransitionTime
@@ -47,7 +51,7 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 			condition.Reason = "NotAllPodsReady"
 			condition.Message = fmt.Sprintf("%d/%d Pods ready",
 				resource.Status.ReadyReplicas,
-				resource.Status.Replicas)
+				desiredReplicas)
 		}
 	}
 
