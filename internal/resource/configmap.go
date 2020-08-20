@@ -89,8 +89,8 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		return err
 	}
 
-	var buffer bytes.Buffer
-	if _, err := cfg.WriteTo(&buffer); err != nil {
+	var rmqConfBuffer bytes.Buffer
+	if _, err := cfg.WriteTo(&rmqConfBuffer); err != nil {
 		return err
 	}
 
@@ -98,7 +98,7 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		configMap.Data = make(map[string]string)
 	}
 
-	configMap.Data["rabbitmq.conf"] = buffer.String()
+	configMap.Data["rabbitmq.conf"] = rmqConfBuffer.String()
 
 	updateProperty(configMap.Data, "advanced.config", rmqProperties.AdvancedConfig)
 	updateProperty(configMap.Data, "rabbitmq-env.conf", rmqProperties.EnvConfig)
