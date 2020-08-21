@@ -45,6 +45,7 @@ see-also:
          * [CalVer](#calver)
       * [Proposal - versioning](#proposal---versioning)
          * [Alternatives](#alternatives)
+      * [Accepted Proposal - versioning](#accepted---versioning)
       * [Proposal - releasing](#proposal---releasing)
          * [Compatibility](#compatibility)
             * [Supported range of RabbitMQ versions](#supported-range-of-rabbitmq-versions)
@@ -266,6 +267,13 @@ This scheme focuses more on the release date than the caliber of the release. He
 It may be preferable if we decide that the operator is unlikely to require backports of functionality (since the operator is already required to maintain multiple API versions by the
 Kubernetes Deprecation policy). It also encourages users to check the release notes for every release, though may lead to some users being confused by potentially breaking changes in a version bump that
 only consists of the last number bumping.
+
+## Accepted Proposal - versioning
+
+We discussed the above proposal as a team and have decided to **use non-strict SemVer for the Operator**. We decided on this for the following reasons - 
+1. Tanzu RabbitMQ - a commercial bundle of RabbitMQ products that includes the Kubernetes Operator, will be using a form of CalVer. We felt that a CalVer product wrapped in a CalVer bundle would be confusing. For example, Tanzu RabbitMQ version 2020-10.2 packaging Operator version 2019.4.5 can be confusing for two reasons - 1. The versioning scheme is similar but different, and 2. the dates are different and may raise questions around support.
+2. Widely used. Forms of SemVer are already in use in the industry meaning our users will already come in with some experience and understanding.
+3. We decided to follow non-strict SemVer since we would like to avoid maintaining too many major versions at the same time. We may not be able to have an n-2 support policy for example, since we may be committed to support each version for a few months.
 
 ## Proposal - releasing
 
