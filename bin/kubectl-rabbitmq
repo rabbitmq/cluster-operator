@@ -8,6 +8,7 @@
 #
 # This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
 
+set -euo pipefail
 
 instance=""
 username=""
@@ -95,7 +96,7 @@ list_rabbitmq_clusters() {
 create() {
     local rabbitmq_manifest_file="rabbitmq.yml"
     set -u
-    cd $(mktemp -d)
+    cd "$(mktemp -d)" || exit 1
     {
         echo "apiVersion: rabbitmq.com/v1beta1"
         echo "kind: RabbitmqCluster"
@@ -184,21 +185,21 @@ secrets() {
 }
 
 install_cluster_operator() {
-    cd $(mktemp -d)
+    cd "$(mktemp -d)" || exit 1
     which -s git || {
         echo "Please install git and try again"
         exit 1
     }
-    git clone https://github.com/rabbitmq/cluster-operator.git  2>/dev/null || {
+    git clone https://github.com/rabbitmq/cluster-operator.git 2>/dev/null || {
         echo "Failed to clone the repository."
         exit 1
     }
     (
-        cd cluster-operator
+        cd cluster-operator || exit 1
         if [[ "${1}" ]]; then
             echo "Setting operator image to ${1}"
             (
-                cd config/manager
+                cd config/manager || exit 1
                 kustomize edit set image "controller=${1}"
             )
         fi
