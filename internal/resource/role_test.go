@@ -43,13 +43,13 @@ var _ = Describe("Role", func() {
 	Context("Build with defaults", func() {
 		BeforeEach(func() {
 			obj, err := roleBuilder.Build()
-			role = obj.(*rbacv1.Role)
 			Expect(err).NotTo(HaveOccurred())
+			role = obj.(*rbacv1.Role)
 		})
 
-		It("generates a correct role", func() {
+		It("generates correct role metadata", func() {
 			Expect(role.Namespace).To(Equal(builder.Instance.Namespace))
-			Expect(role.Name).To(Equal(instance.ChildResourceName("endpoint-discovery")))
+			Expect(role.Name).To(Equal(instance.ChildResourceName("peer-discovery")))
 		})
 	})
 
@@ -124,10 +124,14 @@ var _ = Describe("Role", func() {
 					Resources: []string{"endpoints"},
 					Verbs:     []string{"get"},
 				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"events"},
+					Verbs:     []string{"create"},
+				},
 			}
 
 			Expect(role.Rules).To(Equal(expectedRules))
-
 		})
 	})
 

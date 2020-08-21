@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	roleName = "endpoint-discovery"
+	roleName = "peer-discovery"
 )
 
 type RoleBuilder struct {
@@ -44,6 +44,11 @@ func (builder *RoleBuilder) Update(object runtime.Object) error {
 			APIGroups: []string{""},
 			Resources: []string{"endpoints"},
 			Verbs:     []string{"get"},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"events"},
+			Verbs:     []string{"create"},
 		},
 	}
 

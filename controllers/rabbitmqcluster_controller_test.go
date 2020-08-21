@@ -149,7 +149,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 
 			By("creating a role", func() {
-				roleName := rabbitmqCluster.ChildResourceName("endpoint-discovery")
+				roleName := rabbitmqCluster.ChildResourceName("peer-discovery")
 				role, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(roleName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(role.Name).To(Equal(roleName))
@@ -173,7 +173,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("erlang-cookie"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("admin"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ServiceAccount", rabbitmqCluster.ChildResourceName("server"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Role", rabbitmqCluster.ChildResourceName("endpoint-discovery"))))
+				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Role", rabbitmqCluster.ChildResourceName("peer-discovery"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.RoleBinding", rabbitmqCluster.ChildResourceName("server"))))
 			})
 
@@ -790,7 +790,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			It("updates annotations for role", func() {
 				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("endpoint-discovery"), metav1.GetOptions{})
+					roleBinding, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("peer-discovery"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
