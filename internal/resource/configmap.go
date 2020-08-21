@@ -12,7 +12,6 @@ package resource
 import (
 	"bytes"
 	"fmt"
-	"strings"
 
 	"gopkg.in/ini.v1"
 
