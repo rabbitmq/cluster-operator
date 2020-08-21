@@ -1,0 +1,303 @@
+#!/bin/bash
+#
+# RabbitMQ Cluster Operator
+#
+# Copyright 2020 VMware, Inc. All Rights Reserved.
+#
+# This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance with the Mozilla Public License.
+#
+# This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+
+
+instance=""
+username=""
+password=""
+service=""
+
+usage() {
+    echo "USAGE:"
+    echo "  Install RabbitMQ Cluster Operator (optionally provide image to use a relocated image or a specific version)"
+    echo "    kubectl rabbitmq install-cluster-operaotr [IMAGE]"
+    echo
+    echo "  Open Management UI for an instance:"
+    echo "    kubectl rabbitmq manage INSTANCE"
+    echo
+    echo "  List all RabbitMQ clusters"
+    echo "    kubectl rabbitmq list"
+    echo
+    echo "  Delete a RabbitMQ cluster (or multiple clusters)"
+    echo "    kubectl rabbitmq delete INSTANCE ..."
+    echo
+    echo "  Create a RabbitMQ custom resource - INSTANCE name required, all other flags optional"
+    echo "    kubectl rabbitmq create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.5 --image-pull-secret mysecret"
+    echo
+    echo "  Get a RabbitMQ custom resource and dependant objects"
+    echo "    kubectl rabbitmq get INSTANCE"
+    echo
+    echo "  Set log level to 'debug' on all nodes"
+    echo "    kubectl rabbitmq debug INSTANCE"
+    echo
+    echo "  Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE"
+    echo "    kubectl rabbitmq observe INSTANCE 0"
+    echo
+    echo "  Run perf-test against an instance - you can pass as many perf test parameters as you want:"
+    echo "    kubectl rabbitmq perf-test INSTANCE --rate 100"
+    echo
+    echo "If you want to monitor perf-test, create the following ServiceMonitor:"
+    echo "    apiVersion: monitoring.coreos.com/v1"
+    echo "    kind: ServiceMonitor"
+    echo "    metadata:"
+    echo "      name: kubectl-perf-test"
+    echo "    spec:"
+    echo "      endpoints:"
+    echo "      - interval: 15s"
+    echo "        targetPort: 8080"
+    echo "      selector:"
+    echo "        matchLabels:"
+    echo "          app: perf-test"
+}
+
+get_instance_details() {
+    instance=${1}
+    username=$(kubectl get secret "${instance}-rabbitmq-admin" -o jsonpath="{.data.username}" | base64 --decode)
+    password=$(kubectl get secret "${instance}-rabbitmq-admin" -o jsonpath="{.data.password}" | base64 --decode)
+    service=${instance}-rabbitmq-client
+}
+
+perf_test() {
+    get_instance_details "$@"
+    shift 1
+    perftestopts=$*
+
+    kubectl run perf-test \
+        --expose=true \
+        --port=8080 \
+        --labels="app=perf-test,run=perf-test" \
+        --image=pivotalrabbitmq/perf-test \
+        -- --uri "amqp://${username}:${password}@${service}" \
+        --metrics-prometheus "${perftestopts}"
+}
+
+manage() {
+    get_instance_details "$@"
+
+    (
+        sleep 2
+        open "http://localhost:15672/#/login/${username}/${password}"
+    ) &
+    kubectl port-forward "service/${service}" 15672
+}
+
+list_rabbitmq_clusters() {
+    kubectl get rabbitmqclusters
+}
+
+create() {
+    local rabbitmq_manifest_file="rabbitmq.yml"
+    set -u
+    cd $(mktemp -d)
+    {
+        echo "apiVersion: rabbitmq.com/v1beta1"
+        echo "kind: RabbitmqCluster"
+        echo "metadata:"
+        echo "  name: $1"
+        echo "spec:"
+    } >"$rabbitmq_manifest_file"
+    shift 1
+
+    # special case when no options are provided
+    if [[ "$#" -eq 0 ]]; then
+        echo "  replicas: 1" >>"$rabbitmq_manifest_file"
+    fi
+
+    while [[ "$#" -ne 0 ]]; do
+        #statements
+        case "$1" in
+        "--replicas")
+            shift 1
+            echo "  replicas: $1" >>"$rabbitmq_manifest_file"
+            shift 1
+            ;;
+        "--service")
+            shift 1
+            echo "  service:" >>"$rabbitmq_manifest_file"
+            echo "    type: $1" >>"$rabbitmq_manifest_file"
+            shift 1
+            ;;
+        "--image")
+            shift 1
+            echo "  image: $1" >>"$rabbitmq_manifest_file"
+            shift 1
+            ;;
+        "--image-pull-secret")
+            shift 1
+            echo "  imagePullSecret: $1" >>"$rabbitmq_manifest_file"
+            shift 1
+            ;;
+        "--unlimited")
+            shift 1
+            echo "  resources:" >>"$rabbitmq_manifest_file"
+            echo "    requests: {}" >>"$rabbitmq_manifest_file"
+            echo "    limits: {}" >>"$rabbitmq_manifest_file"
+            ;;
+        "--tls-secret")
+            shift 1
+            echo "  tls:" >>"$rabbitmq_manifest_file"
+            echo "    secretName: $1" >>"$rabbitmq_manifest_file"
+            shift 1
+            ;;
+        *)
+            # Unrecognised or unsupported option
+            echo "Option '$1' not recongnised"
+            shift 1
+            ;;
+        esac
+    done
+    kubectl apply -f "$rabbitmq_manifest_file"
+}
+
+delete() {
+    for cluster in "$@"; do
+        kubectl delete rabbitmqcluster "${cluster}"
+    done
+}
+
+observe() {
+    kubectl exec -it "${1}-rabbitmq-server-${2}" -- rabbitmq-diagnostics observer
+}
+
+get() {
+    kubectl get pods,cm,sts,svc,secrets,rs -l "app.kubernetes.io/name=$1"
+}
+
+debug() {
+    for node in $(kubectl get pods -l "app.kubernetes.io/name=${1}" -ocustom-columns=name:.metadata.name --no-headers); do
+        echo -n "${node}: "
+        kubectl exec "${node}" -- rabbitmqctl set_log_level debug
+    done
+}
+
+secrets() {
+    get_instance_details "$@"
+    echo "username: ${username}"
+    echo "password: ${password}"
+}
+
+install_cluster_operator() {
+    cd $(mktemp -d)
+    which -s git || {
+        echo "Please install git and try again"
+        exit 1
+    }
+    git clone https://github.com/rabbitmq/cluster-operator.git  2>/dev/null || {
+        echo "Failed to clone the repository."
+        exit 1
+    }
+    (
+        cd cluster-operator
+        if [[ "${1}" ]]; then
+            echo "Setting operator image to ${1}"
+            (
+                cd config/manager
+                kustomize edit set image "controller=${1}"
+            )
+        fi
+        kubectl apply -f config/namespace/base/namespace.yaml
+        kubectl apply -f config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml
+        kubectl -n rabbitmq-system apply --kustomize config/rbac/
+        kubectl -n rabbitmq-system apply --kustomize config/manager/
+    )
+}
+
+main() {
+    case "$1" in
+    "perf-test")
+        shift 1
+        if [[ "$#" -eq 0 ]] || [[ "$1" =~ (--[a-z-]) ]]; then
+            echo "Missing instance name"
+            usage
+            exit 1
+        fi
+        perf_test "$@"
+        ;;
+    "manage")
+        shift 1
+        if [[ "$#" -eq 0 ]] || [[ "$1" =~ (--[a-z-]*) ]]; then
+            echo "Missing instance name"
+            usage
+            exit 1
+        fi
+        manage "$@"
+        ;;
+    "list")
+        list_rabbitmq_clusters
+        ;;
+    "create")
+        shift 1
+        if [[ "$#" -eq 0 ]]; then
+            usage
+            exit 1
+        fi
+        create "$@"
+        ;;
+    "delete")
+        shift 1
+        if [[ "$#" -eq 0 ]]; then
+            usage
+            exit 1
+        fi
+        delete "$@"
+        ;;
+    "get")
+        shift 1
+        if [[ "$#" -ne 1 ]]; then
+            usage
+            exit 1
+        fi
+        get "$1"
+        ;;
+    "debug")
+        shift 1
+        if [[ "$#" -ne 1 ]]; then
+            usage
+            exit 1
+        fi
+        debug "$1"
+        ;;
+    "observe")
+        shift 1
+        if [[ "$#" -ne 2 ]]; then
+            usage
+            exit 1
+        fi
+        observe "$1" "$2"
+        ;;
+    "secrets")
+        shift 1
+        if [[ "$#" -ne 1 ]]; then
+            usage
+            exit 1
+        fi
+        secrets "$1"
+        ;;
+    "install-cluster-operator")
+        shift 1
+        if [[ "$#" -gt 1 ]]; then
+            usage
+            exit 1
+        fi
+        install_cluster_operator "$1"
+        ;;
+
+    *)
+        usage
+        exit 1
+        ;;
+    esac
+}
+
+if [[ "$#" -ge 1 ]]; then
+    main "$@"
+else
+    usage
+fi
