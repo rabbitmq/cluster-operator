@@ -60,8 +60,8 @@ see-also:
          * [Story 4 - New patch release of RabbitMQ](#story-4---new-patch-release-of-rabbitmq)
          * [Story 5 - New minor release of RabbitMQ](#story-5---new-minor-release-of-rabbitmq)
          * [Story 6 - Release of API Group rabbitmq.com/v2](#story-6---release-of-api-group-rabbitmqcomv2)
-      * [Accepted Proposal - use non-strict SemVer](#accepted---use-non-strict-semver)
-      * [Accepted Proposal - releasing](#accepted---releasing)
+      * [Accepted Proposal - use non-strict SemVer](#accepted-proposal---use-non-strict-semver)
+      * [Accepted Proposal - releasing](#accepted-proposal---releasing)
       * [Implementation History](#implementation-history)
 
 <!-- Added by: coro, at: Mon Aug 10 14:50:15 UTC 2020 -->
