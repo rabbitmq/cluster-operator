@@ -390,14 +390,14 @@ At the time of the following MINOR release of the operator, I can see that the p
 We discussed the above proposal as a team and have decided to **use non-strict SemVer for the Operator**. We decided on this for the following reasons - 
 1. Tanzu RabbitMQ - a commercial bundle of RabbitMQ products that includes the Kubernetes Operator, will be using a form of CalVer. We felt that a CalVer product wrapped in a CalVer bundle would be confusing. For example, Tanzu RabbitMQ version 2020.10.2 packaging Operator version 2019.4.5 can be confusing for two reasons - 1. The versioning scheme is similar but may not be the same (the middle number could represent the minor version in one case, and the month number in another!), and 2. the dates are different and may raise questions around support. We could synchonise on both the CalVer scheme and on the dates being the same but would not like to be coupled so tightly with commercial versioning.
 2. SemVer is widely used in the industry already, meaning our users will already come in with some experience and understanding.
-3. We decided to follow non-strict SemVer since we would like to avoid maintaining too many major versions at the same time. Strict SemVer dictates that we bump major versions for each breaking change. We may however be committed to supporting each major version for a certain number of months, and supporting many versions at the same time will increase both our workload and it's complexity. We will define the non-strict in another issue in this repository.
+3. We decided to follow non-strict SemVer since we would like to avoid maintaining too many major versions at the same time. Strict SemVer dictates that we bump major versions for each breaking change. We may however be committed to supporting each major version for a certain number of months, and supporting many versions at the same time will increase both our workload and it's complexity. We will define the non-strict in [another issue in this repository](https://github.com/rabbitmq/cluster-operator/issues/265).
 
 ## Accepted Proposal - releasing
 
 In the same team meeting as above, we have agreed to the following with regards to releasing:
 1. We should bump the major version to 1 when we GA. 
 2. We cut a release on each commit that goes through CI. We may use just the minor version for now until we GA (0.31.0, 0.32.0, ...). This will make the support experience for any early users easier since they will just have to mention the version number to us (than a commit hash for example).
-3. We should define the guidelines for our "non-strict" SemVer and make this available as a README in this repository. A separate issue will address this.
+3. We should define the guidelines for our "non-strict" SemVer and make this available as a README in this repository. This is addressed in the [following issue](https://github.com/rabbitmq/cluster-operator/issues/265).
 
 ## Implementation History
 
