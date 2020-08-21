@@ -45,7 +45,6 @@ see-also:
          * [CalVer](#calver)
       * [Proposal - versioning](#proposal---versioning)
          * [Alternatives](#alternatives)
-      * [Accepted Proposal - versioning](#accepted---versioning)
       * [Proposal - releasing](#proposal---releasing)
          * [Compatibility](#compatibility)
             * [Supported range of RabbitMQ versions](#supported-range-of-rabbitmq-versions)
@@ -61,6 +60,8 @@ see-also:
          * [Story 4 - New patch release of RabbitMQ](#story-4---new-patch-release-of-rabbitmq)
          * [Story 5 - New minor release of RabbitMQ](#story-5---new-minor-release-of-rabbitmq)
          * [Story 6 - Release of API Group rabbitmq.com/v2](#story-6---release-of-api-group-rabbitmqcomv2)
+      * [Accepted Proposal - use non-strict SemVer](#accepted---use-non-strict-semver)
+      * [Accepted Proposal - releasing](#accepted---releasing)
       * [Implementation History](#implementation-history)
 
 <!-- Added by: coro, at: Mon Aug 10 14:50:15 UTC 2020 -->
@@ -268,13 +269,6 @@ It may be preferable if we decide that the operator is unlikely to require backp
 Kubernetes Deprecation policy). It also encourages users to check the release notes for every release, though may lead to some users being confused by potentially breaking changes in a version bump that
 only consists of the last number bumping.
 
-## Accepted Proposal - versioning
-
-We discussed the above proposal as a team and have decided to **use non-strict SemVer for the Operator**. We decided on this for the following reasons - 
-1. Tanzu RabbitMQ - a commercial bundle of RabbitMQ products that includes the Kubernetes Operator, will be using a form of CalVer. We felt that a CalVer product wrapped in a CalVer bundle would be confusing. For example, Tanzu RabbitMQ version 2020-10.2 packaging Operator version 2019.4.5 can be confusing for two reasons - 1. The versioning scheme is similar but different, and 2. the dates are different and may raise questions around support.
-2. Widely used. Forms of SemVer are already in use in the industry meaning our users will already come in with some experience and understanding.
-3. We decided to follow non-strict SemVer since we would like to avoid maintaining too many major versions at the same time. We may not be able to have an n-2 support policy for example, since we may be committed to support each version for a few months.
-
 ## Proposal - releasing
 
 ### Compatibility
@@ -391,7 +385,21 @@ I can see that there is action required upon me to migrate to the new version of
 
 At the time of the following MINOR release of the operator, I can see that the preferred / storage version is now v2.
 
+## Accepted Proposal - use non-strict SemVer
+
+We discussed the above proposal as a team and have decided to **use non-strict SemVer for the Operator**. We decided on this for the following reasons - 
+1. Tanzu RabbitMQ - a commercial bundle of RabbitMQ products that includes the Kubernetes Operator, will be using a form of CalVer. We felt that a CalVer product wrapped in a CalVer bundle would be confusing. For example, Tanzu RabbitMQ version 2020-10.2 packaging Operator version 2019.4.5 can be confusing for two reasons - 1. The versioning scheme is similar but not the same, and 2. the dates are different and may raise questions around support. We could synchonise on both the CalVer scheme and on the dates being the same but would not like to be coupled so tightly with commercial versioning.
+2. SemVer is widely used in the industry already, meaning our users will already come in with some experience and understanding.
+3. We decided to follow non-strict SemVer since we would like to avoid maintaining too many major versions at the same time. Strict SemVer dictates that we bump major versions for each breaking change. We may however be committed to supporting each major version for a certain number of months, and supporting many versions at the same time will increase both our workload and it's complexity. We will define the non-strict in another issue in this repository.
+
+## Accepted Proposal - releasing
+
+In the same team meeting as above, we have agreed to the following with regards to releasing:
+1. We should bump the major version to 1 when we GA. 
+2. We cut a release on each commit that goes through CI. We may use the just the minor version for now until we GA (0.31.0, 0.32.0, ...). This will make the support experience for any early users easier since they will just have to mention the version number to us (than a commit hash for example).
+3. We should define the guidelines for our "non-strict" SemVer and make this available as a README in this repository. A separate issue will address this.
+
 ## Implementation History
 
 - [x] 2020-08-07: Open proposal PR
-
+- [x] 2020-08-21: Add accepted proposal to PR
