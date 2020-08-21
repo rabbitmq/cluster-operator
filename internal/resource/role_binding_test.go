@@ -126,7 +126,7 @@ var _ = Describe("RoleBinding", func() {
 			expectedRoleRef := rbacv1.RoleRef{
 				APIGroup: "rbac.authorization.k8s.io",
 				Kind:     "Role",
-				Name:     "rabbit-rolebinding-rabbitmq-endpoint-discovery",
+				Name:     "rabbit-rolebinding-rabbitmq-peer-discovery",
 			}
 			expectedSubjects := []rbacv1.Subject{
 				{
