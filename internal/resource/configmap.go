@@ -10,8 +10,10 @@
 package resource
 
 import (
+	"bytes"
 	"fmt"
-	"strings"
+
+	"gopkg.in/ini.v1"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
@@ -22,24 +24,19 @@ import (
 
 const (
 	serverConfigMapName = "server-conf"
-	defaultRabbitmqConf = `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+	defaultRabbitmqConf = `
+cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host = kubernetes.default
 cluster_formation.k8s.address_type = hostname
 cluster_formation.node_cleanup.interval = 30
 cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling = pause_minority
-queue_master_locator = min-masters
-`
+queue_master_locator = min-masters`
 
 	defaultTLSConf = `
-ssl_options.certfile=/etc/rabbitmq-tls/tls.crt
-ssl_options.keyfile=/etc/rabbitmq-tls/tls.key
-listeners.ssl.default=5671
-`
-
-	defaultMutualTLSConf = `
-ssl_options.verify = verify_peer
-`
+ssl_options.certfile = /etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile = /etc/rabbitmq-tls/tls.key
+listeners.ssl.default = 5671`
 )
 
 type ServerConfigMapBuilder struct {
@@ -61,41 +58,47 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	configMap.Annotations = metadata.ReconcileAndFilterAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
 
-	if configMap.Data == nil {
-		configMap.Data = make(map[string]string)
-	}
-
-	var rmqConfBuilder strings.Builder
-
-	_, err := fmt.Fprintf(&rmqConfBuilder, "%scluster_name = %s\n", defaultRabbitmqConf, builder.Instance.Name)
+	ini.PrettySection = false // Remove trailing new line because rabbitmq.conf has only a default section.
+	cfg, err := ini.Load([]byte(defaultRabbitmqConf))
 	if err != nil {
+		return err
+	}
+	defaultSection := cfg.Section("")
+
+	if _, err := defaultSection.NewKey("cluster_name", builder.Instance.Name); err != nil {
 		return err
 	}
 
 	if builder.Instance.TLSEnabled() {
-		_, err := rmqConfBuilder.WriteString(defaultTLSConf)
-		if err != nil {
+		if err := cfg.Append([]byte(defaultTLSConf)); err != nil {
 			return err
 		}
 	}
 
 	if builder.Instance.MutualTLSEnabled() {
-		fmt.Fprintf(&rmqConfBuilder, "%s%s\n%s", "ssl_options.cacertfile=/etc/rabbitmq-tls/",
-			builder.Instance.Spec.TLS.CaCertName,
-			defaultMutualTLSConf)
-	}
-
-	rmqProperties := builder.Instance.Spec.Rabbitmq
-	// rabbitmq.conf takes the last provided value when multiple values of the same key are specified
-	// do not need to deduplicate keys to allow overwrite
-	if rmqProperties.AdditionalConfig != "" {
-		_, err := rmqConfBuilder.WriteString(rmqProperties.AdditionalConfig)
-		if err != nil {
+		if _, err := defaultSection.NewKey("ssl_options.cacertfile", "/etc/rabbitmq-tls/"+builder.Instance.Spec.TLS.CaCertName); err != nil {
+			return err
+		}
+		if _, err := defaultSection.NewKey("ssl_options.verify", "verify_peer"); err != nil {
 			return err
 		}
 	}
 
-	configMap.Data["rabbitmq.conf"] = rmqConfBuilder.String()
+	rmqProperties := builder.Instance.Spec.Rabbitmq
+	if err := cfg.Append([]byte(rmqProperties.AdditionalConfig)); err != nil {
+		return fmt.Errorf("failed to append spec.rabbitmq.additionalConfig: %w", err)
+	}
+
+	var rmqConfBuffer bytes.Buffer
+	if _, err := cfg.WriteTo(&rmqConfBuffer); err != nil {
+		return err
+	}
+
+	if configMap.Data == nil {
+		configMap.Data = make(map[string]string)
+	}
+
+	configMap.Data["rabbitmq.conf"] = rmqConfBuffer.String()
 
 	updateProperty(configMap.Data, "advanced.config", rmqProperties.AdvancedConfig)
 	updateProperty(configMap.Data, "rabbitmq-env.conf", rmqProperties.EnvConfig)

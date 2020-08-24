@@ -15,6 +15,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"gopkg.in/ini.v1"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -170,9 +171,12 @@ cluster_keepalive_interval = 10000`
 					"/etc/rabbitmq/rabbitmq.conf",
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(output)).Should(ContainSubstring("vm_memory_high_watermark_paging_ratio = 0.5"))
-				Expect(string(output)).Should(ContainSubstring("cluster_keepalive_interval = 10000"))
-				Expect(string(output)).Should(ContainSubstring("cluster_partition_handling = ignore"))
+				cfg, err := ini.Load(output)
+				Expect(err).NotTo(HaveOccurred())
+				cfgMap := cfg.Section("").KeysHash()
+				Expect(cfgMap).To(HaveKeyWithValue("vm_memory_high_watermark_paging_ratio", "0.5"))
+				Expect(cfgMap).To(HaveKeyWithValue("cluster_keepalive_interval", "10000"))
+				Expect(cfgMap).To(HaveKeyWithValue("cluster_partition_handling", "ignore"))
 			})
 
 			By("updating the advanced.config file when advancedConfig are modifed", func() {
