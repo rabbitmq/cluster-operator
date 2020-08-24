@@ -18,10 +18,13 @@ service=""
 usage() {
     echo "USAGE:"
     echo "  Install RabbitMQ Cluster Operator (optionally provide image to use a relocated image or a specific version)"
-    echo "    kubectl rabbitmq install-cluster-operaotr [IMAGE]"
+    echo "    kubectl rabbitmq install-cluster-operator [IMAGE]"
     echo
-    echo "  Open Management UI for an instance:"
+    echo "  Open Management UI for an instance"
     echo "    kubectl rabbitmq manage INSTANCE"
+    echo
+    echo "  Print admin secrets for an instance"
+    echo "    kubectl rabbitmq secrets INSTANCE"
     echo
     echo "  List all RabbitMQ clusters"
     echo "    kubectl rabbitmq list"
@@ -41,10 +44,10 @@ usage() {
     echo "  Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE"
     echo "    kubectl rabbitmq observe INSTANCE 0"
     echo
-    echo "  Run perf-test against an instance - you can pass as many perf test parameters as you want:"
+    echo "  Run perf-test against an instance - you can pass as many perf test parameters as you want"
     echo "    kubectl rabbitmq perf-test INSTANCE --rate 100"
     echo
-    echo "If you want to monitor perf-test, create the following ServiceMonitor:"
+    echo "If you want to monitor perf-test, create the following ServiceMonitor"
     echo "    apiVersion: monitoring.coreos.com/v1"
     echo "    kind: ServiceMonitor"
     echo "    metadata:"
@@ -84,7 +87,7 @@ manage() {
 
     (
         sleep 2
-        open "http://localhost:15672/#/login/${username}/${password}"
+        open "http://localhost:15672/"
     ) &
     kubectl port-forward "service/${service}" 15672
 }
@@ -190,13 +193,13 @@ install_cluster_operator() {
         echo "Please install git and try again"
         exit 1
     }
-    git clone https://github.com/rabbitmq/cluster-operator.git 2>/dev/null || {
+    git clone https://github.com/rabbitmq/cluster-operator.git 2>/dev/null|| {
         echo "Failed to clone the repository."
         exit 1
     }
     (
         cd cluster-operator || exit 1
-        if [[ "${1}" ]]; then
+        if [[ -n "${1}" ]]; then
             echo "Setting operator image to ${1}"
             (
                 cd config/manager || exit 1
@@ -287,7 +290,7 @@ main() {
             usage
             exit 1
         fi
-        install_cluster_operator "$1"
+        install_cluster_operator "${1:-}"
         ;;
 
     *)
