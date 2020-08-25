@@ -1,0 +1,5 @@
+[
+    { "op": "replace", "path": "/spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/override/properties/statefulSet/properties/spec/properties/template/properties/spec/properties/containers/items/properties/ports/items/required", "value": [ "containerPort", "protocol"]},
+        { "op": "replace", "path": "/spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/override/properties/clientService/properties/spec/properties/ports/items/required", "value": [ "port", "protocol"]},
+    { "op": "replace", "path": "/spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/override/properties/statefulSet/properties/spec/properties/template/properties/spec/properties/initContainers/items/properties/ports/items/required", "value": [ "containerPort", "protocol"]},
+]
