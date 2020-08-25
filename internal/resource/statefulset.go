@@ -341,6 +341,19 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		},
 	}
 
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "mqtt",
+			ContainerPort: 1883,
+		})
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "stomp",
+			ContainerPort: 61613,
+		})
+	}
+
 	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "rabbitmq-admin",

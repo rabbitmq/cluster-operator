@@ -58,7 +58,7 @@ var _ = Describe("Operator", func() {
 			waitForClusterAvailable(cluster)
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
-			port = rabbitmqManagementNodePort(ctx, clientSet, cluster)
+			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -242,7 +242,7 @@ CONSOLE_LOG=new`
 			waitForRabbitmqRunning(cluster)
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
-			port = rabbitmqManagementNodePort(ctx, clientSet, cluster)
+			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -303,7 +303,7 @@ CONSOLE_LOG=new`
 			It("works", func() {
 				username, password, err := getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
 				hostname := kubernetesNodeIp(ctx, clientSet)
-				port := rabbitmqManagementNodePort(ctx, clientSet, cluster)
+				port := rabbitmqNodePort(ctx, clientSet, cluster, "management")
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
@@ -346,7 +346,7 @@ CONSOLE_LOG=new`
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 				})).To(Succeed())
 				waitForTLSUpdate(cluster)
-				amqpsNodePort = rabbitmqAMQPSNodePort(ctx, clientSet, cluster)
+				amqpsNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "amqps")
 			})
 
 			AfterEach(func() {
@@ -378,6 +378,47 @@ CONSOLE_LOG=new`
 				assertTLSError(cluster)
 				Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 			})
+		})
+	})
+
+	When("MQTT and STOMP plugins are enabled", func() {
+		var (
+			cluster       *rabbitmqv1beta1.RabbitmqCluster
+			hostname      string
+			username      string
+			password      string
+			mqttNodePort  string
+			stompNodePort string
+		)
+
+		BeforeEach(func() {
+			instanceName := "mqtt-stomp-rabbit"
+			cluster = generateRabbitmqCluster(namespace, instanceName)
+			cluster.Spec.Service.Type = "NodePort"
+			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"}
+			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+			waitForRabbitmqRunning(cluster)
+			waitForClusterAvailable(cluster)
+
+			hostname = kubernetesNodeIp(clientSet)
+			var err error
+			username, password, err = getRabbitmqUsernameAndPassword(clientSet, "rabbitmq-system", instanceName)
+			Expect(err).NotTo(HaveOccurred())
+
+			mqttNodePort = rabbitmqNodePort(clientSet, cluster, "mqtt")
+			stompNodePort = rabbitmqNodePort(clientSet, cluster, "stomp")
+		})
+
+		AfterEach(func() {
+			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
+		})
+
+		It("publishes and consumes a message", func() {
+			By("MQTT")
+			publishAndConsumeMQTTMsg(hostname, mqttNodePort, username, password)
+
+			By("STOMP")
+			publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password)
 		})
 	})
 })

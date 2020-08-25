@@ -8,13 +8,16 @@ require (
 	github.com/Azure/go-autorest/autorest/adal v0.8.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cloudflare/cfssl v1.4.1
+	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
+	github.com/go-stomp/stomp v2.0.6+incompatible
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/gophercloud/gophercloud v0.5.0 // indirect
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/prometheus/client_golang v1.2.1 // indirect
+	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	go.uber.org/multierr v1.2.0 // indirect
 	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7

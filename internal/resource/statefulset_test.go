@@ -31,7 +31,7 @@ var _ = Describe("StatefulSet", func() {
 		stsBuilder *resource.StatefulSetBuilder
 	)
 
-	Context("Build", func() {
+	Describe("Build", func() {
 		BeforeEach(func() {
 			instance = generateRabbitmqCluster()
 
@@ -263,7 +263,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 	})
 
-	Context("Update", func() {
+	Describe("Update", func() {
 		var (
 			statefulSet *appsv1.StatefulSet
 			stsBuilder  *resource.StatefulSetBuilder
@@ -702,7 +702,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(resources.Limits["memory"]).To(Equal(k8sresource.MustParse("500Mi")))
 		})
 
-		It("specifies required Container Ports", func() {
+		It("exposes required Container Ports", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
@@ -714,7 +714,34 @@ var _ = Describe("StatefulSet", func() {
 				actualContainerPorts = append(actualContainerPorts, port.ContainerPort)
 			}
 
-			Expect(actualContainerPorts).Should(ConsistOf(requiredContainerPorts))
+			Expect(actualContainerPorts).To(ConsistOf(requiredContainerPorts))
+		})
+
+		When("MQTT plugin is enabled", func() {
+			It("exposes the MQTT container port", func() {
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt"}
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				expectedMQTTPort := corev1.ContainerPort{
+					Name:          "mqtt",
+					ContainerPort: 1883,
+				}
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.Ports).To(ContainElement(expectedMQTTPort))
+			})
+		})
+		When("STOMP plugin is enabled", func() {
+			It("exposes the STOMP container port", func() {
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_stomp"}
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				expectedSTOMPPort := corev1.ContainerPort{
+					Name:          "stomp",
+					ContainerPort: 61613,
+				}
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.Ports).To(ContainElement(expectedSTOMPPort))
+			})
 		})
 
 		It("uses required Environment Variables", func() {
@@ -767,7 +794,7 @@ var _ = Describe("StatefulSet", func() {
 			}
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-			Expect(container.Env).Should(ConsistOf(requiredEnvVariables))
+			Expect(container.Env).To(ConsistOf(requiredEnvVariables))
 		})
 
 		It("creates required Volume Mounts for the rabbitmq container", func() {
@@ -775,7 +802,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-			Expect(container.VolumeMounts).Should(ConsistOf(
+			Expect(container.VolumeMounts).To(ConsistOf(
 				corev1.VolumeMount{
 					Name:      "rabbitmq-admin",
 					MountPath: "/opt/rabbitmq-secret/",
@@ -803,7 +830,7 @@ var _ = Describe("StatefulSet", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			Expect(statefulSet.Spec.Template.Spec.Volumes).Should(ConsistOf(
+			Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(
 				corev1.Volume{
 					Name: "rabbitmq-admin",
 					VolumeSource: corev1.VolumeSource{
@@ -937,7 +964,7 @@ var _ = Describe("StatefulSet", func() {
 					"&& chown 999:999 /etc/rabbitmq/enabled_plugins",
 			}))
 
-			Expect(container.VolumeMounts).Should(ConsistOf(
+			Expect(container.VolumeMounts).To(ConsistOf(
 				corev1.VolumeMount{
 					Name:      "server-conf",
 					MountPath: "/tmp/rabbitmq/",

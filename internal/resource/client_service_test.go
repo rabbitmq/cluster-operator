@@ -28,7 +28,7 @@ var _ = Context("ClientServices", func() {
 		scheme   *runtime.Scheme
 	)
 
-	Context("Build", func() {
+	Describe("Build", func() {
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
@@ -57,7 +57,7 @@ var _ = Context("ClientServices", func() {
 		})
 	})
 
-	Context("Update", func() {
+	Describe("Update", func() {
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
@@ -299,7 +299,34 @@ var _ = Context("ClientServices", func() {
 					Port:     15672,
 					Protocol: corev1.ProtocolTCP,
 				}
-				Expect(svc.Spec.Ports).Should(ConsistOf(amqpPort, managementPort))
+				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, managementPort))
+			})
+
+			When("MQTT plugin is enabled", func() {
+				It("exposes MQTT port", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt"}
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+
+					expectedMQTTPort := corev1.ServicePort{
+						Name:     "mqtt",
+						Port:     1883,
+						Protocol: corev1.ProtocolTCP,
+					}
+					Expect(svc.Spec.Ports).To(ContainElement(expectedMQTTPort))
+				})
+			})
+			When("STOMP plugin is enabled", func() {
+				It("exposes STOMP port", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_stomp"}
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+
+					expectedSTOMPPort := corev1.ServicePort{
+						Name:     "stomp",
+						Port:     61613,
+						Protocol: corev1.ProtocolTCP,
+					}
+					Expect(svc.Spec.Ports).To(ContainElement(expectedSTOMPPort))
+				})
 			})
 
 			It("updates the service type from ClusterIP to NodePort", func() {

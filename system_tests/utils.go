@@ -34,6 +34,8 @@ import (
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/go-stomp/stomp"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/streadway/amqp"
 	corev1 "k8s.io/api/core/v1"
@@ -44,6 +46,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
@@ -438,29 +441,14 @@ func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) stri
 	return nodeIp
 }
 
-func rabbitmqManagementNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+func rabbitmqNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster, portName string) string {
 	service, err := clientSet.CoreV1().Services(cluster.Namespace).
 		Get(ctx, cluster.ChildResourceName("client"), metav1.GetOptions{})
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	for _, port := range service.Spec.Ports {
-		if port.Name == "management" {
-			return strconv.Itoa(int(port.NodePort))
-		}
-	}
-
-	return ""
-}
-
-func rabbitmqAMQPSNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
-	service, err := clientSet.CoreV1().Services(cluster.Namespace).
-		Get(ctx, cluster.ChildResourceName("client"), metav1.GetOptions{})
-
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-	for _, port := range service.Spec.Ports {
-		if port.Name == "amqps" {
+		if port.Name == portName {
 			return strconv.Itoa(int(port.NodePort))
 		}
 	}
@@ -759,4 +747,77 @@ func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter
 	}
 
 	return nil
+}
+
+func publishAndConsumeMQTTMsg(hostname, mqttNodePort, username, password string) {
+	opts := mqtt.NewClientOptions().
+		AddBroker(fmt.Sprintf("tcp://%s:%s", hostname, mqttNodePort)).
+		SetUsername(username).
+		SetPassword(password).
+		SetClientID("system tests MQTT plugin").
+		SetProtocolVersion(4) // RabbitMQ MQTT plugin targets MQTT 3.1.1
+
+	c := mqtt.NewClient(opts)
+	token := c.Connect()
+	Expect(token.Wait()).To(BeTrue())
+	Expect(token.Error()).ToNot(HaveOccurred())
+
+	topic := "tests/mqtt"
+	msgReceived := false
+
+	handler := func(client mqtt.Client, msg mqtt.Message) {
+		defer GinkgoRecover()
+		Expect(msg.Topic()).To(Equal(topic))
+		Expect(string(msg.Payload())).To(Equal("test message MQTT"))
+		msgReceived = true
+	}
+
+	token = c.Subscribe(topic, 0, handler)
+	Expect(token.Wait()).To(BeTrue())
+	Expect(token.Error()).ToNot(HaveOccurred())
+
+	token = c.Publish(topic, 0, false, "test message MQTT")
+	Expect(token.Wait()).To(BeTrue())
+	Expect(token.Error()).ToNot(HaveOccurred())
+
+	Eventually(func() bool {
+		return msgReceived
+	}, 5*time.Second).Should(BeTrue())
+
+	token = c.Unsubscribe(topic)
+	Expect(token.Wait()).To(BeTrue())
+	Expect(token.Error()).ToNot(HaveOccurred())
+
+	c.Disconnect(250)
+}
+
+func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password string) {
+	conn, err := stomp.Dial("tcp",
+		fmt.Sprintf("%s:%s", hostname, stompNodePort),
+		stomp.ConnOpt.Login(username, password),
+		stomp.ConnOpt.AcceptVersion(stomp.V12), // RabbitMQ STOMP plugin supports STOMP versions 1.0 through 1.2
+		stomp.ConnOpt.Host("/"),                // default virtual host
+	)
+	Expect(err).ToNot(HaveOccurred())
+
+	queue := "/queue/system-tests-stomp"
+	sub, err := conn.Subscribe(queue, stomp.AckAuto)
+	Expect(err).ToNot(HaveOccurred())
+
+	msgReceived := false
+	go func() {
+		defer GinkgoRecover()
+		var msg *stomp.Message
+		Eventually(sub.C, 5*time.Second).Should(Receive(&msg))
+		Expect(msg.Err).ToNot(HaveOccurred())
+		Expect(string(msg.Body)).To(Equal("test message STOMP"))
+		msgReceived = true
+	}()
+
+	Expect(conn.Send(queue, "text/plain", []byte("test message STOMP"), nil)).To(Succeed())
+	Eventually(func() bool {
+		return msgReceived
+	}, 5*time.Second).Should(BeTrue())
+	Expect(sub.Unsubscribe()).To(Succeed())
+	Expect(conn.Disconnect()).To(Succeed())
 }

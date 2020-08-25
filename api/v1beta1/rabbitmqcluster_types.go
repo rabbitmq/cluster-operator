@@ -316,6 +316,15 @@ func (cluster *RabbitmqCluster) SingleTLSSecret() bool {
 	return cluster.MutualTLSEnabled() && cluster.Spec.TLS.CaSecretName == cluster.Spec.TLS.SecretName
 }
 
+func (cluster *RabbitmqCluster) AdditionalPluginEnabled(plugin Plugin) bool {
+	for _, p := range cluster.Spec.Rabbitmq.AdditionalPlugins {
+		if p == plugin {
+			return true
+		}
+	}
+	return false
+}
+
 func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
 	var oldAllPodsReadyCondition *status.RabbitmqClusterCondition
 	var oldClusterAvailableCondition *status.RabbitmqClusterCondition
