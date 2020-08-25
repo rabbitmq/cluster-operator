@@ -233,8 +233,10 @@ type TLSSpec struct {
 	SecretName string `json:"secretName,omitempty"`
 	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS.
 	// This can be the same as SecretName.
+	// Used for mTLS.
 	CaSecretName string `json:"caSecretName,omitempty"`
 	// The Secret defined in CaSecretName must store the Certificate Authority's public certificate under the key specified in CaCertName.
+	// Used for mTLS.
 	CaCertName string `json:"caCertName,omitempty"`
 }
 
