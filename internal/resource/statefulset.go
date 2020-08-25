@@ -152,7 +152,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	sts.Labels = updatedLabels
 
-	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels, builder.Instance.Spec.TLS)
+	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels)
 
 	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
 		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
@@ -229,7 +229,7 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 	return patchedPodSpec, nil
 }
 
-func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string, tlsSpec rabbitmqv1beta1.TLSSpec) corev1.PodTemplateSpec {
+func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) corev1.PodTemplateSpec {
 	//Init Container resources
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
@@ -364,6 +364,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		},
 	}
 
+	tlsSpec := builder.Instance.Spec.TLS
 	if tlsSpec.SecretName != "" {
 		// add tls port
 		ports = append(ports, corev1.ContainerPort{
