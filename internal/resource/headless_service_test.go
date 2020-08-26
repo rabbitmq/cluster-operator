@@ -178,6 +178,11 @@ var _ = Describe("HeadlessService", func() {
 						Port:     4369,
 						Name:     "epmd",
 					},
+					{
+						Protocol: corev1.ProtocolTCP,
+						Port:     25672,
+						Name:     "cluster-links",
+					},
 				},
 				PublishNotReadyAddresses: true,
 			}
