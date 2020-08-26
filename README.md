@@ -8,6 +8,14 @@ Manage [RabbitMQ](https://www.rabbitmq.com/) clusters deployed to [Kubernetes](h
 
 The operator deploys RabbitMQ `3.8.5`, and requires a Kubernetes cluster of `1.16` or above.
 
+## Versioning
+
+RabbitMQ Cluster Kubernetes Operator follows non-strict [semver. More details about other versioning strategies that were considered can be found
+[here](https://github.com/rabbitmq/cluster-operator/blob/main/docs/proposals/20200806-versioning-release-strategy.md). 
+
+[Here](version_guidelines.md) are some guidelines on how we implement non-strict semver. The version number MAY or MAY NOT follow the semver rules. Hence, we highly recommend to read
+the release notes to understand the changes and their potential impact for any release.
+
 ## Quickstart
 
 ### Deploying on KinD
