@@ -61,7 +61,7 @@ var _ = Describe("Operator", func() {
 			port = rabbitmqManagementNodePort(ctx, clientSet, cluster)
 
 			var err error
-			username, password, err = getRabbitmqUsernameAndPassword(ctx, cluster.Namespace, cluster.Name, clientSet)
+			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			assertHttpReady(hostname, port)
 		})
@@ -72,7 +72,7 @@ var _ = Describe("Operator", func() {
 
 		It("works", func() {
 			By("being able to create a test queue and publish a message", func() {
-				response, err := rabbitmqAlivenessTest(hostname, port, username, password)
+				response, err := alivenessTest(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
 			})
@@ -245,7 +245,7 @@ CONSOLE_LOG=new`
 			port = rabbitmqManagementNodePort(ctx, clientSet, cluster)
 
 			var err error
-			username, password, err = getRabbitmqUsernameAndPassword(ctx, cluster.Namespace, cluster.Name, clientSet)
+			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			assertHttpReady(hostname, port)
 		})
@@ -256,7 +256,7 @@ CONSOLE_LOG=new`
 
 		It("persists messages after pod deletion", func() {
 			By("publishing a message", func() {
-				err := rabbitmqPublishToNewQueue(hostname, port, username, password)
+				err := publishToQueue(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -264,7 +264,7 @@ CONSOLE_LOG=new`
 				// We are asserting this in the BeforeEach. Is it necessary again here?
 				assertHttpReady(hostname, port)
 
-				message, err := rabbitmqGetMessageFromQueue(hostname, port, username, password)
+				message, err := getMessageFromQueue(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(message.Payload).To(Equal("hello"))
 			})
@@ -301,13 +301,13 @@ CONSOLE_LOG=new`
 			})
 
 			It("works", func() {
-				username, password, err := getRabbitmqUsernameAndPassword(ctx, cluster.Namespace, cluster.Name, clientSet)
+				username, password, err := getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
 				hostname := kubernetesNodeIp(ctx, clientSet)
 				port := rabbitmqManagementNodePort(ctx, clientSet, cluster)
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
-				response, err := rabbitmqAlivenessTest(hostname, port, username, password)
+				response, err := alivenessTest(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
 			})
@@ -356,14 +356,14 @@ CONSOLE_LOG=new`
 
 			It("talks amqps with RabbitMQ", func() {
 				var err error
-				username, password, err = getRabbitmqUsernameAndPassword(ctx, "rabbitmq-system", "tls-test-rabbit", clientSet)
+				username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
 				Expect(err).NotTo(HaveOccurred())
 
 				// try to publish and consume a message on a amqps url
 				sentMessage := "Hello Rabbitmq!"
-				Expect(rabbitmqAMQPSPublishToNewQueue(sentMessage, username, password, hostname, amqpsNodePort, caFilePath)).To(Succeed())
+				Expect(publishToQueueAMQPS(sentMessage, username, password, hostname, amqpsNodePort, caFilePath)).To(Succeed())
 
-				recievedMessage, err := rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsNodePort, caFilePath)
+				recievedMessage, err := getMessageFromQueueAMQPS(username, password, hostname, amqpsNodePort, caFilePath)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(recievedMessage).To(Equal(sentMessage))
 			})

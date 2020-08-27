@@ -128,7 +128,7 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 	return
 }
 
-func rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*Message, error) {
+func getMessageFromQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*Message, error) {
 	getQueuesUrl := fmt.Sprintf("http://%s:%s/api/queues/%%2F/test-queue/get", rabbitmqHostName, rabbitmqPort)
 	data := map[string]interface{}{
 		"vhost":    "/",
@@ -162,7 +162,7 @@ type Message struct {
 	MessageCount int    `json:"message_count"`
 }
 
-func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) error {
+func publishToQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) error {
 	url := fmt.Sprintf("http://%s:%s/api/queues/%%2F/test-queue", rabbitmqHostName, rabbitmqPort)
 	_, err := makeRequest(url, http.MethodPut, rabbitmqUsername, rabbitmqPassword, []byte("{\"durable\": true}"))
 
@@ -219,7 +219,7 @@ func connectAMQPS(username, password, hostname, port, caFilePath string) (conn *
 	return nil, err
 }
 
-func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, amqpsPort, caFilePath string) error {
+func publishToQueueAMQPS(message, username, password, hostname, amqpsPort, caFilePath string) error {
 	// create connection
 	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
 	if err != nil {
@@ -262,7 +262,7 @@ func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, amqps
 	return nil
 }
 
-func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsPort, caFilePath string) (string, error) {
+func getMessageFromQueueAMQPS(username, password, hostname, amqpsPort, caFilePath string) (string, error) {
 	// create connection
 	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
 	if err != nil {
@@ -312,7 +312,7 @@ func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsPort, c
 	return "", nil
 }
 
-func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
+func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	url := fmt.Sprintf("http://%s:%s/api/aliveness-test/%%2F", rabbitmqHostName, rabbitmqPort)
 
@@ -352,7 +352,7 @@ type HealthcheckResponse struct {
 	Status string `json:"status"`
 }
 
-func getRabbitmqUsernameAndPassword(ctx context.Context, namespace, instanceName string, clientset *kubernetes.Clientset) (string, string, error) {
+func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset, namespace, instanceName string) (string, string, error) {
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(ctx, fmt.Sprintf("%s-rabbitmq-admin", instanceName), metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
