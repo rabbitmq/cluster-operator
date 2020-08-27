@@ -1,7 +1,7 @@
 ### RabbitMQ Cluster Kubernetes Operator Versioning Scheme
 ---
 RabbitMQ Cluster Kubernetes Operator follows non-strict semver. More details about other versioning strategies that were considered can be found
-[here](https://github.com/rabbitmq/cluster-operator/blob/main/docs/proposals/20200806-versioning-release-strategy.md). This document explains the non-strict semver versioning scheme used by RabbitMQ Cluster Kubernetes Operator.
+in [the versioning proposal](https://github.com/rabbitmq/cluster-operator/blob/main/docs/proposals/20200806-versioning-release-strategy.md). This document explains the non-strict semver versioning scheme used by RabbitMQ Cluster Kubernetes Operator.
 
 _**Operator** refers to *RabbitMQ Cluster Kubernetes Operator* in the document henceforth._
 
