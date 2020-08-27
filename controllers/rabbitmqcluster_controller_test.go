@@ -40,10 +40,11 @@ const (
 var _ = Describe("RabbitmqclusterController", func() {
 
 	var (
-		rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		one             int32           = 1
-		ctx             context.Context = context.Background()
-		updateWithRetry                 = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
+		rabbitmqCluster  *rabbitmqv1beta1.RabbitmqCluster
+		one              int32 = 1
+		defaultNamespace       = "default"
+		ctx                    = context.Background()
+		updateWithRetry        = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
 			return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				objKey, err := runtimeClient.ObjectKeyFromObject(cr)
 				if err != nil {
@@ -65,7 +66,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-one",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: &one,
@@ -250,16 +251,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		Context("Mutual TLS with single secret", func() {
-			namespace := "default"
-
 			It("Deploys successfully", func() {
-				tlsSecretWithCACert(ctx, "tls-secret", namespace, "caCERT")
+				tlsSecretWithCACert(ctx, "tls-secret", defaultNamespace, "caCERT")
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "tls-secret",
 					CaSecretName: "tls-secret",
 					CaCertName:   "caCERT",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "mutual-tls-success", namespace, tlsSpec)
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "mutual-tls-success", defaultNamespace, tlsSpec)
 				waitForClusterCreation(ctx, rabbitmqCluster, client)
 
 				sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
@@ -274,29 +273,28 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 
 			It("Does not deploy if the cert name does not match the contents of the secret", func() {
-				tlsSecretWithCACert(ctx, "tls-secret-missing", namespace, "ca.c")
+				tlsSecretWithCACert(ctx, "tls-secret-missing", defaultNamespace, "ca.c")
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "tls-secret-missing",
 					CaSecretName: "tls-secret-missing",
 					CaCertName:   "ca.crt",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "tls-secret-missing", namespace, tlsSpec)
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "tls-secret-missing", defaultNamespace, tlsSpec)
 
-				verifyError(ctx, rabbitmqCluster, fmt.Sprintf("The TLS secret tls-secret-missing in namespace %s must have the field ca.crt", namespace))
+				verifyError(ctx, rabbitmqCluster, fmt.Sprintf("The TLS secret tls-secret-missing in namespace %s must have the field ca.crt", defaultNamespace))
 			})
 		})
 
 		Context("Mutual TLS with a seperate CA certificate secret", func() {
 			It("Does not deploy the RabbitmqCluster, and retries every 10 seconds", func() {
-				namespace := "default"
-				tlsSecretWithoutCACert(ctx, "rabbitmq-tls-secret-does-not-exist", namespace)
+				tlsSecretWithoutCACert(ctx, "rabbitmq-tls-secret-does-not-exist", defaultNamespace)
 
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "rabbitmq-tls-secret-does-not-exist",
 					CaSecretName: "ca-cert-secret",
 					CaCertName:   "ca.crt",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist", namespace, tlsSpec)
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist", defaultNamespace, tlsSpec)
 				verifyError(ctx, rabbitmqCluster, "Failed to get CA certificate secret")
 
 				_, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
@@ -306,7 +304,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				caData := map[string]string{
 					"ca.crt": "this is a ca cert",
 				}
-				_, err = createSecret(ctx, "ca-cert-secret", namespace, caData)
+				_, err = createSecret(ctx, "ca-cert-secret", defaultNamespace, caData)
 				Expect(err).NotTo(HaveOccurred())
 
 				waitForClusterCreation(ctx, rabbitmqCluster, client)
@@ -314,13 +312,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 
 			It("Does not deploy if the cert name does not match the contents of the secret", func() {
-				namespace := "default"
-				tlsSecretWithoutCACert(ctx, "tls-secret", namespace)
+				tlsSecretWithoutCACert(ctx, "tls-secret", defaultNamespace)
 				caData := map[string]string{
 					"cacrt": "this is a ca cert",
 				}
 
-				_, err := createSecret(ctx, "ca-cert-secret-invalid", namespace, caData)
+				_, err := createSecret(ctx, "ca-cert-secret-invalid", defaultNamespace, caData)
 				if !apierrors.IsAlreadyExists(err) {
 					Expect(err).NotTo(HaveOccurred())
 				}
@@ -330,14 +327,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 					CaSecretName: "ca-cert-secret-invalid",
 					CaCertName:   "ca.crt",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-mutual-tls-missing", namespace, tlsSpec)
-				verifyError(ctx, rabbitmqCluster, fmt.Sprintf("The TLS secret ca-cert-secret-invalid in namespace %s must have the field ca.crt", namespace))
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-mutual-tls-missing", defaultNamespace, tlsSpec)
+				verifyError(ctx, rabbitmqCluster, fmt.Sprintf("The TLS secret ca-cert-secret-invalid in namespace %s must have the field ca.crt", defaultNamespace))
 			})
 		})
 	})
 
 	Context("TLS set on the instance", func() {
-		namespace := "default"
 		AfterEach(func() {
 			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 			Eventually(func() bool {
@@ -348,14 +344,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		BeforeEach(func() {
-			tlsSecretWithoutCACert(ctx, "tls-secret", namespace)
+			tlsSecretWithoutCACert(ctx, "tls-secret", defaultNamespace)
 		})
 
 		It("Deploys successfully", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-tls",
-					Namespace: namespace,
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: &one,
@@ -375,7 +371,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					"somekey": "someval",
 					"tls.key": "this is a tls key",
 				}
-				_, err := createSecret(ctx, "rabbitmq-tls-malformed", namespace, secretData)
+				_, err := createSecret(ctx, "rabbitmq-tls-malformed", defaultNamespace, secretData)
 
 				if !apierrors.IsAlreadyExists(err) {
 					Expect(err).NotTo(HaveOccurred())
@@ -384,11 +380,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName: "rabbitmq-tls-malformed",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-malformed", namespace, tlsSpec)
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-malformed", defaultNamespace, tlsSpec)
 			})
 
 			It("fails to deploy the RabbitmqCluster", func() {
-				verifyError(ctx, rabbitmqCluster, fmt.Sprintf("The TLS secret rabbitmq-tls-malformed in namespace %s must have the fields tls.crt and tls.key", namespace))
+				verifyError(ctx, rabbitmqCluster, fmt.Sprintf("The TLS secret rabbitmq-tls-malformed in namespace %s must have the fields tls.crt and tls.key", defaultNamespace))
 			})
 		})
 
@@ -398,7 +394,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName: "tls-secret-does-not-exist",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist", namespace, tlsSpec)
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist", defaultNamespace, tlsSpec)
 
 				verifyError(ctx, rabbitmqCluster, "Failed to get TLS secret")
 
@@ -410,7 +406,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					"tls.crt": "this is a tls cert",
 					"tls.key": "this is a tls key",
 				}
-				_, err = createSecret(ctx, "tls-secret-does-not-exist", namespace, secretData)
+				_, err = createSecret(ctx, "tls-secret-does-not-exist", defaultNamespace, secretData)
 				Expect(err).NotTo(HaveOccurred())
 
 				waitForClusterCreation(ctx, rabbitmqCluster, client)
@@ -425,7 +421,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-annotations",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 					Annotations: map[string]string{
 						"my-annotation": "this-annotation",
 					},
@@ -459,7 +455,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-two",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -502,7 +498,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-affinity",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -534,7 +530,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbit-service-2",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -561,7 +557,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbit-resource-2",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -605,7 +601,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbit-persistence-1",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -637,7 +633,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-cr-update",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -913,14 +909,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 			headlessServiceName string
 			stsName             string
 			configMapName       string
-			namespace           string
 		)
 		BeforeEach(func() {
-			namespace = "default"
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-delete",
-					Namespace: namespace,
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -941,7 +935,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		})
 
 		It("recreates child resources after deletion", func() {
-			oldConfMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
+			oldConfMap, err := clientSet.CoreV1().ConfigMaps(defaultNamespace).Get(ctx, configMapName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			oldClientSvc := service(ctx, rabbitmqCluster, "client")
@@ -950,13 +944,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			oldSts := statefulSet(ctx, rabbitmqCluster)
 
-			Expect(clientSet.AppsV1().StatefulSets(namespace).Delete(ctx, stsName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
-			Expect(clientSet.CoreV1().ConfigMaps(namespace).Delete(ctx, configMapName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
-			Expect(clientSet.CoreV1().Services(namespace).Delete(ctx, clientServiceName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
-			Expect(clientSet.CoreV1().Services(namespace).Delete(ctx, headlessServiceName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.AppsV1().StatefulSets(defaultNamespace).Delete(ctx, stsName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().ConfigMaps(defaultNamespace).Delete(ctx, configMapName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().Services(defaultNamespace).Delete(ctx, clientServiceName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().Services(defaultNamespace).Delete(ctx, headlessServiceName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
 			Eventually(func() bool {
-				sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(ctx, stsName, metav1.GetOptions{})
+				sts, err := clientSet.AppsV1().StatefulSets(defaultNamespace).Get(ctx, stsName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -964,7 +958,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}, 5).Should(BeTrue())
 
 			Eventually(func() bool {
-				clientSvc, err := clientSet.CoreV1().Services(namespace).Get(ctx, clientServiceName, metav1.GetOptions{})
+				clientSvc, err := clientSet.CoreV1().Services(defaultNamespace).Get(ctx, clientServiceName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -972,7 +966,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}, 5).Should(BeTrue())
 
 			Eventually(func() bool {
-				headlessSvc, err := clientSet.CoreV1().Services(namespace).Get(ctx, headlessServiceName, metav1.GetOptions{})
+				headlessSvc, err := clientSet.CoreV1().Services(defaultNamespace).Get(ctx, headlessServiceName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -980,7 +974,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}, 5).Should(Not(Equal(oldHeadlessSvc.UID)))
 
 			Eventually(func() bool {
-				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
+				configMap, err := clientSet.CoreV1().ConfigMaps(defaultNamespace).Get(ctx, configMapName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -1001,7 +995,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqResource = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      crName,
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 			}
 			rabbitmqResource.Spec.Replicas = &one
@@ -1018,7 +1012,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					someRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
 					Expect(client.Get(ctx, runtimeClient.ObjectKey{
 						Name:      crName,
-						Namespace: "default",
+						Namespace: defaultNamespace,
 					}, someRabbit)).To(Succeed())
 
 					for i := range someRabbit.Status.Conditions {
@@ -1036,7 +1030,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				// We are very likely to hit a Conflict error
 				Expect(client.Get(ctx, runtimeClient.ObjectKey{
 					Name:      crName,
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				}, rabbitmqResource)).To(Succeed())
 				rabbitmqResource.Spec.Service.Annotations = map[string]string{"thisIs": "valid"}
 				Expect(client.Update(ctx, rabbitmqResource)).To(Succeed())
@@ -1045,7 +1039,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					someRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
 					Expect(client.Get(ctx, runtimeClient.ObjectKey{
 						Name:      crName,
-						Namespace: "default",
+						Namespace: defaultNamespace,
 					}, someRabbit)).To(Succeed())
 
 					for i := range someRabbit.Status.Conditions {
@@ -1074,7 +1068,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			stsOverrideCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-sts-override",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: &ten,
@@ -1085,7 +1079,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 									{
 										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 											Name:      "persistence",
-											Namespace: "default",
+											Namespace: defaultNamespace,
 											Labels: map[string]string{
 												"app.kubernetes.io/name": "rabbitmq-sts-override",
 											},
@@ -1103,7 +1097,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 									{
 										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 											Name:      "disk-2",
-											Namespace: "default",
+											Namespace: defaultNamespace,
 											Labels: map[string]string{
 												"app.kubernetes.io/name": "rabbitmq-sts-override",
 											},
@@ -1342,7 +1336,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			svcOverrideCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "svc-override",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: &one,
