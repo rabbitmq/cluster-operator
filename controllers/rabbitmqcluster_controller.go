@@ -274,7 +274,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 		_, hasCaCert := secret.Data[rabbitmqCluster.Spec.TLS.CaCertName]
 		if !hasCaCert {
 			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
-				fmt.Sprintf("The TLS secret %v in namespace %v must have the field %v", secretName, rabbitmqCluster.Namespace, rabbitmqCluster.Spec.TLS.CaCertName))
+				fmt.Sprintf("The TLS secret %v in namespace %v must have the field %v", rabbitmqCluster.Spec.TLS.CaSecretName, rabbitmqCluster.Namespace, rabbitmqCluster.Spec.TLS.CaCertName))
 
 			return ctrl.Result{}, errors.NewBadRequest(fmt.Sprintf("The TLS secret must have the field %s", rabbitmqCluster.Spec.TLS.CaCertName))
 		}

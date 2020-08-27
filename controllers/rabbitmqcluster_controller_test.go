@@ -330,7 +330,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					CaCertName:   "ca.crt",
 				}
 				rabbitmqCluster = rabbitmqClusterWithTLS("rabbitmq-mutual-tls-missing", namespace, tlsSpec)
-				verifyError(rabbitmqCluster, "The TLS secret tls-secret in namespace rabbitmq-mutual-tls-ca-missing must have the field ca.crt")
+				verifyError(rabbitmqCluster, "The TLS secret ca-cert-secret in namespace rabbitmq-mutual-tls-ca-missing must have the field ca.crt")
 			})
 		})
 	})
