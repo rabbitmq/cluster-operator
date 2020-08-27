@@ -567,8 +567,9 @@ func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, name
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	ctx := context.Background()
 	for _, resource := range []runtime.Object{&appsv1.StatefulSet{}, &corev1.ConfigMap{}, &corev1.Service{}} {
-		if err := mgr.GetFieldIndexer().IndexField(resource, ownerKey, addResourceToIndex); err != nil {
+		if err := mgr.GetFieldIndexer().IndexField(ctx, resource, ownerKey, addResourceToIndex); err != nil {
 			return err
 		}
 	}

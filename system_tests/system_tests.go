@@ -31,6 +31,7 @@ const (
 var _ = Describe("Operator", func() {
 	var (
 		namespace = MustHaveEnv("NAMESPACE")
+		ctx       = context.Background()
 	)
 
 	Context("Publish and consume a message in a single node cluster", func() {
@@ -51,16 +52,16 @@ var _ = Describe("Operator", func() {
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 			}
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
 			waitForClusterAvailable(cluster)
 
-			hostname = kubernetesNodeIp(clientSet)
-			port = rabbitmqManagementNodePort(clientSet, cluster)
+			hostname = kubernetesNodeIp(ctx, clientSet)
+			port = rabbitmqManagementNodePort(ctx, clientSet, cluster)
 
 			var err error
-			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
+			username, password, err = getRabbitmqUsernameAndPassword(ctx, cluster.Namespace, cluster.Name, clientSet)
 			Expect(err).NotTo(HaveOccurred())
 			assertHttpReady(hostname, port)
 		})
@@ -125,7 +126,7 @@ var _ = Describe("Operator", func() {
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 			}
 
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 		})
 
@@ -136,7 +137,7 @@ var _ = Describe("Operator", func() {
 		It("keeps rabbitmq server related configurations up-to-date", func() {
 			By("updating enabled plugins when additionalPlugins are modified", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
-				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
 				})).To(Succeed())
 
@@ -155,7 +156,7 @@ var _ = Describe("Operator", func() {
 			})
 
 			By("updating the rabbitmq.conf file when additionalConfig are modified", func() {
-				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.AdditionalConfig = `vm_memory_high_watermark_paging_ratio = 0.5
 cluster_partition_handling = ignore
 cluster_keepalive_interval = 10000`
@@ -180,7 +181,7 @@ cluster_keepalive_interval = 10000`
 			})
 
 			By("updating the advanced.config file when advancedConfig are modifed", func() {
-				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.AdvancedConfig = `[
   {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
 ].`
@@ -199,7 +200,7 @@ cluster_keepalive_interval = 10000`
 			})
 
 			By("updating the rabbitmq-env.conf file when additionalConfig are modified", func() {
-				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.EnvConfig = `USE_LONGNAME=true
 CONSOLE_LOG=new`
 				})).To(Succeed())
@@ -236,15 +237,15 @@ CONSOLE_LOG=new`
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 			}
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
 
-			hostname = kubernetesNodeIp(clientSet)
-			port = rabbitmqManagementNodePort(clientSet, cluster)
+			hostname = kubernetesNodeIp(ctx, clientSet)
+			port = rabbitmqManagementNodePort(ctx, clientSet, cluster)
 
 			var err error
-			username, password, err = getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
+			username, password, err = getRabbitmqUsernameAndPassword(ctx, cluster.Namespace, cluster.Name, clientSet)
 			Expect(err).NotTo(HaveOccurred())
 			assertHttpReady(hostname, port)
 		})
@@ -270,7 +271,7 @@ CONSOLE_LOG=new`
 
 			By("setting owner reference to persistence volume claim successfully", func() {
 				pvcName := "persistence-" + statefulSetPodName(cluster, 0)
-				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(pvcName, metav1.GetOptions{})
+				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(pvc.OwnerReferences)).To(Equal(1))
 				Expect(pvc.OwnerReferences[0].Name).To(Equal(cluster.Name))
@@ -291,7 +292,7 @@ CONSOLE_LOG=new`
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 				}
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
 			})
 
@@ -300,9 +301,9 @@ CONSOLE_LOG=new`
 			})
 
 			It("works", func() {
-				username, password, err := getRabbitmqUsernameAndPassword(clientSet, cluster.Namespace, cluster.Name)
-				hostname := kubernetesNodeIp(clientSet)
-				port := rabbitmqManagementNodePort(clientSet, cluster)
+				username, password, err := getRabbitmqUsernameAndPassword(ctx, cluster.Namespace, cluster.Name, clientSet)
+				hostname := kubernetesNodeIp(ctx, clientSet)
+				port := rabbitmqManagementNodePort(ctx, clientSet, cluster)
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
@@ -331,21 +332,21 @@ CONSOLE_LOG=new`
 					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
 				}
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
 				waitForClusterAvailable(cluster)
 
 				// Passing a single hostname for certificate creation works because
 				// the AMPQS client is connecting using the same hostname
-				hostname = kubernetesNodeIp(clientSet)
+				hostname = kubernetesNodeIp(ctx, clientSet)
 				caFilePath = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
 
 				// Update CR with TLS secret name
-				Expect(updateRabbitmqCluster(rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 				})).To(Succeed())
 				waitForTLSUpdate(cluster)
-				amqpsNodePort = rabbitmqAMQPSNodePort(clientSet, cluster)
+				amqpsNodePort = rabbitmqAMQPSNodePort(ctx, clientSet, cluster)
 			})
 
 			AfterEach(func() {
@@ -355,7 +356,7 @@ CONSOLE_LOG=new`
 
 			It("talks amqps with RabbitMQ", func() {
 				var err error
-				username, password, err = getRabbitmqUsernameAndPassword(clientSet, "rabbitmq-system", "tls-test-rabbit")
+				username, password, err = getRabbitmqUsernameAndPassword(ctx, "rabbitmq-system", "tls-test-rabbit", clientSet)
 				Expect(err).NotTo(HaveOccurred())
 
 				// try to publish and consume a message on a amqps url
@@ -373,7 +374,7 @@ CONSOLE_LOG=new`
 			cluster.Spec.TLS = rabbitmqv1beta1.TLSSpec{SecretName: "tls-secret-does-not-exist"}
 
 			It("reports a TLSError event with the reason", func() {
-				Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				assertTLSError(cluster)
 				Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 			})

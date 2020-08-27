@@ -41,20 +41,21 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	var (
 		rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster
-		one             int32 = 1
-		updateWithRetry       = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
+		one             int32           = 1
+		ctx             context.Context = context.Background()
+		updateWithRetry                 = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
 			return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				objKey, err := runtimeClient.ObjectKeyFromObject(cr)
 				if err != nil {
 					return err
 				}
 
-				if err := client.Get(context.TODO(), objKey, cr); err != nil {
+				if err := client.Get(ctx, objKey, cr); err != nil {
 					return err
 				}
 
 				mutateFn(cr)
-				return client.Update(context.TODO(), cr)
+				return client.Update(ctx, cr)
 			})
 		}
 	)
@@ -64,29 +65,29 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-one",
-					Namespace: "rabbitmq-one",
+					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: &one,
 				},
 			}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(ctx, rabbitmqCluster, client)
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 			Eventually(func() bool {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+				err := client.Get(ctx, types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 				return apierrors.IsNotFound(err)
 			}, 5).Should(BeTrue())
 		})
 
 		It("works", func() {
 			By("creating a statefulset with default configurations", func() {
-				sts := statefulSet(rabbitmqCluster)
+				sts := statefulSet(ctx, rabbitmqCluster)
 
 				Expect(sts.Name).To(Equal(rabbitmqCluster.ChildResourceName("server")))
 				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
@@ -97,7 +98,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			By("creating the server conf configmap", func() {
 				configMapName := rabbitmqCluster.ChildResourceName("server-conf")
-				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
+				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(configMap.Name).To(Equal(configMapName))
 				Expect(configMap.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
@@ -105,7 +106,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			By("creating the plugins conf configmap", func() {
 				configMapName := rabbitmqCluster.ChildResourceName("plugins-conf")
-				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(configMapName, metav1.GetOptions{})
+				configMap, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(configMap.Name).To(Equal(configMapName))
 				Expect(configMap.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
@@ -113,7 +114,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			By("creating a rabbitmq admin secret", func() {
 				secretName := rabbitmqCluster.ChildResourceName("admin")
-				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(ctx, secretName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(secret.Name).To(Equal(secretName))
 				Expect(secret.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
@@ -121,28 +122,28 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			By("creating an erlang cookie secret", func() {
 				secretName := rabbitmqCluster.ChildResourceName("erlang-cookie")
-				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(secretName, metav1.GetOptions{})
+				secret, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(ctx, secretName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(secret.Name).To(Equal(secretName))
 				Expect(secret.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
 
 			By("creating a rabbitmq client service", func() {
-				svc := service(rabbitmqCluster, "client")
+				svc := service(ctx, rabbitmqCluster, "client")
 				Expect(svc.Name).To(Equal(rabbitmqCluster.ChildResourceName("client")))
 				Expect(svc.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 				Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 			})
 
 			By("creating a rabbitmq headless service", func() {
-				svc := service(rabbitmqCluster, "headless")
+				svc := service(ctx, rabbitmqCluster, "headless")
 				Expect(svc.Name).To(Equal(rabbitmqCluster.ChildResourceName("headless")))
 				Expect(svc.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
 
 			By("creating a service account", func() {
 				serviceAccountName := rabbitmqCluster.ChildResourceName("server")
-				serviceAccount, err := clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(serviceAccountName, metav1.GetOptions{})
+				serviceAccount, err := clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(ctx, serviceAccountName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(serviceAccount.Name).To(Equal(serviceAccountName))
 				Expect(serviceAccount.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
@@ -150,7 +151,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			By("creating a role", func() {
 				roleName := rabbitmqCluster.ChildResourceName("peer-discovery")
-				role, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(roleName, metav1.GetOptions{})
+				role, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(ctx, roleName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(role.Name).To(Equal(roleName))
 				Expect(role.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
@@ -158,13 +159,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			By("creating a role binding", func() {
 				roleBindingName := rabbitmqCluster.ChildResourceName("server")
-				roleBinding, err := clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(roleBindingName, metav1.GetOptions{})
+				roleBinding, err := clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(ctx, roleBindingName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(roleBinding.Name).To(Equal(roleBindingName))
 				Expect(roleBinding.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
 			By("recording SuccessfullCreate events for all child resources", func() {
-				allEventMsgs := aggregateEventMsgs(rabbitmqCluster, "SuccessfulCreate")
+				allEventMsgs := aggregateEventMsgs(ctx, rabbitmqCluster, "SuccessfulCreate")
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client"))))
 				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("headless"))))
@@ -180,7 +181,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			By("adding the deletion finalizer", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				Eventually(func() string {
-					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+					err := client.Get(ctx, types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 					if err != nil {
 						return ""
 					}
@@ -196,7 +197,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{}
 				Eventually(func() *rabbitmqv1beta1.RabbitmqClusterSecretReference {
-					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+					err := client.Get(ctx, types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 					if err != nil {
 						return nil
 					}
@@ -219,7 +220,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{}
 				Eventually(func() *rabbitmqv1beta1.RabbitmqClusterServiceReference {
-					err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+					err := client.Get(ctx, types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 					if err != nil {
 						return nil
 					}
@@ -240,28 +241,28 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	Context("Mutual TLS", func() {
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 			Eventually(func() bool {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+				err := client.Get(ctx, types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 				return apierrors.IsNotFound(err)
 			}, 5).Should(BeTrue())
 		})
 
 		Context("Mutual TLS with single secret", func() {
-			namespace := "rabbitmq-mutual-tls"
+			namespace := "default"
 
 			It("Deploys successfully", func() {
-				tlsSecretWithCACert("tls-secret", namespace, "caCERT")
+				tlsSecretWithCACert(ctx, "tls-secret", namespace, "caCERT")
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "tls-secret",
 					CaSecretName: "tls-secret",
 					CaCertName:   "caCERT",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS(namespace, namespace, tlsSpec)
-				waitForClusterCreation(rabbitmqCluster, client)
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "mutual-tls-success", namespace, tlsSpec)
+				waitForClusterCreation(ctx, rabbitmqCluster, client)
 
-				sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
+				sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				volumeMount := corev1.VolumeMount{
 					Name:      "rabbitmq-tls",
@@ -273,87 +274,88 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 
 			It("Does not deploy if the cert name does not match the contents of the secret", func() {
-				tlsSecretWithCACert("tls-secret-missing", namespace, "ca.c")
+				tlsSecretWithCACert(ctx, "tls-secret-missing", namespace, "ca.c")
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "tls-secret-missing",
 					CaSecretName: "tls-secret-missing",
 					CaCertName:   "ca.crt",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS("rabbitmq-mutual-tls-missing", namespace, tlsSpec)
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "tls-secret-missing", namespace, tlsSpec)
 
-				verifyError(rabbitmqCluster, "The TLS secret tls-secret-missing in namespace rabbitmq-mutual-tls must have the field ca.crt")
+				verifyError(ctx, rabbitmqCluster, fmt.Sprintf("The TLS secret tls-secret-missing in namespace %s must have the field ca.crt", namespace))
 			})
 		})
 
 		Context("Mutual TLS with a seperate CA certificate secret", func() {
 			It("Does not deploy the RabbitmqCluster, and retries every 10 seconds", func() {
-				namespace := "rabbitmq-mutual-tls-ca"
-				tlsSecretWithoutCACert("tls-secret", namespace)
+				namespace := "default"
+				tlsSecretWithoutCACert(ctx, "rabbitmq-tls-secret-does-not-exist", namespace)
 
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
-					SecretName:   "tls-secret",
+					SecretName:   "rabbitmq-tls-secret-does-not-exist",
 					CaSecretName: "ca-cert-secret",
 					CaCertName:   "ca.crt",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS("rabbitmq-tls-secret-does-not-exist", namespace, tlsSpec)
-				verifyError(rabbitmqCluster, "Failed to get CA certificate secret")
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist", namespace, tlsSpec)
+				verifyError(ctx, rabbitmqCluster, "Failed to get CA certificate secret")
 
-				_, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
+				_, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
 				Expect(err).To(HaveOccurred())
 
 				// create missing secret
 				caData := map[string]string{
 					"ca.crt": "this is a ca cert",
 				}
-				_, err = createSecret("ca-cert-secret", namespace, caData)
+				_, err = createSecret(ctx, "ca-cert-secret", namespace, caData)
 				Expect(err).NotTo(HaveOccurred())
 
-				waitForClusterCreation(rabbitmqCluster, client)
-				statefulSet(rabbitmqCluster)
+				waitForClusterCreation(ctx, rabbitmqCluster, client)
+				statefulSet(ctx, rabbitmqCluster)
 			})
 
 			It("Does not deploy if the cert name does not match the contents of the secret", func() {
-				namespace := "rabbitmq-mutual-tls-ca-missing"
-				tlsSecretWithoutCACert("tls-secret", namespace)
+				namespace := "default"
+				tlsSecretWithoutCACert(ctx, "tls-secret", namespace)
 				caData := map[string]string{
 					"cacrt": "this is a ca cert",
 				}
 
-				_, err := createSecret("ca-cert-secret", namespace, caData)
+				_, err := createSecret(ctx, "ca-cert-secret-invalid", namespace, caData)
 				if !apierrors.IsAlreadyExists(err) {
 					Expect(err).NotTo(HaveOccurred())
 				}
 
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "tls-secret",
-					CaSecretName: "ca-cert-secret",
+					CaSecretName: "ca-cert-secret-invalid",
 					CaCertName:   "ca.crt",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS("rabbitmq-mutual-tls-missing", namespace, tlsSpec)
-				verifyError(rabbitmqCluster, "The TLS secret ca-cert-secret in namespace rabbitmq-mutual-tls-ca-missing must have the field ca.crt")
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-mutual-tls-missing", namespace, tlsSpec)
+				verifyError(ctx, rabbitmqCluster, fmt.Sprintf("The TLS secret ca-cert-secret-invalid in namespace %s must have the field ca.crt", namespace))
 			})
 		})
 	})
 
 	Context("TLS set on the instance", func() {
+		namespace := "default"
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 			Eventually(func() bool {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
+				err := client.Get(ctx, types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rmq)
 				return apierrors.IsNotFound(err)
 			}, 5).Should(BeTrue())
 		})
 
 		BeforeEach(func() {
-			tlsSecretWithoutCACert("tls-secret", "rabbitmq-tls")
+			tlsSecretWithoutCACert(ctx, "tls-secret", namespace)
 		})
 
 		It("Deploys successfully", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-tls",
-					Namespace: "rabbitmq-tls",
+					Namespace: namespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: &one,
@@ -363,8 +365,8 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(ctx, rabbitmqCluster, client)
 		})
 
 		When("the TLS secret does not have the expected keys - tls.crt, or tls.key", func() {
@@ -373,7 +375,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 					"somekey": "someval",
 					"tls.key": "this is a tls key",
 				}
-				_, err := createSecret("rabbitmq-tls-malformed", "rabbitmq-tls-namespace", secretData)
+				_, err := createSecret(ctx, "rabbitmq-tls-malformed", namespace, secretData)
 
 				if !apierrors.IsAlreadyExists(err) {
 					Expect(err).NotTo(HaveOccurred())
@@ -382,11 +384,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName: "rabbitmq-tls-malformed",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS("rabbitmq-tls-malformed", "rabbitmq-tls-namespace", tlsSpec)
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-malformed", namespace, tlsSpec)
 			})
 
 			It("fails to deploy the RabbitmqCluster", func() {
-				verifyError(rabbitmqCluster, "The TLS secret rabbitmq-tls-malformed in namespace rabbitmq-tls-namespace must have the fields tls.crt and tls.key")
+				verifyError(ctx, rabbitmqCluster, fmt.Sprintf("The TLS secret rabbitmq-tls-malformed in namespace %s must have the fields tls.crt and tls.key", namespace))
 			})
 		})
 
@@ -396,11 +398,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName: "tls-secret-does-not-exist",
 				}
-				rabbitmqCluster = rabbitmqClusterWithTLS("rabbitmq-tls-secret-does-not-exist", "rabbitmq-namespace", tlsSpec)
+				rabbitmqCluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist", namespace, tlsSpec)
 
-				verifyError(rabbitmqCluster, "Failed to get TLS secret")
+				verifyError(ctx, rabbitmqCluster, "Failed to get TLS secret")
 
-				_, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
+				_, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
 				Expect(err).To(HaveOccurred())
 
 				// create missing secret
@@ -408,11 +410,11 @@ var _ = Describe("RabbitmqclusterController", func() {
 					"tls.crt": "this is a tls cert",
 					"tls.key": "this is a tls key",
 				}
-				_, err = createSecret("tls-secret-does-not-exist", "rabbitmq-namespace", secretData)
+				_, err = createSecret(ctx, "tls-secret-does-not-exist", namespace, secretData)
 				Expect(err).NotTo(HaveOccurred())
 
-				waitForClusterCreation(rabbitmqCluster, client)
-				statefulSet(rabbitmqCluster)
+				waitForClusterCreation(ctx, rabbitmqCluster, client)
+				statefulSet(ctx, rabbitmqCluster)
 			})
 		})
 
@@ -423,7 +425,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-annotations",
-					Namespace: "rabbitmq-annotations",
+					Namespace: "default",
 					Annotations: map[string]string{
 						"my-annotation": "this-annotation",
 					},
@@ -434,19 +436,19 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(ctx, rabbitmqCluster, client)
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 		})
 
 		It("adds annotations to child resources", func() {
-			headlessSvc := service(rabbitmqCluster, "headless")
+			headlessSvc := service(ctx, rabbitmqCluster, "headless")
 			Expect(headlessSvc.Annotations).Should(HaveKeyWithValue("my-annotation", "this-annotation"))
 
-			sts := statefulSet(rabbitmqCluster)
+			sts := statefulSet(ctx, rabbitmqCluster)
 			Expect(sts.Annotations).Should(HaveKeyWithValue("my-annotation", "this-annotation"))
 		})
 
@@ -457,7 +459,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-two",
-					Namespace: "rabbitmq-two",
+					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -465,17 +467,17 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(ctx, rabbitmqCluster, client)
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 		})
 
 		It("configures the imagePullSecret on sts correctly", func() {
 			By("using the instance spec secret", func() {
-				sts := statefulSet(rabbitmqCluster)
+				sts := statefulSet(ctx, rabbitmqCluster)
 				Expect(sts.Spec.Template.Spec.ImagePullSecrets).Should(ContainElement(corev1.LocalObjectReference{Name: "rabbit-two-secret"}))
 			})
 		})
@@ -500,7 +502,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-affinity",
-					Namespace: "rabbitmq-affinity",
+					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -508,15 +510,15 @@ var _ = Describe("RabbitmqclusterController", func() {
 					ImagePullSecret: "rabbit-two-secret",
 				},
 			}
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 		})
 
 		It("adds the affinity rules to pod spec", func() {
-			sts := statefulSet(rabbitmqCluster)
+			sts := statefulSet(ctx, rabbitmqCluster)
 			podSpecAffinity := sts.Spec.Template.Spec.Affinity
 			Expect(podSpecAffinity).To(Equal(affinity))
 		})
@@ -524,15 +526,15 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	Context("Client service configurations", func() {
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-			Expect(clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Delete(rabbitmqCluster.ChildResourceName("client"), &metav1.DeleteOptions{}))
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
+			Expect(clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Delete(ctx, rabbitmqCluster.ChildResourceName("client"), metav1.DeleteOptions{}))
 		})
 
 		It("creates the service type and annotations as configured in instance spec", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbit-service-2",
-					Namespace: "rabbit-service-2",
+					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -542,9 +544,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster.Spec.Service.Type = "LoadBalancer"
 			rabbitmqCluster.Spec.Service.Annotations = map[string]string{"annotations": "cr-annotation"}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
 
-			clientSvc := service(rabbitmqCluster, "client")
+			clientSvc := service(ctx, rabbitmqCluster, "client")
 			Expect(clientSvc.Spec.Type).Should(Equal(corev1.ServiceTypeLoadBalancer))
 			Expect(clientSvc.Annotations).Should(HaveKeyWithValue("annotations", "cr-annotation"))
 		})
@@ -552,14 +554,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	Context("Resource requirements configurations", func() {
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 		})
 
 		It("uses resource requirements from instance spec when provided", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbit-resource-2",
-					Namespace: "rabbit-resource-2",
+					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -575,9 +577,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
 
-			sts := statefulSet(rabbitmqCluster)
+			sts := statefulSet(ctx, rabbitmqCluster)
 
 			actualResources := sts.Spec.Template.Spec.Containers[0].Resources
 			expectedResources := corev1.ResourceRequirements{
@@ -596,14 +598,14 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 	Context("Persistence configurations", func() {
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 		})
 
 		It("creates the RabbitmqCluster with the specified storage from instance spec", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbit-persistence-1",
-					Namespace: "rabbit-persistence-1",
+					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -614,9 +616,9 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster.Spec.Persistence.StorageClassName = &storageClassName
 			storage := k8sresource.MustParse("100Gi")
 			rabbitmqCluster.Spec.Persistence.Storage = &storage
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
 
-			sts := statefulSet(rabbitmqCluster)
+			sts := statefulSet(ctx, rabbitmqCluster)
 
 			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
 			Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
@@ -635,7 +637,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-cr-update",
-					Namespace: "rabbitmq-cr-update",
+					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:        &one,
@@ -645,13 +647,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 			clientServiceName = rabbitmqCluster.ChildResourceName("client")
 			statefulSetName = rabbitmqCluster.ChildResourceName("server")
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterCreation(rabbitmqCluster, client)
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
+			waitForClusterCreation(ctx, rabbitmqCluster, client)
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
-			waitForClusterDeletion(rabbitmqCluster, client)
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
+			waitForClusterDeletion(ctx, rabbitmqCluster, client)
 		})
 
 		It("the service annotations are updated", func() {
@@ -661,12 +663,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Eventually(func() map[string]string {
 				clientServiceName := rabbitmqCluster.ChildResourceName("client")
-				service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(clientServiceName, metav1.GetOptions{})
+				service, _ := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ctx, clientServiceName, metav1.GetOptions{})
 				return service.Annotations
 			}, 3).Should(HaveKeyWithValue("test-key", "test-value"))
 
 			// verify that SuccessfulUpdate event is recorded for the client service
-			Expect(aggregateEventMsgs(rabbitmqCluster, "SuccessfulUpdate")).To(
+			Expect(aggregateEventMsgs(ctx, rabbitmqCluster, "SuccessfulUpdate")).To(
 				ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client"))))
 		})
 
@@ -689,7 +691,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Eventually(func() corev1.ResourceList {
 				stsName := rabbitmqCluster.ChildResourceName("server")
-				sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				resourceRequirements = sts.Spec.Template.Spec.Containers[0].Resources
 				return resourceRequirements.Requests
@@ -700,7 +702,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
 
 			// verify that SuccessfulUpdate event is recorded for the StatefulSet
-			Expect(aggregateEventMsgs(rabbitmqCluster, "SuccessfulUpdate")).To(
+			Expect(aggregateEventMsgs(ctx, rabbitmqCluster, "SuccessfulUpdate")).To(
 				ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
 		})
 
@@ -711,7 +713,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Eventually(func() string {
 				stsName := rabbitmqCluster.ChildResourceName("server")
-				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 				return sts.Spec.Template.Spec.Containers[0].Image
 			}, 3).Should(Equal("rabbitmq:3.8.0"))
 		})
@@ -723,7 +725,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			Eventually(func() []corev1.LocalObjectReference {
 				stsName := rabbitmqCluster.ChildResourceName("server")
-				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 				Expect(len(sts.Spec.Template.Spec.ImagePullSecrets)).To(Equal(1))
 				return sts.Spec.Template.Spec.ImagePullSecrets
 			}, 3).Should(ConsistOf(corev1.LocalObjectReference{Name: "my-new-secret"}))
@@ -736,13 +738,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() map[string]string {
-				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(clientServiceName, metav1.GetOptions{})
+				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ctx, clientServiceName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return service.Labels
 			}, 3).Should(HaveKeyWithValue("foo", "bar"))
 			var sts *appsv1.StatefulSet
 			Eventually(func() map[string]string {
-				sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+				sts, _ = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, statefulSetName, metav1.GetOptions{})
 				return sts.Labels
 			}, 3).Should(HaveKeyWithValue("foo", "bar"))
 		})
@@ -760,13 +762,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			It("updates annotations for services", func() {
 				Eventually(func() map[string]string {
-					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("headless"), metav1.GetOptions{})
+					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("headless"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return service.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
 
 				Eventually(func() map[string]string {
-					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("client"), metav1.GetOptions{})
+					service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("client"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return service.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -774,7 +776,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			It("updates annotations for stateful set", func() {
 				Eventually(func() map[string]string {
-					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+					sts, err := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, statefulSetName, metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return sts.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -782,7 +784,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			It("updates annotations for role binding", func() {
 				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
+					roleBinding, err := clientSet.RbacV1().RoleBindings(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -790,7 +792,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			It("updates annotations for role", func() {
 				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("peer-discovery"), metav1.GetOptions{})
+					roleBinding, err := clientSet.RbacV1().Roles(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("peer-discovery"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -798,7 +800,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			It("updates annotations for service account", func() {
 				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
+					roleBinding, err := clientSet.CoreV1().ServiceAccounts(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("server"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -806,27 +808,13 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			It("updates annotations for secrets", func() {
 				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("admin"), metav1.GetOptions{})
+					roleBinding, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("admin"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
 
 				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("erlang-cookie"), metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return roleBinding.Annotations
-				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
-			})
-
-			It("updates annotations for config maps", func() {
-				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server-conf"), metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return roleBinding.Annotations
-				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
-
-				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("plugins-conf"), metav1.GetOptions{})
+					roleBinding, err := clientSet.CoreV1().Secrets(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("erlang-cookie"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -834,13 +822,27 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			It("updates annotations for config maps", func() {
 				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("server-conf"), metav1.GetOptions{})
+					roleBinding, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("server-conf"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
 
 				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("plugins-conf"), metav1.GetOptions{})
+					roleBinding, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("plugins-conf"), metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return roleBinding.Annotations
+				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
+			})
+
+			It("updates annotations for config maps", func() {
+				Eventually(func() map[string]string {
+					roleBinding, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("server-conf"), metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return roleBinding.Annotations
+				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
+
+				Eventually(func() map[string]string {
+					roleBinding, err := clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("plugins-conf"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -854,7 +856,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() string {
-				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(rabbitmqCluster.ChildResourceName("client"), metav1.GetOptions{})
+				service, err := clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ctx, rabbitmqCluster.ChildResourceName("client"), metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return string(service.Spec.Type)
 			}, 3).Should(Equal("NodePort"))
@@ -884,12 +886,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() *corev1.Affinity {
-				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, statefulSetName, metav1.GetOptions{})
 				return sts.Spec.Template.Spec.Affinity
 			}, 3).Should(Equal(affinity))
 
 			Expect(client.Get(
-				context.TODO(),
+				ctx,
 				types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
 				rabbitmqCluster,
 			)).To(Succeed())
@@ -899,7 +901,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				r.Spec.Affinity = affinity
 			})).To(Succeed())
 			Eventually(func() *corev1.Affinity {
-				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(statefulSetName, metav1.GetOptions{})
+				sts, _ := clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, statefulSetName, metav1.GetOptions{})
 				return sts.Spec.Template.Spec.Affinity
 			}, 3).Should(BeNil())
 		})
@@ -914,7 +916,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			namespace           string
 		)
 		BeforeEach(func() {
-			namespace = "rabbitmq-delete"
+			namespace = "default"
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-delete",
@@ -930,31 +932,31 @@ var _ = Describe("RabbitmqclusterController", func() {
 			stsName = rabbitmqCluster.ChildResourceName("server")
 			configMapName = rabbitmqCluster.ChildResourceName("server-conf")
 
-			Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
 			time.Sleep(500 * time.Millisecond)
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.TODO(), rabbitmqCluster)).To(Succeed())
+			Expect(client.Delete(ctx, rabbitmqCluster)).To(Succeed())
 		})
 
 		It("recreates child resources after deletion", func() {
-			oldConfMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+			oldConfMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			oldClientSvc := service(rabbitmqCluster, "client")
+			oldClientSvc := service(ctx, rabbitmqCluster, "client")
 
-			oldHeadlessSvc := service(rabbitmqCluster, "headless")
+			oldHeadlessSvc := service(ctx, rabbitmqCluster, "headless")
 
-			oldSts := statefulSet(rabbitmqCluster)
+			oldSts := statefulSet(ctx, rabbitmqCluster)
 
-			Expect(clientSet.AppsV1().StatefulSets(namespace).Delete(stsName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
-			Expect(clientSet.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
-			Expect(clientSet.CoreV1().Services(namespace).Delete(clientServiceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
-			Expect(clientSet.CoreV1().Services(namespace).Delete(headlessServiceName, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.AppsV1().StatefulSets(namespace).Delete(ctx, stsName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().ConfigMaps(namespace).Delete(ctx, configMapName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().Services(namespace).Delete(ctx, clientServiceName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().Services(namespace).Delete(ctx, headlessServiceName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
 			Eventually(func() bool {
-				sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(stsName, metav1.GetOptions{})
+				sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(ctx, stsName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -962,7 +964,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}, 5).Should(BeTrue())
 
 			Eventually(func() bool {
-				clientSvc, err := clientSet.CoreV1().Services(namespace).Get(clientServiceName, metav1.GetOptions{})
+				clientSvc, err := clientSet.CoreV1().Services(namespace).Get(ctx, clientServiceName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -970,7 +972,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}, 5).Should(BeTrue())
 
 			Eventually(func() bool {
-				headlessSvc, err := clientSet.CoreV1().Services(namespace).Get(headlessServiceName, metav1.GetOptions{})
+				headlessSvc, err := clientSet.CoreV1().Services(namespace).Get(ctx, headlessServiceName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -978,7 +980,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			}, 5).Should(Not(Equal(oldHeadlessSvc.UID)))
 
 			Eventually(func() bool {
-				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+				configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -1009,12 +1011,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 			By("setting to False when spec is not valid", func() {
 				// Annotations must end in alphanumeric character. However KubeAPI will accept this manifest
 				rabbitmqResource.Spec.Service.Annotations = map[string]string{"thisIs-": "notValidForK8s"}
-				Expect(client.Create(context.Background(), rabbitmqResource)).To(Succeed())
-				waitForClusterCreation(rabbitmqResource, client)
+				Expect(client.Create(ctx, rabbitmqResource)).To(Succeed())
+				waitForClusterCreation(ctx, rabbitmqResource, client)
 
 				Eventually(func() string {
 					someRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-					Expect(client.Get(context.Background(), runtimeClient.ObjectKey{
+					Expect(client.Get(ctx, runtimeClient.ObjectKey{
 						Name:      crName,
 						Namespace: "default",
 					}, someRabbit)).To(Succeed())
@@ -1032,16 +1034,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 				// We have to Get() the CR again because Reconcile() changes the object
 				// If we try to Update() without getting the latest version of the CR
 				// We are very likely to hit a Conflict error
-				Expect(client.Get(context.Background(), runtimeClient.ObjectKey{
+				Expect(client.Get(ctx, runtimeClient.ObjectKey{
 					Name:      crName,
 					Namespace: "default",
 				}, rabbitmqResource)).To(Succeed())
 				rabbitmqResource.Spec.Service.Annotations = map[string]string{"thisIs": "valid"}
-				Expect(client.Update(context.Background(), rabbitmqResource)).To(Succeed())
+				Expect(client.Update(ctx, rabbitmqResource)).To(Succeed())
 
 				Eventually(func() string {
 					someRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-					Expect(client.Get(context.Background(), runtimeClient.ObjectKey{
+					Expect(client.Get(ctx, runtimeClient.ObjectKey{
 						Name:      crName,
 						Namespace: "default",
 					}, someRabbit)).To(Succeed())
@@ -1072,7 +1074,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			stsOverrideCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-sts-override",
-					Namespace: "rabbitmq-sts-override",
+					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: &ten,
@@ -1083,7 +1085,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 									{
 										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 											Name:      "persistence",
-											Namespace: "rabbitmq-sts-override",
+											Namespace: "default",
 											Labels: map[string]string{
 												"app.kubernetes.io/name": "rabbitmq-sts-override",
 											},
@@ -1101,7 +1103,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 									{
 										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 											Name:      "disk-2",
-											Namespace: "rabbitmq-sts-override",
+											Namespace: "default",
 											Labels: map[string]string{
 												"app.kubernetes.io/name": "rabbitmq-sts-override",
 											},
@@ -1144,17 +1146,17 @@ var _ = Describe("RabbitmqclusterController", func() {
 					},
 				},
 			}
-			Expect(client.Create(context.Background(), stsOverrideCluster)).To(Succeed())
-			waitForClusterCreation(stsOverrideCluster, client)
+			Expect(client.Create(ctx, stsOverrideCluster)).To(Succeed())
+			waitForClusterCreation(ctx, stsOverrideCluster, client)
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.Background(), stsOverrideCluster)).To(Succeed())
-			waitForClusterDeletion(stsOverrideCluster, client)
+			Expect(client.Delete(ctx, stsOverrideCluster)).To(Succeed())
+			waitForClusterDeletion(ctx, stsOverrideCluster, client)
 		})
 
 		It("creates a StatefulSet with the override applied", func() {
-			sts := statefulSet(stsOverrideCluster)
+			sts := statefulSet(ctx, stsOverrideCluster)
 			myStorage := k8sresource.MustParse("100Gi")
 			volumeMode := corev1.PersistentVolumeMode("Filesystem")
 			defaultMode := int32(420)
@@ -1173,7 +1175,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(2))
 
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Name).To(Equal("persistence"))
-			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Namespace).To(Equal("rabbitmq-sts-override"))
+			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Namespace).To(Equal("default"))
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Labels).To(Equal(
 				map[string]string{
 					"app.kubernetes.io/name": "rabbitmq-sts-override",
@@ -1191,7 +1193,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				}))
 
 			Expect(sts.Spec.VolumeClaimTemplates[1].ObjectMeta.Name).To(Equal("disk-2"))
-			Expect(sts.Spec.VolumeClaimTemplates[1].ObjectMeta.Namespace).To(Equal("rabbitmq-sts-override"))
+			Expect(sts.Spec.VolumeClaimTemplates[1].ObjectMeta.Namespace).To(Equal("default"))
 			Expect(sts.Spec.VolumeClaimTemplates[1].ObjectMeta.Labels).To(Equal(
 				map[string]string{
 					"app.kubernetes.io/name": "rabbitmq-sts-override",
@@ -1319,12 +1321,12 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() int32 {
-				sts := statefulSet(stsOverrideCluster)
+				sts := statefulSet(ctx, stsOverrideCluster)
 				return *sts.Spec.Replicas
 			}, 3).Should(Equal(int32(5)))
 
 			Eventually(func() string {
-				sts := statefulSet(stsOverrideCluster)
+				sts := statefulSet(ctx, stsOverrideCluster)
 				c := extractContainer(sts.Spec.Template.Spec.Containers, "additional-container-2")
 				return c.Image
 			}, 3).Should(Equal("my-great-image-2"))
@@ -1340,7 +1342,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			svcOverrideCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "svc-override",
-					Namespace: "svc-override",
+					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: &one,
@@ -1369,20 +1371,20 @@ var _ = Describe("RabbitmqclusterController", func() {
 				},
 			}
 
-			Expect(client.Create(context.Background(), svcOverrideCluster)).To(Succeed())
-			waitForClusterCreation(svcOverrideCluster, client)
+			Expect(client.Create(ctx, svcOverrideCluster)).To(Succeed())
+			waitForClusterCreation(ctx, svcOverrideCluster, client)
 		})
 
 		AfterEach(func() {
-			Expect(client.Delete(context.Background(), svcOverrideCluster)).To(Succeed())
-			waitForClusterDeletion(svcOverrideCluster, client)
+			Expect(client.Delete(ctx, svcOverrideCluster)).To(Succeed())
+			waitForClusterDeletion(ctx, svcOverrideCluster, client)
 		})
 
 		It("creates a Client Service with the override applied", func() {
 			amqpTargetPort := intstr.IntOrString{IntVal: int32(5672)}
 			managementTargetPort := intstr.IntOrString{IntVal: int32(15672)}
 			additionalTargetPort := intstr.IntOrString{IntVal: int32(15535)}
-			svc := service(svcOverrideCluster, "client")
+			svc := service(ctx, svcOverrideCluster, "client")
 			Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 			Expect(svc.Spec.Ports).To(ConsistOf(
 				corev1.ServicePort{
@@ -1415,7 +1417,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() corev1.ServiceType {
-				svc := service(svcOverrideCluster, "client")
+				svc := service(ctx, svcOverrideCluster, "client")
 				return svc.Spec.Type
 			}, 5).Should(Equal(corev1.ServiceTypeLoadBalancer))
 		})
@@ -1434,8 +1436,8 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 
 // aggregateEventMsgs - helper function to aggregate all event messages for a given rabbitmqcluster
 // and filters on a specific event reason string
-func aggregateEventMsgs(rabbit *rabbitmqv1beta1.RabbitmqCluster, reason string) string {
-	events, err := clientSet.CoreV1().Events(rabbit.Namespace).List(metav1.ListOptions{
+func aggregateEventMsgs(ctx context.Context, rabbit *rabbitmqv1beta1.RabbitmqCluster, reason string) string {
+	events, err := clientSet.CoreV1().Events(rabbit.Namespace).List(ctx, metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.namespace=%s,reason=%s", rabbit.Name, rabbit.Namespace, reason),
 	})
 	ExpectWithOffset(1, err).To(Succeed())
@@ -1446,55 +1448,55 @@ func aggregateEventMsgs(rabbit *rabbitmqv1beta1.RabbitmqCluster, reason string) 
 	return msgs
 }
 
-func statefulSet(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
+func statefulSet(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) *appsv1.StatefulSet {
 	stsName := rabbitmqCluster.ChildResourceName("server")
 	var sts *appsv1.StatefulSet
 	EventuallyWithOffset(1, func() error {
 		var err error
-		sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(stsName, metav1.GetOptions{})
+		sts, err = clientSet.AppsV1().StatefulSets(rabbitmqCluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 		return err
 	}, 10).Should(Succeed())
 	return sts
 }
 
-func service(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, svcName string) *corev1.Service {
+func service(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, svcName string) *corev1.Service {
 	serviceName := rabbitmqCluster.ChildResourceName(svcName)
 	var svc *corev1.Service
 	EventuallyWithOffset(1, func() error {
 		var err error
-		svc, err = clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(serviceName, metav1.GetOptions{})
+		svc, err = clientSet.CoreV1().Services(rabbitmqCluster.Namespace).Get(ctx, serviceName, metav1.GetOptions{})
 		return err
 	}, 10).Should(Succeed())
 	return svc
 }
 
-func tlsSecretWithCACert(secretName, namespace, caCertName string) {
+func tlsSecretWithCACert(ctx context.Context, secretName, namespace, caCertName string) {
 	tlsData := map[string]string{
 		"tls.crt":  "this is a tls cert",
 		"tls.key":  "this is a tls key",
 		caCertName: "certificate",
 	}
 
-	_, err := createSecret(secretName, namespace, tlsData)
+	_, err := createSecret(ctx, secretName, namespace, tlsData)
 
 	if !apierrors.IsAlreadyExists(err) {
 		Expect(err).NotTo(HaveOccurred())
 	}
 }
 
-func tlsSecretWithoutCACert(secretName, namespace string) {
+func tlsSecretWithoutCACert(ctx context.Context, secretName, namespace string) {
 	tlsData := map[string]string{
 		"tls.crt": "this is a tls cert",
 		"tls.key": "this is a tls key",
 	}
-	_, err := createSecret(secretName, namespace, tlsData)
+	_, err := createSecret(ctx, secretName, namespace, tlsData)
 
 	if !apierrors.IsAlreadyExists(err) {
 		Expect(err).NotTo(HaveOccurred())
 	}
 }
 
-func createSecret(secretName string, namespace string, data map[string]string) (corev1.Secret, error) {
+func createSecret(ctx context.Context, secretName string, namespace string, data map[string]string) (corev1.Secret, error) {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
@@ -1503,15 +1505,15 @@ func createSecret(secretName string, namespace string, data map[string]string) (
 		StringData: data,
 	}
 
-	_, err := clientSet.CoreV1().Secrets(namespace).Create(&secret)
+	_, err := clientSet.CoreV1().Secrets(namespace).Create(ctx, &secret, metav1.CreateOptions{})
 	return secret, err
 }
 
-func rabbitmqClusterWithTLS(clustername string, namespace string, tlsSpec rabbitmqv1beta1.TLSSpec) *rabbitmqv1beta1.RabbitmqCluster {
+func rabbitmqClusterWithTLS(ctx context.Context, clustername string, namespace string, tlsSpec rabbitmqv1beta1.TLSSpec) *rabbitmqv1beta1.RabbitmqCluster {
 	var one int32 = 1
 	rabbitmqCluster := &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      namespace,
+			Name:      clustername,
 			Namespace: namespace,
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -1520,16 +1522,16 @@ func rabbitmqClusterWithTLS(clustername string, namespace string, tlsSpec rabbit
 		},
 	}
 
-	Expect(client.Create(context.TODO(), rabbitmqCluster)).To(Succeed())
+	Expect(client.Create(ctx, rabbitmqCluster)).To(Succeed())
 
 	return rabbitmqCluster
 }
 
-func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
+func waitForClusterCreation(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
 	EventuallyWithOffset(1, func() string {
 		rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
 		err := client.Get(
-			context.TODO(),
+			ctx,
 			types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
 			&rabbitmqClusterCreated,
 		)
@@ -1547,11 +1549,11 @@ func waitForClusterCreation(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 
 }
 
-func waitForClusterDeletion(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
+func waitForClusterDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
 	EventuallyWithOffset(1, func() bool {
 		rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
 		err := client.Get(
-			context.TODO(),
+			ctx,
 			types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
 			&rabbitmqClusterCreated,
 		)
@@ -1560,8 +1562,8 @@ func waitForClusterDeletion(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, cl
 
 }
 
-func verifyError(rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, expectedError string) {
+func verifyError(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, expectedError string) {
 	tlsEventTimeout := 5 * time.Second
 	tlsRetry := 1 * time.Second
-	Eventually(func() string { return aggregateEventMsgs(rabbitmqCluster, "TLSError") }, tlsEventTimeout, tlsRetry).Should(ContainSubstring(expectedError))
+	Eventually(func() string { return aggregateEventMsgs(ctx, rabbitmqCluster, "TLSError") }, tlsEventTimeout, tlsRetry).Should(ContainSubstring(expectedError))
 }
