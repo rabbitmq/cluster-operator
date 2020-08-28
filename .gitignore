@@ -4,5 +4,5 @@ cover.out
 .idea/
 .envrc
 tags
-installation/
-!config/installation/
+config/installation/generated
+releases/

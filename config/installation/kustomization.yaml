@@ -7,10 +7,16 @@
 # This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
 #
 
-resources:
-- ../default/base
-
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 namespace: rabbitmq-system
+images:
+- name: controller
+  newName: rabbitmqoperator/rabbitmq-cluster-kubernetes-operator-dev
+  newTag: latest
 
-patches:
-- manager_deployment_patch.yaml
+resources:
+- generated/namespace.yaml
+- generated/rabbitmq.com_rabbitmqclusters.yaml
+- generated/rbac.yaml
+- generated/manager.yaml
