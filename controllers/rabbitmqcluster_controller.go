@@ -274,7 +274,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 		_, hasCaCert := secret.Data[rabbitmqCluster.Spec.TLS.CaCertName]
 		if !hasCaCert {
 			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
-				fmt.Sprintf("The TLS secret %v in namespace %v must have the field %v", secretName, rabbitmqCluster.Namespace, rabbitmqCluster.Spec.TLS.CaCertName))
+				fmt.Sprintf("The TLS secret %v in namespace %v must have the field %v", rabbitmqCluster.Spec.TLS.CaSecretName, rabbitmqCluster.Namespace, rabbitmqCluster.Spec.TLS.CaCertName))
 
 			return ctrl.Result{}, errors.NewBadRequest(fmt.Sprintf("The TLS secret must have the field %s", rabbitmqCluster.Spec.TLS.CaCertName))
 		}
@@ -486,10 +486,7 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 }
 
 func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	if err := controllerutil.RemoveFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {
-		return err
-	}
-
+	controllerutil.RemoveFinalizer(rabbitmqCluster, deletionFinalizer)
 	if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 		return err
 	}
@@ -525,10 +522,7 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	// The RabbitmqCluster is not marked for deletion (no deletion timestamp) but does not have the deletion finalizer
 	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
-		if err := controllerutil.AddFinalizerWithError(rabbitmqCluster, deletionFinalizer); err != nil {
-			return err
-		}
-
+		controllerutil.AddFinalizer(rabbitmqCluster, deletionFinalizer)
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 			return err
 		}
@@ -568,7 +562,7 @@ func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, name
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	for _, resource := range []runtime.Object{&appsv1.StatefulSet{}, &corev1.ConfigMap{}, &corev1.Service{}} {
-		if err := mgr.GetFieldIndexer().IndexField(resource, ownerKey, addResourceToIndex); err != nil {
+		if err := mgr.GetFieldIndexer().IndexField(context.Background(), resource, ownerKey, addResourceToIndex); err != nil {
 			return err
 		}
 	}

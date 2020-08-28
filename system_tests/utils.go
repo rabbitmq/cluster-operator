@@ -128,7 +128,7 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 	return
 }
 
-func rabbitmqGetMessageFromQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*Message, error) {
+func getMessageFromQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*Message, error) {
 	getQueuesUrl := fmt.Sprintf("http://%s:%s/api/queues/%%2F/test-queue/get", rabbitmqHostName, rabbitmqPort)
 	data := map[string]interface{}{
 		"vhost":    "/",
@@ -162,7 +162,7 @@ type Message struct {
 	MessageCount int    `json:"message_count"`
 }
 
-func rabbitmqPublishToNewQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) error {
+func publishToQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) error {
 	url := fmt.Sprintf("http://%s:%s/api/queues/%%2F/test-queue", rabbitmqHostName, rabbitmqPort)
 	_, err := makeRequest(url, http.MethodPut, rabbitmqUsername, rabbitmqPassword, []byte("{\"durable\": true}"))
 
@@ -219,7 +219,7 @@ func connectAMQPS(username, password, hostname, port, caFilePath string) (conn *
 	return nil, err
 }
 
-func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, amqpsPort, caFilePath string) error {
+func publishToQueueAMQPS(message, username, password, hostname, amqpsPort, caFilePath string) error {
 	// create connection
 	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
 	if err != nil {
@@ -262,7 +262,7 @@ func rabbitmqAMQPSPublishToNewQueue(message, username, password, hostname, amqps
 	return nil
 }
 
-func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsPort, caFilePath string) (string, error) {
+func getMessageFromQueueAMQPS(username, password, hostname, amqpsPort, caFilePath string) (string, error) {
 	// create connection
 	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
 	if err != nil {
@@ -312,7 +312,7 @@ func rabbitmqAMQPSGetMessageFromQueue(username, password, hostname, amqpsPort, c
 	return "", nil
 }
 
-func rabbitmqAlivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
+func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	url := fmt.Sprintf("http://%s:%s/api/aliveness-test/%%2F", rabbitmqHostName, rabbitmqPort)
 
@@ -352,8 +352,8 @@ type HealthcheckResponse struct {
 	Status string `json:"status"`
 }
 
-func getRabbitmqUsernameAndPassword(clientset *kubernetes.Clientset, namespace, instanceName string) (string, string, error) {
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("%s-rabbitmq-admin", instanceName), metav1.GetOptions{})
+func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset, namespace, instanceName string) (string, string, error) {
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(ctx, fmt.Sprintf("%s-rabbitmq-admin", instanceName), metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
 	}
@@ -384,25 +384,25 @@ func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Ra
 }
 
 //the updateFn can change properties of the RabbitmqCluster CR
-func updateRabbitmqCluster(client client.Client, name, namespace string, updateFn func(*rabbitmqv1beta1.RabbitmqCluster)) error {
+func updateRabbitmqCluster(ctx context.Context, client client.Client, name, namespace string, updateFn func(*rabbitmqv1beta1.RabbitmqCluster)) error {
 	var result rabbitmqv1beta1.RabbitmqCluster
 
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		getErr := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, &result)
+		getErr := client.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, &result)
 		if getErr != nil {
 			return getErr
 		}
 
 		updateFn(&result)
-		updateErr := client.Update(context.TODO(), &result)
+		updateErr := client.Update(ctx, &result)
 		return updateErr
 	})
 
 	return retryErr
 }
 
-func createRabbitmqCluster(client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	return client.Create(context.TODO(), rabbitmqCluster)
+func createRabbitmqCluster(ctx context.Context, client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+	return client.Create(ctx, rabbitmqCluster)
 }
 
 func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
@@ -410,11 +410,11 @@ func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) str
 }
 
 /*
- * Helper function to fetch a Kubernetes Node IP. Node IPs are interesting
+ * Helper function to fetch a Kubernetes Node IP. Node IPs are necessary
  * to access NodePort type services.
  */
-func kubernetesNodeIp(clientSet *kubernetes.Clientset) string {
-	nodes, err := clientSet.CoreV1().Nodes().List(metav1.ListOptions{})
+func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) string {
+	nodes, err := clientSet.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	ExpectWithOffset(1, nodes).ToNot(BeNil())
 	ExpectWithOffset(1, len(nodes.Items)).To(BeNumerically(">", 0))
@@ -438,9 +438,9 @@ func kubernetesNodeIp(clientSet *kubernetes.Clientset) string {
 	return nodeIp
 }
 
-func rabbitmqManagementNodePort(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+func rabbitmqManagementNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
 	service, err := clientSet.CoreV1().Services(cluster.Namespace).
-		Get(cluster.ChildResourceName("client"), metav1.GetOptions{})
+		Get(ctx, cluster.ChildResourceName("client"), metav1.GetOptions{})
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
@@ -453,9 +453,9 @@ func rabbitmqManagementNodePort(clientSet *kubernetes.Clientset, cluster *rabbit
 	return ""
 }
 
-func rabbitmqAMQPSNodePort(clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+func rabbitmqAMQPSNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster) string {
 	service, err := clientSet.CoreV1().Services(cluster.Namespace).
-		Get(cluster.ChildResourceName("client"), metav1.GetOptions{})
+		Get(ctx, cluster.ChildResourceName("client"), metav1.GetOptions{})
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 

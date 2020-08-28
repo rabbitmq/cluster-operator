@@ -57,7 +57,7 @@ func TestControllers(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	var err error
-	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))
+	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
