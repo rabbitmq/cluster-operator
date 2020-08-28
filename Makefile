@@ -97,12 +97,6 @@ generate-installation-manifests:
 	kustomize build config/rbac/ > installation/rbac.yaml
 	kustomize build config/installation > installation/operator.yaml
 
-generate-helm-manifests:
-	kustomize build config/namespace/base/ > charts/operator/templates/namespace.yaml
-	kustomize build config/crd/ > charts/operator/templates/crd.yaml
-	kustomize build config/rbac/ > charts/operator/templates/rbac.yaml
-	kustomize build config/default/overlays/helm/ > charts/operator/templates/deployment.yaml
-
 # Build the docker image
 docker-build: check-env-docker-repo git-commit-sha
 	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):latest .
