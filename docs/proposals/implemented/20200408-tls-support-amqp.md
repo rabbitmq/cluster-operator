@@ -42,7 +42,7 @@ As a RabbitMQ client (whether application or end user), I want to be sure that t
 
 ### Goals
 
-- Write/Read a TLS 1.2 encrypted AMQP 0-9-1 message from an operator deployed RabbitMQ broker (standalone and KSM deployments)
+- Write/Read a TLS 1.2 encrypted AMQP 0-9-1 message from an operator deployed RabbitMQ broker (standalone and Tanzu Service Manager deployments)
 - Survey other TLS implementations in K8s operators for common patterns. Priority should be given to operators in the VMware portfolio
 - Document our standard approach to configuring TLS via the RabbitMQ Custom Resource
 - Document options for certificate management
@@ -66,7 +66,7 @@ As a RabbitMQ client (whether application or end user), I want to be sure that t
   - Add `5671` to the Container Ports in the Pod Template
   - Add `5671` to the port map in the Client Service
 - If we expose the Client Service template we can potentially depend on the user to specify the port
-- When deploying via KSM, a [Certificate Request](https://cert-manager.io/docs/concepts/certificaterequest/) is templated if the plan specified `tls: true`
+- When deploying via Tanzu Service Manager, a [Certificate Request](https://cert-manager.io/docs/concepts/certificaterequest/) is templated if the plan specified `tls: true`
 
 ### User Stories
 
@@ -82,7 +82,7 @@ And I can retrieve that message over the same port
 ```
 #### Story 2
 ```
-Given I have a KSM environment
+Given I have a Tanzu Service Manager environment
 And a certificate manager is provisioned in the cluster with an appropriate CA
 And I deploy the RabbitMQ operator
 And I request a new RabbitMQCluster with TLS enabled
@@ -113,9 +113,9 @@ And I can retrieve that message over the same port
 #### Disabling non-TLS
 - Should we expose non-TLS ports when TLS is enabled? Would this be a blanket setting or per protocol? `listeners.tcp = none`, `mqtt.listeners.tcp = none` etc...
 
-#### KSM
+#### Tanzu Service Manager
 - `plans` are too high level an abstraction to expect users to provide certificate details. We should consider how an operator would be configured and deployed with the ability to inject certificates for all the TLS-enabled RabbitMQ brokers.
-- This proposal make cert-manager a dependency for KSM deployed RabbitMQ for K8s. A plan with `tls: true` will deploy a cert-manager CertificateRequest with the RabbitMQCluster. The changes implemented at the operator will then ensure that the deployed RabbitMQCluster has the mounted certs.
+- This proposal make cert-manager a dependency for Tanzu Service Manager deployed RabbitMQ for K8s. A plan with `tls: true` will deploy a cert-manager CertificateRequest with the RabbitMQCluster. The changes implemented at the operator will then ensure that the deployed RabbitMQCluster has the mounted certs.
   - However, cert-manager is expects cluster-wide privileges. cert-manager also requires [Issuers](https://cert-manager.io/docs/concepts/issuer/) to be configured before Certificates can be issued. Both of these tasks seem out of scope and more general than RabbitMQ operator config. We are therefore assuming that cert-manager configuration will either be part of a higher-level Tanzu cluster setup or at least done ahead of Rabbit deployment.
 - bind.yaml needs to be configurable to enable ssl, specify the correct port and point to an https URI
 
