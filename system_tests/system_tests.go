@@ -381,21 +381,23 @@ CONSOLE_LOG=new`
 		})
 	})
 
-	When("MQTT and STOMP plugins are enabled", func() {
+	When("(web) MQTT and STOMP plugins are enabled", func() {
 		var (
-			cluster       *rabbitmqv1beta1.RabbitmqCluster
-			hostname      string
-			username      string
-			password      string
-			mqttNodePort  string
-			stompNodePort string
+			cluster  *rabbitmqv1beta1.RabbitmqCluster
+			hostname string
+			username string
+			password string
 		)
 
 		BeforeEach(func() {
 			instanceName := "mqtt-stomp-rabbit"
 			cluster = generateRabbitmqCluster(namespace, instanceName)
 			cluster.Spec.Service.Type = "NodePort"
-			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"}
+			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+				"rabbitmq_mqtt",
+				"rabbitmq_web_mqtt",
+				"rabbitmq_stomp",
+			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 			waitForClusterAvailable(cluster)
@@ -404,9 +406,6 @@ CONSOLE_LOG=new`
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", instanceName)
 			Expect(err).NotTo(HaveOccurred())
-
-			mqttNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "mqtt")
-			stompNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "stomp")
 		})
 
 		AfterEach(func() {
@@ -415,10 +414,15 @@ CONSOLE_LOG=new`
 
 		It("publishes and consumes a message", func() {
 			By("MQTT")
-			publishAndConsumeMQTTMsg(hostname, mqttNodePort, username, password)
+			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "mqtt"), username, password, false)
+
+			By("MQTT-over-WebSockets")
+			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "web-mqtt"), username, password, true)
 
 			By("STOMP")
-			publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password)
+			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password)
+
+			// github.com/go-stomp/stomp does not support STOMP-over-WebSockets
 		})
 	})
 })

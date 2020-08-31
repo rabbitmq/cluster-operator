@@ -749,9 +749,13 @@ func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter
 	return nil
 }
 
-func publishAndConsumeMQTTMsg(hostname, mqttNodePort, username, password string) {
+func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, overWebSocket bool) {
+	url := fmt.Sprintf("tcp://%s:%s", hostname, nodePort)
+	if overWebSocket {
+		url = fmt.Sprintf("ws://%s:%s/ws", hostname, nodePort)
+	}
 	opts := mqtt.NewClientOptions().
-		AddBroker(fmt.Sprintf("tcp://%s:%s", hostname, mqttNodePort)).
+		AddBroker(url).
 		SetUsername(username).
 		SetPassword(password).
 		SetClientID("system tests MQTT plugin").

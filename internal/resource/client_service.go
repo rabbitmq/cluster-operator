@@ -128,11 +128,25 @@ func (builder *ClientServiceBuilder) updatePorts(servicePorts []corev1.ServicePo
 			Name:     "mqtt",
 		}
 	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+		servicePortsMap["web-mqtt"] = corev1.ServicePort{
+			Protocol: corev1.ProtocolTCP,
+			Port:     15675,
+			Name:     "web-mqtt",
+		}
+	}
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
 		servicePortsMap["stomp"] = corev1.ServicePort{
 			Protocol: corev1.ProtocolTCP,
 			Port:     61613,
 			Name:     "stomp",
+		}
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+		servicePortsMap["web-stomp"] = corev1.ServicePort{
+			Protocol: corev1.ProtocolTCP,
+			Port:     15674,
+			Name:     "web-stomp",
 		}
 	}
 	if builder.Instance.TLSEnabled() {

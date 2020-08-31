@@ -315,6 +315,19 @@ var _ = Context("ClientServices", func() {
 					Expect(svc.Spec.Ports).To(ContainElement(expectedMQTTPort))
 				})
 			})
+			When("MQTT-over-WebSockets plugin is enabled", func() {
+				It("exposes web MQTT port", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt"}
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+
+					expectedWebMQTTPort := corev1.ServicePort{
+						Name:     "web-mqtt",
+						Port:     15675,
+						Protocol: corev1.ProtocolTCP,
+					}
+					Expect(svc.Spec.Ports).To(ContainElement(expectedWebMQTTPort))
+				})
+			})
 			When("STOMP plugin is enabled", func() {
 				It("exposes STOMP port", func() {
 					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_stomp"}
@@ -326,6 +339,19 @@ var _ = Context("ClientServices", func() {
 						Protocol: corev1.ProtocolTCP,
 					}
 					Expect(svc.Spec.Ports).To(ContainElement(expectedSTOMPPort))
+				})
+			})
+			When("STOMP-over-WebSockets plugin is enabled", func() {
+				It("exposes web STOMP port", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_stomp"}
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+
+					expectedWebSTOMPPort := corev1.ServicePort{
+						Name:     "web-stomp",
+						Port:     15674,
+						Protocol: corev1.ProtocolTCP,
+					}
+					Expect(svc.Spec.Ports).To(ContainElement(expectedWebSTOMPPort))
 				})
 			})
 

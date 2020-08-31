@@ -347,10 +347,22 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			ContainerPort: 1883,
 		})
 	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "web-mqtt",
+			ContainerPort: 15675,
+		})
+	}
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "stomp",
 			ContainerPort: 61613,
+		})
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "web-stomp",
+			ContainerPort: 15674,
 		})
 	}
 
