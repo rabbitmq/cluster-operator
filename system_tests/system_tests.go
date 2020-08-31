@@ -396,17 +396,17 @@ CONSOLE_LOG=new`
 			cluster = generateRabbitmqCluster(namespace, instanceName)
 			cluster.Spec.Service.Type = "NodePort"
 			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"}
-			Expect(createRabbitmqCluster(rmqClusterClient, cluster)).To(Succeed())
+			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 			waitForClusterAvailable(cluster)
 
-			hostname = kubernetesNodeIp(clientSet)
+			hostname = kubernetesNodeIp(ctx, clientSet)
 			var err error
-			username, password, err = getRabbitmqUsernameAndPassword(clientSet, "rabbitmq-system", instanceName)
+			username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", instanceName)
 			Expect(err).NotTo(HaveOccurred())
 
-			mqttNodePort = rabbitmqNodePort(clientSet, cluster, "mqtt")
-			stompNodePort = rabbitmqNodePort(clientSet, cluster, "stomp")
+			mqttNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "mqtt")
+			stompNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "stomp")
 		})
 
 		AfterEach(func() {
