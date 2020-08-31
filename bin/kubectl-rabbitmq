@@ -79,7 +79,7 @@ perf_test() {
         --labels="app=perf-test,run=perf-test" \
         --image=pivotalrabbitmq/perf-test \
         -- --uri "amqp://${username}:${password}@${service}" \
-        --metrics-prometheus "${perftestopts}"
+        --metrics-prometheus ${perftestopts}
 }
 
 manage() {
