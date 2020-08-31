@@ -11,6 +11,7 @@ package resource_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
@@ -717,58 +718,23 @@ var _ = Describe("StatefulSet", func() {
 			Expect(actualContainerPorts).To(ConsistOf(requiredContainerPorts))
 		})
 
-		When("MQTT plugin is enabled", func() {
-			It("exposes the MQTT container port", func() {
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt"}
+		DescribeTable("plugins exposing ports",
+			func(plugin, containerPortName string, port int) {
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin(plugin)}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-				expectedMQTTPort := corev1.ContainerPort{
-					Name:          "mqtt",
-					ContainerPort: 1883,
+				expectedPort := corev1.ContainerPort{
+					Name:          containerPortName,
+					ContainerPort: int32(port),
 				}
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(container.Ports).To(ContainElement(expectedMQTTPort))
-			})
-		})
-		When("MQTT-over-WebSockets plugin is enabled", func() {
-			It("exposes the web MQTT container port", func() {
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt"}
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-				expectedWebMQTTPort := corev1.ContainerPort{
-					Name:          "web-mqtt",
-					ContainerPort: 15675,
-				}
-				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(container.Ports).To(ContainElement(expectedWebMQTTPort))
-			})
-		})
-		When("STOMP plugin is enabled", func() {
-			It("exposes the STOMP container port", func() {
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_stomp"}
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-				expectedSTOMPPort := corev1.ContainerPort{
-					Name:          "stomp",
-					ContainerPort: 61613,
-				}
-				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(container.Ports).To(ContainElement(expectedSTOMPPort))
-			})
-		})
-		When("STOMP-over-WebSockets plugin is enabled", func() {
-			It("exposes the web STOMP container port", func() {
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_stomp"}
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-				expectedWebSTOMPPort := corev1.ContainerPort{
-					Name:          "web-stomp",
-					ContainerPort: 15674,
-				}
-				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(container.Ports).To(ContainElement(expectedWebSTOMPPort))
-			})
-		})
+				Expect(container.Ports).To(ContainElement(expectedPort))
+			},
+			Entry("MQTT", "rabbitmq_mqtt", "mqtt", 1883),
+			Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt", 15675),
+			Entry("STOMP", "rabbitmq_stomp", "stomp", 61613),
+			Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp", 15674),
+		)
 
 		It("uses required Environment Variables", func() {
 			stsBuilder := builder.StatefulSet()

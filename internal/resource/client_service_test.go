@@ -11,6 +11,7 @@ package resource_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
@@ -302,58 +303,23 @@ var _ = Context("ClientServices", func() {
 				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, managementPort))
 			})
 
-			When("MQTT plugin is enabled", func() {
-				It("exposes MQTT port", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt"}
+			DescribeTable("plugins exposing ports",
+				func(plugin, servicePortName string, port int) {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin(plugin)}
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 
-					expectedMQTTPort := corev1.ServicePort{
-						Name:     "mqtt",
-						Port:     1883,
+					expectedPort := corev1.ServicePort{
+						Name:     servicePortName,
+						Port:     int32(port),
 						Protocol: corev1.ProtocolTCP,
 					}
-					Expect(svc.Spec.Ports).To(ContainElement(expectedMQTTPort))
-				})
-			})
-			When("MQTT-over-WebSockets plugin is enabled", func() {
-				It("exposes web MQTT port", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt"}
-					Expect(serviceBuilder.Update(svc)).To(Succeed())
-
-					expectedWebMQTTPort := corev1.ServicePort{
-						Name:     "web-mqtt",
-						Port:     15675,
-						Protocol: corev1.ProtocolTCP,
-					}
-					Expect(svc.Spec.Ports).To(ContainElement(expectedWebMQTTPort))
-				})
-			})
-			When("STOMP plugin is enabled", func() {
-				It("exposes STOMP port", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_stomp"}
-					Expect(serviceBuilder.Update(svc)).To(Succeed())
-
-					expectedSTOMPPort := corev1.ServicePort{
-						Name:     "stomp",
-						Port:     61613,
-						Protocol: corev1.ProtocolTCP,
-					}
-					Expect(svc.Spec.Ports).To(ContainElement(expectedSTOMPPort))
-				})
-			})
-			When("STOMP-over-WebSockets plugin is enabled", func() {
-				It("exposes web STOMP port", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_stomp"}
-					Expect(serviceBuilder.Update(svc)).To(Succeed())
-
-					expectedWebSTOMPPort := corev1.ServicePort{
-						Name:     "web-stomp",
-						Port:     15674,
-						Protocol: corev1.ProtocolTCP,
-					}
-					Expect(svc.Spec.Ports).To(ContainElement(expectedWebSTOMPPort))
-				})
-			})
+					Expect(svc.Spec.Ports).To(ContainElement(expectedPort))
+				},
+				Entry("MQTT", "rabbitmq_mqtt", "mqtt", 1883),
+				Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt", 15675),
+				Entry("STOMP", "rabbitmq_stomp", "stomp", 61613),
+				Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp", 15674),
+			)
 
 			It("updates the service type from ClusterIP to NodePort", func() {
 				svc.Spec.Type = corev1.ServiceTypeClusterIP
