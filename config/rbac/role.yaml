@@ -109,6 +109,12 @@ rules:
 - apiGroups:
   - rabbitmq.com
   resources:
+  - rabbitmqclusters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - rabbitmq.com
+  resources:
   - rabbitmqclusters/status
   verbs:
   - get
