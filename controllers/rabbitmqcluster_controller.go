@@ -445,17 +445,8 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Obje
 	}
 }
 
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	if containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
+	if controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
 		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			sts := &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
@@ -467,7 +458,9 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 			if err := r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster); err != nil {
 				return fmt.Errorf("Failed to add deletion markers to RabbitmqCluster Pods: %s", err.Error())
 			}
-			// Delete StatefulSet immediately after changing pod labels to minimize risk of them respawning. There is a window where the StatefulSet could respawn Pods without the deletion label in this order. But we can't delete it before because the DownwardAPI doesn't update once a Pod enters Terminating
+			// Delete StatefulSet immediately after changing pod labels to minimize risk of them respawning.
+			// There is a window where the StatefulSet could respawn Pods without the deletion label in this order.
+			// But we can't delete it before because the DownwardAPI doesn't update once a Pod enters Terminating.
 			if err := r.Client.Delete(ctx, sts); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("Cannot delete StatefulSet: %s", err.Error())
 			}
@@ -521,13 +514,12 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 
 func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	// The RabbitmqCluster is not marked for deletion (no deletion timestamp) but does not have the deletion finalizer
-	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !containsString(rabbitmqCluster.ObjectMeta.Finalizers, deletionFinalizer) {
+	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
 		controllerutil.AddFinalizer(rabbitmqCluster, deletionFinalizer)
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
