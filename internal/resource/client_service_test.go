@@ -11,6 +11,7 @@ package resource_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
@@ -28,7 +29,7 @@ var _ = Context("ClientServices", func() {
 		scheme   *runtime.Scheme
 	)
 
-	Context("Build", func() {
+	Describe("Build", func() {
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
@@ -57,7 +58,7 @@ var _ = Context("ClientServices", func() {
 		})
 	})
 
-	Context("Update", func() {
+	Describe("Update", func() {
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
@@ -299,8 +300,26 @@ var _ = Context("ClientServices", func() {
 					Port:     15672,
 					Protocol: corev1.ProtocolTCP,
 				}
-				Expect(svc.Spec.Ports).Should(ConsistOf(amqpPort, managementPort))
+				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, managementPort))
 			})
+
+			DescribeTable("plugins exposing ports",
+				func(plugin, servicePortName string, port int) {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin(plugin)}
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+
+					expectedPort := corev1.ServicePort{
+						Name:     servicePortName,
+						Port:     int32(port),
+						Protocol: corev1.ProtocolTCP,
+					}
+					Expect(svc.Spec.Ports).To(ContainElement(expectedPort))
+				},
+				Entry("MQTT", "rabbitmq_mqtt", "mqtt", 1883),
+				Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt", 15675),
+				Entry("STOMP", "rabbitmq_stomp", "stomp", 61613),
+				Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp", 15674),
+			)
 
 			It("updates the service type from ClusterIP to NodePort", func() {
 				svc.Spec.Type = corev1.ServiceTypeClusterIP

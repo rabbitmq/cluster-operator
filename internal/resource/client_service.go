@@ -55,7 +55,7 @@ func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
 	service.Spec.Type = corev1.ServiceType(builder.Instance.Spec.Service.Type)
 	service.Spec.Selector = metadata.LabelSelector(builder.Instance.Name)
 
-	service.Spec.Ports = updatePorts(service.Spec.Ports, builder.Instance.TLSEnabled())
+	service.Spec.Ports = builder.updatePorts(service.Spec.Ports)
 
 	if builder.Instance.Spec.Service.Type == "ClusterIP" || builder.Instance.Spec.Service.Type == "" {
 		for i := range service.Spec.Ports {
@@ -108,20 +108,48 @@ func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.ClientServi
 	return nil
 }
 
-func updatePorts(servicePorts []corev1.ServicePort, tlsEnabled bool) []corev1.ServicePort {
+func (builder *ClientServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
 	servicePortsMap := map[string]corev1.ServicePort{
-		"amqp": corev1.ServicePort{
+		"amqp": {
 			Protocol: corev1.ProtocolTCP,
 			Port:     5672,
 			Name:     "amqp",
 		},
-		"management": corev1.ServicePort{
+		"management": {
 			Protocol: corev1.ProtocolTCP,
 			Port:     15672,
 			Name:     "management",
 		},
 	}
-	if tlsEnabled {
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+		servicePortsMap["mqtt"] = corev1.ServicePort{
+			Protocol: corev1.ProtocolTCP,
+			Port:     1883,
+			Name:     "mqtt",
+		}
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+		servicePortsMap["web-mqtt"] = corev1.ServicePort{
+			Protocol: corev1.ProtocolTCP,
+			Port:     15675,
+			Name:     "web-mqtt",
+		}
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+		servicePortsMap["stomp"] = corev1.ServicePort{
+			Protocol: corev1.ProtocolTCP,
+			Port:     61613,
+			Name:     "stomp",
+		}
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+		servicePortsMap["web-stomp"] = corev1.ServicePort{
+			Protocol: corev1.ProtocolTCP,
+			Port:     15674,
+			Name:     "web-stomp",
+		}
+	}
+	if builder.Instance.TLSEnabled() {
 		servicePortsMap["amqps"] = corev1.ServicePort{
 			Protocol: corev1.ProtocolTCP,
 			Port:     5671,

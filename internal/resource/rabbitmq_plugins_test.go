@@ -25,7 +25,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 	Context("DesiredPlugins", func() {
 		When("AdditionalPlugins is empty", func() {
 			It("returns list of required plugins", func() {
-				plugins := NewRabbitMQPlugins(nil)
+				plugins := NewRabbitmqPlugins(nil)
 				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s", "rabbitmq_prometheus", "rabbitmq_management"}))
 			})
 		})
@@ -33,7 +33,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 		When("AdditionalPlugins are provided", func() {
 			It("returns a concatenated list of plugins", func() {
 				morePlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_shovel", "my_great_plugin"}
-				plugins := NewRabbitMQPlugins(morePlugins)
+				plugins := NewRabbitmqPlugins(morePlugins)
 
 				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",
@@ -47,7 +47,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 		When("AdditionalPlugins are provided with duplicates", func() {
 			It("returns a unique list of plugins", func() {
 				morePlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_shovel", "my_great_plugin", "rabbitmq_shovel"}
-				plugins := NewRabbitMQPlugins(morePlugins)
+				plugins := NewRabbitmqPlugins(morePlugins)
 
 				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",

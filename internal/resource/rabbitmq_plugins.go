@@ -18,7 +18,7 @@ var requiredPlugins = []string{
 
 const pluginsConfig = "plugins-conf"
 
-type RabbitMQPlugins struct {
+type RabbitmqPlugins struct {
 	requiredPlugins   []string
 	additionalPlugins []string
 }
@@ -27,19 +27,19 @@ type RabbitmqPluginsConfigMapBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
 }
 
-func NewRabbitMQPlugins(plugins []rabbitmqv1beta1.Plugin) RabbitMQPlugins {
+func NewRabbitmqPlugins(plugins []rabbitmqv1beta1.Plugin) RabbitmqPlugins {
 	additionalPlugins := make([]string, len(plugins))
 	for i := range additionalPlugins {
 		additionalPlugins[i] = string(plugins[i])
 	}
 
-	return RabbitMQPlugins{
+	return RabbitmqPlugins{
 		requiredPlugins:   requiredPlugins,
 		additionalPlugins: additionalPlugins,
 	}
 }
 
-func (r *RabbitMQPlugins) DesiredPlugins() []string {
+func (r *RabbitmqPlugins) DesiredPlugins() []string {
 	allPlugins := append(r.requiredPlugins, r.additionalPlugins...)
 
 	check := make(map[string]bool)
@@ -53,7 +53,7 @@ func (r *RabbitMQPlugins) DesiredPlugins() []string {
 	return enabledPlugins
 }
 
-func (r *RabbitMQPlugins) AsString(sep string) string {
+func (r *RabbitmqPlugins) AsString(sep string) string {
 	return strings.Join(r.DesiredPlugins(), sep)
 }
 
@@ -92,6 +92,6 @@ func (builder *RabbitmqPluginsConfigMapBuilder) Build() (runtime.Object, error) 
 }
 
 func desiredPluginsAsString(additionalPlugins []rabbitmqv1beta1.Plugin) string {
-	plugins := NewRabbitMQPlugins(additionalPlugins)
+	plugins := NewRabbitmqPlugins(additionalPlugins)
 	return "[" + plugins.AsString(",") + "]."
 }

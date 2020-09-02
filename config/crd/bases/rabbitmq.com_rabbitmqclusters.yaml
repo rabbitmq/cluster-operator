@@ -8254,12 +8254,12 @@ spec:
                   caCertName:
                     description: The Secret defined in CaSecretName must store the
                       Certificate Authority's public certificate under the key specified
-                      in CaCertName.
+                      in CaCertName. Used for mTLS.
                     type: string
                   caSecretName:
                     description: Name of a Secret in the same Namespace as the RabbitmqCluster,
                       containing the Certificate Authority's public certificate for
-                      TLS. This can be the same as SecretName.
+                      TLS. This can be the same as SecretName. Used for mTLS.
                     type: string
                   secretName:
                     description: Name of a Secret in the same Namespace as the RabbitmqCluster,

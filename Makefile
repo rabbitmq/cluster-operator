@@ -14,7 +14,6 @@ list:    ## list Makefile targets
 unit-tests: generate fmt vet manifests ## Run unit tests
 	ginkgo -r api/ internal/
 
-
 integration-tests: generate fmt vet manifests ## Run integration tests
 	ginkgo -r controllers/
 

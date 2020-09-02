@@ -152,7 +152,7 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	sts.Labels = updatedLabels
 
-	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels, builder.Instance.Spec.TLS)
+	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels)
 
 	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
 		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
@@ -229,7 +229,7 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 	return patchedPodSpec, nil
 }
 
-func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string, tlsSpec rabbitmqv1beta1.TLSSpec) corev1.PodTemplateSpec {
+func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) corev1.PodTemplateSpec {
 	//Init Container resources
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
@@ -341,6 +341,31 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		},
 	}
 
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "mqtt",
+			ContainerPort: 1883,
+		})
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "web-mqtt",
+			ContainerPort: 15675,
+		})
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "stomp",
+			ContainerPort: 61613,
+		})
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "web-stomp",
+			ContainerPort: 15674,
+		})
+	}
+
 	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "rabbitmq-admin",
@@ -364,6 +389,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		},
 	}
 
+	tlsSpec := builder.Instance.Spec.TLS
 	if tlsSpec.SecretName != "" {
 		// add tls port
 		ports = append(ports, corev1.ContainerPort{
@@ -401,17 +427,25 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		})
 
 		if builder.Instance.MutualTLSEnabled() {
+			caCertName := builder.Instance.Spec.TLS.CaCertName
 
-			if !builder.Instance.SingleTLSSecret() {
+			if builder.Instance.SingleTLSSecret() {
+				//Mount CaCert in TLS Secret
+				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+					Name:      "rabbitmq-tls",
+					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", caCertName),
+					SubPath:   caCertName,
+					ReadOnly:  true,
+				})
+			} else {
 				// add tls volume
 				filePermissions := int32(400)
 				secretEnforced := true
-				tlsCaSecretName := tlsSpec.CaSecretName
 				volumes = append(volumes, corev1.Volume{
 					Name: "rabbitmq-mutual-tls",
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							SecretName:  tlsCaSecretName,
+							SecretName:  tlsSpec.CaSecretName,
 							DefaultMode: &filePermissions,
 							Optional:    &secretEnforced,
 						},
@@ -420,17 +454,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				//Mount new volume to same path as TLS cert and key
 				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 					Name:      "rabbitmq-mutual-tls",
-					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", builder.Instance.Spec.TLS.CaCertName),
-					SubPath:   builder.Instance.Spec.TLS.CaCertName,
-					ReadOnly:  true,
-				})
-
-			} else {
-				//Mount CaCert in TLS Secret
-				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
-					Name:      "rabbitmq-tls",
-					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", builder.Instance.Spec.TLS.CaCertName),
-					SubPath:   builder.Instance.Spec.TLS.CaCertName,
+					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", caCertName),
+					SubPath:   caCertName,
 					ReadOnly:  true,
 				})
 			}
