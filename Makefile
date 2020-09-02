@@ -142,7 +142,7 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
 
 system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
-	NAMESPACE="rabbitmq-system" ginkgo -nodes=7 -randomizeAllSpecs -r system_tests/
+	NAMESPACE="rabbitmq-system" ginkgo -nodes=3 -randomizeAllSpecs -r system_tests/
 
 docker-registry-secret: check-env-docker-credentials operator-namespace
 	echo "creating registry secret and patching default service account"
