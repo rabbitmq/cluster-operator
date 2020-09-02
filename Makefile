@@ -50,7 +50,7 @@ deploy-manager:  ## Deploy manager
 
 deploy-manager-dev:
 	kustomize build config/crd | kubectl apply -f -
-	kustomize build config/default/overlays/dev | kubectl apply -f -
+	kustomize build config/default/overlays/dev | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
 deploy-sample: ## Deploy RabbitmqCluster defined in config/sample/base
 	kustomize build config/samples/base | kubectl apply -f -
@@ -81,13 +81,13 @@ deploy-namespace-rbac:
 
 deploy: manifests deploy-namespace-rbac deploy-manager ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config
 
-deploy-dev: check-env-docker-credentials docker-build-dev patch-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
+deploy-dev: check-env-docker-credentials docker-build-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
-deploy-kind: check-env-docker-repo git-commit-sha patch-kind manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
+deploy-kind: check-env-docker-repo git-commit-sha manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
 	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	kind load docker-image $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 	kustomize build config/crd | kubectl apply -f -
-	kustomize build config/default/overlays/kind | kubectl apply -f -
+	kustomize build config/default/overlays/kind | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
 generate-installation-manifests:
 	mkdir -p installation
@@ -106,22 +106,14 @@ docker-push: check-env-docker-repo
 
 git-commit-sha:
 ifeq ("", git diff --stat)
-GIT_COMMIT="$(shell git rev-parse --short HEAD)"
+GIT_COMMIT=$(shell git rev-parse --short HEAD)
 else
-GIT_COMMIT="$(shell git rev-parse --short HEAD)-"
+GIT_COMMIT=$(shell git rev-parse --short HEAD)-
 endif
 
 docker-build-dev: check-env-docker-repo  git-commit-sha
 	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
-
-patch-dev: check-env-docker-repo  git-commit-sha
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"'@' ./config/default/overlays/dev/manager_image_patch.yaml
-
-patch-kind: check-env-docker-repo  git-commit-sha
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"'@' ./config/default/overlays/kind/manager_image_patch.yaml
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services
 	# Note that created LoadBalancer services will have an unreachable external IP
