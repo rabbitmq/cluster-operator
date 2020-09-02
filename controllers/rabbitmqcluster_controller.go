@@ -423,11 +423,14 @@ func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName strin
 // logAndRecordOperationResult - helper function to log and record events with message and error
 // it logs and records 'updated' and 'created' OperationResult, and ignores OperationResult 'unchanged'
 func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Object, resource runtime.Object, operationResult controllerutil.OperationResult, err error) {
+	if operationResult == controllerutil.OperationResultNone && err == nil {
+		return
+	}
+
 	var operation string
 	if operationResult == controllerutil.OperationResultCreated {
 		operation = "create"
 	}
-
 	if operationResult == controllerutil.OperationResultUpdated {
 		operation = "update"
 	}
