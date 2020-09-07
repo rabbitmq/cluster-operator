@@ -24,7 +24,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20191122200657-5d9234df094c // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
-	gopkg.in/ini.v1 v1.60.2
+	gopkg.in/ini.v1 v1.61.0
 	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.6
 	k8s.io/client-go v0.18.6
