@@ -459,13 +459,13 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 			}
 			// Add label on all Pods to be picked up in pre-stop hook via Downward API
 			if err := r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster); err != nil {
-				return fmt.Errorf("Failed to add deletion markers to RabbitmqCluster Pods: %s", err.Error())
+				return fmt.Errorf("failed to add deletion markers to RabbitmqCluster Pods: %s", err.Error())
 			}
 			// Delete StatefulSet immediately after changing pod labels to minimize risk of them respawning.
 			// There is a window where the StatefulSet could respawn Pods without the deletion label in this order.
 			// But we can't delete it before because the DownwardAPI doesn't update once a Pod enters Terminating.
 			if err := r.Client.Delete(ctx, sts); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("Cannot delete StatefulSet: %s", err.Error())
+				return fmt.Errorf("cannot delete StatefulSet: %s", err.Error())
 			}
 
 			return nil
@@ -508,7 +508,7 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 		pod := &pods.Items[i]
 		pod.Labels[resource.DeletionMarker] = "true"
 		if err := r.Client.Update(ctx, pod); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("Cannot Update Pod %s in Namespace %s: %s", pod.Name, pod.Namespace, err.Error())
+			return fmt.Errorf("cannot Update Pod %s in Namespace %s: %s", pod.Name, pod.Namespace, err.Error())
 		}
 	}
 
