@@ -23,10 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	clientServiceSuffix = "client"
-	statefulSetSuffix   = "server"
-)
+const statefulSetSuffix   = "server"
 
 var _ = Describe("Operator", func() {
 	var (
