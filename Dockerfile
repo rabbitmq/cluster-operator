@@ -2,14 +2,17 @@
 FROM golang:1.15 as builder
 
 WORKDIR /workspace
+
+# Dependencies are cached unless we change go.mod or go.sum
+COPY go.mod go.mod
+COPY go.sum go.sum
+RUN go mod download
+
 # Copy the go source
 COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY internal/ internal/
-# Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY go.sum go.sum
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -tags timetzdata -o manager main.go
