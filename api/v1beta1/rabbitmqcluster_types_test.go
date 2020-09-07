@@ -163,7 +163,7 @@ var _ = Describe("RabbitmqCluster", func() {
 						Image:           "rabbitmq-image-from-cr",
 						ImagePullSecret: "my-super-secret",
 						Service: RabbitmqClusterServiceSpec{
-							Type: corev1.ServiceType("this-is-a-service"),
+							Type: "this-is-a-service",
 							Annotations: map[string]string{
 								"myannotation": "is-set",
 							},
@@ -186,7 +186,7 @@ var _ = Describe("RabbitmqCluster", func() {
 							NodeAffinity: &corev1.NodeAffinity{
 								RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
 									NodeSelectorTerms: []corev1.NodeSelectorTerm{
-										corev1.NodeSelectorTerm{
+										{
 											MatchExpressions: []corev1.NodeSelectorRequirement{
 												{
 													Key:      "somekey",
@@ -201,7 +201,7 @@ var _ = Describe("RabbitmqCluster", func() {
 							},
 						},
 						Tolerations: []corev1.Toleration{
-							corev1.Toleration{
+							{
 								Key:      "mykey",
 								Operator: "NotEqual",
 								Value:    "myvalue",
@@ -325,15 +325,15 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("updates an arbitrary condition", func() {
 			someCondition := status.RabbitmqClusterCondition{}
-			someCondition.Type = status.RabbitmqClusterConditionType("a-type")
+			someCondition.Type = "a-type"
 			someCondition.Reason = "whynot"
-			someCondition.Status = corev1.ConditionStatus("perhaps")
+			someCondition.Status = "perhaps"
 			someCondition.LastTransitionTime = metav1.Unix(10, 0)
 			rmqStatus := RabbitmqClusterStatus{
 				Conditions: []status.RabbitmqClusterCondition{someCondition},
 			}
 
-			rmqStatus.SetCondition(status.RabbitmqClusterConditionType("a-type"),
+			rmqStatus.SetCondition("a-type",
 				corev1.ConditionTrue, "some-reason", "my-message")
 
 			updatedCondition := rmqStatus.Conditions[0]

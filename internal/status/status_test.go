@@ -20,8 +20,8 @@ var _ = Describe("Status", func() {
 		BeforeEach(func() {
 			someConditionTime = metav1.Unix(1, 1)
 			someCondition = RabbitmqClusterCondition{
-				Type:               RabbitmqClusterConditionType("a-type"),
-				Status:             corev1.ConditionStatus("some-status"),
+				Type:               "a-type",
+				Status:             "some-status",
 				LastTransitionTime: (*someConditionTime.DeepCopy()),
 				Reason:             "reasons",
 				Message:            "ship-it",
@@ -29,7 +29,7 @@ var _ = Describe("Status", func() {
 		})
 
 		It("changes the status and transition time", func() {
-			someCondition.UpdateState(corev1.ConditionStatus("maybe"))
+			someCondition.UpdateState("maybe")
 			Expect(someCondition.Status).To(Equal(corev1.ConditionStatus("maybe")))
 
 			Expect(someCondition.LastTransitionTime).NotTo(Equal(someConditionTime))
@@ -38,7 +38,7 @@ var _ = Describe("Status", func() {
 		})
 
 		It("preserves the status and transtion time", func() {
-			someCondition.UpdateState(corev1.ConditionStatus("some-status"))
+			someCondition.UpdateState("some-status")
 			Expect(someCondition.Status).To(Equal(corev1.ConditionStatus("some-status")))
 			Expect(someCondition.LastTransitionTime).To(Equal(someConditionTime))
 		})

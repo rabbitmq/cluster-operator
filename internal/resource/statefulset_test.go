@@ -1409,7 +1409,7 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 			Image:           "rabbitmq-image-from-cr",
 			ImagePullSecret: "my-super-secret",
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-				Type:        corev1.ServiceType("this-is-a-service"),
+				Type:        "this-is-a-service",
 				Annotations: map[string]string{},
 			},
 			Persistence: rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
@@ -1430,7 +1430,7 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 				NodeAffinity: &corev1.NodeAffinity{
 					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
 						NodeSelectorTerms: []corev1.NodeSelectorTerm{
-							corev1.NodeSelectorTerm{
+							{
 								MatchExpressions: []corev1.NodeSelectorRequirement{
 									{
 										Key:      "somekey",
@@ -1445,7 +1445,7 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 				},
 			},
 			Tolerations: []corev1.Toleration{
-				corev1.Toleration{
+				{
 					Key:      "mykey",
 					Operator: "NotEqual",
 					Value:    "myvalue",
