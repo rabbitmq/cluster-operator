@@ -52,7 +52,7 @@ func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
 	service := object.(*corev1.Service)
 	builder.setAnnotations(service)
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	service.Spec.Type = corev1.ServiceType(builder.Instance.Spec.Service.Type)
+	service.Spec.Type = builder.Instance.Spec.Service.Type
 	service.Spec.Selector = metadata.LabelSelector(builder.Instance.Name)
 
 	service.Spec.Ports = builder.updatePorts(service.Spec.Ports)

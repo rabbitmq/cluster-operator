@@ -334,13 +334,13 @@ var _ = Context("ClientServices", func() {
 			It("preserves the same node ports after updating from LoadBalancer to NodePort", func() {
 				svc.Spec.Type = corev1.ServiceTypeLoadBalancer
 				svc.Spec.Ports = []corev1.ServicePort{
-					corev1.ServicePort{
+					{
 						Protocol: corev1.ProtocolTCP,
 						Port:     5672,
 						Name:     "amqp",
 						NodePort: 12345,
 					},
-					corev1.ServicePort{
+					{
 						Protocol: corev1.ProtocolTCP,
 						Port:     15672,
 						Name:     "management",
@@ -372,7 +372,7 @@ var _ = Context("ClientServices", func() {
 			It("unsets nodePort after updating from NodePort to ClusterIP", func() {
 				svc.Spec.Type = corev1.ServiceTypeNodePort
 				svc.Spec.Ports = []corev1.ServicePort{
-					corev1.ServicePort{
+					{
 						Protocol: corev1.ProtocolTCP,
 						Port:     5672,
 						Name:     "amqp",
@@ -399,7 +399,7 @@ var _ = Context("ClientServices", func() {
 			It("unsets the service type and node ports when service type is deleted from CR spec", func() {
 				svc.Spec.Type = corev1.ServiceTypeNodePort
 				svc.Spec.Ports = []corev1.ServicePort{
-					corev1.ServicePort{
+					{
 						Protocol: corev1.ProtocolTCP,
 						Port:     5672,
 						Name:     "amqp",

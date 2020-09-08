@@ -18,7 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -325,13 +325,13 @@ func (cluster *RabbitmqCluster) AdditionalPluginEnabled(plugin Plugin) bool {
 	return false
 }
 
-func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
+func (clusterStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object) {
 	var oldAllPodsReadyCondition *status.RabbitmqClusterCondition
 	var oldClusterAvailableCondition *status.RabbitmqClusterCondition
 	var oldNoWarningsCondition *status.RabbitmqClusterCondition
 	var oldReconcileCondition *status.RabbitmqClusterCondition
 
-	for _, condition := range rmqStatus.Conditions {
+	for _, condition := range clusterStatus.Conditions {
 		switch condition.Type {
 		case status.AllReplicasReady:
 			oldAllPodsReadyCondition = condition.DeepCopy()
@@ -355,7 +355,7 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 		reconciledCondition = status.ReconcileSuccessCondition(corev1.ConditionUnknown, "Initialising", "")
 	}
 
-	rmqStatus.Conditions = []status.RabbitmqClusterCondition{
+	clusterStatus.Conditions = []status.RabbitmqClusterCondition{
 		allReplicasReadyCond,
 		clusterAvailableCond,
 		noWarningsCond,
@@ -363,12 +363,12 @@ func (rmqStatus *RabbitmqClusterStatus) SetConditions(resources []runtime.Object
 	}
 }
 
-func (rmqStatus *RabbitmqClusterStatus) SetCondition(condType status.RabbitmqClusterConditionType,
+func (clusterStatus *RabbitmqClusterStatus) SetCondition(condType status.RabbitmqClusterConditionType,
 	condStatus corev1.ConditionStatus, reason string, messages ...string) {
-	for i := range rmqStatus.Conditions {
-		if rmqStatus.Conditions[i].Type == condType {
-			rmqStatus.Conditions[i].UpdateState(condStatus)
-			rmqStatus.Conditions[i].UpdateReason(reason, messages...)
+	for i := range clusterStatus.Conditions {
+		if clusterStatus.Conditions[i].Type == condType {
+			clusterStatus.Conditions[i].UpdateState(condStatus)
+			clusterStatus.Conditions[i].UpdateReason(reason, messages...)
 			break
 		}
 	}
@@ -383,8 +383,8 @@ type RabbitmqClusterList struct {
 	Items           []RabbitmqCluster `json:"items"`
 }
 
-func (r RabbitmqCluster) ChildResourceName(name string) string {
-	return strings.Join([]string{r.Name, "rabbitmq", name}, "-")
+func (cluster RabbitmqCluster) ChildResourceName(name string) string {
+	return strings.Join([]string{cluster.Name, "rabbitmq", name}, "-")
 }
 
 func init() {

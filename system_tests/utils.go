@@ -600,7 +600,7 @@ func createTLSSecret(secretName, secretNamespace, hostname string) string {
 	// generate and write cert and key to file
 	Expect(createCertificateChain(hostname, caCertFile, serverCertFile, serverKeyFile)).To(Succeed())
 	// create k8s tls secret
-	Expect(k8sCreateSecretTLS("rabbitmq-tls-test-secret", secretNamespace, serverCertPath, serverKeyPath)).To(Succeed())
+	Expect(k8sCreateSecretTLS(secretName, secretNamespace, serverCertPath, serverKeyPath)).To(Succeed())
 
 	// remove server files
 	Expect(os.Remove(serverKeyPath)).To(Succeed())
