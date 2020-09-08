@@ -167,16 +167,16 @@ var _ = Describe("RabbitmqclusterController", func() {
 			})
 			By("recording SuccessfullCreate events for all child resources", func() {
 				allEventMsgs := aggregateEventMsgs(ctx, rabbitmqCluster, "SuccessfulCreate")
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("headless"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("plugins-conf"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("server-conf"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("erlang-cookie"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("admin"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.ServiceAccount", rabbitmqCluster.ChildResourceName("server"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.Role", rabbitmqCluster.ChildResourceName("peer-discovery"))))
-				Expect(allEventMsgs).To(ContainSubstring(fmt.Sprintf("created resource %s of Type *v1.RoleBinding", rabbitmqCluster.ChildResourceName("server"))))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("headless")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("plugins-conf")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", rabbitmqCluster.ChildResourceName("server-conf")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("erlang-cookie")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Secret", rabbitmqCluster.ChildResourceName("admin")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ServiceAccount", rabbitmqCluster.ChildResourceName("server")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Role", rabbitmqCluster.ChildResourceName("peer-discovery")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.RoleBinding", rabbitmqCluster.ChildResourceName("server")))
 			})
 
 			By("adding the deletion finalizer", func() {
@@ -665,7 +665,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			// verify that SuccessfulUpdate event is recorded for the client service
 			Expect(aggregateEventMsgs(ctx, rabbitmqCluster, "SuccessfulUpdate")).To(
-				ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client"))))
+				ContainSubstring("updated resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client")))
 		})
 
 		It("the CPU and memory requirements are updated", func() {
@@ -699,7 +699,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 
 			// verify that SuccessfulUpdate event is recorded for the StatefulSet
 			Expect(aggregateEventMsgs(ctx, rabbitmqCluster, "SuccessfulUpdate")).To(
-				ContainSubstring(fmt.Sprintf("updated resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server"))))
+				ContainSubstring("updated resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server")))
 		})
 
 		It("the rabbitmq image is updated", func() {

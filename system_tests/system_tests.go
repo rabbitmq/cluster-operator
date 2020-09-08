@@ -11,13 +11,13 @@ package system_tests
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/ini.v1"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	"github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -138,18 +138,27 @@ var _ = Describe("Operator", func() {
 					cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
 				})).To(Succeed())
 
-				Eventually(func() error {
-					_, err := kubectlExec(namespace,
-						statefulSetPodName(cluster, 0),
-						"rabbitmq-plugins",
-						"is_enabled",
-						"rabbitmq_management",
-						"rabbitmq_peer_discovery_k8s",
-						"rabbitmq_prometheus",
-						"rabbitmq_top",
-					)
-					return err
-				}, 360*time.Second).Should(Succeed())
+				getConfigMapAnnotations := func() map[string]string {
+					configMapName := cluster.ChildResourceName(resource.PluginsConfig)
+					configMap, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
+					Expect(err).ToNot(HaveOccurred())
+					return configMap.Annotations
+				}
+				Eventually(getConfigMapAnnotations, 10, 0.5).Should(
+					HaveKey("rabbitmq.com/pluginsUpdatedAt"), "plugins ConfigMap should have been annotated")
+				Eventually(getConfigMapAnnotations, 60, 1).Should(
+					Not(HaveKey("rabbitmq.com/pluginsUpdatedAt")), "plugins ConfigMap annotation should have been removed")
+
+				_, err := kubectlExec(namespace,
+					statefulSetPodName(cluster, 0),
+					"rabbitmq-plugins",
+					"is_enabled",
+					"rabbitmq_management",
+					"rabbitmq_peer_discovery_k8s",
+					"rabbitmq_prometheus",
+					"rabbitmq_top",
+				)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("updating the rabbitmq.conf file when additionalConfig are modified", func() {
