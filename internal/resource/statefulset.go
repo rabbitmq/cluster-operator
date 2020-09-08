@@ -594,13 +594,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.Handler{
 							Exec: &corev1.ExecAction{
-								Command: []string{
-									"/bin/bash", "-c", fmt.Sprintf("if [ ! -z \"$(cat /etc/pod-info/%s)\" ]; then exit 0; fi;", DeletionMarker) +
-										" while true; do rabbitmq-queues check_if_node_is_quorum_critical" +
-										" 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi;" +
-										" rabbitmq-queues check_if_node_is_mirror_sync_critical" +
-										" 2>&1; if [ $(echo $?) -eq 69 ]; then sleep 2; continue; fi; break;" +
-										" done",
+								Command: []string{"/bin/bash", "-c",
+									fmt.Sprintf("if [ ! -z \"$(cat /etc/pod-info/%s)\" ]; then exit 0; fi;", DeletionMarker) +
+									fmt.Sprintf(" rabbitmq-upgrade await_online_quorum_plus_one -t %d;"+
+										" rabbitmq-upgrade await_online_synchronized_mirror -t %d", defaultGracePeriodTimeoutSeconds, defaultGracePeriodTimeoutSeconds),
 								},
 							},
 						},
