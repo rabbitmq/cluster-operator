@@ -75,13 +75,13 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=pods/exec,verbs=create
 // +kubebuilder:rbac:groups="",resources=pods,verbs=update;get;list;watch
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;watch
+// +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;watch;list
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;delete
-// +kubebuilder:rbac:groups="",resources=endpoints,verbs=list
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters/status,verbs=get;update
+// +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;create;patch
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update

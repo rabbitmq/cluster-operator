@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -91,6 +92,7 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 				if err := controllerutil.SetControllerReference(builder.Instance, &pvcList[i], builder.Scheme); err != nil {
 					return nil, fmt.Errorf("failed setting controller reference: %v", err)
 				}
+				disableBlockOwnerDeletion(pvcList[i])
 			}
 			sts.Spec.VolumeClaimTemplates = pvcList
 		}
@@ -121,8 +123,17 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 	if err := controllerutil.SetControllerReference(instance, &pvc, scheme); err != nil {
 		return []corev1.PersistentVolumeClaim{}, fmt.Errorf("failed setting controller reference: %v", err)
 	}
+	disableBlockOwnerDeletion(pvc)
 
 	return []corev1.PersistentVolumeClaim{pvc}, nil
+}
+
+// required for OpenShift compatibility, see https://github.com/rabbitmq/cluster-operator/issues/234
+func disableBlockOwnerDeletion(pvc corev1.PersistentVolumeClaim) {
+	refs := pvc.OwnerReferences
+	for i := range refs {
+		refs[i].BlockOwnerDeletion = pointer.BoolPtr(false)
+	}
 }
 
 func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
@@ -481,17 +492,29 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			Tolerations:                   builder.Instance.Spec.Tolerations,
 			InitContainers: []corev1.Container{
 				{
-					Name:  "copy-config",
+					Name:  "setup-container",
 					Image: builder.Instance.Spec.Image,
+					SecurityContext: &corev1.SecurityContext{
+						RunAsUser: pointer.Int64Ptr(0),
+						Capabilities: &corev1.Capabilities{
+							Drop: []corev1.Capability{"ALL"},
+							Add:  []corev1.Capability{"CHOWN", "FOWNER"},
+						},
+					},
 					Command: []string{
-						"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
-							"cp /tmp/rabbitmq/advanced.config /etc/rabbitmq/advanced.config ; " +
-							"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf ; " +
+						"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf " +
+							"&& chown 999:999 /etc/rabbitmq/rabbitmq.conf " +
+							"&& echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
+							"cp /tmp/rabbitmq/advanced.config /etc/rabbitmq/advanced.config " +
+							"&& chown 999:999 /etc/rabbitmq/advanced.config ; " +
+							"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf " +
+							"&& chown 999:999 /etc/rabbitmq/rabbitmq-env.conf ; " +
 							"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
 							"cp /tmp/rabbitmq-plugins/enabled_plugins /etc/rabbitmq/enabled_plugins " +
-							"&& chown 999:999 /etc/rabbitmq/enabled_plugins",
+							"&& chown 999:999 /etc/rabbitmq/enabled_plugins ; " +
+							"chgrp 999 /var/lib/rabbitmq/mnesia/",
 					},
 					Resources: corev1.ResourceRequirements{
 						Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -523,6 +546,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						{
 							Name:      "erlang-cookie-secret",
 							MountPath: "/tmp/erlang-cookie-secret/",
+						},
+						{
+							Name:      "persistence",
+							MountPath: "/var/lib/rabbitmq/mnesia/",
 						},
 					},
 				},
@@ -596,8 +623,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							Exec: &corev1.ExecAction{
 								Command: []string{"/bin/bash", "-c",
 									fmt.Sprintf("if [ ! -z \"$(cat /etc/pod-info/%s)\" ]; then exit 0; fi;", DeletionMarker) +
-									fmt.Sprintf(" rabbitmq-upgrade await_online_quorum_plus_one -t %d;"+
-										" rabbitmq-upgrade await_online_synchronized_mirror -t %d", defaultGracePeriodTimeoutSeconds, defaultGracePeriodTimeoutSeconds),
+										fmt.Sprintf(" rabbitmq-upgrade await_online_quorum_plus_one -t %d;"+
+											" rabbitmq-upgrade await_online_synchronized_mirror -t %d", defaultGracePeriodTimeoutSeconds, defaultGracePeriodTimeoutSeconds),
 								},
 							},
 						},

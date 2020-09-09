@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,6 +23,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("StatefulSet", func() {
@@ -95,7 +97,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 		Context("PVC template", func() {
 			It("creates the required PersistentVolumeClaim", func() {
-				truth := true
 				q, _ := k8sresource.ParseQuantity("10Gi")
 
 				obj, err := stsBuilder.Build()
@@ -117,8 +118,8 @@ var _ = Describe("StatefulSet", func() {
 								Kind:               "RabbitmqCluster",
 								Name:               instance.Name,
 								UID:                "",
-								Controller:         &truth,
-								BlockOwnerDeletion: &truth,
+								Controller:         pointer.BoolPtr(true),
+								BlockOwnerDeletion: pointer.BoolPtr(false),
 							},
 						},
 						Annotations: map[string]string{},
@@ -170,7 +171,6 @@ var _ = Describe("StatefulSet", func() {
 
 			It("overrides the PVC list", func() {
 				storageClass := "my-storage-class"
-				truth := true
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
@@ -221,8 +221,8 @@ var _ = Describe("StatefulSet", func() {
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
-									Controller:         &truth,
-									BlockOwnerDeletion: &truth,
+									Controller:         pointer.BoolPtr(true),
+									BlockOwnerDeletion: pointer.BoolPtr(false),
 								},
 							},
 						},
@@ -245,8 +245,8 @@ var _ = Describe("StatefulSet", func() {
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
-									Controller:         &truth,
-									BlockOwnerDeletion: &truth,
+									Controller:         pointer.BoolPtr(true),
+									BlockOwnerDeletion: pointer.BoolPtr(false),
 								},
 							},
 						},
@@ -942,45 +942,59 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			initContainers := statefulSet.Spec.Template.Spec.InitContainers
-			Expect(len(initContainers)).To(Equal(1))
+			Expect(initContainers).To(HaveLen(1))
 
-			container := extractContainer(initContainers, "copy-config")
-			Expect(container.Command).To(Equal([]string{
-				"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf && echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
-					"cp /tmp/rabbitmq/advanced.config /etc/rabbitmq/advanced.config ; " +
-					"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf ; " +
-					"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
-					"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
-					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
-					"cp /tmp/rabbitmq-plugins/enabled_plugins /etc/rabbitmq/enabled_plugins " +
-					"&& chown 999:999 /etc/rabbitmq/enabled_plugins",
+			initContainer := extractContainer(initContainers, "setup-container")
+			Expect(initContainer).To(MatchFields(IgnoreExtras, Fields{
+				"Image": Equal("rabbitmq-image-from-cr"),
+				"SecurityContext": PointTo(MatchFields(IgnoreExtras, Fields{
+					"Capabilities": PointTo(MatchAllFields(Fields{
+						"Drop": ConsistOf([]corev1.Capability{"ALL"}),
+						"Add":  ConsistOf([]corev1.Capability{"CHOWN", "FOWNER"}),
+					})),
+				})),
+				"Command": ConsistOf(
+					"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf "+
+						"&& chown 999:999 /etc/rabbitmq/rabbitmq.conf "+
+						"&& echo '' >> /etc/rabbitmq/rabbitmq.conf ; "+
+						"cp /tmp/rabbitmq/advanced.config /etc/rabbitmq/advanced.config "+
+						"&& chown 999:999 /etc/rabbitmq/advanced.config ; "+
+						"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf "+
+						"&& chown 999:999 /etc/rabbitmq/rabbitmq-env.conf ; "+
+						"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
+						"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie "+
+						"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; "+
+						"cp /tmp/rabbitmq-plugins/enabled_plugins /etc/rabbitmq/enabled_plugins "+
+						"&& chown 999:999 /etc/rabbitmq/enabled_plugins ; "+
+						"chgrp 999 /var/lib/rabbitmq/mnesia/",
+				),
+				"VolumeMounts": ConsistOf(
+					corev1.VolumeMount{
+						Name:      "server-conf",
+						MountPath: "/tmp/rabbitmq/",
+					},
+					corev1.VolumeMount{
+						Name:      "plugins-conf",
+						MountPath: "/tmp/rabbitmq-plugins/",
+					},
+					corev1.VolumeMount{
+						Name:      "rabbitmq-etc",
+						MountPath: "/etc/rabbitmq/",
+					},
+					corev1.VolumeMount{
+						Name:      "rabbitmq-erlang-cookie",
+						MountPath: "/var/lib/rabbitmq/",
+					},
+					corev1.VolumeMount{
+						Name:      "erlang-cookie-secret",
+						MountPath: "/tmp/erlang-cookie-secret/",
+					},
+					corev1.VolumeMount{
+						Name:      "persistence",
+						MountPath: "/var/lib/rabbitmq/mnesia/",
+					},
+				),
 			}))
-
-			Expect(container.VolumeMounts).To(ConsistOf(
-				corev1.VolumeMount{
-					Name:      "server-conf",
-					MountPath: "/tmp/rabbitmq/",
-				},
-				corev1.VolumeMount{
-					Name:      "plugins-conf",
-					MountPath: "/tmp/rabbitmq-plugins/",
-				},
-
-				corev1.VolumeMount{
-					Name:      "rabbitmq-etc",
-					MountPath: "/etc/rabbitmq/",
-				},
-				corev1.VolumeMount{
-					Name:      "rabbitmq-erlang-cookie",
-					MountPath: "/var/lib/rabbitmq/",
-				},
-				corev1.VolumeMount{
-					Name:      "erlang-cookie-secret",
-					MountPath: "/tmp/erlang-cookie-secret/",
-				},
-			))
-
-			Expect(container.Image).To(Equal("rabbitmq-image-from-cr"))
 		})
 
 		It("adds the required terminationGracePeriodSeconds", func() {
