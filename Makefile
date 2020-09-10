@@ -11,14 +11,14 @@ list:    ## list Makefile targets
 	@echo "The most used targets: \n"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-unit-tests: generate fmt vet manifests ## Run unit tests
+unit-tests: install-tools generate fmt vet manifests ## Run unit tests
 	ginkgo -r api/ internal/
 
-integration-tests: generate fmt vet manifests ## Run integration tests
+integration-tests: install-tools generate fmt vet manifests ## Run integration tests
 	ginkgo -r controllers/
 
-manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
+manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
+	controller-gen $(CRD_OPTIONS) rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
 	./hack/add-notice-to-yaml.sh config/rbac/role.yaml
 # this is temporary workaround due to issue https://github.com/kubernetes/kubernetes/issues/91395
 # the hack ensures that "protocal" is a required value where this field is listed as x-kubernetes-list-map-keys
@@ -35,9 +35,9 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile=./hack/NOTICE.go.txt paths=./api/...
-	$(CONTROLLER_GEN) object:headerFile=./hack/NOTICE.go.txt paths=./internal/status/...
+generate: install-tools
+	controller-gen object:headerFile=./hack/NOTICE.go.txt paths=./api/...
+	controller-gen object:headerFile=./hack/NOTICE.go.txt paths=./internal/status/...
 
 # Build manager binary
 manager: generate fmt vet
@@ -68,7 +68,7 @@ just-run: ## Just runs 'go run main.go' without regenerating any manifests or de
 
 delve: generate install deploy-namespace-rbac just-delve ## Deploys CRD, Namespace, RBACs and starts Delve debugger
 
-just-delve: ## Just starts Delve debugger
+just-delve: install-tools ## Just starts Delve debugger
 	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=rabbitmq-system dlv debug
 
 # Install CRDs into a cluster
@@ -127,7 +127,7 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
 
-system-tests: ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
+system-tests: install-tools ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
 	NAMESPACE="rabbitmq-system" ginkgo -nodes=3 -randomizeAllSpecs -r system_tests/
 
 docker-registry-secret: check-env-docker-credentials operator-namespace
@@ -135,23 +135,9 @@ docker-registry-secret: check-env-docker-credentials operator-namespace
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username="$$DOCKER_REGISTRY_USERNAME" --docker-password="$$DOCKER_REGISTRY_PASSWORD" || true
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
-controller-gen:  ## download controller-gen if not in $PATH
-ifeq (, $(shell which controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.5 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
-ifeq (, $(GOBIN))
-GOBIN=$(GOPATH)/bin
-endif
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
+install-tools:
+	go mod download
+	grep _ tools/tools.go | awk -F '"' '{print $$2}' | xargs -t go install
 
 operator-namespace:
 ifeq (, $(K8S_OPERATOR_NAMESPACE))
