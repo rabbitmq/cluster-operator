@@ -1,0 +1,38 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  unit_integration_tests:
+    name: unit and integration tests
+    runs-on: ubuntu-latest
+    container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: Unit tests
+      run: make unit-tests
+    - name: Integration tests
+      run: make integration-tests
+    - name: Helm chart tests
+      working-directory: charts/rabbitmq
+      run: ./test.sh
+
+  system_tests:
+    name: system tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: System tests
+      run: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+        export GOPATH=$HOME/go
+        export PATH=$PATH:$GOPATH/bin
+        make install-tools
+        kind create cluster
+        DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
+        make system-tests
