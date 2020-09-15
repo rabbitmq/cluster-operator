@@ -50,7 +50,7 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilde
 }
 
 func (builder *ServerConfigMapBuilder) UpdateRequiresStsRestart() bool {
-	return true
+	return true // because rabbitmq.conf and advanced.config changes take effect only after a node restart
 }
 
 func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {

@@ -291,7 +291,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: builder.Instance.ChildResourceName(pluginsConfig),
+						Name: builder.Instance.ChildResourceName(PluginsConfig),
 					},
 				},
 			},
