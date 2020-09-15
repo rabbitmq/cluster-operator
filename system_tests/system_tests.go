@@ -17,13 +17,15 @@ import (
 	"gopkg.in/ini.v1"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
-	"github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const statefulSetSuffix = "server"
+const (
+	statefulSetSuffix = "server"
+	pluginsConfig     = "plugins-conf"
+)
 
 var _ = Describe("Operator", func() {
 	var (
@@ -139,7 +141,7 @@ var _ = Describe("Operator", func() {
 				})).To(Succeed())
 
 				getConfigMapAnnotations := func() map[string]string {
-					configMapName := cluster.ChildResourceName(resource.PluginsConfig)
+					configMapName := cluster.ChildResourceName(pluginsConfig)
 					configMap, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
 					Expect(err).ToNot(HaveOccurred())
 					return configMap.Annotations
