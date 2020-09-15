@@ -389,6 +389,10 @@ CONSOLE_LOG=new`
 		BeforeEach(func() {
 			instanceName := "mqtt-stomp-rabbit"
 			cluster = generateRabbitmqCluster(namespace, instanceName)
+			cluster.Spec.Resources = &corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
+				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+			}
 			cluster.Spec.Service.Type = "NodePort"
 			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
 				"rabbitmq_mqtt",
