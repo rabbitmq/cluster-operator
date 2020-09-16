@@ -259,6 +259,20 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 
 	volumes := []corev1.Volume{
 		{
+			Name: "rabbitmq-admin",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: builder.Instance.ChildResourceName(AdminSecretName),
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "default_user.conf",
+							Path: "default_user.conf",
+						},
+					},
+				},
+			},
+		},
+		{
 			Name: "server-conf",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -287,15 +301,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		{
 			Name: "rabbitmq-confd",
 			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: builder.Instance.ChildResourceName(AdminSecretName),
-					Items: []corev1.KeyToPath{
-						{
-							Key:  "default_user.conf",
-							Path: "default_user.conf",
-						},
-					},
-				},
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
 		{

@@ -816,6 +816,20 @@ var _ = Describe("StatefulSet", func() {
 
 			Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(
 				corev1.Volume{
+					Name: "rabbitmq-admin",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: instance.ChildResourceName("admin"),
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "default_user.conf",
+									Path: "default_user.conf",
+								},
+							},
+						},
+					},
+				},
+				corev1.Volume{
 					Name: "server-conf",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -844,15 +858,7 @@ var _ = Describe("StatefulSet", func() {
 				corev1.Volume{
 					Name: "rabbitmq-confd",
 					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: instance.ChildResourceName("admin"),
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "default_user.conf",
-									Path: "default_user.conf",
-								},
-							},
-						},
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
 				corev1.Volume{

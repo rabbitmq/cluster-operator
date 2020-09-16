@@ -1207,6 +1207,21 @@ var _ = Describe("RabbitmqclusterController", func() {
 			Expect(sts.Spec.Template.Spec.HostNetwork).To(BeFalse())
 			Expect(sts.Spec.Template.Spec.Volumes).To(ConsistOf(
 				corev1.Volume{
+					Name: "rabbitmq-admin",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							DefaultMode: &defaultMode,
+							SecretName:  "rabbitmq-sts-override-rabbitmq-admin",
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "default_user.conf",
+									Path: "default_user.conf",
+								},
+							},
+						},
+					},
+				},
+				corev1.Volume{
 					Name: "additional-config",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -1220,16 +1235,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				corev1.Volume{
 					Name: "rabbitmq-confd",
 					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							DefaultMode: &defaultMode,
-							SecretName:  "rabbitmq-sts-override-rabbitmq-admin",
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "default_user.conf",
-									Path: "default_user.conf",
-								},
-							},
-						},
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
 				corev1.Volume{
