@@ -10,8 +10,12 @@
 package resource
 
 import (
+	"bytes"
+	"encoding/base64"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
+	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,6 +35,31 @@ func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
 	}
 }
 
+func generateDefaultUserConf(username, password []byte) ([]byte, error) {
+
+	ini.PrettySection = false // Remove trailing new line because default_user.conf has only a default section.
+	cfg, err := ini.Load([]byte{})
+	if err != nil {
+		return nil, err
+	}
+	defaultSection := cfg.Section("")
+
+	if _, err := defaultSection.NewKey("default_user", string(username)); err != nil {
+		return nil, err
+	}
+
+	if _, err := defaultSection.NewKey("default_pass", string(password)); err != nil {
+		return nil, err
+	}
+
+	var userConfBuffer bytes.Buffer
+	if cfg.WriteTo(&userConfBuffer); err != nil {
+		return nil, err
+	}
+
+	return userConfBuffer.Bytes(), nil
+}
+
 func (builder *AdminSecretBuilder) UpdateRequiresStsRestart() bool {
 	return false
 }
@@ -43,12 +72,17 @@ func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
 }
 
 func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
-	username, err := randomEncodedString(24)
+	username, err := randomBytes(24)
 	if err != nil {
 		return nil, err
 	}
 
-	password, err := randomEncodedString(24)
+	password, err := randomBytes(24)
+	if err != nil {
+		return nil, err
+	}
+
+	defaultUserConf, err := generateDefaultUserConf(username, password)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +94,9 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			"username": []byte(username),
-			"password": []byte(password),
+			"username":          []byte(base64.URLEncoding.EncodeToString(username)),
+			"password":          []byte(base64.URLEncoding.EncodeToString(password)),
+			"default_user.conf": []byte(base64.URLEncoding.EncodeToString(defaultUserConf)),
 		},
 	}, nil
 }

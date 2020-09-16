@@ -1218,19 +1218,15 @@ var _ = Describe("RabbitmqclusterController", func() {
 					},
 				},
 				corev1.Volume{
-					Name: "rabbitmq-admin",
+					Name: "rabbitmq-confd",
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
 							DefaultMode: &defaultMode,
 							SecretName:  "rabbitmq-sts-override-rabbitmq-admin",
 							Items: []corev1.KeyToPath{
 								{
-									Key:  "username",
-									Path: "username",
-								},
-								{
-									Key:  "password",
-									Path: "password",
+									Key:  "default_user.conf",
+									Path: "default_user.conf",
 								},
 							},
 						},

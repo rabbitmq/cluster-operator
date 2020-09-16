@@ -12,6 +12,7 @@ package resource_test
 import (
 	b64 "encoding/base64"
 
+	"gopkg.in/ini.v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -44,41 +45,62 @@ var _ = Describe("AdminSecret", func() {
 	})
 
 	Context("Build with defaults", func() {
-		BeforeEach(func() {
+		It("creates the necessary admin secret", func() {
+			var decodedUsername []byte
+			var decodedPassword []byte
+			var err error
+
 			obj, err := adminSecretBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			secret = obj.(*corev1.Secret)
-		})
 
-		It("creates the secret with correct name and namespace", func() {
-			Expect(secret.Name).To(Equal(instance.ChildResourceName("admin")))
-			Expect(secret.Namespace).To(Equal("a namespace"))
-		})
+			By("creating the secret with correct name and namespace", func() {
+				Expect(secret.Name).To(Equal(instance.ChildResourceName("admin")))
+				Expect(secret.Namespace).To(Equal("a namespace"))
+			})
 
-		It("creates a 'opaque' secret ", func() {
-			Expect(secret.Type).To(Equal(corev1.SecretTypeOpaque))
-		})
+			By("creating a 'opaque' secret ", func() {
+				Expect(secret.Type).To(Equal(corev1.SecretTypeOpaque))
+			})
 
-		It("creates a rabbitmq username that is base64 encoded and 24 characters in length", func() {
-			username, ok := secret.Data["username"]
-			Expect(ok).NotTo(BeFalse())
-			decodedUsername, err := b64.URLEncoding.DecodeString(string(username))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(decodedUsername)).To(Equal(24))
+			By("creating a rabbitmq username that is base64 encoded and 24 characters in length", func() {
+				username, ok := secret.Data["username"]
+				Expect(ok).NotTo(BeFalse())
+				decodedUsername, err = b64.URLEncoding.DecodeString(string(username))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(decodedUsername)).To(Equal(24))
 
-		})
+			})
 
-		It("creates a rabbitmq password that is base64 encoded and 24 characters in length", func() {
-			password, ok := secret.Data["password"]
-			Expect(ok).NotTo(BeFalse())
-			decodedPassword, err := b64.URLEncoding.DecodeString(string(password))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(decodedPassword)).To(Equal(24))
+			By("creating a rabbitmq password that is base64 encoded and 24 characters in length", func() {
+				password, ok := secret.Data["password"]
+				Expect(ok).NotTo(BeFalse())
+				decodedPassword, err = b64.URLEncoding.DecodeString(string(password))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(decodedPassword)).To(Equal(24))
+			})
+
+			By("creating a default_user.conf file that contains the correct sysctl config format to be parsed by RabbitMQ", func() {
+				defaultUserConf, ok := secret.Data["default_user.conf"]
+				Expect(ok).NotTo(BeFalse())
+
+				decodedDefaultUserConf, err := b64.URLEncoding.DecodeString(string(defaultUserConf))
+				Expect(err).NotTo(HaveOccurred())
+
+				cfg, err := ini.Load(decodedDefaultUserConf)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(cfg.Section("").HasKey("default_user")).To(BeTrue())
+				Expect(cfg.Section("").HasKey("default_pass")).To(BeTrue())
+
+				Expect(cfg.Section("").Key("default_user").Value()).To(Equal(string(decodedUsername)))
+				Expect(cfg.Section("").Key("default_pass").Value()).To(Equal(string(decodedPassword)))
+			})
 		})
 	})
 
 	Context("Update with instance labels", func() {
-		BeforeEach(func() {
+		It("Updates the secret", func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
@@ -102,26 +124,26 @@ var _ = Describe("AdminSecret", func() {
 			}
 			err := adminSecretBuilder.Update(secret)
 			Expect(err).NotTo(HaveOccurred())
-		})
 
-		It("adds new labels from the CR", func() {
-			testLabels(secret.Labels)
-		})
+			By("adding new labels from the CR", func() {
+				testLabels(secret.Labels)
+			})
 
-		It("restores the default labels", func() {
-			labels := secret.Labels
-			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-			Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-			Expect(labels["app.kubernetes.io/part-of"]).To(Equal("rabbitmq"))
-		})
+			By("restoring the default labels", func() {
+				labels := secret.Labels
+				Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
+				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
+				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("rabbitmq"))
+			})
 
-		It("deletes the labels that are removed from the CR", func() {
-			Expect(secret.Labels).NotTo(HaveKey("this-was-the-previous-label"))
+			By("deleting the labels that are removed from the CR", func() {
+				Expect(secret.Labels).NotTo(HaveKey("this-was-the-previous-label"))
+			})
 		})
 	})
 
 	Context("Update with instance annotations", func() {
-		BeforeEach(func() {
+		It("updates the secret with the annotations", func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
@@ -150,19 +172,19 @@ var _ = Describe("AdminSecret", func() {
 			}
 			err := adminSecretBuilder.Update(secret)
 			Expect(err).NotTo(HaveOccurred())
-		})
 
-		It("updates secret annotations on admin secret", func() {
-			expectedAnnotations := map[string]string{
-				"my-annotation":                 "i-like-this",
-				"i-was-here-already":            "please-dont-delete-me",
-				"im-here-to-stay.kubernetes.io": "for-a-while",
-				"kubernetes.io/name":            "should-stay",
-				"kubectl.kubernetes.io/name":    "should-stay",
-				"k8s.io/name":                   "should-stay",
-			}
+			By("updating secret annotations on admin secret", func() {
+				expectedAnnotations := map[string]string{
+					"my-annotation":                 "i-like-this",
+					"i-was-here-already":            "please-dont-delete-me",
+					"im-here-to-stay.kubernetes.io": "for-a-while",
+					"kubernetes.io/name":            "should-stay",
+					"kubectl.kubernetes.io/name":    "should-stay",
+					"k8s.io/name":                   "should-stay",
+				}
 
-			Expect(secret.Annotations).To(Equal(expectedAnnotations))
+				Expect(secret.Annotations).To(Equal(expectedAnnotations))
+			})
 		})
 	})
 })

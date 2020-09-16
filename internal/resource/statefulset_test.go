@@ -742,14 +742,6 @@ var _ = Describe("StatefulSet", func() {
 
 			requiredEnvVariables := []corev1.EnvVar{
 				{
-					Name:  "RABBITMQ_DEFAULT_PASS_FILE",
-					Value: "/opt/rabbitmq-secret/password",
-				},
-				{
-					Name:  "RABBITMQ_DEFAULT_USER_FILE",
-					Value: "/opt/rabbitmq-secret/username",
-				},
-				{
 					Name: "MY_POD_NAME",
 					ValueFrom: &corev1.EnvVarSource{
 						FieldRef: &corev1.ObjectFieldSelector{
@@ -796,16 +788,16 @@ var _ = Describe("StatefulSet", func() {
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 			Expect(container.VolumeMounts).To(ConsistOf(
 				corev1.VolumeMount{
-					Name:      "rabbitmq-admin",
-					MountPath: "/opt/rabbitmq-secret/",
-				},
-				corev1.VolumeMount{
 					Name:      "persistence",
 					MountPath: "/var/lib/rabbitmq/mnesia/",
 				},
 				corev1.VolumeMount{
 					Name:      "rabbitmq-etc",
 					MountPath: "/etc/rabbitmq/",
+				},
+				corev1.VolumeMount{
+					Name:      "rabbitmq-confd",
+					MountPath: "/etc/rabbitmq/conf.d/",
 				},
 				corev1.VolumeMount{
 					Name:      "rabbitmq-erlang-cookie",
@@ -823,24 +815,6 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(
-				corev1.Volume{
-					Name: "rabbitmq-admin",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: instance.ChildResourceName("admin"),
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "username",
-									Path: "username",
-								},
-								{
-									Key:  "password",
-									Path: "password",
-								},
-							},
-						},
-					},
-				},
 				corev1.Volume{
 					Name: "server-conf",
 					VolumeSource: corev1.VolumeSource{
@@ -865,6 +839,20 @@ var _ = Describe("StatefulSet", func() {
 					Name: "rabbitmq-etc",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+				corev1.Volume{
+					Name: "rabbitmq-confd",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: instance.ChildResourceName("admin"),
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "default_user.conf",
+									Path: "default_user.conf",
+								},
+							},
+						},
 					},
 				},
 				corev1.Volume{
@@ -961,6 +949,8 @@ var _ = Describe("StatefulSet", func() {
 						"&& chown 999:999 /etc/rabbitmq/advanced.config ; "+
 						"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf "+
 						"&& chown 999:999 /etc/rabbitmq/rabbitmq-env.conf ; "+
+						"cp /tmp/rabbitmq-admin/default_user.conf /etc/rabbitmq/conf.d/default_user.conf "+
+						"&& chown 999:999 /etc/rabbitmq/conf.d/*.conf ; "+
 						"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
 						"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie "+
 						"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; "+
@@ -978,8 +968,16 @@ var _ = Describe("StatefulSet", func() {
 						MountPath: "/tmp/rabbitmq-plugins/",
 					},
 					corev1.VolumeMount{
+						Name:      "rabbitmq-admin",
+						MountPath: "/tmp/rabbitmq-admin/",
+					},
+					corev1.VolumeMount{
 						Name:      "rabbitmq-etc",
 						MountPath: "/etc/rabbitmq/",
+					},
+					corev1.VolumeMount{
+						Name:      "rabbitmq-confd",
+						MountPath: "/etc/rabbitmq/conf.d/",
 					},
 					corev1.VolumeMount{
 						Name:      "rabbitmq-erlang-cookie",
@@ -1245,10 +1243,6 @@ var _ = Describe("StatefulSet", func() {
 											Name: "rabbitmq",
 											Env: []corev1.EnvVar{
 												{
-													Name:  "RABBITMQ_DEFAULT_PASS_FILE",
-													Value: "my-password",
-												},
-												{
 													Name:  "test1",
 													Value: "test1",
 												},
@@ -1283,16 +1277,8 @@ var _ = Describe("StatefulSet", func() {
 
 					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
 						corev1.EnvVar{
-							Name:  "RABBITMQ_DEFAULT_PASS_FILE",
-							Value: "my-password",
-						},
-						corev1.EnvVar{
 							Name:  "test1",
 							Value: "test1",
-						},
-						corev1.EnvVar{
-							Name:  "RABBITMQ_DEFAULT_USER_FILE",
-							Value: "/opt/rabbitmq-secret/username",
 						},
 						corev1.EnvVar{
 							Name: "MY_POD_NAME",
@@ -1334,10 +1320,6 @@ var _ = Describe("StatefulSet", func() {
 						corev1.Container{Name: "new-container-1", Image: "my-image-1"}))
 					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").VolumeMounts).To(ConsistOf(
 						corev1.VolumeMount{
-							Name:      "rabbitmq-admin",
-							MountPath: "/opt/rabbitmq-secret/",
-						},
-						corev1.VolumeMount{
 							Name:      "test",
 							MountPath: "test-path",
 						},
@@ -1348,6 +1330,10 @@ var _ = Describe("StatefulSet", func() {
 						corev1.VolumeMount{
 							Name:      "rabbitmq-etc",
 							MountPath: "/etc/rabbitmq/",
+						},
+						corev1.VolumeMount{
+							Name:      "rabbitmq-confd",
+							MountPath: "/etc/rabbitmq/conf.d/",
 						},
 						corev1.VolumeMount{
 							Name:      "rabbitmq-erlang-cookie",
