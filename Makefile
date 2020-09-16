@@ -95,14 +95,9 @@ generate-helm-manifests:
 	kustomize build config/rbac/ > charts/operator/templates/rbac.yaml
 	kustomize build config/default/overlays/helm/ > charts/operator/templates/deployment.yaml
 
-install_dir = config/installation/generated
+# Builds a single-file installation manifest to deploy the Operator
 generate-installation-manifest:
-	mkdir -p $(install_dir)
 	mkdir -p releases
-	cp config/namespace/base/namespace.yaml $(install_dir)/namespace.yaml
-	cp config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml $(install_dir)/rabbitmq.com_rabbitmqclusters.yaml
-	kustomize build config/rbac/ > $(install_dir)/rbac.yaml
-	kustomize build config/manager/ > $(install_dir)/manager.yaml
 	kustomize build config/installation/ > releases/rabbitmq-cluster-operator.yaml
 
 # Build the docker image
