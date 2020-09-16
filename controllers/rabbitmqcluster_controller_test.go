@@ -37,7 +37,7 @@ const (
 	ClusterDeletionTimeout = 5 * time.Second
 )
 
-var _ = Describe("RabbitmqclusterController", func() {
+var _ = Describe("RabbitmqClusterController", func() {
 
 	var (
 		rabbitmqCluster  *rabbitmqv1beta1.RabbitmqCluster
@@ -61,7 +61,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 		}
 	)
 
-	Context("using minimal settings on the instance", func() {
+	Context("default settings", func() {
 		BeforeEach(func() {
 			rabbitmqCluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -165,7 +165,7 @@ var _ = Describe("RabbitmqclusterController", func() {
 				Expect(roleBinding.Name).To(Equal(roleBindingName))
 				Expect(roleBinding.OwnerReferences[0].Name).To(Equal(rabbitmqCluster.Name))
 			})
-			By("recording SuccessfullCreate events for all child resources", func() {
+			By("recording SuccessfulCreate events for all child resources", func() {
 				allEventMsgs := aggregateEventMsgs(ctx, rabbitmqCluster, "SuccessfulCreate")
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.StatefulSet", rabbitmqCluster.ChildResourceName("server")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", rabbitmqCluster.ChildResourceName("client")))
