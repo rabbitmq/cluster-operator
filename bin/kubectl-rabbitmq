@@ -33,7 +33,7 @@ usage() {
     echo "    kubectl rabbitmq delete INSTANCE ..."
     echo
     echo "  Create a RabbitMQ custom resource - INSTANCE name required, all other flags optional"
-    echo "    kubectl rabbitmq create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.5 --image-pull-secret mysecret"
+    echo "    kubectl rabbitmq create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.8 --image-pull-secret mysecret"
     echo
     echo "  Get a RabbitMQ custom resource and dependant objects"
     echo "    kubectl rabbitmq get INSTANCE"
