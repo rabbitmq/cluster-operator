@@ -246,7 +246,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
 
 	//Image Pull Secret
-	imagePullSecrets := []corev1.LocalObjectReference{}
+	var imagePullSecrets []corev1.LocalObjectReference
 	if builder.Instance.Spec.ImagePullSecret != "" {
 		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: builder.Instance.Spec.ImagePullSecret})
 	}

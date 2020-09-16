@@ -157,7 +157,7 @@ func (builder *ClientServiceBuilder) updatePorts(servicePorts []corev1.ServicePo
 		}
 	}
 
-	updatedServicePorts := []corev1.ServicePort{}
+	var updatedServicePorts []corev1.ServicePort
 
 	for _, servicePort := range servicePorts {
 		if value, exists := servicePortsMap[servicePort.Name]; exists {

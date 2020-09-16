@@ -22,13 +22,13 @@ import (
 )
 
 const (
-	rabbitmqImage             string             = "rabbitmq:3.8.8"
-	defaultPersistentCapacity string             = "10Gi"
-	defaultMemoryLimit        string             = "2Gi"
-	defaultCPULimit           string             = "2000m"
-	defaultMemoryRequest      string             = "2Gi"
-	defaultCPURequest         string             = "1000m"
-	defaultServiceType        corev1.ServiceType = corev1.ServiceTypeClusterIP
+	rabbitmqImage             string = "rabbitmq:3.8.8"
+	defaultPersistentCapacity string = "10Gi"
+	defaultMemoryLimit        string = "2Gi"
+	defaultCPULimit           string = "2000m"
+	defaultMemoryRequest      string = "2Gi"
+	defaultCPURequest         string = "1000m"
+	defaultServiceType               = corev1.ServiceTypeClusterIP
 )
 
 // +kubebuilder:object:root=true
@@ -423,7 +423,7 @@ var rabbitmqClusterDefaults = RabbitmqCluster{
 }
 
 func MergeDefaults(current RabbitmqCluster) *RabbitmqCluster {
-	var mergedRabbitmq RabbitmqCluster = current
+	var mergedRabbitmq = current
 
 	emptyRabbitmq := RabbitmqCluster{}
 	// Note: we do not check for ImagePullSecret or StorageClassName since the default and nil value are both "".
