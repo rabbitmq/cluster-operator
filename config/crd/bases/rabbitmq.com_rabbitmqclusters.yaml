@@ -19,6 +19,8 @@ spec:
     kind: RabbitmqCluster
     listKind: RabbitmqClusterList
     plural: rabbitmqclusters
+    shortNames:
+    - rmq
     singular: rabbitmqcluster
   scope: Namespaced
   versions:
