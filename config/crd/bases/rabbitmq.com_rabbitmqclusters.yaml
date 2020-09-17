@@ -21,7 +21,6 @@ spec:
     plural: rabbitmqclusters
     shortNames:
     - rmq
-    - rmqc
     singular: rabbitmqcluster
   scope: Namespaced
   versions:
