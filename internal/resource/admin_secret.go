@@ -11,7 +11,6 @@ package resource
 
 import (
 	"bytes"
-	"encoding/base64"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
@@ -35,7 +34,7 @@ func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
 	}
 }
 
-func generateDefaultUserConf(username, password []byte) ([]byte, error) {
+func generateDefaultUserConf(username, password string) ([]byte, error) {
 
 	ini.PrettySection = false // Remove trailing new line because default_user.conf has only a default section.
 	cfg, err := ini.Load([]byte{})
@@ -44,11 +43,11 @@ func generateDefaultUserConf(username, password []byte) ([]byte, error) {
 	}
 	defaultSection := cfg.Section("")
 
-	if _, err := defaultSection.NewKey("default_user", string(username)); err != nil {
+	if _, err := defaultSection.NewKey("default_user", username); err != nil {
 		return nil, err
 	}
 
-	if _, err := defaultSection.NewKey("default_pass", string(password)); err != nil {
+	if _, err := defaultSection.NewKey("default_pass", password); err != nil {
 		return nil, err
 	}
 
@@ -72,12 +71,12 @@ func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
 }
 
 func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
-	username, err := randomBytes(24)
+	username, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
 	}
 
-	password, err := randomBytes(24)
+	password, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +93,9 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			"username":          []byte(base64.URLEncoding.EncodeToString(username)),
-			"password":          []byte(base64.URLEncoding.EncodeToString(password)),
-			"default_user.conf": []byte(base64.URLEncoding.EncodeToString(defaultUserConf)),
+			"username":          []byte(username),
+			"password":          []byte(password),
+			"default_user.conf": defaultUserConf,
 		},
 	}, nil
 }

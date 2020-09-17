@@ -63,18 +63,10 @@ func (builder *ErlangCookieBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func randomBytes(dataLen int) ([]byte, error) {
+func randomEncodedString(dataLen int) (string, error) {
 	randomBytes := make([]byte, dataLen)
 	if _, err := rand.Read(randomBytes); err != nil {
-		return nil, err
-	}
-	return randomBytes, nil
-}
-
-func randomEncodedString(dataLen int) (string, error) {
-	generatedBytes, err := randomBytes(dataLen)
-	if err != nil {
 		return "", err
 	}
-	return base64.URLEncoding.EncodeToString(generatedBytes), nil
+	return base64.URLEncoding.EncodeToString(randomBytes), nil
 }

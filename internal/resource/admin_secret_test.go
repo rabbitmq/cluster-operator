@@ -46,9 +46,9 @@ var _ = Describe("AdminSecret", func() {
 
 	Context("Build with defaults", func() {
 		It("creates the necessary admin secret", func() {
-			var decodedUsername []byte
-			var decodedPassword []byte
-			var err error
+			var username []byte
+			var password []byte
+			var ok bool
 
 			obj, err := adminSecretBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -64,18 +64,18 @@ var _ = Describe("AdminSecret", func() {
 			})
 
 			By("creating a rabbitmq username that is base64 encoded and 24 characters in length", func() {
-				username, ok := secret.Data["username"]
+				username, ok = secret.Data["username"]
 				Expect(ok).NotTo(BeFalse())
-				decodedUsername, err = b64.URLEncoding.DecodeString(string(username))
+				decodedUsername, err := b64.URLEncoding.DecodeString(string(username))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(decodedUsername)).To(Equal(24))
 
 			})
 
 			By("creating a rabbitmq password that is base64 encoded and 24 characters in length", func() {
-				password, ok := secret.Data["password"]
+				password, ok = secret.Data["password"]
 				Expect(ok).NotTo(BeFalse())
-				decodedPassword, err = b64.URLEncoding.DecodeString(string(password))
+				decodedPassword, err := b64.URLEncoding.DecodeString(string(password))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(decodedPassword)).To(Equal(24))
 			})
@@ -84,17 +84,14 @@ var _ = Describe("AdminSecret", func() {
 				defaultUserConf, ok := secret.Data["default_user.conf"]
 				Expect(ok).NotTo(BeFalse())
 
-				decodedDefaultUserConf, err := b64.URLEncoding.DecodeString(string(defaultUserConf))
-				Expect(err).NotTo(HaveOccurred())
-
-				cfg, err := ini.Load(decodedDefaultUserConf)
+				cfg, err := ini.Load(defaultUserConf)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(cfg.Section("").HasKey("default_user")).To(BeTrue())
 				Expect(cfg.Section("").HasKey("default_pass")).To(BeTrue())
 
-				Expect(cfg.Section("").Key("default_user").Value()).To(Equal(string(decodedUsername)))
-				Expect(cfg.Section("").Key("default_pass").Value()).To(Equal(string(decodedPassword)))
+				Expect(cfg.Section("").Key("default_user").Value()).To(Equal(string(username)))
+				Expect(cfg.Section("").Key("default_pass").Value()).To(Equal(string(password)))
 			})
 		})
 	})
