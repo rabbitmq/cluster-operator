@@ -65,16 +65,15 @@ var _ = Describe("AdminSecret", func() {
 
 			By("creating a rabbitmq username that is base64 encoded and 24 characters in length", func() {
 				username, ok = secret.Data["username"]
-				Expect(ok).NotTo(BeFalse())
+				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"username\" in the generated Secret")
 				decodedUsername, err := b64.URLEncoding.DecodeString(string(username))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(decodedUsername)).To(Equal(24))
-
 			})
 
 			By("creating a rabbitmq password that is base64 encoded and 24 characters in length", func() {
 				password, ok = secret.Data["password"]
-				Expect(ok).NotTo(BeFalse())
+				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"password\" in the generated Secret")
 				decodedPassword, err := b64.URLEncoding.DecodeString(string(password))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(decodedPassword)).To(Equal(24))
@@ -82,7 +81,7 @@ var _ = Describe("AdminSecret", func() {
 
 			By("creating a default_user.conf file that contains the correct sysctl config format to be parsed by RabbitMQ", func() {
 				defaultUserConf, ok := secret.Data["default_user.conf"]
-				Expect(ok).NotTo(BeFalse())
+				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"default_user.conf\" in the generated Secret")
 
 				cfg, err := ini.Load(defaultUserConf)
 				Expect(err).NotTo(HaveOccurred())

@@ -259,20 +259,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 
 	volumes := []corev1.Volume{
 		{
-			Name: "rabbitmq-admin",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: builder.Instance.ChildResourceName(AdminSecretName),
-					Items: []corev1.KeyToPath{
-						{
-							Key:  "default_user.conf",
-							Path: "default_user.conf",
-						},
-					},
-				},
-			},
-		},
-		{
 			Name: "server-conf",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -301,7 +287,23 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		{
 			Name: "rabbitmq-confd",
 			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							Secret: &corev1.SecretProjection{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: builder.Instance.ChildResourceName(AdminSecretName),
+								},
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "default_user.conf",
+										Path: "default_user.conf",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 		{
@@ -511,8 +513,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							"&& chown 999:999 /etc/rabbitmq/advanced.config ; " +
 							"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf " +
 							"&& chown 999:999 /etc/rabbitmq/rabbitmq-env.conf ; " +
-							"cp /tmp/rabbitmq-admin/default_user.conf /etc/rabbitmq/conf.d/default_user.conf " +
-							"&& chown 999:999 /etc/rabbitmq/conf.d/*.conf ; " +
 							"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
@@ -540,16 +540,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							MountPath: "/tmp/rabbitmq-plugins/",
 						},
 						{
-							Name:      "rabbitmq-admin",
-							MountPath: "/tmp/rabbitmq-admin/",
-						},
-						{
 							Name:      "rabbitmq-etc",
 							MountPath: "/etc/rabbitmq/",
-						},
-						{
-							Name:      "rabbitmq-confd",
-							MountPath: "/etc/rabbitmq/conf.d/",
 						},
 						{
 							Name:      "rabbitmq-erlang-cookie",

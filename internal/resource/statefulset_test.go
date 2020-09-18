@@ -816,20 +816,6 @@ var _ = Describe("StatefulSet", func() {
 
 			Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(
 				corev1.Volume{
-					Name: "rabbitmq-admin",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: instance.ChildResourceName("admin"),
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "default_user.conf",
-									Path: "default_user.conf",
-								},
-							},
-						},
-					},
-				},
-				corev1.Volume{
 					Name: "server-conf",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -858,7 +844,23 @@ var _ = Describe("StatefulSet", func() {
 				corev1.Volume{
 					Name: "rabbitmq-confd",
 					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
+						Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{
+								{
+									Secret: &corev1.SecretProjection{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: builder.Instance.ChildResourceName("admin"),
+										},
+										Items: []corev1.KeyToPath{
+											{
+												Key:  "default_user.conf",
+												Path: "default_user.conf",
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 				corev1.Volume{
@@ -955,8 +957,6 @@ var _ = Describe("StatefulSet", func() {
 						"&& chown 999:999 /etc/rabbitmq/advanced.config ; "+
 						"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf "+
 						"&& chown 999:999 /etc/rabbitmq/rabbitmq-env.conf ; "+
-						"cp /tmp/rabbitmq-admin/default_user.conf /etc/rabbitmq/conf.d/default_user.conf "+
-						"&& chown 999:999 /etc/rabbitmq/conf.d/*.conf ; "+
 						"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
 						"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie "+
 						"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; "+
@@ -974,16 +974,8 @@ var _ = Describe("StatefulSet", func() {
 						MountPath: "/tmp/rabbitmq-plugins/",
 					},
 					corev1.VolumeMount{
-						Name:      "rabbitmq-admin",
-						MountPath: "/tmp/rabbitmq-admin/",
-					},
-					corev1.VolumeMount{
 						Name:      "rabbitmq-etc",
 						MountPath: "/etc/rabbitmq/",
-					},
-					corev1.VolumeMount{
-						Name:      "rabbitmq-confd",
-						MountPath: "/etc/rabbitmq/conf.d/",
 					},
 					corev1.VolumeMount{
 						Name:      "rabbitmq-erlang-cookie",
