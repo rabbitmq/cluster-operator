@@ -22,7 +22,7 @@ var _ = Describe("Status", func() {
 			someCondition = RabbitmqClusterCondition{
 				Type:               "a-type",
 				Status:             "some-status",
-				LastTransitionTime: (*someConditionTime.DeepCopy()),
+				LastTransitionTime: *someConditionTime.DeepCopy(),
 				Reason:             "reasons",
 				Message:            "ship-it",
 			}
