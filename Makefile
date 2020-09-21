@@ -89,12 +89,10 @@ deploy-kind: check-env-docker-repo git-commit-sha manifests deploy-namespace-rba
 	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/kind | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
-generate-installation-manifests:
-	mkdir -p installation
-	kustomize build config/namespace/base/ > installation/namespace.yaml
-	kustomize build config/crd/ > installation/crd.yaml
-	kustomize build config/rbac/ > installation/rbac.yaml
-	kustomize build config/installation > installation/operator.yaml
+# Builds a single-file installation manifest to deploy the Operator
+generate-installation-manifest:
+	mkdir -p releases
+	kustomize build config/installation/ > releases/rabbitmq-cluster-operator.yaml
 
 # Build the docker image
 docker-build: check-env-docker-repo git-commit-sha
