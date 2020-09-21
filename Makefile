@@ -89,12 +89,6 @@ deploy-kind: check-env-docker-repo git-commit-sha manifests deploy-namespace-rba
 	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/kind | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
-generate-helm-manifests:
-	kustomize build config/namespace/base/ > charts/operator/templates/namespace.yaml
-	kustomize build config/crd/ > charts/operator/templates/crd.yaml
-	kustomize build config/rbac/ > charts/operator/templates/rbac.yaml
-	kustomize build config/default/overlays/helm/ > charts/operator/templates/deployment.yaml
-
 # Builds a single-file installation manifest to deploy the Operator
 generate-installation-manifest:
 	mkdir -p releases
