@@ -6,7 +6,7 @@ Manage [RabbitMQ](https://www.rabbitmq.com/) clusters deployed to [Kubernetes](h
 
 ## Supported Versions
 
-The operator deploys RabbitMQ `3.8.8`, and requires a Kubernetes cluster of `1.16` or above.
+The operator deploys RabbitMQ `3.8.8` by default, and supports versions from `3.8.4` upwards. The operator requires a Kubernetes cluster of `1.16` or above.
 
 ## Versioning
 

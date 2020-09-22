@@ -1213,21 +1213,25 @@ var _ = Describe("RabbitmqClusterController", func() {
 					},
 				},
 				corev1.Volume{
-					Name: "rabbitmq-admin",
+					Name: "rabbitmq-confd",
 					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							DefaultMode: &defaultMode,
-							SecretName:  "rabbitmq-sts-override-rabbitmq-admin",
-							Items: []corev1.KeyToPath{
+						Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{
 								{
-									Key:  "username",
-									Path: "username",
-								},
-								{
-									Key:  "password",
-									Path: "password",
+									Secret: &corev1.SecretProjection{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "rabbitmq-sts-override-rabbitmq-admin",
+										},
+										Items: []corev1.KeyToPath{
+											{
+												Key:  "default_user.conf",
+												Path: "default_user.conf",
+											},
+										},
+									},
 								},
 							},
+							DefaultMode: &defaultMode,
 						},
 					},
 				},

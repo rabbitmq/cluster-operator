@@ -10,8 +10,11 @@
 package resource
 
 import (
+	"bytes"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
+	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,6 +32,31 @@ func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
 	return &AdminSecretBuilder{
 		Instance: builder.Instance,
 	}
+}
+
+func generateDefaultUserConf(username, password string) ([]byte, error) {
+
+	ini.PrettySection = false // Remove trailing new line because default_user.conf has only a default section.
+	cfg, err := ini.Load([]byte{})
+	if err != nil {
+		return nil, err
+	}
+	defaultSection := cfg.Section("")
+
+	if _, err := defaultSection.NewKey("default_user", username); err != nil {
+		return nil, err
+	}
+
+	if _, err := defaultSection.NewKey("default_pass", password); err != nil {
+		return nil, err
+	}
+
+	var userConfBuffer bytes.Buffer
+	if cfg.WriteTo(&userConfBuffer); err != nil {
+		return nil, err
+	}
+
+	return userConfBuffer.Bytes(), nil
 }
 
 func (builder *AdminSecretBuilder) UpdateRequiresStsRestart() bool {
@@ -53,6 +81,11 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 		return nil, err
 	}
 
+	defaultUserConf, err := generateDefaultUserConf(username, password)
+	if err != nil {
+		return nil, err
+	}
+
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(AdminSecretName),
@@ -60,8 +93,9 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			"username": []byte(username),
-			"password": []byte(password),
+			"username":          []byte(username),
+			"password":          []byte(password),
+			"default_user.conf": defaultUserConf,
 		},
 	}, nil
 }

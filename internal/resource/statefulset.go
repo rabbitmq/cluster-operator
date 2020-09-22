@@ -259,24 +259,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 
 	volumes := []corev1.Volume{
 		{
-			Name: "rabbitmq-admin",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: builder.Instance.ChildResourceName(AdminSecretName),
-					Items: []corev1.KeyToPath{
-						{
-							Key:  "username",
-							Path: "username",
-						},
-						{
-							Key:  "password",
-							Path: "password",
-						},
-					},
-				},
-			},
-		},
-		{
 			Name: "server-conf",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -300,6 +282,28 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			Name: "rabbitmq-etc",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: "rabbitmq-confd",
+			VolumeSource: corev1.VolumeSource{
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							Secret: &corev1.SecretProjection{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: builder.Instance.ChildResourceName(AdminSecretName),
+								},
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "default_user.conf",
+										Path: "default_user.conf",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 		{
@@ -379,16 +383,16 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 
 	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "rabbitmq-admin",
-			MountPath: "/opt/rabbitmq-secret/",
-		},
-		{
 			Name:      "persistence",
 			MountPath: "/var/lib/rabbitmq/mnesia/",
 		},
 		{
 			Name:      "rabbitmq-etc",
 			MountPath: "/etc/rabbitmq/",
+		},
+		{
+			Name:      "rabbitmq-confd",
+			MountPath: "/etc/rabbitmq/conf.d/",
 		},
 		{
 			Name:      "rabbitmq-erlang-cookie",
@@ -561,14 +565,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					Resources: *builder.Instance.Spec.Resources,
 					Image:     builder.Instance.Spec.Image,
 					Env: []corev1.EnvVar{
-						{
-							Name:  "RABBITMQ_DEFAULT_PASS_FILE",
-							Value: "/opt/rabbitmq-secret/password",
-						},
-						{
-							Name:  "RABBITMQ_DEFAULT_USER_FILE",
-							Value: "/opt/rabbitmq-secret/username",
-						},
 						{
 							Name: "MY_POD_NAME",
 							ValueFrom: &corev1.EnvVarSource{
