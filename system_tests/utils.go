@@ -735,8 +735,21 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 		SetProtocolVersion(4) // RabbitMQ MQTT plugin targets MQTT 3.1.1
 
 	c := mqtt.NewClient(opts)
-	token := c.Connect()
-	Expect(token.Wait()).To(BeTrue())
+
+	var token mqtt.Token
+	for retry := 0; retry < 5; retry++ {
+		fmt.Printf("Attempt #%d to connect using MQTT\n", retry)
+		token = c.Connect()
+		// Waits for the network request to reach the destination and receive a response
+		Expect(token.WaitTimeout(3 * time.Second)).To(BeTrue())
+
+		if err := token.Error(); err == nil {
+			break
+		}
+
+		time.Sleep(2 * time.Second)
+	}
+
 	Expect(token.Error()).ToNot(HaveOccurred())
 
 	topic := "tests/mqtt"
@@ -769,12 +782,23 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 }
 
 func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password string) {
-	conn, err := stomp.Dial("tcp",
-		fmt.Sprintf("%s:%s", hostname, stompNodePort),
-		stomp.ConnOpt.Login(username, password),
-		stomp.ConnOpt.AcceptVersion(stomp.V12), // RabbitMQ STOMP plugin supports STOMP versions 1.0 through 1.2
-		stomp.ConnOpt.Host("/"),                // default virtual host
-	)
+	var conn *stomp.Conn
+	var err error
+	for retry := 0; retry < 5; retry++ {
+		fmt.Printf("Attempt #%d to connect using STOMP\n", retry)
+		conn, err = stomp.Dial("tcp",
+			fmt.Sprintf("%s:%s", hostname, stompNodePort),
+			stomp.ConnOpt.Login(username, password),
+			stomp.ConnOpt.AcceptVersion(stomp.V12), // RabbitMQ STOMP plugin supports STOMP versions 1.0 through 1.2
+			stomp.ConnOpt.Host("/"),                // default virtual host
+		)
+
+		if err == nil {
+			break
+		}
+
+		time.Sleep(2 * time.Second)
+	}
 	Expect(err).ToNot(HaveOccurred())
 
 	queue := "/queue/system-tests-stomp"
