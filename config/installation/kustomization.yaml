@@ -11,8 +11,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: rabbitmq-system
 images:
-- name: rabbitmqoperator/rabbitmq-cluster-kubernetes-operator-dev
-  newName: rabbitmqoperator/rabbitmq-cluster-kubernetes-operator
+- name: rabbitmqoperator/cluster-operator-dev
+  newName: rabbitmqoperator/cluster-operator
   newTag: latest
 resources:
 - ../namespace/base/
