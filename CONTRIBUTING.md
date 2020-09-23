@@ -21,6 +21,50 @@ list][rmq-users]. This would include YAML manifests, Kubernetes version,
 RabbitMQ Operator logs and any other relevant information that might help
 to diagnose the problem.
 
+## Makefile
+
+This project contains a Makefile to perform common development operation. If you want to build, test or deploy a local copy of the repository, keep reading.
+
+### Required environment variables
+
+The following environment variables are required by many of the `make` targets to access a custom-built image:
+
+- DOCKER_REGISTRY_SERVER: URL of docker registry containing the Operator image (e.g. `registry.my-company.com`)
+- OPERATOR_IMAGE: path to the Operator image within the registry specified in DOCKER_REGISTRY_SERVER (e.g. `rabbitmq/cluster-operator`). Note: OPERATOR_IMAGE should **not** include a leading slash (`/`)
+
+When running `make deploy-dev`, additionally:
+
+- DOCKER_REGISTRY_USERNAME: Username for accessing the docker registry
+- DOCKER_REGISTRY_PASSWORD: Password for accessing the docker registry
+- DOCKER_REGISTRY_SECRET: Name of Kubernetes secret in which to store the Docker registry username and password
+
+#### Make targets
+
+- **controller-gen** Download controller-gen if not in $PATH
+- **deploy** Deploy operator in the configured Kubernetes cluster in ~/.kube/config
+- **deploy-dev** Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
+- **deploy-kind** Load operator image and deploy operator into current KinD cluster
+- **deploy-sample** Deploy RabbitmqCluster defined in config/sample/base
+- **destroy** Cleanup all operator artefacts
+- **kind-prepare** Prepare KinD to support LoadBalancer services, and local-path StorageClass
+- **kind-unprepare** Remove KinD support for LoadBalancer services, and local-path StorageClass
+- **list** List Makefile targets
+- **run** Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
+- **unit-tests** Run unit tests
+- **integration-tests** Run integration tests
+- **system-tests** Run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
+
+### Testing
+
+Before submitting a pull request, ensure all local tests pass:
+- `make unit-tests`
+- `make integration-tests`
+
+<!-- TODO: generalise deployment process: make DOCKER_REGISTRY_SECRET and DOCKER_REGISTRY_SERVER configurable -->
+Also, run the system tests with your local changes against a Kubernetes cluster:
+- `make deploy-dev`
+- `make system-tests`
+
 ## Pull Requests
 
 RabbitMQ Operator project uses pull requests to discuss, collaborate on and accept code contributions.
@@ -39,6 +83,10 @@ Here's the recommended workflow:
 
 If what you are going to work on is a substantial change, please first
 ask the core team for their opinion on the [RabbitMQ users mailing list][rmq-users].
+
+### Code Conventions
+
+This project follows the [Kubernetes Code Conventions for Go](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions), which in turn mostly refer to [Effective Go](https://golang.org/doc/effective_go.html) and [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments). Please ensure your pull requests follow these guidelines.
 
 ## Code reviews
 
