@@ -188,29 +188,7 @@ secrets() {
 }
 
 install_cluster_operator() {
-    cd "$(mktemp -d)" || exit 1
-    which -s git || {
-        echo "Please install git and try again"
-        exit 1
-    }
-    git clone https://github.com/rabbitmq/cluster-operator.git 2>/dev/null|| {
-        echo "Failed to clone the repository."
-        exit 1
-    }
-    (
-        cd cluster-operator || exit 1
-        if [[ -n "${1}" ]]; then
-            echo "Setting operator image to ${1}"
-            (
-                cd config/manager || exit 1
-                kustomize edit set image "controller=${1}"
-            )
-        fi
-        kubectl apply -f config/namespace/base/namespace.yaml
-        kubectl apply -f config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml
-        kubectl -n rabbitmq-system apply --kustomize config/rbac/
-        kubectl -n rabbitmq-system apply --kustomize config/manager/
-    )
+    kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
 }
 
 main() {
