@@ -21,7 +21,7 @@ jobs:
       working-directory: charts/rabbitmq
       run: ./test.sh
 
-  system_tests:
+  system_test_latest:
     name: system tests
     runs-on: ubuntu-latest
     steps:
@@ -34,5 +34,37 @@ jobs:
         export PATH=$PATH:$GOPATH/bin
         make install-tools
         kind create cluster
+        DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
+        make system-tests
+
+  system_tests_1_18:
+    name: system tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: System tests
+      run: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+        export GOPATH=$HOME/go
+        export PATH=$PATH:$GOPATH/bin
+        make install-tools
+        kind create cluster --image kindest/node:v1.18.8@sha256:f4bcc97a0ad6e7abaf3f643d890add7efe6ee4ab90baeb374b4f41a4c95567eb
+        DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
+        make system-tests
+
+  system_tests_1_17:
+    name: system tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: System tests
+      run: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+        export GOPATH=$HOME/go
+        export PATH=$PATH:$GOPATH/bin
+        make install-tools
+        kind create cluster --image kindest/node:v1.17.11@sha256:5240a7a2c34bf241afb54ac05669f8a46661912eab05705d660971eeb12f6555
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
         make system-tests
