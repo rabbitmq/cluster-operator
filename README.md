@@ -19,7 +19,7 @@ kubectl apply -f https://raw.githubusercontent.com/rabbitmq/cluster-operator/mai
 ```
 
 <p align="center">
-  <img width="800" src="./docs/demos/installation.svg">
+  <img width="100%" src="./docs/demos/installation.svg">
 </p>
 
 ## Documentation
