@@ -11,7 +11,7 @@ reviewers:
   - "@michaelklishin"
   - "@Zerpet"
 creation-date: 2020-08-06
-last-updated: 2020-08-10
+last-updated: 2020-09-24
 status: provisional
 see-also:
   - https://github.com/rabbitmq/cluster-operator/issues/190
@@ -396,10 +396,11 @@ We discussed the above proposal as a team and have decided to **use non-strict S
 
 In the same team meeting as above, we have agreed to the following with regards to releasing:
 1. We should bump the major version to 1 when we GA. 
-2. We cut a release on each commit that goes through CI. We may use just the minor version for now until we GA (0.31.0, 0.32.0, ...). This will make the support experience for any early users easier since they will just have to mention the version number to us (than a commit hash for example).
+2. We make an arbitrary decision to cut new releases. We may use just the minor version for now until we GA (0.31.0, 0.32.0, ...). This will make the support experience for any early users easier since they will just have to mention the version number to us (than a commit hash for example).
 3. We should define the guidelines for our "non-strict" SemVer and make this available as a README in this repository. This is addressed in the [following issue](https://github.com/rabbitmq/cluster-operator/issues/265).
 
 ## Implementation History
 
 - [x] 2020-08-07: Open proposal PR
 - [x] 2020-08-21: Add accepted proposal to PR
+- [x] 2020-09-24: Changed the release frequency to arbitrary
