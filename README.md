@@ -18,7 +18,9 @@ Then you can deploy a RabbitMQ cluster:
 kubectl apply -f https://raw.githubusercontent.com/rabbitmq/cluster-operator/main/docs/examples/hello-world/rabbitmq.yaml
 ```
 
-[![asciicast](https://asciinema.org/a/361331)](https://asciinema.org/a/361331)
+<p align="center">
+  <img width="600" src="./docs/demos/installation.svg">
+</p>
 
 ## Documentation
 
