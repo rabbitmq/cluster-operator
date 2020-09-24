@@ -34,6 +34,7 @@ usage() {
     echo
     echo "  Create a RabbitMQ custom resource - INSTANCE name required, all other flags optional"
     echo "    kubectl rabbitmq create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.8 --image-pull-secret mysecret"
+    echo "      --tls-secret secret-name --storage-class mystorageclass"
     echo
     echo "  Get a RabbitMQ custom resource and dependant objects"
     echo "    kubectl rabbitmq get INSTANCE"
@@ -148,6 +149,12 @@ create() {
             shift 1
             echo "  tls:" >>"$rabbitmq_manifest_file"
             echo "    secretName: $1" >>"$rabbitmq_manifest_file"
+            shift 1
+            ;;
+        "--storage-class")
+            shift 1
+            echo "  persistence:" >>"$rabbitmq_manifest_file"
+            echo "    storageClassName: $1" >>"$rabbitmq_manifest_file"
             shift 1
             ;;
         *)
