@@ -18,34 +18,34 @@ service=""
 usage() {
     echo "USAGE:"
     echo "  Install RabbitMQ Cluster Operator (optionally provide image to use a relocated image or a specific version)"
-    echo "    kubectl rabbitmq install-cluster-operator [IMAGE]"
+    echo "    kubectl-rabbitmq install-cluster-operator [IMAGE]"
     echo
     echo "  Open Management UI for an instance"
-    echo "    kubectl rabbitmq manage INSTANCE"
+    echo "    kubectl-rabbitmq manage INSTANCE"
     echo
     echo "  Print admin secrets for an instance"
-    echo "    kubectl rabbitmq secrets INSTANCE"
+    echo "    kubectl-rabbitmq secrets INSTANCE"
     echo
     echo "  List all RabbitMQ clusters"
-    echo "    kubectl rabbitmq list"
+    echo "    kubectl-rabbitmq list"
     echo
     echo "  Delete a RabbitMQ cluster (or multiple clusters)"
-    echo "    kubectl rabbitmq delete INSTANCE ..."
+    echo "    kubectl-rabbitmq delete INSTANCE ..."
     echo
     echo "  Create a RabbitMQ custom resource - INSTANCE name required, all other flags optional"
-    echo "    kubectl rabbitmq create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.8 --image-pull-secret mysecret"
+    echo "    kubectl-rabbitmq create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.8 --image-pull-secret mysecret"
     echo
     echo "  Get a RabbitMQ custom resource and dependant objects"
-    echo "    kubectl rabbitmq get INSTANCE"
+    echo "    kubectl-rabbitmq get INSTANCE"
     echo
     echo "  Set log level to 'debug' on all nodes"
-    echo "    kubectl rabbitmq debug INSTANCE"
+    echo "    kubectl-rabbitmq debug INSTANCE"
     echo
     echo "  Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE"
-    echo "    kubectl rabbitmq observe INSTANCE 0"
+    echo "    kubectl-rabbitmq observe INSTANCE 0"
     echo
     echo "  Run perf-test against an instance - you can pass as many perf test parameters as you want"
-    echo "    kubectl rabbitmq perf-test INSTANCE --rate 100"
+    echo "    kubectl-rabbitmq perf-test INSTANCE --rate 100"
     echo
     echo "If you want to monitor perf-test, create the following ServiceMonitor"
     echo "    apiVersion: monitoring.coreos.com/v1"
