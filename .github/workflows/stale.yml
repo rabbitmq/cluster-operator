@@ -1,7 +1,7 @@
 name: Mark stale issues and pull requests
 on:
   schedule:
-  - cron: "0 0 * * 1"
+  - cron: "0 0 * * *"
   # Allow the build to be manually triggered
   workflow_dispatch:
 jobs:
@@ -40,14 +40,14 @@ jobs:
         # Only issues or pull requests with all of these labels are checked if stale. Defaults to `[]` (disabled) and can be a comma-separated list of labels.
         only-labels: # optional, default is
         # The maximum number of operations per run, used to control rate limiting.
-        operations-per-run: # optional, default is 30
+        # operations-per-run: # optional, default is 30
         # Remove stale labels from issues when they are updated or commented on.
         remove-stale-when-updated: false
         # Run the processor in debug mode without actually performing any operations on live issues.
-        debug-only: true # Until we verify that this actually works!
+        debug-only: false
         # The order to get issues or pull requests. Defaults to false, which is descending
-        ascending: # optional
+        # ascending: # optional
         # Skip adding stale message when marking a pull request as stale.
-        skip-stale-pr-message: # optional
+        # skip-stale-pr-message: # optional
         # Skip adding stale message when marking an issue as stale.
-        skip-stale-issue-message: # optional
+        # skip-stale-issue-message: # optional
