@@ -1,0 +1,53 @@
+name: Mark stale issues and pull requests
+on:
+  schedule:
+  - cron: "0 0 * * 1"
+  # Allow the build to be manually triggered
+  workflow_dispatch:
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Close Stale Issues
+      uses: actions/stale@v3.0.11
+      with:
+        # Token for the repository. Can be passed in using `{{ secrets.GITHUB_TOKEN }}`.
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        # The message to post on the issue when tagging it. If none provided, will not mark issues stale.
+        stale-issue-message: "This issue has been marked as stale due to 90 days of inactivity. Stale issues will be closed after a further 30 days of inactivity; please remove the stale label in order to prevent this occurring."
+        # The message to post on the pr when tagging it. If none provided, will not mark pull requests stale.
+        stale-pr-message: "This pull request has been marked as stale due to 90 days of inactivity. Stale PRs will be closed after a further 30 days of inactivity; please remove the stale label in order to prevent this occurring."
+        # The message to post on the issue when closing it. If none provided, will not comment when closing an issue.
+        close-issue-message: "Closing stale issue due to further inactivity."
+        # The message to post on the pr when closing it. If none provided, will not comment when closing a pull requests.
+        close-pr-message: "Closing stale PR due to further inactivity."
+        # The number of days old an issue can be before marking it stale. Set to -1 to never mark issues or pull requests as stale automatically.
+        days-before-stale: 90
+        # The number of days to wait to close an issue or pull request after it being marked stale. Set to -1 to never close stale issues.
+        days-before-close: 30
+        # The label to apply when an issue is stale.
+        stale-issue-label: "stale"
+        # The label to apply when an issue is closed.
+        close-issue-label: "closed-stale"
+        # The labels to apply when an issue is exempt from being marked stale. Separate multiple labels with commas (eg. "label1,label2")
+        exempt-issue-labels: "never-stale"
+        # The label to apply when a pull request is stale.
+        stale-pr-label: "stale"
+        # The label to apply when a pull request is closed.
+        close-pr-label: "closed-stale"
+        # The labels to apply when a pull request is exempt from being marked stale. Separate multiple labels with commas (eg. "label1,label2")
+        exempt-pr-labels: "never-stale"
+        # Only issues or pull requests with all of these labels are checked if stale. Defaults to `[]` (disabled) and can be a comma-separated list of labels.
+        only-labels: # optional, default is
+        # The maximum number of operations per run, used to control rate limiting.
+        operations-per-run: # optional, default is 30
+        # Remove stale labels from issues when they are updated or commented on.
+        remove-stale-when-updated: false
+        # Run the processor in debug mode without actually performing any operations on live issues.
+        debug-only: true # Until we verify that this actually works!
+        # The order to get issues or pull requests. Defaults to false, which is descending
+        ascending: # optional
+        # Skip adding stale message when marking a pull request as stale.
+        skip-stale-pr-message: # optional
+        # Skip adding stale message when marking an issue as stale.
+        skip-stale-issue-message: # optional
