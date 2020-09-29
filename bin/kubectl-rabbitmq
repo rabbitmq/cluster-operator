@@ -44,6 +44,9 @@ usage() {
     echo "  Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE"
     echo "    kubectl rabbitmq observe INSTANCE 0"
     echo
+    echo "  Enable all feature flags on an INSTANCE"
+    echo "    kubectl rabbitmq enable-all-feature-flags INSTANCE"
+    echo
     echo "  Run perf-test against an instance - you can pass as many perf test parameters as you want"
     echo "    kubectl rabbitmq perf-test INSTANCE --rate 100"
     echo
@@ -181,6 +184,10 @@ debug() {
     done
 }
 
+enable_all_feature_flags() {
+    kubectl exec "${1}-rabbitmq-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
+}
+
 secrets() {
     get_instance_details "$@"
     echo "username: ${username}"
@@ -261,6 +268,14 @@ main() {
             exit 1
         fi
         secrets "$1"
+        ;;
+    "enable-all-feature-flags")
+        shift 1
+        if [[ "$#" -ne 1 ]]; then
+            usage
+            exit 1
+        fi
+        enable_all_feature_flags "$1"
         ;;
     "install-cluster-operator")
         shift 1
