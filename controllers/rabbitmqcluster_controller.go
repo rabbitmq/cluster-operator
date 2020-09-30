@@ -107,8 +107,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
-		// TODO do we need to requeue?
-		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Resource has been marked for deletion
