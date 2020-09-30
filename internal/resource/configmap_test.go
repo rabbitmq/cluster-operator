@@ -17,6 +17,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var _ = Describe("GenerateServerConfigMap", func() {
@@ -24,9 +26,13 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		instance         rabbitmqv1beta1.RabbitmqCluster
 		configMapBuilder *resource.ServerConfigMapBuilder
 		builder          *resource.RabbitmqResourceBuilder
+		scheme           *runtime.Scheme
 	)
 
 	BeforeEach(func() {
+		scheme = runtime.NewScheme()
+		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		instance = rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
@@ -35,6 +41,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		}
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
+			Scheme:   scheme,
 		}
 		configMapBuilder = builder.ServerConfigMap()
 	})
@@ -64,6 +71,16 @@ var _ = Describe("GenerateServerConfigMap", func() {
 					Namespace: instance.Namespace,
 				},
 			}
+		})
+
+		It("sets owner reference", func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit1",
+				},
+			}
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			Expect(configMap.OwnerReferences[0].Name).To(Equal(instance.Name))
 		})
 
 		When("additionalConfig is not provided", func() {

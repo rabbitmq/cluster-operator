@@ -17,6 +17,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var _ = Describe("Role", func() {
@@ -25,9 +27,13 @@ var _ = Describe("Role", func() {
 		instance    rabbitmqv1beta1.RabbitmqCluster
 		roleBuilder *resource.RoleBuilder
 		builder     *resource.RabbitmqResourceBuilder
+		scheme      *runtime.Scheme
 	)
 
 	BeforeEach(func() {
+		scheme = runtime.NewScheme()
+		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		instance = rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
@@ -36,6 +42,7 @@ var _ = Describe("Role", func() {
 		}
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
+			Scheme:   scheme,
 		}
 		roleBuilder = builder.Role()
 	})
@@ -78,6 +85,10 @@ var _ = Describe("Role", func() {
 			}
 			err := roleBuilder.Update(role)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("sets owner reference", func() {
+			Expect(role.OwnerReferences[0].Name).To(Equal(instance.Name))
 		})
 
 		It("adds labels from the CR", func() {

@@ -11,6 +11,8 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,9 +30,13 @@ var _ = Describe("ErlangCookie", func() {
 		instance            rabbitmqv1beta1.RabbitmqCluster
 		builder             *resource.RabbitmqResourceBuilder
 		erlangCookieBuilder *resource.ErlangCookieBuilder
+		scheme              *runtime.Scheme
 	)
 
 	BeforeEach(func() {
+		scheme = runtime.NewScheme()
+		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		instance = rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
@@ -39,6 +45,7 @@ var _ = Describe("ErlangCookie", func() {
 		}
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
+			Scheme:   scheme,
 		}
 		erlangCookieBuilder = builder.ErlangCookie()
 	})
@@ -154,5 +161,16 @@ var _ = Describe("ErlangCookie", func() {
 			}
 			Expect(secret.Annotations).To(Equal(expectedAnnotations))
 		})
+	})
+
+	It("sets owner reference", func() {
+		instance = rabbitmqv1beta1.RabbitmqCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "rabbit1",
+			},
+		}
+		secret = &corev1.Secret{}
+		Expect(erlangCookieBuilder.Update(secret)).NotTo(HaveOccurred())
+		Expect(secret.OwnerReferences[0].Name).To(Equal(instance.Name))
 	})
 })

@@ -10,9 +10,11 @@
 package resource
 
 import (
+	"fmt"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
@@ -24,11 +26,13 @@ const (
 
 type RoleBindingBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
 }
 
 func (builder *RabbitmqResourceBuilder) RoleBinding() *RoleBindingBuilder {
 	return &RoleBindingBuilder{
 		Instance: builder.Instance,
+		Scheme:   builder.Scheme,
 	}
 }
 
@@ -50,6 +54,10 @@ func (builder *RoleBindingBuilder) Update(object runtime.Object) error {
 			Kind: "ServiceAccount",
 			Name: builder.Instance.ChildResourceName(serviceAccountName),
 		},
+	}
+
+	if err := controllerutil.SetControllerReference(builder.Instance, roleBinding, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
 	}
 	return nil
 }

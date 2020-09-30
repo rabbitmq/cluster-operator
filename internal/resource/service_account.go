@@ -10,11 +10,13 @@
 package resource
 
 import (
+	"fmt"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -23,11 +25,13 @@ const (
 
 type ServiceAccountBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
 }
 
 func (builder *RabbitmqResourceBuilder) ServiceAccount() *ServiceAccountBuilder {
 	return &ServiceAccountBuilder{
 		Instance: builder.Instance,
+		Scheme:   builder.Scheme,
 	}
 }
 
@@ -39,6 +43,10 @@ func (builder *ServiceAccountBuilder) Update(object runtime.Object) error {
 	serviceAccount := object.(*corev1.ServiceAccount)
 	serviceAccount.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	serviceAccount.Annotations = metadata.ReconcileAndFilterAnnotations(serviceAccount.GetAnnotations(), builder.Instance.Annotations)
+
+	if err := controllerutil.SetControllerReference(builder.Instance, serviceAccount, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
 	return nil
 }
 

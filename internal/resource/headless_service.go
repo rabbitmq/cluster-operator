@@ -10,11 +10,13 @@
 package resource
 
 import (
+	"fmt"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -23,11 +25,13 @@ const (
 
 type HeadlessServiceBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
 }
 
 func (builder *RabbitmqResourceBuilder) HeadlessService() *HeadlessServiceBuilder {
 	return &HeadlessServiceBuilder{
 		Instance: builder.Instance,
+		Scheme:   builder.Scheme,
 	}
 }
 
@@ -64,6 +68,10 @@ func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
 			},
 		},
 		PublishNotReadyAddresses: true,
+	}
+
+	if err := controllerutil.SetControllerReference(builder.Instance, service, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
 	return nil

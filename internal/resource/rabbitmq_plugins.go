@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -25,6 +27,7 @@ type RabbitmqPlugins struct {
 
 type RabbitmqPluginsConfigMapBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
 }
 
 func NewRabbitmqPlugins(plugins []rabbitmqv1beta1.Plugin) RabbitmqPlugins {
@@ -60,6 +63,7 @@ func (r *RabbitmqPlugins) AsString(sep string) string {
 func (builder *RabbitmqResourceBuilder) RabbitmqPluginsConfigMap() *RabbitmqPluginsConfigMapBuilder {
 	return &RabbitmqPluginsConfigMapBuilder{
 		Instance: builder.Instance,
+		Scheme:   builder.Scheme,
 	}
 }
 
@@ -76,6 +80,10 @@ func (builder *RabbitmqPluginsConfigMapBuilder) Update(object runtime.Object) er
 		configMap.Data = make(map[string]string)
 	}
 	configMap.Data["enabled_plugins"] = desiredPluginsAsString(builder.Instance.Spec.Rabbitmq.AdditionalPlugins)
+
+	if err := controllerutil.SetControllerReference(builder.Instance, configMap, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
 	return nil
 }
 

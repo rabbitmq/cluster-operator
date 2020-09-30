@@ -16,6 +16,8 @@ import (
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var _ = Describe("HeadlessService", func() {
@@ -24,14 +26,19 @@ var _ = Describe("HeadlessService", func() {
 		builder        *resource.RabbitmqResourceBuilder
 		serviceBuilder *resource.HeadlessServiceBuilder
 		service        *corev1.Service
+		scheme         *runtime.Scheme
 	)
 
 	BeforeEach(func() {
+		scheme = runtime.NewScheme()
+		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		instance = rabbitmqv1beta1.RabbitmqCluster{}
 		instance.Namespace = "foo"
 		instance.Name = "foo"
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
+			Scheme:   scheme,
 		}
 		serviceBuilder = builder.HeadlessService()
 	})
@@ -189,5 +196,16 @@ var _ = Describe("HeadlessService", func() {
 
 			Expect(service.Spec).To(Equal(expectedSpec))
 		})
+	})
+
+	It("sets owner reference", func() {
+		instance = rabbitmqv1beta1.RabbitmqCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "rabbit1",
+			},
+		}
+		service = &corev1.Service{}
+		Expect(serviceBuilder.Update(service)).NotTo(HaveOccurred())
+		Expect(service.OwnerReferences[0].Name).To(Equal(instance.Name))
 	})
 })

@@ -171,11 +171,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return ctrl.Result{}, err
 		}
 
-		//TODO this should be done in the builders
-		if err := controllerutil.SetControllerReference(rabbitmqCluster, resource.(metav1.Object), r.Scheme); err != nil {
-			return ctrl.Result{}, err
-		}
-
 		var operationResult controllerutil.OperationResult
 		err = clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			var apiError error

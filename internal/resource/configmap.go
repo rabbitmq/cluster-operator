@@ -12,6 +12,7 @@ package resource
 import (
 	"bytes"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"gopkg.in/ini.v1"
 
@@ -41,11 +42,13 @@ listeners.ssl.default = 5671`
 
 type ServerConfigMapBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
 }
 
 func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilder {
 	return &ServerConfigMapBuilder{
 		Instance: builder.Instance,
+		Scheme:   builder.Scheme,
 	}
 }
 
@@ -102,6 +105,10 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 
 	updateProperty(configMap.Data, "advanced.config", rmqProperties.AdvancedConfig)
 	updateProperty(configMap.Data, "rabbitmq-env.conf", rmqProperties.EnvConfig)
+
+	if err := controllerutil.SetControllerReference(builder.Instance, configMap, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
 
 	return nil
 }
