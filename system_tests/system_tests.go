@@ -22,11 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	statefulSetSuffix = "server"
-	pluginsConfig     = "plugins-conf"
-)
-
 var _ = Describe("Operator", func() {
 	var (
 		namespace = MustHaveEnv("NAMESPACE")
@@ -127,7 +122,7 @@ var _ = Describe("Operator", func() {
 				})).To(Succeed())
 
 				getConfigMapAnnotations := func() map[string]string {
-					configMapName := cluster.ChildResourceName(pluginsConfig)
+					configMapName := cluster.ChildResourceName("plugins-conf")
 					configMap, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
 					Expect(err).ToNot(HaveOccurred())
 					return configMap.Annotations

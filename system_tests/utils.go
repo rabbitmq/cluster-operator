@@ -417,7 +417,7 @@ func createRabbitmqCluster(ctx context.Context, client client.Client, rabbitmqCl
 }
 
 func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
-	return cluster.ChildResourceName(strings.Join([]string{statefulSetSuffix, strconv.Itoa(index)}, "-"))
+	return cluster.ChildResourceName(strings.Join([]string{"server", strconv.Itoa(index)}, "-"))
 }
 
 /*
