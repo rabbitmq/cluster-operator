@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"log"
 	"net/http"
 	"os"
@@ -382,6 +383,13 @@ func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Ra
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 			Replicas: &one,
+			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+				Type: "NodePort",
+			},
+			Resources: &corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
+				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+			},
 		},
 	}
 }
