@@ -52,7 +52,7 @@ func generateDefaultUserConf(username, password string) ([]byte, error) {
 	}
 
 	var userConfBuffer bytes.Buffer
-	if cfg.WriteTo(&userConfBuffer); err != nil {
+	if _, err := cfg.WriteTo(&userConfBuffer); err != nil {
 		return nil, err
 	}
 
