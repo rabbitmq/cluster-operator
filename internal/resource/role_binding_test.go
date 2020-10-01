@@ -17,6 +17,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var _ = Describe("RoleBinding", func() {
@@ -25,9 +27,13 @@ var _ = Describe("RoleBinding", func() {
 		instance           rabbitmqv1beta1.RabbitmqCluster
 		roleBindingBuilder *resource.RoleBindingBuilder
 		builder            *resource.RabbitmqResourceBuilder
+		scheme             *runtime.Scheme
 	)
 
 	BeforeEach(func() {
+		scheme = runtime.NewScheme()
+		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		instance = rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
@@ -36,6 +42,7 @@ var _ = Describe("RoleBinding", func() {
 		}
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
+			Scheme:   scheme,
 		}
 		roleBindingBuilder = builder.RoleBinding()
 	})
@@ -78,6 +85,10 @@ var _ = Describe("RoleBinding", func() {
 			}
 			err := roleBindingBuilder.Update(roleBinding)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("sets owner reference", func() {
+			Expect(roleBinding.OwnerReferences[0].Name).To(Equal(instance.Name))
 		})
 
 		It("adds labels from the CR", func() {

@@ -107,8 +107,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
-		// TODO do we need to requeue?
-		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Resource has been marked for deletion
@@ -170,11 +168,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	for _, builder := range builders {
 		resource, err := builder.Build()
 		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		//TODO this should be done in the builders
-		if err := controllerutil.SetControllerReference(rabbitmqCluster, resource.(metav1.Object), r.Scheme); err != nil {
 			return ctrl.Result{}, err
 		}
 

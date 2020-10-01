@@ -11,6 +11,8 @@ package resource
 
 import (
 	"bytes"
+	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
@@ -26,11 +28,13 @@ const (
 
 type AdminSecretBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
 }
 
 func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
 	return &AdminSecretBuilder{
 		Instance: builder.Instance,
+		Scheme:   builder.Scheme,
 	}
 }
 
@@ -67,6 +71,11 @@ func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
 	secret := object.(*corev1.Secret)
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
+
+	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
+
 	return nil
 }
 

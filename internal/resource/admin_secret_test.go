@@ -11,10 +11,11 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
-
 	"gopkg.in/ini.v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,9 +30,13 @@ var _ = Describe("AdminSecret", func() {
 		instance           rabbitmqv1beta1.RabbitmqCluster
 		builder            *resource.RabbitmqResourceBuilder
 		adminSecretBuilder *resource.AdminSecretBuilder
+		scheme             *runtime.Scheme
 	)
 
 	BeforeEach(func() {
+		scheme = runtime.NewScheme()
+		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		instance = rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
@@ -40,6 +45,7 @@ var _ = Describe("AdminSecret", func() {
 		}
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
+			Scheme:   scheme,
 		}
 		adminSecretBuilder = builder.AdminSecret()
 	})
@@ -182,5 +188,16 @@ var _ = Describe("AdminSecret", func() {
 				Expect(secret.Annotations).To(Equal(expectedAnnotations))
 			})
 		})
+	})
+
+	It("sets owner reference", func() {
+		secret = &corev1.Secret{}
+		instance = rabbitmqv1beta1.RabbitmqCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "rabbit1",
+			},
+		}
+		Expect(adminSecretBuilder.Update(secret)).NotTo(HaveOccurred())
+		Expect(secret.OwnerReferences[0].Name).To(Equal(instance.Name))
 	})
 })
