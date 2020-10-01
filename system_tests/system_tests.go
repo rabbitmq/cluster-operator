@@ -22,11 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	statefulSetSuffix = "server"
-	pluginsConfig     = "plugins-conf"
-)
-
 var _ = Describe("Operator", func() {
 	var (
 		namespace = MustHaveEnv("NAMESPACE")
@@ -43,14 +38,7 @@ var _ = Describe("Operator", func() {
 		)
 
 		BeforeEach(func() {
-			one := int32(1)
 			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
-			cluster.Spec.Replicas = &one
-			cluster.Spec.Service.Type = "NodePort"
-			cluster.Spec.Resources = &corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
-				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
-			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 
@@ -118,11 +106,6 @@ var _ = Describe("Operator", func() {
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "config-rabbit")
-			cluster.Spec.Resources = &corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
-				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
-			}
-
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 		})
@@ -139,7 +122,7 @@ var _ = Describe("Operator", func() {
 				})).To(Succeed())
 
 				getConfigMapAnnotations := func() map[string]string {
-					configMapName := cluster.ChildResourceName(pluginsConfig)
+					configMapName := cluster.ChildResourceName("plugins-conf")
 					configMap, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
 					Expect(err).ToNot(HaveOccurred())
 					return configMap.Annotations
@@ -186,7 +169,7 @@ cluster_keepalive_interval = 10000`
 				Expect(cfgMap).To(HaveKeyWithValue("cluster_partition_handling", "ignore"))
 			})
 
-			By("updating the advanced.config file when advancedConfig are modifed", func() {
+			By("updating the advanced.config file when advancedConfig are modified", func() {
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.AdvancedConfig = `[
   {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
@@ -238,11 +221,6 @@ CONSOLE_LOG=new`
 
 		BeforeEach(func() {
 			cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
-			cluster.Spec.Service.Type = "NodePort"
-			cluster.Spec.Resources = &corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
-				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
-			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
@@ -293,11 +271,7 @@ CONSOLE_LOG=new`
 				three := int32(3)
 				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
 				cluster.Spec.Replicas = &three
-				cluster.Spec.Service.Type = "NodePort"
-				cluster.Spec.Resources = &corev1.ResourceRequirements{
-					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
-					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
-				}
+
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
 			})
@@ -333,11 +307,6 @@ CONSOLE_LOG=new`
 
 			BeforeEach(func() {
 				cluster = generateRabbitmqCluster(namespace, "tls-test-rabbit")
-				cluster.Spec.Service.Type = "NodePort"
-				cluster.Spec.Resources = &corev1.ResourceRequirements{
-					Requests: map[corev1.ResourceName]k8sresource.Quantity{},
-					Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
-				}
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
 
