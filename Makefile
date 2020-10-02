@@ -19,11 +19,11 @@ integration-tests: install-tools generate fmt vet manifests ## Run integration t
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 	controller-gen $(CRD_OPTIONS) rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
+	./hack/remove-override-descriptions.sh
 	./hack/add-notice-to-yaml.sh config/rbac/role.yaml
 # this is temporary workaround due to issue https://github.com/kubernetes/kubernetes/issues/91395
 # the hack ensures that "protocal" is a required value where this field is listed as x-kubernetes-list-map-keys
 # without the hack, our crd doesn't install on k8s 1.18 because of the issue above
-	./hack/remove-override-descriptions.sh
 	./hack/patch-crd.sh
 	./hack/add-notice-to-yaml.sh config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml
 
