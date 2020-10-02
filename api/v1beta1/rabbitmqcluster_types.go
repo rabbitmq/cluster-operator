@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	rabbitmqImage             string = "rabbitmq:3.8.8"
+	rabbitmqImage             string = "rabbitmq:3.8.9"
 	defaultPersistentCapacity string = "10Gi"
 	defaultMemoryLimit        string = "2Gi"
 	defaultCPULimit           string = "2000m"
