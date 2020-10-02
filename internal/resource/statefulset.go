@@ -279,12 +279,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			},
 		},
 		{
-			Name: "rabbitmq-etc",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
-		},
-		{
 			Name: "rabbitmq-confd",
 			VolumeSource: corev1.VolumeSource{
 				Projected: &corev1.ProjectedVolumeSource{
@@ -318,6 +312,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: builder.Instance.ChildResourceName(erlangCookieName),
 				},
+			},
+		},
+		{
+			Name: "rabbitmq-plugins",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
 		{
@@ -387,12 +387,18 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			MountPath: "/var/lib/rabbitmq/mnesia/",
 		},
 		{
-			Name:      "rabbitmq-etc",
-			MountPath: "/etc/rabbitmq/",
+			Name:      "rabbitmq-plugins",
+			MountPath: "/operator",
+		},
+		{
+			Name:      "server-conf",
+			MountPath: "/etc/rabbitmq/rabbitmq.conf",
+			SubPath:   "rabbitmq.conf",
 		},
 		{
 			Name:      "rabbitmq-confd",
-			MountPath: "/etc/rabbitmq/conf.d/",
+			MountPath: "/etc/rabbitmq/conf.d/default_user.conf",
+			SubPath:   "default_user.conf",
 		},
 		{
 			Name:      "rabbitmq-erlang-cookie",
@@ -402,6 +408,18 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			Name:      "pod-info",
 			MountPath: "/etc/pod-info/",
 		},
+	}
+
+	if builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name: "server-conf", MountPath: "/etc/rabbitmq/rabbitmq-env.conf", SubPath: "rabbitmq-env.conf",
+		})
+	}
+
+	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" {
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name: "server-conf", MountPath: "/etc/rabbitmq/advanced.config", SubPath: "advanced.config",
+		})
 	}
 
 	tlsSpec := builder.Instance.Spec.TLS
@@ -506,18 +524,11 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						},
 					},
 					Command: []string{
-						"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf " +
-							"&& chown 999:999 /etc/rabbitmq/rabbitmq.conf " +
-							"&& echo '' >> /etc/rabbitmq/rabbitmq.conf ; " +
-							"cp /tmp/rabbitmq/advanced.config /etc/rabbitmq/advanced.config " +
-							"&& chown 999:999 /etc/rabbitmq/advanced.config ; " +
-							"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf " +
-							"&& chown 999:999 /etc/rabbitmq/rabbitmq-env.conf ; " +
-							"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
+						"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
-							"cp /tmp/rabbitmq-plugins/enabled_plugins /etc/rabbitmq/enabled_plugins " +
-							"&& chown 999:999 /etc/rabbitmq/enabled_plugins ; " +
+							"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins " +
+							"&& chown 999:999 /operator/enabled_plugins ; " +
 							"chgrp 999 /var/lib/rabbitmq/mnesia/",
 					},
 					Resources: corev1.ResourceRequirements{
@@ -532,16 +543,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					},
 					VolumeMounts: []corev1.VolumeMount{
 						{
-							Name:      "server-conf",
-							MountPath: "/tmp/rabbitmq/",
-						},
-						{
 							Name:      "plugins-conf",
 							MountPath: "/tmp/rabbitmq-plugins/",
-						},
-						{
-							Name:      "rabbitmq-etc",
-							MountPath: "/etc/rabbitmq/",
 						},
 						{
 							Name:      "rabbitmq-erlang-cookie",
@@ -550,6 +553,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						{
 							Name:      "erlang-cookie-secret",
 							MountPath: "/tmp/erlang-cookie-secret/",
+						},
+						{
+							Name:      "rabbitmq-plugins",
+							MountPath: "/operator",
 						},
 						{
 							Name:      "persistence",
@@ -582,6 +589,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 									APIVersion: "v1",
 								},
 							},
+						},
+						{
+							Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+							Value: "/operator/enabled_plugins",
 						},
 						{
 							Name:  "K8S_SERVICE_NAME",

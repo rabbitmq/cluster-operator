@@ -760,6 +760,10 @@ var _ = Describe("StatefulSet", func() {
 					},
 				},
 				{
+					Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+					Value: "/operator/enabled_plugins",
+				},
+				{
 					Name:  "K8S_SERVICE_NAME",
 					Value: instance.ChildResourceName("headless"),
 				},
@@ -781,33 +785,41 @@ var _ = Describe("StatefulSet", func() {
 			Expect(container.Env).To(ConsistOf(requiredEnvVariables))
 		})
 
-		It("creates required Volume Mounts for the rabbitmq container", func() {
-			stsBuilder := builder.StatefulSet()
-			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+		Context("Rabbitmq container volume mounts", func() {
+			DescribeTable("Volume mounts depending on spec configuration",
+				func(rabbitmqEnv, advancedConfig string) {
+					stsBuilder := builder.StatefulSet()
+					stsBuilder.Instance.Spec.Rabbitmq.EnvConfig = rabbitmqEnv
+					stsBuilder.Instance.Spec.Rabbitmq.AdvancedConfig = advancedConfig
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-			Expect(container.VolumeMounts).To(ConsistOf(
-				corev1.VolumeMount{
-					Name:      "persistence",
-					MountPath: "/var/lib/rabbitmq/mnesia/",
+					expectedVolumeMounts := []corev1.VolumeMount{
+						{Name: "persistence", MountPath: "/var/lib/rabbitmq/mnesia/"},
+						{Name: "rabbitmq-erlang-cookie", MountPath: "/var/lib/rabbitmq/"},
+						{Name: "pod-info", MountPath: "/etc/pod-info/"},
+						{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/default_user.conf", SubPath: "default_user.conf"},
+						{Name: "server-conf", MountPath: "/etc/rabbitmq/rabbitmq.conf", SubPath: "rabbitmq.conf"},
+						{Name: "rabbitmq-plugins", MountPath: "/operator"},
+					}
+
+					if rabbitmqEnv != "" {
+						expectedVolumeMounts = append(expectedVolumeMounts, corev1.VolumeMount{
+							Name: "server-conf", MountPath: "/etc/rabbitmq/rabbitmq-env.conf", SubPath: "rabbitmq-env.conf"})
+					}
+
+					if advancedConfig != "" {
+						expectedVolumeMounts = append(expectedVolumeMounts, corev1.VolumeMount{
+							Name: "server-conf", MountPath: "/etc/rabbitmq/advanced.config", SubPath: "advanced.config"})
+					}
+
+					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(container.VolumeMounts).To(ConsistOf(expectedVolumeMounts))
 				},
-				corev1.VolumeMount{
-					Name:      "rabbitmq-etc",
-					MountPath: "/etc/rabbitmq/",
-				},
-				corev1.VolumeMount{
-					Name:      "rabbitmq-confd",
-					MountPath: "/etc/rabbitmq/conf.d/",
-				},
-				corev1.VolumeMount{
-					Name:      "rabbitmq-erlang-cookie",
-					MountPath: "/var/lib/rabbitmq/",
-				},
-				corev1.VolumeMount{
-					Name:      "pod-info",
-					MountPath: "/etc/pod-info/",
-				},
-			))
+				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
+				Entry("Only env config is set", "rabbitmq-env-is-set", ""),
+				Entry("Only advanced config is set", "", "advanced-config-is-set"),
+				Entry("No configs are set", "", ""),
+			)
 		})
 
 		It("defines the expected volumes", func() {
@@ -833,12 +845,6 @@ var _ = Describe("StatefulSet", func() {
 								Name: instance.ChildResourceName("plugins-conf"),
 							},
 						},
-					},
-				},
-				corev1.Volume{
-					Name: "rabbitmq-etc",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
 				corev1.Volume{
@@ -875,6 +881,12 @@ var _ = Describe("StatefulSet", func() {
 						Secret: &corev1.SecretVolumeSource{
 							SecretName: instance.ChildResourceName("erlang-cookie"),
 						},
+					},
+				},
+				corev1.Volume{
+					Name: "rabbitmq-plugins",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
 				corev1.Volume{
@@ -950,32 +962,17 @@ var _ = Describe("StatefulSet", func() {
 					})),
 				})),
 				"Command": ConsistOf(
-					"sh", "-c", "cp /tmp/rabbitmq/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf "+
-						"&& chown 999:999 /etc/rabbitmq/rabbitmq.conf "+
-						"&& echo '' >> /etc/rabbitmq/rabbitmq.conf ; "+
-						"cp /tmp/rabbitmq/advanced.config /etc/rabbitmq/advanced.config "+
-						"&& chown 999:999 /etc/rabbitmq/advanced.config ; "+
-						"cp /tmp/rabbitmq/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf "+
-						"&& chown 999:999 /etc/rabbitmq/rabbitmq-env.conf ; "+
-						"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
+					"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
 						"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie "+
 						"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; "+
-						"cp /tmp/rabbitmq-plugins/enabled_plugins /etc/rabbitmq/enabled_plugins "+
-						"&& chown 999:999 /etc/rabbitmq/enabled_plugins ; "+
+						"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins "+
+						"&& chown 999:999 /operator/enabled_plugins ; "+
 						"chgrp 999 /var/lib/rabbitmq/mnesia/",
 				),
 				"VolumeMounts": ConsistOf(
 					corev1.VolumeMount{
-						Name:      "server-conf",
-						MountPath: "/tmp/rabbitmq/",
-					},
-					corev1.VolumeMount{
 						Name:      "plugins-conf",
 						MountPath: "/tmp/rabbitmq-plugins/",
-					},
-					corev1.VolumeMount{
-						Name:      "rabbitmq-etc",
-						MountPath: "/etc/rabbitmq/",
 					},
 					corev1.VolumeMount{
 						Name:      "rabbitmq-erlang-cookie",
@@ -984,6 +981,10 @@ var _ = Describe("StatefulSet", func() {
 					corev1.VolumeMount{
 						Name:      "erlang-cookie-secret",
 						MountPath: "/tmp/erlang-cookie-secret/",
+					},
+					corev1.VolumeMount{
+						Name:      "rabbitmq-plugins",
+						MountPath: "/operator",
 					},
 					corev1.VolumeMount{
 						Name:      "persistence",
@@ -1012,7 +1013,6 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		Context("resources requirements", func() {
-
 			It("sets StatefulSet resource requirements", func() {
 				instance.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -1305,6 +1305,10 @@ var _ = Describe("StatefulSet", func() {
 							Value: "true",
 						},
 						corev1.EnvVar{
+							Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+							Value: "/operator/enabled_plugins",
+						},
+						corev1.EnvVar{
 							Name:  "RABBITMQ_NODENAME",
 							Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 						},
@@ -1326,12 +1330,9 @@ var _ = Describe("StatefulSet", func() {
 							MountPath: "/var/lib/rabbitmq/mnesia/",
 						},
 						corev1.VolumeMount{
-							Name:      "rabbitmq-etc",
-							MountPath: "/etc/rabbitmq/",
-						},
-						corev1.VolumeMount{
 							Name:      "rabbitmq-confd",
-							MountPath: "/etc/rabbitmq/conf.d/",
+							MountPath: "/etc/rabbitmq/conf.d/default_user.conf",
+							SubPath:   "default_user.conf",
 						},
 						corev1.VolumeMount{
 							Name:      "rabbitmq-erlang-cookie",
@@ -1341,10 +1342,17 @@ var _ = Describe("StatefulSet", func() {
 							Name:      "pod-info",
 							MountPath: "/etc/pod-info/",
 						},
+						corev1.VolumeMount{
+							Name:      "server-conf",
+							MountPath: "/etc/rabbitmq/rabbitmq.conf",
+							SubPath:   "rabbitmq.conf",
+						},
+						corev1.VolumeMount{
+							Name:      "rabbitmq-plugins",
+							MountPath: "/operator",
+						},
 					))
-
 				})
-
 			})
 
 			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {
@@ -1379,7 +1387,6 @@ var _ = Describe("StatefulSet", func() {
 				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(4)))
 				Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Image).To(Equal("override-image"))
 			})
-
 		})
 	})
 })
