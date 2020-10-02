@@ -620,7 +620,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 								Command: []string{"/bin/bash", "-c",
 									fmt.Sprintf("if [ ! -z \"$(cat /etc/pod-info/%s)\" ]; then exit 0; fi;", DeletionMarker) +
 										fmt.Sprintf(" rabbitmq-upgrade await_online_quorum_plus_one -t %d;"+
-											" rabbitmq-upgrade await_online_synchronized_mirror -t %d", defaultGracePeriodTimeoutSeconds, defaultGracePeriodTimeoutSeconds),
+											" rabbitmq-upgrade await_online_synchronized_mirror -t %d;"+
+											" rabbitmq-upgrade drain -t %d", defaultGracePeriodTimeoutSeconds, defaultGracePeriodTimeoutSeconds, defaultGracePeriodTimeoutSeconds),
 								},
 							},
 						},
