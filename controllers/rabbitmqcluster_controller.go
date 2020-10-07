@@ -151,7 +151,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if statefulSetBeingUpdated {
+	if statefulSetBeingUpdated && rabbitmqCluster.Spec.RunPostUpgradeSteps {
 		if err := r.markForPostUpgrade(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}

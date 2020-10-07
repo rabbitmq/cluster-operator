@@ -3304,6 +3304,8 @@ spec:
                       x-kubernetes-int-or-string: true
                     type: object
                 type: object
+              runPostUpgradeSteps:
+                type: boolean
               service:
                 properties:
                   annotations:
