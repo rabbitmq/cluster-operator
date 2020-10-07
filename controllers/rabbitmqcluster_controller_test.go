@@ -1429,7 +1429,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			BeforeEach(func() {
 				cluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "rabbitmq-one",
+						Name:      "rabbitmq-three",
 						Namespace: defaultNamespace,
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -1506,7 +1506,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			BeforeEach(func() {
 				cluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "rabbitmq-one",
+						Name:      "rabbitmq-three",
 						Namespace: defaultNamespace,
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -1542,12 +1542,77 @@ var _ = Describe("RabbitmqClusterController", func() {
 						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeeded"))
 					})
 
-					By("not running the post_upgrade command", func() {
+					By("not running the post_upgrade command once all nodes are up", func() {
 						sts.Status.CurrentReplicas = 3
 						sts.Status.CurrentRevision = "some-new-revision"
 						sts.Status.UpdatedReplicas = 3
 						sts.Status.UpdateRevision = "some-new-revision"
 						sts.Status.ReadyReplicas = 3
+						statusWriter := client.Status()
+						err := statusWriter.Update(ctx, sts)
+						Expect(err).NotTo(HaveOccurred())
+						Consistently(func() map[string]string {
+							rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+							Expect(err).To(BeNil())
+							return rmq.ObjectMeta.Annotations
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeeded"))
+						Expect(fakeKubectlExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+					})
+
+				})
+
+			})
+		})
+
+		When("the cluster is only 1 node large", func() {
+			BeforeEach(func() {
+				cluster = &rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rabbitmq-one",
+						Namespace: defaultNamespace,
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas:            &one,
+						RunPostUpgradeSteps: true,
+					},
+				}
+				Expect(client.Create(ctx, cluster)).To(Succeed())
+				waitForClusterCreation(ctx, cluster, client)
+			})
+			When("the cluster is updated", func() {
+				var sts *v1.StatefulSet
+
+				BeforeEach(func() {
+					sts = statefulSet(ctx, cluster)
+					sts.Status.Replicas = 1
+					sts.Status.CurrentReplicas = 1
+					sts.Status.CurrentRevision = "some-old-revision"
+					sts.Status.UpdatedReplicas = 0
+					sts.Status.UpdateRevision = "some-new-revision"
+					sts.Status.ReadyReplicas = 0
+
+					statusWriter := client.Status()
+					err := statusWriter.Update(ctx, sts)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not trigger the controller to run rabbitmq-upgrade post_upgrade", func() {
+					By("never setting the annotation on the CR", func() {
+						Consistently(func() map[string]string {
+							rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+							Expect(err).To(BeNil())
+							return rmq.ObjectMeta.Annotations
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeeded"))
+					})
+
+					By("not running the post_upgrade command once all nodes are up", func() {
+						sts.Status.CurrentReplicas = 1
+						sts.Status.CurrentRevision = "some-new-revision"
+						sts.Status.UpdatedReplicas = 1
+						sts.Status.UpdateRevision = "some-new-revision"
+						sts.Status.ReadyReplicas = 1
 						statusWriter := client.Status()
 						err := statusWriter.Update(ctx, sts)
 						Expect(err).NotTo(HaveOccurred())

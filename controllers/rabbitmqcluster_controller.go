@@ -151,7 +151,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if statefulSetBeingUpdated && rabbitmqCluster.Spec.RunPostUpgradeSteps {
+	if statefulSetBeingUpdated &&
+		rabbitmqCluster.Spec.RunPostUpgradeSteps &&
+		*rabbitmqCluster.Spec.Replicas > 1 {
 		if err := r.markForPostUpgrade(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -345,7 +347,7 @@ func (r *RabbitmqClusterReconciler) runPostRestartStepsIfNeeded(ctx context.Cont
 		return 0, err
 	}
 	if !ready {
-		r.Log.Info("not all replicas ready yet; requeuing request to set plugins on RabbitmqCluster",
+		r.Log.Info("not all replicas ready yet; requeuing request to run post upgrade steps",
 			"namespace", rmq.Namespace,
 			"name", rmq.Name)
 		return 15 * time.Second, err
