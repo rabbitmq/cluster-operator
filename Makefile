@@ -4,7 +4,7 @@
 .PHONY: list
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false, crdVersions=v1, maxDescLen=0"
+CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false, crdVersions=v1"
 
 # Insert a comment starting with '##' after a target, and it will be printed by 'make' and 'make list'
 list:    ## list Makefile targets
@@ -19,6 +19,7 @@ integration-tests: install-tools generate fmt vet manifests ## Run integration t
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 	controller-gen $(CRD_OPTIONS) rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
+	./hack/remove-override-descriptions.sh
 	./hack/add-notice-to-yaml.sh config/rbac/role.yaml
 # this is temporary workaround due to issue https://github.com/kubernetes/kubernetes/issues/91395
 # the hack ensures that "protocal" is a required value where this field is listed as x-kubernetes-list-map-keys
