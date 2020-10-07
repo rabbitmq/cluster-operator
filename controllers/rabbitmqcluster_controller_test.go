@@ -23,6 +23,7 @@ import (
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
@@ -42,6 +43,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 	var (
 		cluster          *rabbitmqv1beta1.RabbitmqCluster
 		one              int32 = 1
+		three            int32 = 3
 		defaultNamespace       = "default"
 		ctx                    = context.Background()
 		updateWithRetry        = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
@@ -1411,6 +1413,94 @@ var _ = Describe("RabbitmqClusterController", func() {
 				return svc.Spec.Type
 			}, 5).Should(Equal(corev1.ServiceTypeLoadBalancer))
 		})
+	})
+
+	Context("Cluster restarts", func() {
+		BeforeEach(func() {
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-one",
+					Namespace: defaultNamespace,
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Replicas: &three,
+				},
+			}
+
+			Expect(client.Create(ctx, cluster)).To(Succeed())
+			waitForClusterCreation(ctx, cluster, client)
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(ctx, cluster)).To(Succeed())
+			Eventually(func() bool {
+				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+				return apierrors.IsNotFound(err)
+			}, 5).Should(BeTrue())
+		})
+
+		When("the cluster is updated", func() {
+			var sts *v1.StatefulSet
+
+			BeforeEach(func() {
+				sts = statefulSet(ctx, cluster)
+				sts.Status.Replicas = 3
+				sts.Status.CurrentReplicas = 2
+				sts.Status.CurrentRevision = "some-old-revision"
+				sts.Status.UpdatedReplicas = 1
+				sts.Status.UpdateRevision = "some-new-revision"
+
+				statusWriter := client.Status()
+				err := statusWriter.Update(ctx, sts)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("triggers the controller to run rabbitmq-upgrade post_upgrade", func() {
+				By("setting an annotation on the CR", func() {
+					Eventually(func() map[string]string {
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+						Expect(err).To(BeNil())
+						return rmq.ObjectMeta.Annotations
+					}, 5).Should(HaveKeyWithValue("rabbitmq.com/postUpgradeNeeded", "true"))
+				})
+
+				By("not removing the annotation when all replicas are updated but not yet ready", func() {
+					sts.Status.CurrentReplicas = 3
+					sts.Status.CurrentRevision = "some-new-revision"
+					sts.Status.UpdatedReplicas = 3
+					sts.Status.UpdateRevision = "some-new-revision"
+					sts.Status.ReadyReplicas = 2
+					statusWriter := client.Status()
+					err := statusWriter.Update(ctx, sts)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(func() map[string]string {
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+						Expect(err).To(BeNil())
+						return rmq.ObjectMeta.Annotations
+					}, 5).Should(HaveKeyWithValue("rabbitmq.com/postUpgradeNeeded", "true"))
+					Expect(fakeKubectlExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+				})
+
+				By("removing the annotation once all Pods are up, and triggering the queue rebalance", func() {
+					sts.Status.ReadyReplicas = 3
+					statusWriter := client.Status()
+					err := statusWriter.Update(ctx, sts)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(func() map[string]string {
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+						Expect(err).To(BeNil())
+						return rmq.ObjectMeta.Annotations
+					}, 5).ShouldNot(HaveKeyWithValue("rabbitmq.com/postUpgradeNeeded", "true"))
+					Expect(fakeKubectlExecutor.ExecutedCommands()).To(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+				})
+			})
+
+		})
+
 	})
 })
 

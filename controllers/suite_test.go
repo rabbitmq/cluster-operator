@@ -38,13 +38,14 @@ import (
 const controllerName = "rabbitmqcluster-controller"
 
 var (
-	cfg        *rest.Config
-	testEnv    *envtest.Environment
-	client     runtimeClient.Client
-	clientSet  *kubernetes.Clientset
-	stopMgr    chan struct{}
-	mgrStopped *sync.WaitGroup
-	scheme     *runtime.Scheme
+	cfg                 *rest.Config
+	testEnv             *envtest.Environment
+	client              runtimeClient.Client
+	clientSet           *kubernetes.Clientset
+	stopMgr             chan struct{}
+	mgrStopped          *sync.WaitGroup
+	scheme              *runtime.Scheme
+	fakeKubectlExecutor *fakePodExecutor
 )
 
 func TestControllers(t *testing.T) {
@@ -58,6 +59,10 @@ func TestControllers(t *testing.T) {
 var _ = BeforeSuite(func() {
 	var err error
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
+	fakeKubectlExecutor = &fakePodExecutor{}
+	controllers.NewPodExecutor = func() controllers.KubectlExecutor {
+		return fakeKubectlExecutor
+	}
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -108,3 +113,20 @@ func startManager(scheme *runtime.Scheme) {
 		Expect(mgr.Start(stopMgr)).To(Succeed())
 	}()
 }
+
+type fakePodExecutor struct {
+	executedCommands []command
+}
+
+type command []string
+
+func (f *fakePodExecutor) Exec(clientset *kubernetes.Clientset, clusterConfig *rest.Config, namespace, podName, containerName string, command ...string) (string, string, error) {
+	f.executedCommands = append(f.executedCommands, command)
+	return "", "", nil
+}
+
+func (f *fakePodExecutor) ExecutedCommands() []command { return f.executedCommands }
+
+func (f *fakePodExecutor) ResetExecutedCommands() { f.executedCommands = []command{} }
+
+var _ = AfterEach(func() { fakeKubectlExecutor.ResetExecutedCommands() })

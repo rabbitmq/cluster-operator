@@ -51,7 +51,8 @@ import (
 )
 
 var (
-	apiGVStr = rabbitmqv1beta1.GroupVersion.String()
+	apiGVStr       = rabbitmqv1beta1.GroupVersion.String()
+	NewPodExecutor = func() KubectlExecutor { return &podExecutor{} }
 )
 
 const (
@@ -59,6 +60,7 @@ const (
 	ownerKind               = "RabbitmqCluster"
 	deletionFinalizer       = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
 	pluginsUpdateAnnotation = "rabbitmq.com/pluginsUpdatedAt"
+	postUpgradeAnnotation   = "rabbitmq.com/postUpgradeNeeded"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -145,6 +147,16 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
+	statefulSetBeingUpdated, err := r.statefulSetBeingUpdated(ctx, rabbitmqCluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if statefulSetBeingUpdated {
+		if err := r.markForPostUpgrade(ctx, rabbitmqCluster); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	instanceSpec, err := json.Marshal(rabbitmqCluster.Spec)
 	if err != nil {
 		logger.Error(err, "Failed to marshal cluster spec")
@@ -210,6 +222,14 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	}
 
 	requeueAfter, err := r.setPluginsIfNeeded(ctx, rabbitmqCluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if requeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
+	requeueAfter, err = r.runPostRestartStepsIfNeeded(ctx, rabbitmqCluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -302,6 +322,60 @@ func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rab
 	return nil
 }
 
+func (r *RabbitmqClusterReconciler) markForPostUpgrade(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+	if rmq.ObjectMeta.Annotations == nil {
+		rmq.ObjectMeta.Annotations = make(map[string]string)
+	}
+
+	if rmq.ObjectMeta.Annotations[postUpgradeAnnotation] == "true" {
+		return nil
+	}
+
+	rmq.ObjectMeta.Annotations[postUpgradeAnnotation] = "true"
+	if err := r.Update(ctx, rmq); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *RabbitmqClusterReconciler) runPostRestartStepsIfNeeded(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (requeueAfter time.Duration, err error) {
+
+	ready, err := r.allReplicasReadyAndUpdated(ctx, rmq)
+	if err != nil {
+		return 0, err
+	}
+	if !ready {
+		r.Log.Info("not all replicas ready yet; requeuing request to set plugins on RabbitmqCluster",
+			"namespace", rmq.Namespace,
+			"name", rmq.Name)
+		return 15 * time.Second, err
+	}
+
+	if rmq.ObjectMeta.Annotations == nil {
+		return 0, nil
+	}
+
+	if rmq.ObjectMeta.Annotations[postUpgradeAnnotation] == "true" {
+		podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
+		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", "rabbitmq-upgrade post_upgrade")
+		if err != nil {
+			r.Log.Error(err, "failed to run post-upgrade",
+				"namespace", rmq.Namespace,
+				"name", rmq.Name,
+				"pod", podName,
+				"command", "rabbitmq-upgrade post_upgrade",
+				"stdout", stdout,
+				"stderr", stderr)
+			return 0, err
+		}
+		delete(rmq.ObjectMeta.Annotations, postUpgradeAnnotation)
+		if err := r.Update(ctx, rmq); err != nil {
+			return 0, client.IgnoreNotFound(err)
+		}
+	}
+	return 0, nil
+}
+
 // Adds an arbitrary annotation (rabbitmq.com/lastRestartAt) to the StatefulSet PodTemplate to trigger a StatefulSet restart
 // if builder requires StatefulSet to be updated.
 func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(
@@ -338,7 +412,7 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(
 }
 
 // There are 2 paths how plugins are set:
-// 1. When SatefulSet is (re)started, the up-to-date plugins list (ConfigMap copied by the init container) is read by RabbitMQ nodes during node start up.
+// 1. When StatefulSet is (re)started, the up-to-date plugins list (ConfigMap copied by the init container) is read by RabbitMQ nodes during node start up.
 // 2. When the plugins ConfigMap is changed, 'rabbitmq-plugins set' updates the plugins on every node (without the need to re-start the nodes).
 // This method implements the 2nd path.
 func (r *RabbitmqClusterReconciler) setPluginsIfNeeded(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (requeueAfter time.Duration, err error) {
@@ -421,6 +495,16 @@ func (r *RabbitmqClusterReconciler) allReplicasReadyAndUpdated(ctx context.Conte
 	return true, nil
 }
 
+func (r *RabbitmqClusterReconciler) statefulSetBeingUpdated(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (bool, error) {
+	sts := &appsv1.StatefulSet{}
+
+	if err := r.Get(ctx, types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}, sts); err != nil {
+		return false, client.IgnoreNotFound(err)
+	}
+
+	return sts.Status.CurrentRevision != sts.Status.UpdateRevision, nil
+}
+
 // Annotates the plugins ConfigMap if it was updated such that 'rabbitmq-plugins set' will be called on the RabbitMQ nodes at a later point in time
 func (r *RabbitmqClusterReconciler) annotatePluginsConfigMapIfUpdated(
 	ctx context.Context,
@@ -453,42 +537,7 @@ func (r *RabbitmqClusterReconciler) annotatePluginsConfigMapIfUpdated(
 }
 
 func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName string, command ...string) (string, string, error) {
-	request := r.Clientset.CoreV1().RESTClient().
-		Post().
-		Resource("pods").
-		Name(podName).
-		Namespace(namespace).
-		SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: containerName,
-			Command:   command,
-			Stdout:    true,
-			Stderr:    true,
-			Stdin:     false,
-		}, scheme.ParameterCodec)
-
-	exec, err := remotecommand.NewSPDYExecutor(r.ClusterConfig, "POST", request.URL())
-	if err != nil {
-		return "", "", err
-	}
-
-	stdOut := bytes.Buffer{}
-	stdErr := bytes.Buffer{}
-
-	err = exec.Stream(remotecommand.StreamOptions{
-		Stdout: bufio.NewWriter(&stdOut),
-		Stderr: bufio.NewWriter(&stdErr),
-		Stdin:  nil,
-		Tty:    false,
-	})
-	if err != nil {
-		return stdOut.String(), stdErr.String(), err
-	}
-	if stdErr.Len() > 0 {
-		return stdOut.String(), stdErr.String(), fmt.Errorf("%v", stdErr)
-	}
-
-	return stdOut.String(), "", nil
+	return NewPodExecutor().Exec(r.Clientset, r.ClusterConfig, namespace, podName, containerName, command...)
 }
 
 // logAndRecordOperationResult - helper function to log and record events with message and error
@@ -681,4 +730,49 @@ func validateAndGetOwner(owner *metav1.OwnerReference) []string {
 		return nil
 	}
 	return []string{owner.Name}
+}
+
+type KubectlExecutor interface {
+	Exec(clientset *kubernetes.Clientset, clusterConfig *rest.Config, namespace, podName, containerName string, command ...string) (string, string, error)
+}
+
+type podExecutor struct{}
+
+func (p *podExecutor) Exec(clientset *kubernetes.Clientset, clusterConfig *rest.Config, namespace, podName, containerName string, command ...string) (string, string, error) {
+	request := clientset.CoreV1().RESTClient().
+		Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(namespace).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: containerName,
+			Command:   command,
+			Stdout:    true,
+			Stderr:    true,
+			Stdin:     false,
+		}, scheme.ParameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(clusterConfig, "POST", request.URL())
+	if err != nil {
+		return "", "", err
+	}
+
+	stdOut := bytes.Buffer{}
+	stdErr := bytes.Buffer{}
+
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdout: bufio.NewWriter(&stdOut),
+		Stderr: bufio.NewWriter(&stdErr),
+		Stdin:  nil,
+		Tty:    false,
+	})
+	if err != nil {
+		return stdOut.String(), stdErr.String(), err
+	}
+	if stdErr.Len() > 0 {
+		return stdOut.String(), stdErr.String(), fmt.Errorf("%v", stdErr)
+	}
+
+	return stdOut.String(), "", nil
 }
