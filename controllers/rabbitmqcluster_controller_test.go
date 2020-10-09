@@ -1261,7 +1261,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				},
 
 				corev1.Volume{
-					Name: "rabbitmq-etc",
+					Name: "rabbitmq-plugins",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},

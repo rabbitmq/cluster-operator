@@ -19,6 +19,8 @@ require (
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/prometheus/client_golang v1.2.1 // indirect
+	github.com/pelletier/go-toml v1.8.1
+	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934 // indirect
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
@@ -27,7 +29,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20191122200657-5d9234df094c // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
-	gopkg.in/ini.v1 v1.61.0
+	gopkg.in/ini.v1 v1.62.0
 	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.8
 	k8s.io/client-go v0.18.6
