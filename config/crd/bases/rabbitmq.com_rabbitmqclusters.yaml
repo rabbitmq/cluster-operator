@@ -3304,8 +3304,6 @@ spec:
                       x-kubernetes-int-or-string: true
                     type: object
                 type: object
-              runPostUpgradeSteps:
-                type: boolean
               service:
                 properties:
                   annotations:
@@ -3319,6 +3317,8 @@ spec:
                     - NodePort
                     type: string
                 type: object
+              skipPostUpgradeSteps:
+                type: boolean
               tls:
                 properties:
                   caCertName:

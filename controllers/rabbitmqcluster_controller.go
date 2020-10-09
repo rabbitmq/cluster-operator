@@ -51,8 +51,7 @@ import (
 )
 
 var (
-	apiGVStr       = rabbitmqv1beta1.GroupVersion.String()
-	NewPodExecutor = func() KubectlExecutor { return &podExecutor{} }
+	apiGVStr = rabbitmqv1beta1.GroupVersion.String()
 )
 
 const (
@@ -72,6 +71,7 @@ type RabbitmqClusterReconciler struct {
 	Recorder      record.EventRecorder
 	ClusterConfig *rest.Config
 	Clientset     *kubernetes.Clientset
+	PodExecutor   KubectlExecutor
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -152,7 +152,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{}, err
 	}
 	if statefulSetBeingUpdated &&
-		rabbitmqCluster.Spec.RunPostUpgradeSteps &&
+		!rabbitmqCluster.Spec.SkipPostUpgradeSteps &&
 		*rabbitmqCluster.Spec.Replicas > 1 {
 		if err := r.markForPostUpgrade(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
@@ -539,7 +539,7 @@ func (r *RabbitmqClusterReconciler) annotatePluginsConfigMapIfUpdated(
 }
 
 func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName string, command ...string) (string, string, error) {
-	return NewPodExecutor().Exec(r.Clientset, r.ClusterConfig, namespace, podName, containerName, command...)
+	return r.PodExecutor.Exec(r.Clientset, r.ClusterConfig, namespace, podName, containerName, command...)
 }
 
 // logAndRecordOperationResult - helper function to log and record events with message and error
@@ -737,6 +737,8 @@ func validateAndGetOwner(owner *metav1.OwnerReference) []string {
 type KubectlExecutor interface {
 	Exec(clientset *kubernetes.Clientset, clusterConfig *rest.Config, namespace, podName, containerName string, command ...string) (string, string, error)
 }
+
+func NewPodExecutor() KubectlExecutor { return &podExecutor{} }
 
 type podExecutor struct{}
 

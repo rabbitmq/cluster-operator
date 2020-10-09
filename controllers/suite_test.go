@@ -59,10 +59,6 @@ func TestControllers(t *testing.T) {
 var _ = BeforeSuite(func() {
 	var err error
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
-	fakeKubectlExecutor = &fakePodExecutor{}
-	controllers.NewPodExecutor = func() controllers.KubectlExecutor {
-		return fakeKubectlExecutor
-	}
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -96,12 +92,14 @@ func startManager(scheme *runtime.Scheme) {
 	Expect(err).NotTo(HaveOccurred())
 	client = mgr.GetClient()
 
+	fakeKubectlExecutor = &fakePodExecutor{}
 	reconciler := &controllers.RabbitmqClusterReconciler{
-		Client:    client,
-		Log:       ctrl.Log.WithName(controllerName),
-		Scheme:    mgr.GetScheme(),
-		Recorder:  mgr.GetEventRecorderFor(controllerName),
-		Namespace: "rabbitmq-system",
+		Client:      client,
+		Log:         ctrl.Log.WithName(controllerName),
+		Scheme:      mgr.GetScheme(),
+		Recorder:    mgr.GetEventRecorderFor(controllerName),
+		Namespace:   "rabbitmq-system",
+		PodExecutor: fakeKubectlExecutor,
 	}
 	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
 

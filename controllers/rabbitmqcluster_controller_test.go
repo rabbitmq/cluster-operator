@@ -1433,8 +1433,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 						Namespace: defaultNamespace,
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas:            &three,
-						RunPostUpgradeSteps: true,
+						Replicas: &three,
 					},
 				}
 				Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -1510,7 +1509,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 						Namespace: defaultNamespace,
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: &three,
+						Replicas:             &three,
+						SkipPostUpgradeSteps: true,
 					},
 				}
 				Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -1573,8 +1573,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 						Namespace: defaultNamespace,
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas:            &one,
-						RunPostUpgradeSteps: true,
+						Replicas:             &one,
+						SkipPostUpgradeSteps: false,
 					},
 				}
 				Expect(client.Create(ctx, cluster)).To(Succeed())
