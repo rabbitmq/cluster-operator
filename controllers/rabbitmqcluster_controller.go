@@ -343,7 +343,7 @@ func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Conte
 		r.Log.Info("not all replicas ready yet; requeuing request to run post deploy steps",
 			"namespace", rmq.Namespace,
 			"name", rmq.Name)
-		return 15 * time.Second, err
+		return 15 * time.Second, nil
 	}
 
 	// Retrieve the plugins config map, if it exists.

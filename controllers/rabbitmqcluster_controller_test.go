@@ -1424,11 +1424,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 		AfterEach(func() {
 			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			Eventually(func() bool {
-				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-				return apierrors.IsNotFound(err)
-			}, 5).Should(BeTrue())
+			waitForClusterDeletion(ctx, cluster, client)
 		})
 
 		When("the cluster is configured to run post-upgrade steps", func() {
