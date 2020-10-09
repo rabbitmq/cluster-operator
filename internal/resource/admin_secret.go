@@ -12,6 +12,7 @@ package resource
 import (
 	"bytes"
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -36,47 +37,6 @@ func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
 		Instance: builder.Instance,
 		Scheme:   builder.Scheme,
 	}
-}
-
-func generateDefaultUserConf(username, password string) ([]byte, error) {
-
-	ini.PrettySection = false // Remove trailing new line because default_user.conf has only a default section.
-	cfg, err := ini.Load([]byte{})
-	if err != nil {
-		return nil, err
-	}
-	defaultSection := cfg.Section("")
-
-	if _, err := defaultSection.NewKey("default_user", username); err != nil {
-		return nil, err
-	}
-
-	if _, err := defaultSection.NewKey("default_pass", password); err != nil {
-		return nil, err
-	}
-
-	var userConfBuffer bytes.Buffer
-	if _, err := cfg.WriteTo(&userConfBuffer); err != nil {
-		return nil, err
-	}
-
-	return userConfBuffer.Bytes(), nil
-}
-
-func (builder *AdminSecretBuilder) UpdateRequiresStsRestart() bool {
-	return false
-}
-
-func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
-	secret := object.(*corev1.Secret)
-	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
-
-	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
-	}
-
-	return nil
 }
 
 func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
@@ -107,4 +67,44 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 			"default_user.conf": defaultUserConf,
 		},
 	}, nil
+}
+
+func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
+	secret := object.(*corev1.Secret)
+	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
+	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
+
+	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
+
+	return nil
+}
+
+func (builder *AdminSecretBuilder) UpdateRequiresStsRestart() bool {
+	return false
+}
+
+func generateDefaultUserConf(username, password string) ([]byte, error) {
+	ini.PrettySection = false // Remove trailing new line because default_user.conf has only a default section.
+	cfg, err := ini.Load([]byte{})
+	if err != nil {
+		return nil, err
+	}
+	defaultSection := cfg.Section("")
+
+	if _, err := defaultSection.NewKey("default_user", username); err != nil {
+		return nil, err
+	}
+
+	if _, err := defaultSection.NewKey("default_pass", password); err != nil {
+		return nil, err
+	}
+
+	var userConfBuffer bytes.Buffer
+	if _, err := cfg.WriteTo(&userConfBuffer); err != nil {
+		return nil, err
+	}
+
+	return userConfBuffer.Bytes(), nil
 }
