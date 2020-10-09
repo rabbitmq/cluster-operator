@@ -3694,6 +3694,10 @@ spec:
                     type: string
                 type: object
               skipPostUpgradeSteps:
+                description: If unset, or set to false, the cluster will run `rabbitmq-upgrade
+                  post_upgrade` whenever the cluster is updated. Has no effect if
+                  the cluster only consists of one node. For more information, see
+                  https://www.rabbitmq.com/rabbitmq-upgrade.8.html#post_upgrade
                 type: boolean
               tls:
                 properties:

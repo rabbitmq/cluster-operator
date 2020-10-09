@@ -45,6 +45,7 @@ import (
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -147,13 +148,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
-	statefulSetBeingUpdated, err := r.statefulSetBeingUpdated(ctx, rabbitmqCluster)
-	if err != nil {
+	sts, err := r.statefulSet(ctx, rabbitmqCluster)
+	// The StatefulSet may not have been created by this point, so ignore Not Found errors
+	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
-	if statefulSetBeingUpdated &&
-		!rabbitmqCluster.Spec.SkipPostUpgradeSteps &&
-		*rabbitmqCluster.Spec.Replicas > 1 {
+	if statefulSetNeedsPostUpgrade(sts, rabbitmqCluster) {
 		if err := r.markForPostUpgrade(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -223,15 +223,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{}, err
 	}
 
-	requeueAfter, err := r.setPluginsIfNeeded(ctx, rabbitmqCluster)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if requeueAfter > 0 {
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
-	}
-
-	requeueAfter, err = r.runPostRestartStepsIfNeeded(ctx, rabbitmqCluster)
+	// By this point the StatefulSet may have finished deploying. Run any
+	// post-deploy steps if so, or requeue until the deployment is finished.
+	requeueAfter, err := r.runPostDeployStepsIfNeeded(ctx, rabbitmqCluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -340,42 +334,98 @@ func (r *RabbitmqClusterReconciler) markForPostUpgrade(ctx context.Context, rmq 
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) runPostRestartStepsIfNeeded(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (requeueAfter time.Duration, err error) {
-
-	ready, err := r.allReplicasReadyAndUpdated(ctx, rmq)
+func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (requeueAfter time.Duration, err error) {
+	sts, err := r.statefulSet(ctx, rmq)
 	if err != nil {
 		return 0, err
 	}
-	if !ready {
-		r.Log.Info("not all replicas ready yet; requeuing request to run post upgrade steps",
+	if !allReplicasReadyAndUpdated(sts) {
+		r.Log.Info("not all replicas ready yet; requeuing request to run post deploy steps",
 			"namespace", rmq.Namespace,
 			"name", rmq.Name)
 		return 15 * time.Second, err
 	}
 
-	if rmq.ObjectMeta.Annotations == nil {
-		return 0, nil
+	// Retrieve the plugins config map, if it exists.
+	pluginsConfig, err := r.pluginsConfigMap(ctx, rmq)
+	if client.IgnoreNotFound(err) != nil {
+		return 0, err
+	}
+	updatedRecently, err := pluginsConfigUpdatedRecently(pluginsConfig)
+	if err != nil {
+		return 0, err
+	}
+	if updatedRecently {
+		// plugins configMap was updated very recently
+		// give StatefulSet controller some time to trigger restart of StatefulSet if necessary
+		// otherwise, there would be race conditions where we exec into containers losing the connection due to pods being terminated
+		r.Log.Info("requeuing request to set plugins on RabbitmqCluster",
+			"namespace", rmq.Namespace,
+			"name", rmq.Name)
+		return 2 * time.Second, nil
 	}
 
-	if rmq.ObjectMeta.Annotations[postUpgradeAnnotation] == "true" {
-		podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
-		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", "rabbitmq-upgrade post_upgrade")
+	if pluginsConfig != nil {
+		if err = r.runSetPluginsCommand(ctx, rmq, pluginsConfig); err != nil {
+			return 0, err
+		}
+	}
+
+	// If the cluster has been marked as needing it, run rabbitmq-upgrade post_upgrade
+	if rmq.ObjectMeta.Annotations != nil && rmq.ObjectMeta.Annotations[postUpgradeAnnotation] == "true" {
+		err = r.runPostUpgradeCommand(ctx, rmq)
+	}
+	return 0, err
+}
+
+func (r *RabbitmqClusterReconciler) runPostUpgradeCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+	podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
+	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", "rabbitmq-upgrade post_upgrade")
+	if err != nil {
+		r.Log.Error(err, "failed to run post-upgrade",
+			"namespace", rmq.Namespace,
+			"name", rmq.Name,
+			"pod", podName,
+			"command", "rabbitmq-upgrade post_upgrade",
+			"stdout", stdout,
+			"stderr", stderr)
+		return err
+	}
+	delete(rmq.ObjectMeta.Annotations, postUpgradeAnnotation)
+	return r.Update(ctx, rmq)
+}
+
+// There are 2 paths how plugins are set:
+// 1. When StatefulSet is (re)started, the up-to-date plugins list (ConfigMap copied by the init container) is read by RabbitMQ nodes during node start up.
+// 2. When the plugins ConfigMap is changed, 'rabbitmq-plugins set' updates the plugins on every node (without the need to re-start the nodes).
+// This method implements the 2nd path.
+func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, configMap *corev1.ConfigMap) error {
+	plugins := resource.NewRabbitmqPlugins(rmq.Spec.Rabbitmq.AdditionalPlugins)
+	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
+		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
+		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s", plugins.AsString(" "))
+		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", rabbitCommand)
 		if err != nil {
-			r.Log.Error(err, "failed to run post-upgrade",
+			r.Log.Error(err, "failed to set plugins",
 				"namespace", rmq.Namespace,
 				"name", rmq.Name,
 				"pod", podName,
-				"command", "rabbitmq-upgrade post_upgrade",
+				"command", rabbitCommand,
 				"stdout", stdout,
 				"stderr", stderr)
-			return 0, err
-		}
-		delete(rmq.ObjectMeta.Annotations, postUpgradeAnnotation)
-		if err := r.Update(ctx, rmq); err != nil {
-			return 0, client.IgnoreNotFound(err)
+			return err
 		}
 	}
-	return 0, nil
+	r.Log.Info("successfully set plugins on RabbitmqCluster",
+		"namespace", rmq.Namespace,
+		"name", rmq.Name)
+
+	delete(configMap.Annotations, pluginsUpdateAnnotation)
+	if err := r.Update(ctx, configMap); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Adds an arbitrary annotation (rabbitmq.com/lastRestartAt) to the StatefulSet PodTemplate to trigger a StatefulSet restart
@@ -413,98 +463,20 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(
 	return true
 }
 
-// There are 2 paths how plugins are set:
-// 1. When StatefulSet is (re)started, the up-to-date plugins list (ConfigMap copied by the init container) is read by RabbitMQ nodes during node start up.
-// 2. When the plugins ConfigMap is changed, 'rabbitmq-plugins set' updates the plugins on every node (without the need to re-start the nodes).
-// This method implements the 2nd path.
-func (r *RabbitmqClusterReconciler) setPluginsIfNeeded(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (requeueAfter time.Duration, err error) {
-	configMap := corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Namespace: rmq.Namespace, Name: rmq.ChildResourceName(resource.PluginsConfig)}, &configMap); err != nil {
-		return 0, client.IgnoreNotFound(err)
+func (r *RabbitmqClusterReconciler) statefulSet(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (*v1.StatefulSet, error) {
+	sts := &appsv1.StatefulSet{}
+	if err := r.Get(ctx, types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}, sts); err != nil {
+		return nil, err
 	}
-
-	pluginsUpdatedAt, ok := configMap.Annotations[pluginsUpdateAnnotation]
-	if !ok {
-		return 0, nil // plugins configMap was not updated
-	}
-
-	annotationTime, err := time.Parse(time.RFC3339, pluginsUpdatedAt)
-	if err != nil {
-		return 0, err
-	}
-	if time.Since(annotationTime).Seconds() < 2 {
-		// plugins configMap was updated very recently
-		// give StatefulSet controller some time to trigger restart of StatefulSet if necessary
-		// otherwise, there would be race conditions where we exec into containers losing the connection due to pods being terminated
-		r.Log.Info("requeuing request to set plugins on RabbitmqCluster",
-			"namespace", rmq.Namespace,
-			"name", rmq.Name)
-		return 2 * time.Second, nil
-	}
-
-	ready, err := r.allReplicasReadyAndUpdated(ctx, rmq)
-	if err != nil {
-		return 0, err
-	}
-	if !ready {
-		r.Log.Info("not all replicas ready yet; requeuing request to set plugins on RabbitmqCluster",
-			"namespace", rmq.Namespace,
-			"name", rmq.Name)
-		return 15 * time.Second, err
-	}
-
-	plugins := resource.NewRabbitmqPlugins(rmq.Spec.Rabbitmq.AdditionalPlugins)
-	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
-		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
-		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s", plugins.AsString(" "))
-		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", rabbitCommand)
-		if err != nil {
-			r.Log.Error(err, "failed to set plugins",
-				"namespace", rmq.Namespace,
-				"name", rmq.Name,
-				"pod", podName,
-				"command", rabbitCommand,
-				"stdout", stdout,
-				"stderr", stderr)
-			return 0, err
-		}
-	}
-	r.Log.Info("successfully set plugins on RabbitmqCluster",
-		"namespace", rmq.Namespace,
-		"name", rmq.Name)
-
-	delete(configMap.Annotations, pluginsUpdateAnnotation)
-	if err := r.Update(ctx, &configMap); err != nil {
-		return 0, client.IgnoreNotFound(err)
-	}
-
-	return 0, nil
+	return sts, nil
 }
 
-func (r *RabbitmqClusterReconciler) allReplicasReadyAndUpdated(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (bool, error) {
-	sts := &appsv1.StatefulSet{}
-
-	if err := r.Get(ctx, types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}, sts); err != nil {
-		return false, client.IgnoreNotFound(err)
+func (r *RabbitmqClusterReconciler) pluginsConfigMap(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: rmq.Namespace, Name: rmq.ChildResourceName(resource.PluginsConfig)}, configMap); err != nil {
+		return nil, err
 	}
-
-	desiredReplicas := *sts.Spec.Replicas
-	if sts.Status.ReadyReplicas < desiredReplicas ||
-		sts.Status.UpdatedReplicas < desiredReplicas { // StatefulSet rolling update is ongoing
-		return false, nil
-	}
-
-	return true, nil
-}
-
-func (r *RabbitmqClusterReconciler) statefulSetBeingUpdated(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (bool, error) {
-	sts := &appsv1.StatefulSet{}
-
-	if err := r.Get(ctx, types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}, sts); err != nil {
-		return false, client.IgnoreNotFound(err)
-	}
-
-	return sts.Status.CurrentRevision != sts.Status.UpdateRevision, nil
+	return configMap, nil
 }
 
 // Annotates the plugins ConfigMap if it was updated such that 'rabbitmq-plugins set' will be called on the RabbitMQ nodes at a later point in time
@@ -732,6 +704,37 @@ func validateAndGetOwner(owner *metav1.OwnerReference) []string {
 		return nil
 	}
 	return []string{owner.Name}
+}
+
+func allReplicasReadyAndUpdated(sts *v1.StatefulSet) bool {
+	return sts.Status.ReadyReplicas == *sts.Spec.Replicas && !statefulSetBeingUpdated(sts)
+}
+
+func statefulSetBeingUpdated(sts *v1.StatefulSet) bool {
+	return sts.Status.CurrentRevision != sts.Status.UpdateRevision
+}
+
+func statefulSetNeedsPostUpgrade(sts *v1.StatefulSet, rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
+	return sts != nil &&
+		statefulSetBeingUpdated(sts) &&
+		!rmq.Spec.SkipPostUpgradeSteps &&
+		*rmq.Spec.Replicas > 1
+}
+
+func pluginsConfigUpdatedRecently(cfg *corev1.ConfigMap) (bool, error) {
+	if cfg == nil {
+		return false, nil
+	}
+	pluginsUpdatedAt, ok := cfg.Annotations[pluginsUpdateAnnotation]
+	if !ok {
+		return false, nil // plugins configMap was not updated
+	}
+
+	annotationTime, err := time.Parse(time.RFC3339, pluginsUpdatedAt)
+	if err != nil {
+		return false, err
+	}
+	return time.Since(annotationTime).Seconds() < 2, nil
 }
 
 type KubectlExecutor interface {
