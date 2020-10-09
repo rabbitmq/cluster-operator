@@ -58,7 +58,7 @@ In our team roadmap we decided to coup the lack of user feedbacks by offering [d
 
 ## Proposal
 
-This proposal adds the ability to override statefulSet and client service template directly through the CRD spec. Our operator creates 9 kubernetes child recourses directly for each `RabbitmqCluster`: client Service, headless Service, StatefulSet, ConfigMap, erlang cookie secret, admin secret, rbac role, role binding, service account. Among these resources, we allow users to partially configure the StatefulSet, the client Service, and the pods that StatefulSet creates. The proposal focuses on 2 child recourses: client Service and StatefulSet to increase configurability, since there is no obvious use case for now that involves configuring any of the other child resources. We can add overrides for other resources when we see fit in the future.
+This proposal adds the ability to override statefulSet and client service template directly through the CRD spec. Our operator creates 9 kubernetes child recourses directly for each `RabbitmqCluster`: client Service, headless Service, StatefulSet, ConfigMap, erlang cookie secret, default user secret, rbac role, role binding, service account. Among these resources, we allow users to partially configure the StatefulSet, the client Service, and the pods that StatefulSet creates. The proposal focuses on 2 child recourses: client Service and StatefulSet to increase configurability, since there is no obvious use case for now that involves configuring any of the other child resources. We can add overrides for other resources when we see fit in the future.
 
 A brief summary of the proposed plan:
 * Add an override section to CRD spec which supports statefulSetOverride and clientServiceOverride

@@ -11,6 +11,7 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+
 	"gopkg.in/ini.v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,13 +25,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("AdminSecret", func() {
+var _ = Describe("DefaultUserSecret", func() {
 	var (
-		secret             *corev1.Secret
-		instance           rabbitmqv1beta1.RabbitmqCluster
-		builder            *resource.RabbitmqResourceBuilder
-		adminSecretBuilder *resource.AdminSecretBuilder
-		scheme             *runtime.Scheme
+		secret                   *corev1.Secret
+		instance                 rabbitmqv1beta1.RabbitmqCluster
+		builder                  *resource.RabbitmqResourceBuilder
+		defaultUserSecretBuilder *resource.DefaultUserSecretBuilder
+		scheme                   *runtime.Scheme
 	)
 
 	BeforeEach(func() {
@@ -47,21 +48,21 @@ var _ = Describe("AdminSecret", func() {
 			Instance: &instance,
 			Scheme:   scheme,
 		}
-		adminSecretBuilder = builder.AdminSecret()
+		defaultUserSecretBuilder = builder.DefaultUserSecret()
 	})
 
 	Context("Build with defaults", func() {
-		It("creates the necessary admin secret", func() {
+		It("creates the necessary default-user secret", func() {
 			var username []byte
 			var password []byte
 			var ok bool
 
-			obj, err := adminSecretBuilder.Build()
+			obj, err := defaultUserSecretBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			secret = obj.(*corev1.Secret)
 
 			By("creating the secret with correct name and namespace", func() {
-				Expect(secret.Name).To(Equal(instance.ChildResourceName("admin")))
+				Expect(secret.Name).To(Equal(instance.ChildResourceName("default-user")))
 				Expect(secret.Namespace).To(Equal("a namespace"))
 			})
 
@@ -124,7 +125,7 @@ var _ = Describe("AdminSecret", func() {
 					},
 				},
 			}
-			err := adminSecretBuilder.Update(secret)
+			err := defaultUserSecretBuilder.Update(secret)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("adding new labels from the CR", func() {
@@ -172,10 +173,10 @@ var _ = Describe("AdminSecret", func() {
 					},
 				},
 			}
-			err := adminSecretBuilder.Update(secret)
+			err := defaultUserSecretBuilder.Update(secret)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("updating secret annotations on admin secret", func() {
+			By("updating secret annotations on default-user secret", func() {
 				expectedAnnotations := map[string]string{
 					"my-annotation":                 "i-like-this",
 					"i-was-here-already":            "please-dont-delete-me",
@@ -197,7 +198,7 @@ var _ = Describe("AdminSecret", func() {
 				Name: "rabbit1",
 			},
 		}
-		Expect(adminSecretBuilder.Update(secret)).NotTo(HaveOccurred())
+		Expect(defaultUserSecretBuilder.Update(secret)).NotTo(HaveOccurred())
 		Expect(secret.OwnerReferences[0].Name).To(Equal(instance.Name))
 	})
 })

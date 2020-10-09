@@ -113,8 +113,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 				Expect(configMap.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
 
-			By("creating a rabbitmq admin secret", func() {
-				secretName := cluster.ChildResourceName("admin")
+			By("creating a rabbitmq default-user secret", func() {
+				secretName := cluster.ChildResourceName("default-user")
 				secret, err := clientSet.CoreV1().Secrets(cluster.Namespace).Get(ctx, secretName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(secret.Name).To(Equal(secretName))
@@ -173,7 +173,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("plugins-conf")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("server-conf")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Secret", cluster.ChildResourceName("erlang-cookie")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Secret", cluster.ChildResourceName("admin")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Secret", cluster.ChildResourceName("default-user")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ServiceAccount", cluster.ChildResourceName("server")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Role", cluster.ChildResourceName("peer-discovery")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.RoleBinding", cluster.ChildResourceName("server")))
@@ -194,7 +194,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				}, 5).Should(Equal("deletion.finalizers.rabbitmqclusters.rabbitmq.com"))
 			})
 
-			By("setting the admin secret details in the custom resource status", func() {
+			By("setting the default-user secret details in the custom resource status", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{}
 				Eventually(func() *rabbitmqv1beta1.RabbitmqClusterSecretReference {
@@ -203,15 +203,15 @@ var _ = Describe("RabbitmqClusterController", func() {
 						return nil
 					}
 
-					if rmq.Status.Admin != nil && rmq.Status.Admin.SecretReference != nil {
-						secretRef = rmq.Status.Admin.SecretReference
+					if rmq.Status.DefaultUser != nil && rmq.Status.DefaultUser.SecretReference != nil {
+						secretRef = rmq.Status.DefaultUser.SecretReference
 						return secretRef
 					}
 
 					return nil
 				}, 5).ShouldNot(BeNil())
 
-				Expect(secretRef.Name).To(Equal(rmq.ChildResourceName(resource.AdminSecretName)))
+				Expect(secretRef.Name).To(Equal(rmq.ChildResourceName(resource.DefaultUserSecretName)))
 				Expect(secretRef.Namespace).To(Equal(rmq.Namespace))
 				Expect(secretRef.Keys).To(HaveKeyWithValue("username", "username"))
 				Expect(secretRef.Keys).To(HaveKeyWithValue("password", "password"))
@@ -226,8 +226,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 						return nil
 					}
 
-					if rmq.Status.Admin != nil && rmq.Status.Admin.ServiceReference != nil {
-						serviceRef = rmq.Status.Admin.ServiceReference
+					if rmq.Status.DefaultUser != nil && rmq.Status.DefaultUser.ServiceReference != nil {
+						serviceRef = rmq.Status.DefaultUser.ServiceReference
 						return serviceRef
 					}
 
@@ -803,7 +803,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			It("updates annotations for secrets", func() {
 				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().Secrets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("admin"), metav1.GetOptions{})
+					roleBinding, err := clientSet.CoreV1().Secrets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("default-user"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -1220,7 +1220,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 								{
 									Secret: &corev1.SecretProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "rabbitmq-sts-override-rabbitmq-admin",
+											Name: "rabbitmq-sts-override-rabbitmq-default-user",
 										},
 										Items: []corev1.KeyToPath{
 											{

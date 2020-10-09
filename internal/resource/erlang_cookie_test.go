@@ -11,6 +11,7 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 
@@ -102,7 +103,7 @@ var _ = Describe("ErlangCookie", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("adds labels from the CRD on the admin secret", func() {
+		It("adds labels from the CRD on the default-user secret", func() {
 			testLabels(secret.Labels)
 		})
 

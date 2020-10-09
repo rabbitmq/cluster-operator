@@ -855,7 +855,7 @@ var _ = Describe("StatefulSet", func() {
 								{
 									Secret: &corev1.SecretProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: builder.Instance.ChildResourceName("admin"),
+											Name: builder.Instance.ChildResourceName("default-user"),
 										},
 										Items: []corev1.KeyToPath{
 											{

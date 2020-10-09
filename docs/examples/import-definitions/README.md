@@ -21,4 +21,4 @@ kubectl create configmap definitions --from-file='def.json=/my/path/to/definitio
 
 Then, leverage the StatefulSet Override to mount this additional ConfigMap `definitions` to your rabbitmqcluster instance. Check out `rabbitmq.yaml` as an example.
 
-Keep in mind that exported definitions contain all broker objects, including users. This means that the admin user credentials will be imported from the definitions, and will not be the one which is generated at the creation of the deployment as a kubernetes secret object.
+Keep in mind that exported definitions contain all broker objects, including users. This means that the default-user credentials will be imported from the definitions, and will not be the one which is generated at the creation of the deployment as a kubernetes secret object.

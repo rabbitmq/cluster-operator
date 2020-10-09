@@ -24,22 +24,22 @@ import (
 )
 
 const (
-	AdminSecretName = "admin"
+	DefaultUserSecretName = "default-user"
 )
 
-type AdminSecretBuilder struct {
+type DefaultUserSecretBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
 	Scheme   *runtime.Scheme
 }
 
-func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
-	return &AdminSecretBuilder{
+func (builder *RabbitmqResourceBuilder) DefaultUserSecret() *DefaultUserSecretBuilder {
+	return &DefaultUserSecretBuilder{
 		Instance: builder.Instance,
 		Scheme:   builder.Scheme,
 	}
 }
 
-func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
+func (builder *DefaultUserSecretBuilder) Build() (runtime.Object, error) {
 	username, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(AdminSecretName),
+			Name:      builder.Instance.ChildResourceName(DefaultUserSecretName),
 			Namespace: builder.Instance.Namespace,
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -69,7 +69,7 @@ func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
 	}, nil
 }
 
-func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
+func (builder *DefaultUserSecretBuilder) Update(object runtime.Object) error {
 	secret := object.(*corev1.Secret)
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
@@ -81,7 +81,7 @@ func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func (builder *AdminSecretBuilder) UpdateRequiresStsRestart() bool {
+func (builder *DefaultUserSecretBuilder) UpdateRequiresStsRestart() bool {
 	return false
 }
 

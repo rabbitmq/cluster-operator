@@ -55,7 +55,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				&HeadlessServiceBuilder{},
 				&ClientServiceBuilder{},
 				&ErlangCookieBuilder{},
-				&AdminSecretBuilder{},
+				&DefaultUserSecretBuilder{},
 				&RabbitmqPluginsConfigMapBuilder{},
 				&ServerConfigMapBuilder{},
 				&ServiceAccountBuilder{},
