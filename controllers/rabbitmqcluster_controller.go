@@ -60,7 +60,7 @@ const (
 	ownerKind               = "RabbitmqCluster"
 	deletionFinalizer       = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
 	pluginsUpdateAnnotation = "rabbitmq.com/pluginsUpdatedAt"
-	postUpgradeAnnotation   = "rabbitmq.com/postUpgradeNeeded"
+	postUpgradeAnnotation   = "rabbitmq.com/postUpgradeNeededAt"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -323,11 +323,11 @@ func (r *RabbitmqClusterReconciler) markForPostUpgrade(ctx context.Context, rmq 
 		rmq.ObjectMeta.Annotations = make(map[string]string)
 	}
 
-	if rmq.ObjectMeta.Annotations[postUpgradeAnnotation] == "true" {
+	if len(rmq.ObjectMeta.Annotations[postUpgradeAnnotation]) > 0 {
 		return nil
 	}
 
-	rmq.ObjectMeta.Annotations[postUpgradeAnnotation] = "true"
+	rmq.ObjectMeta.Annotations[postUpgradeAnnotation] = time.Now().Format(time.RFC3339)
 	if err := r.Update(ctx, rmq); err != nil {
 		return err
 	}
@@ -372,7 +372,7 @@ func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Conte
 	}
 
 	// If the cluster has been marked as needing it, run rabbitmq-upgrade post_upgrade
-	if rmq.ObjectMeta.Annotations != nil && rmq.ObjectMeta.Annotations[postUpgradeAnnotation] == "true" {
+	if rmq.ObjectMeta.Annotations != nil && len(rmq.ObjectMeta.Annotations[postUpgradeAnnotation]) > 0 {
 		err = r.runPostUpgradeCommand(ctx, rmq)
 	}
 	return 0, err

@@ -1416,6 +1416,12 @@ var _ = Describe("RabbitmqClusterController", func() {
 	})
 
 	Context("Cluster restarts", func() {
+		var annotations map[string]string
+
+		BeforeEach(func() {
+			annotations = map[string]string{}
+		})
+
 		AfterEach(func() {
 			Expect(client.Delete(ctx, cluster)).To(Succeed())
 			Eventually(func() bool {
@@ -1461,8 +1467,11 @@ var _ = Describe("RabbitmqClusterController", func() {
 							rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
-							return rmq.ObjectMeta.Annotations
-						}, 5).Should(HaveKeyWithValue("rabbitmq.com/postUpgradeNeeded", "true"))
+							annotations = rmq.ObjectMeta.Annotations
+							return annotations
+						}, 5).Should(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
+						_, err := time.Parse(time.RFC3339, annotations["rabbitmq.com/postUpgradeNeededAt"])
+						Expect(err).NotTo(HaveOccurred(), "Annotation rabbitmq.com/postUpgradeNeededAt was not a valid RFC3339 timestamp")
 					})
 
 					By("not removing the annotation when all replicas are updated but not yet ready", func() {
@@ -1478,9 +1487,12 @@ var _ = Describe("RabbitmqClusterController", func() {
 							rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
-							return rmq.ObjectMeta.Annotations
-						}, 5).Should(HaveKeyWithValue("rabbitmq.com/postUpgradeNeeded", "true"))
+							annotations = rmq.ObjectMeta.Annotations
+							return annotations
+						}, 5).Should(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
 						Expect(fakeKubectlExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+						_, err = time.Parse(time.RFC3339, annotations["rabbitmq.com/postUpgradeNeededAt"])
+						Expect(err).NotTo(HaveOccurred(), "Annotation rabbitmq.com/postUpgradeNeededAt was not a valid RFC3339 timestamp")
 					})
 
 					By("removing the annotation once all Pods are up, and triggering the queue rebalance", func() {
@@ -1493,7 +1505,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKeyWithValue("rabbitmq.com/postUpgradeNeeded", "true"))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
 						Expect(fakeKubectlExecutor.ExecutedCommands()).To(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
 					})
 				})
@@ -1539,7 +1551,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeeded"))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
 					})
 
 					By("not running the post_upgrade command once all nodes are up", func() {
@@ -1556,7 +1568,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeeded"))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
 						Expect(fakeKubectlExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
 					})
 
@@ -1604,7 +1616,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeeded"))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
 					})
 
 					By("not running the post_upgrade command once all nodes are up", func() {
@@ -1621,7 +1633,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeeded"))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
 						Expect(fakeKubectlExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
 					})
 
