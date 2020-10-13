@@ -55,11 +55,11 @@ var (
 )
 
 const (
-	ownerKey                = ".metadata.controller"
-	ownerKind               = "RabbitmqCluster"
-	deletionFinalizer       = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
-	pluginsUpdateAnnotation = "rabbitmq.com/pluginsUpdatedAt"
-	postUpgradeAnnotation   = "rabbitmq.com/postUpgradeNeededAt"
+	ownerKey                 = ".metadata.controller"
+	ownerKind                = "RabbitmqCluster"
+	deletionFinalizer        = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
+	pluginsUpdateAnnotation  = "rabbitmq.com/pluginsUpdatedAt"
+	queueRebalanceAnnotation = "rabbitmq.com/queueRebalanceNeededAt"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -152,8 +152,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
-	if sts != nil && statefulSetNeedsPostUpgrade(sts, rabbitmqCluster) {
-		if err := r.markForPostUpgrade(ctx, rabbitmqCluster); err != nil {
+	if sts != nil && statefulSetNeedsQueueRebalance(sts, rabbitmqCluster) {
+		if err := r.markForQueueRebalance(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -317,16 +317,16 @@ func (r *RabbitmqClusterReconciler) setAdminStatus(ctx context.Context, rmq *rab
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) markForPostUpgrade(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) markForQueueRebalance(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 	if rmq.ObjectMeta.Annotations == nil {
 		rmq.ObjectMeta.Annotations = make(map[string]string)
 	}
 
-	if len(rmq.ObjectMeta.Annotations[postUpgradeAnnotation]) > 0 {
+	if len(rmq.ObjectMeta.Annotations[queueRebalanceAnnotation]) > 0 {
 		return nil
 	}
 
-	rmq.ObjectMeta.Annotations[postUpgradeAnnotation] = time.Now().Format(time.RFC3339)
+	rmq.ObjectMeta.Annotations[queueRebalanceAnnotation] = time.Now().Format(time.RFC3339)
 	if err := r.Update(ctx, rmq); err != nil {
 		return err
 	}
@@ -370,27 +370,27 @@ func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Conte
 		}
 	}
 
-	// If the cluster has been marked as needing it, run rabbitmq-upgrade post_upgrade
-	if rmq.ObjectMeta.Annotations != nil && len(rmq.ObjectMeta.Annotations[postUpgradeAnnotation]) > 0 {
-		err = r.runPostUpgradeCommand(ctx, rmq)
+	// If the cluster has been marked as needing it, run rabbitmq-queues rebalance all
+	if rmq.ObjectMeta.Annotations != nil && len(rmq.ObjectMeta.Annotations[queueRebalanceAnnotation]) > 0 {
+		err = r.runQueueRebalanceCommand(ctx, rmq)
 	}
 	return 0, err
 }
 
-func (r *RabbitmqClusterReconciler) runPostUpgradeCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) runQueueRebalanceCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 	podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
-	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", "rabbitmq-upgrade post_upgrade")
+	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", "rabbitmq-queues rebalance all")
 	if err != nil {
-		r.Log.Error(err, "failed to run post-upgrade",
+		r.Log.Error(err, "failed to run queue rebalance",
 			"namespace", rmq.Namespace,
 			"name", rmq.Name,
 			"pod", podName,
-			"command", "rabbitmq-upgrade post_upgrade",
+			"command", "rabbitmq-queues rebalance all",
 			"stdout", stdout,
 			"stderr", stderr)
 		return err
 	}
-	delete(rmq.ObjectMeta.Annotations, postUpgradeAnnotation)
+	delete(rmq.ObjectMeta.Annotations, queueRebalanceAnnotation)
 	return r.Update(ctx, rmq)
 }
 
@@ -713,9 +713,9 @@ func statefulSetBeingUpdated(sts *appsv1.StatefulSet) bool {
 	return sts.Status.CurrentRevision != sts.Status.UpdateRevision
 }
 
-func statefulSetNeedsPostUpgrade(sts *appsv1.StatefulSet, rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
+func statefulSetNeedsQueueRebalance(sts *appsv1.StatefulSet, rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
 	return statefulSetBeingUpdated(sts) &&
-		!rmq.Spec.SkipPostUpgradeSteps &&
+		!rmq.Spec.SkipPostDeploySteps &&
 		*rmq.Spec.Replicas > 1
 }
 

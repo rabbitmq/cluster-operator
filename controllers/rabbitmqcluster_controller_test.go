@@ -1426,7 +1426,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			waitForClusterDeletion(ctx, cluster, client)
 		})
 
-		When("the cluster is configured to run post-upgrade steps", func() {
+		When("the cluster is configured to run post-deploy steps", func() {
 			BeforeEach(func() {
 				cluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1456,7 +1456,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("triggers the controller to run rabbitmq-upgrade post_upgrade", func() {
+				It("triggers the controller to run rabbitmq-queues rebalance all", func() {
 					By("setting an annotation on the CR", func() {
 						Eventually(func() map[string]string {
 							rmq := &rabbitmqv1beta1.RabbitmqCluster{}
@@ -1464,9 +1464,9 @@ var _ = Describe("RabbitmqClusterController", func() {
 							Expect(err).To(BeNil())
 							annotations = rmq.ObjectMeta.Annotations
 							return annotations
-						}, 5).Should(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
-						_, err := time.Parse(time.RFC3339, annotations["rabbitmq.com/postUpgradeNeededAt"])
-						Expect(err).NotTo(HaveOccurred(), "Annotation rabbitmq.com/postUpgradeNeededAt was not a valid RFC3339 timestamp")
+						}, 5).Should(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
+						_, err := time.Parse(time.RFC3339, annotations["rabbitmq.com/queueRebalanceNeededAt"])
+						Expect(err).NotTo(HaveOccurred(), "Annotation rabbitmq.com/queueRebalanceNeededAt was not a valid RFC3339 timestamp")
 					})
 
 					By("not removing the annotation when all replicas are updated but not yet ready", func() {
@@ -1484,10 +1484,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 							Expect(err).To(BeNil())
 							annotations = rmq.ObjectMeta.Annotations
 							return annotations
-						}, 5).Should(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
-						Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
-						_, err = time.Parse(time.RFC3339, annotations["rabbitmq.com/postUpgradeNeededAt"])
-						Expect(err).NotTo(HaveOccurred(), "Annotation rabbitmq.com/postUpgradeNeededAt was not a valid RFC3339 timestamp")
+						}, 5).Should(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
+						Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-queues rebalance all"}))
+						_, err = time.Parse(time.RFC3339, annotations["rabbitmq.com/queueRebalanceNeededAt"])
+						Expect(err).NotTo(HaveOccurred(), "Annotation rabbitmq.com/queueRebalanceNeededAt was not a valid RFC3339 timestamp")
 					})
 
 					By("removing the annotation once all Pods are up, and triggering the queue rebalance", func() {
@@ -1500,15 +1500,15 @@ var _ = Describe("RabbitmqClusterController", func() {
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
-						Expect(fakeExecutor.ExecutedCommands()).To(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
+						Expect(fakeExecutor.ExecutedCommands()).To(ContainElement(command{"sh", "-c", "rabbitmq-queues rebalance all"}))
 					})
 				})
 
 			})
 		})
 
-		When("the cluster is not configured to run post-upgrade steps", func() {
+		When("the cluster is not configured to run post-deploy steps", func() {
 			BeforeEach(func() {
 				cluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1516,8 +1516,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 						Namespace: defaultNamespace,
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas:             &three,
-						SkipPostUpgradeSteps: true,
+						Replicas:            &three,
+						SkipPostDeploySteps: true,
 					},
 				}
 				Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -1539,17 +1539,17 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("does not trigger the controller to run rabbitmq-upgrade post_upgrade", func() {
+				It("does not trigger the controller to run rabbitmq-queues rebalance all", func() {
 					By("never setting the annotation on the CR", func() {
 						Consistently(func() map[string]string {
 							rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
 					})
 
-					By("not running the post_upgrade command once all nodes are up", func() {
+					By("not running the rebalance command once all nodes are up", func() {
 						sts.Status.CurrentReplicas = 3
 						sts.Status.CurrentRevision = "some-new-revision"
 						sts.Status.UpdatedReplicas = 3
@@ -1563,8 +1563,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
-						Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
+						Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-queues rebalance all"}))
 					})
 
 				})
@@ -1580,8 +1580,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 						Namespace: defaultNamespace,
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas:             &one,
-						SkipPostUpgradeSteps: false,
+						Replicas:            &one,
+						SkipPostDeploySteps: false,
 					},
 				}
 				Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -1604,17 +1604,17 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("does not trigger the controller to run rabbitmq-upgrade post_upgrade", func() {
+				It("does not trigger the controller to run rabbitmq-queues rebalance all", func() {
 					By("never setting the annotation on the CR", func() {
 						Consistently(func() map[string]string {
 							rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
 					})
 
-					By("not running the post_upgrade command once all nodes are up", func() {
+					By("not running the rebalance command once all nodes are up", func() {
 						sts.Status.CurrentReplicas = 1
 						sts.Status.CurrentRevision = "some-new-revision"
 						sts.Status.UpdatedReplicas = 1
@@ -1628,8 +1628,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 							err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
-						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
-						Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+						}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
+						Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-queues rebalance all"}))
 					})
 
 				})

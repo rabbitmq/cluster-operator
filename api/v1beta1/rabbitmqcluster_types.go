@@ -64,10 +64,10 @@ type RabbitmqClusterSpec struct {
 	Rabbitmq    RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
 	TLS         TLSSpec                          `json:"tls,omitempty"`
 	Override    RabbitmqClusterOverrideSpec      `json:"override,omitempty"`
-	// If unset, or set to false, the cluster will run `rabbitmq-upgrade post_upgrade` whenever the cluster is updated.
+	// If unset, or set to false, the cluster will run `rabbitmq-queues rebalance all` whenever the cluster is updated.
 	// Has no effect if the cluster only consists of one node.
-	// For more information, see https://www.rabbitmq.com/rabbitmq-upgrade.8.html#post_upgrade
-	SkipPostUpgradeSteps bool `json:"skipPostUpgradeSteps,omitempty"`
+	// For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
+	SkipPostDeploySteps bool `json:"skipPostDeploySteps,omitempty"`
 }
 
 type RabbitmqClusterOverrideSpec struct {
