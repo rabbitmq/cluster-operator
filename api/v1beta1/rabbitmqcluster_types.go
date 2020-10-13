@@ -9,7 +9,6 @@
 package v1beta1
 
 import (
-	"reflect"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -19,16 +18,6 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-)
-
-const (
-	rabbitmqImage             string = "rabbitmq:3.8.9"
-	defaultPersistentCapacity string = "10Gi"
-	defaultMemoryLimit        string = "2Gi"
-	defaultCPULimit           string = "2000m"
-	defaultMemoryRequest      string = "2Gi"
-	defaultCPURequest         string = "1000m"
-	defaultServiceType               = corev1.ServiceTypeClusterIP
 )
 
 // +kubebuilder:object:root=true
@@ -50,15 +39,20 @@ type RabbitmqCluster struct {
 type RabbitmqClusterSpec struct {
 	// Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5 replicas clusters are tested.
 	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:default:=1
 	Replicas *int32 `json:"replicas"`
 	// Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster.
+	// +kubebuilder:default:="rabbitmq:3.8.9"
 	Image string `json:"image,omitempty"`
 	// Name of the Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
-	ImagePullSecret string                         `json:"imagePullSecret,omitempty"`
-	Service         RabbitmqClusterServiceSpec     `json:"service,omitempty"`
-	Persistence     RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
-	Resources       *corev1.ResourceRequirements   `json:"resources,omitempty"`
-	Affinity        *corev1.Affinity               `json:"affinity,omitempty"`
+	ImagePullSecret string `json:"imagePullSecret,omitempty"`
+	// +kubebuilder:default:={type: "ClusterIP"}
+	Service RabbitmqClusterServiceSpec `json:"service,omitempty"`
+	// +kubebuilder:default:={storage: "10Gi"}
+	Persistence RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
+	// +kubebuilder:default:={limits: {cpu: "2000m", memory: "2Gi"}, requests: {cpu: "1000m", memory: "2Gi"}}
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Affinity  *corev1.Affinity             `json:"affinity,omitempty"`
 	// Tolerations is the list of Toleration resources attached to each Pod in the RabbitmqCluster.
 	Tolerations []corev1.Toleration              `json:"tolerations,omitempty"`
 	Rabbitmq    RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
@@ -268,12 +262,14 @@ type RabbitmqClusterPersistenceSpec struct {
 	// StorageClassName is the name of the StorageClass to claim a PersistentVolume from.
 	StorageClassName *string `json:"storageClassName,omitempty"`
 	// The requested size of the persistent volume attached to each Pod in the RabbitmqCluster.
+	// +kubebuilder:default:="10Gi"
 	Storage *k8sresource.Quantity `json:"storage,omitempty"`
 }
 
 // Settable attributes for the Client Service resource.
 type RabbitmqClusterServiceSpec struct {
 	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
+	// +kubebuilder:default:="ClusterIP"
 	Type corev1.ServiceType `json:"type,omitempty"`
 	// Annotations to add to the Client Service.
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -390,65 +386,4 @@ func (cluster RabbitmqCluster) ChildResourceName(name string) string {
 
 func init() {
 	SchemeBuilder.Register(&RabbitmqCluster{}, &RabbitmqClusterList{})
-}
-
-func getDefaultPersistenceStorageQuantity() *k8sresource.Quantity {
-	tenGi := k8sresource.MustParse(defaultPersistentCapacity)
-	return &tenGi
-}
-
-var one int32 = 1
-
-var rabbitmqClusterDefaults = RabbitmqCluster{
-	Spec: RabbitmqClusterSpec{
-		Replicas: &one,
-		Image:    rabbitmqImage,
-		Service: RabbitmqClusterServiceSpec{
-			Type: defaultServiceType,
-		},
-		Persistence: RabbitmqClusterPersistenceSpec{
-			Storage: getDefaultPersistenceStorageQuantity(),
-		},
-		Resources: &corev1.ResourceRequirements{
-			Limits: map[corev1.ResourceName]k8sresource.Quantity{
-				"cpu":    k8sresource.MustParse(defaultCPULimit),
-				"memory": k8sresource.MustParse(defaultMemoryLimit),
-			},
-			Requests: map[corev1.ResourceName]k8sresource.Quantity{
-				"cpu":    k8sresource.MustParse(defaultCPURequest),
-				"memory": k8sresource.MustParse(defaultMemoryRequest),
-			},
-		},
-	},
-}
-
-func MergeDefaults(current RabbitmqCluster) *RabbitmqCluster {
-	var mergedRabbitmq = current
-
-	emptyRabbitmq := RabbitmqCluster{}
-	// Note: we do not check for ImagePullSecret or StorageClassName since the default and nil value are both "".
-	// The logic of the check would be 'if actual is an empty string, then set to an empty string'
-	// We also do not check for Annotations as the nil value will be the empty map.
-
-	if mergedRabbitmq.Spec.Replicas == emptyRabbitmq.Spec.Replicas {
-		mergedRabbitmq.Spec.Replicas = rabbitmqClusterDefaults.Spec.Replicas
-	}
-
-	if mergedRabbitmq.Spec.Image == emptyRabbitmq.Spec.Image {
-		mergedRabbitmq.Spec.Image = rabbitmqClusterDefaults.Spec.Image
-	}
-
-	if mergedRabbitmq.Spec.Service.Type == emptyRabbitmq.Spec.Service.Type {
-		mergedRabbitmq.Spec.Service.Type = rabbitmqClusterDefaults.Spec.Service.Type
-	}
-
-	if reflect.DeepEqual(mergedRabbitmq.Spec.Persistence.Storage, emptyRabbitmq.Spec.Persistence.Storage) {
-		mergedRabbitmq.Spec.Persistence.Storage = rabbitmqClusterDefaults.Spec.Persistence.Storage
-	}
-
-	if reflect.DeepEqual(mergedRabbitmq.Spec.Resources, emptyRabbitmq.Spec.Resources) {
-		mergedRabbitmq.Spec.Resources = rabbitmqClusterDefaults.Spec.Resources
-	}
-
-	return &mergedRabbitmq
 }

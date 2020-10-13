@@ -92,21 +92,13 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	ctx := context.Background()
 	logger := r.Log
 
-	fetchedRabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
+	rabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
 
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	} else if errors.IsNotFound(err) {
 		// No need to requeue if the resource no longer exists
 		return ctrl.Result{}, nil
-	}
-
-	rabbitmqCluster := rabbitmqv1beta1.MergeDefaults(*fetchedRabbitmqCluster)
-
-	if !reflect.DeepEqual(fetchedRabbitmqCluster.Spec, rabbitmqCluster.Spec) {
-		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 
 	// Resource has been marked for deletion
