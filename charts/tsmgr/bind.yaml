@@ -9,8 +9,8 @@
 template: |
   local clientFilterFunc(j) = std.length(std.findSubstr("rabbitmq-client", j.name)) > 0;
   local clientService = std.filter(clientFilterFunc, $.services)[0];
-  local secretFilterFunc(j) = std.length(std.findSubstr("rabbitmq-admin", j.name)) > 0;
-  local admin = std.filter(secretFilterFunc, $.secrets);
+  local secretFilterFunc(j) = std.length(std.findSubstr("rabbitmq-default-user", j.name)) > 0;
+  local defaultUser = std.filter(secretFilterFunc, $.secrets);
 
   local vhost = "%2F";
   local ingress = if clientService.spec.type == "LoadBalancer" then
@@ -20,15 +20,15 @@ template: |
         clientService.status.loadBalancer.ingress[0].ip
     else
       clientService.spec.clusterIP;
-  local adminUsername = admin[0].data['username'];
-  local adminPassword = admin[0].data['password'];
-  local mgmtURI = "http://" + ingress + ":15672/#/login/" + adminUsername + "/" + adminPassword;
-  local apiURI = "http://" + adminUsername + ":" + adminPassword + "@" + ingress + ":15672/api/";
-  local amqpURI = "amqp://" + adminUsername + ":" + adminPassword + "@" + ingress + "/" + vhost;
+  local defaultUserUsername = defaultUser[0].data['username'];
+  local defaultUserPassword = defaultUser[0].data['password'];
+  local mgmtURI = "http://" + ingress + ":15672";
+  local apiURI = "http://" + defaultUserUsername + ":" + defaultUserPassword + "@" + ingress + ":15672/api/";
+  local amqpURI = "amqp://" + defaultUserUsername + ":" + defaultUserPassword + "@" + ingress + "/" + vhost;
   {
     "hostname": ingress,
-    "username": adminUsername,
-    "password": adminPassword,
+    "username": defaultUserUsername,
+    "password": defaultUserPassword,
     "dashboard_url": mgmtURI,
     "hostnames": [
       ingress
@@ -49,14 +49,14 @@ template: |
         "hosts": [
           ingress
         ],
-        "password": adminPassword,
+        "password": defaultUserPassword,
         "port": 5672,
         "ssl": false,
         "uri": amqpURI,
         "uris": [
           amqpURI
         ],
-        "username": adminUsername,
+        "username": defaultUserUsername,
         "vhost": vhost
       },
       "management": {
@@ -64,7 +64,7 @@ template: |
         "hosts": [
           ingress
         ],
-        "password": adminPassword,
+        "password": defaultUserPassword,
         "path": "/api/",
         "port": 15672,
         "ssl": false,
@@ -72,7 +72,7 @@ template: |
         "uris": [
           apiURI
         ],
-        "username": adminUsername
+        "username": defaultUserUsername
       }
     },
   }

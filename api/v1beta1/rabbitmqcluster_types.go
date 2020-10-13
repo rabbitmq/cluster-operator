@@ -286,10 +286,10 @@ type RabbitmqClusterStatus struct {
 	Conditions []status.RabbitmqClusterCondition `json:"conditions"`
 
 	// Identifying information on internal resources
-	Admin *RabbitmqClusterAdmin `json:"admin,omitempty"`
+	DefaultUser *RabbitmqClusterDefaultUser `json:"defaultUser,omitempty"`
 }
 
-type RabbitmqClusterAdmin struct {
+type RabbitmqClusterDefaultUser struct {
 	SecretReference  *RabbitmqClusterSecretReference  `json:"secretReference,omitempty"`
 	ServiceReference *RabbitmqClusterServiceReference `json:"serviceReference,omitempty"`
 }

@@ -12,6 +12,7 @@ package resource
 import (
 	"bytes"
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -23,23 +24,68 @@ import (
 )
 
 const (
-	AdminSecretName = "admin"
+	DefaultUserSecretName = "default-user"
 )
 
-type AdminSecretBuilder struct {
+type DefaultUserSecretBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
 	Scheme   *runtime.Scheme
 }
 
-func (builder *RabbitmqResourceBuilder) AdminSecret() *AdminSecretBuilder {
-	return &AdminSecretBuilder{
+func (builder *RabbitmqResourceBuilder) DefaultUserSecret() *DefaultUserSecretBuilder {
+	return &DefaultUserSecretBuilder{
 		Instance: builder.Instance,
 		Scheme:   builder.Scheme,
 	}
 }
 
-func generateDefaultUserConf(username, password string) ([]byte, error) {
+func (builder *DefaultUserSecretBuilder) Build() (runtime.Object, error) {
+	username, err := randomEncodedString(24)
+	if err != nil {
+		return nil, err
+	}
 
+	password, err := randomEncodedString(24)
+	if err != nil {
+		return nil, err
+	}
+
+	defaultUserConf, err := generateDefaultUserConf(username, password)
+	if err != nil {
+		return nil, err
+	}
+
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      builder.Instance.ChildResourceName(DefaultUserSecretName),
+			Namespace: builder.Instance.Namespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"username":          []byte(username),
+			"password":          []byte(password),
+			"default_user.conf": defaultUserConf,
+		},
+	}, nil
+}
+
+func (builder *DefaultUserSecretBuilder) Update(object runtime.Object) error {
+	secret := object.(*corev1.Secret)
+	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
+	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
+
+	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
+
+	return nil
+}
+
+func (builder *DefaultUserSecretBuilder) UpdateRequiresStsRestart() bool {
+	return false
+}
+
+func generateDefaultUserConf(username, password string) ([]byte, error) {
 	ini.PrettySection = false // Remove trailing new line because default_user.conf has only a default section.
 	cfg, err := ini.Load([]byte{})
 	if err != nil {
@@ -61,50 +107,4 @@ func generateDefaultUserConf(username, password string) ([]byte, error) {
 	}
 
 	return userConfBuffer.Bytes(), nil
-}
-
-func (builder *AdminSecretBuilder) UpdateRequiresStsRestart() bool {
-	return false
-}
-
-func (builder *AdminSecretBuilder) Update(object runtime.Object) error {
-	secret := object.(*corev1.Secret)
-	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
-
-	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
-	}
-
-	return nil
-}
-
-func (builder *AdminSecretBuilder) Build() (runtime.Object, error) {
-	username, err := randomEncodedString(24)
-	if err != nil {
-		return nil, err
-	}
-
-	password, err := randomEncodedString(24)
-	if err != nil {
-		return nil, err
-	}
-
-	defaultUserConf, err := generateDefaultUserConf(username, password)
-	if err != nil {
-		return nil, err
-	}
-
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(AdminSecretName),
-			Namespace: builder.Instance.Namespace,
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{
-			"username":          []byte(username),
-			"password":          []byte(password),
-			"default_user.conf": defaultUserConf,
-		},
-	}, nil
 }

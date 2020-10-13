@@ -286,7 +286,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						{
 							Secret: &corev1.SecretProjection{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: builder.Instance.ChildResourceName(AdminSecretName),
+									Name: builder.Instance.ChildResourceName(DefaultUserSecretName),
 								},
 								Items: []corev1.KeyToPath{
 									{

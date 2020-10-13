@@ -30,7 +30,7 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, e
 		builder.HeadlessService(),
 		builder.ClientService(),
 		builder.ErlangCookie(),
-		builder.AdminSecret(),
+		builder.DefaultUserSecret(),
 		builder.RabbitmqPluginsConfigMap(),
 		builder.ServerConfigMap(),
 		builder.ServiceAccount(),
