@@ -23,7 +23,6 @@ import (
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
@@ -1442,7 +1441,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				waitForClusterCreation(ctx, cluster, client)
 			})
 			When("the cluster is updated", func() {
-				var sts *v1.StatefulSet
+				var sts *appsv1.StatefulSet
 
 				BeforeEach(func() {
 					sts = statefulSet(ctx, cluster)
@@ -1486,7 +1485,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							annotations = rmq.ObjectMeta.Annotations
 							return annotations
 						}, 5).Should(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
-						Expect(fakeKubectlExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+						Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
 						_, err = time.Parse(time.RFC3339, annotations["rabbitmq.com/postUpgradeNeededAt"])
 						Expect(err).NotTo(HaveOccurred(), "Annotation rabbitmq.com/postUpgradeNeededAt was not a valid RFC3339 timestamp")
 					})
@@ -1502,7 +1501,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
 						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
-						Expect(fakeKubectlExecutor.ExecutedCommands()).To(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+						Expect(fakeExecutor.ExecutedCommands()).To(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
 					})
 				})
 
@@ -1525,7 +1524,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				waitForClusterCreation(ctx, cluster, client)
 			})
 			When("the cluster is updated", func() {
-				var sts *v1.StatefulSet
+				var sts *appsv1.StatefulSet
 
 				BeforeEach(func() {
 					sts = statefulSet(ctx, cluster)
@@ -1565,7 +1564,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
 						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
-						Expect(fakeKubectlExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+						Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
 					})
 
 				})
@@ -1589,7 +1588,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				waitForClusterCreation(ctx, cluster, client)
 			})
 			When("the cluster is updated", func() {
-				var sts *v1.StatefulSet
+				var sts *appsv1.StatefulSet
 
 				BeforeEach(func() {
 					sts = statefulSet(ctx, cluster)
@@ -1630,7 +1629,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							Expect(err).To(BeNil())
 							return rmq.ObjectMeta.Annotations
 						}, 5).ShouldNot(HaveKey("rabbitmq.com/postUpgradeNeededAt"))
-						Expect(fakeKubectlExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
+						Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-upgrade post_upgrade"}))
 					})
 
 				})

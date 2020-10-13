@@ -38,14 +38,14 @@ import (
 const controllerName = "rabbitmqcluster-controller"
 
 var (
-	cfg                 *rest.Config
-	testEnv             *envtest.Environment
-	client              runtimeClient.Client
-	clientSet           *kubernetes.Clientset
-	stopMgr             chan struct{}
-	mgrStopped          *sync.WaitGroup
-	scheme              *runtime.Scheme
-	fakeKubectlExecutor *fakePodExecutor
+	cfg          *rest.Config
+	testEnv      *envtest.Environment
+	client       runtimeClient.Client
+	clientSet    *kubernetes.Clientset
+	stopMgr      chan struct{}
+	mgrStopped   *sync.WaitGroup
+	scheme       *runtime.Scheme
+	fakeExecutor *fakePodExecutor
 )
 
 func TestControllers(t *testing.T) {
@@ -92,14 +92,14 @@ func startManager(scheme *runtime.Scheme) {
 	Expect(err).NotTo(HaveOccurred())
 	client = mgr.GetClient()
 
-	fakeKubectlExecutor = &fakePodExecutor{}
+	fakeExecutor = &fakePodExecutor{}
 	reconciler := &controllers.RabbitmqClusterReconciler{
 		Client:      client,
 		Log:         ctrl.Log.WithName(controllerName),
 		Scheme:      mgr.GetScheme(),
 		Recorder:    mgr.GetEventRecorderFor(controllerName),
 		Namespace:   "rabbitmq-system",
-		PodExecutor: fakeKubectlExecutor,
+		PodExecutor: fakeExecutor,
 	}
 	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
 
@@ -127,4 +127,4 @@ func (f *fakePodExecutor) ExecutedCommands() []command { return f.executedComman
 
 func (f *fakePodExecutor) ResetExecutedCommands() { f.executedCommands = []command{} }
 
-var _ = AfterEach(func() { fakeKubectlExecutor.ResetExecutedCommands() })
+var _ = AfterEach(func() { fakeExecutor.ResetExecutedCommands() })

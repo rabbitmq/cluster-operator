@@ -45,7 +45,6 @@ import (
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,7 +71,7 @@ type RabbitmqClusterReconciler struct {
 	Recorder      record.EventRecorder
 	ClusterConfig *rest.Config
 	Clientset     *kubernetes.Clientset
-	PodExecutor   KubectlExecutor
+	PodExecutor   PodExecutor
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -153,7 +152,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
-	if statefulSetNeedsPostUpgrade(sts, rabbitmqCluster) {
+	if sts != nil && statefulSetNeedsPostUpgrade(sts, rabbitmqCluster) {
 		if err := r.markForPostUpgrade(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -463,7 +462,7 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(
 	return true
 }
 
-func (r *RabbitmqClusterReconciler) statefulSet(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (*v1.StatefulSet, error) {
+func (r *RabbitmqClusterReconciler) statefulSet(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (*appsv1.StatefulSet, error) {
 	sts := &appsv1.StatefulSet{}
 	if err := r.Get(ctx, types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}, sts); err != nil {
 		return nil, err
@@ -706,17 +705,16 @@ func validateAndGetOwner(owner *metav1.OwnerReference) []string {
 	return []string{owner.Name}
 }
 
-func allReplicasReadyAndUpdated(sts *v1.StatefulSet) bool {
+func allReplicasReadyAndUpdated(sts *appsv1.StatefulSet) bool {
 	return sts.Status.ReadyReplicas == *sts.Spec.Replicas && !statefulSetBeingUpdated(sts)
 }
 
-func statefulSetBeingUpdated(sts *v1.StatefulSet) bool {
+func statefulSetBeingUpdated(sts *appsv1.StatefulSet) bool {
 	return sts.Status.CurrentRevision != sts.Status.UpdateRevision
 }
 
-func statefulSetNeedsPostUpgrade(sts *v1.StatefulSet, rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
-	return sts != nil &&
-		statefulSetBeingUpdated(sts) &&
+func statefulSetNeedsPostUpgrade(sts *appsv1.StatefulSet, rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
+	return statefulSetBeingUpdated(sts) &&
 		!rmq.Spec.SkipPostUpgradeSteps &&
 		*rmq.Spec.Replicas > 1
 }
@@ -737,15 +735,15 @@ func pluginsConfigUpdatedRecently(cfg *corev1.ConfigMap) (bool, error) {
 	return time.Since(annotationTime).Seconds() < 2, nil
 }
 
-type KubectlExecutor interface {
+type PodExecutor interface {
 	Exec(clientset *kubernetes.Clientset, clusterConfig *rest.Config, namespace, podName, containerName string, command ...string) (string, string, error)
 }
 
-func NewPodExecutor() KubectlExecutor { return &podExecutor{} }
+func NewPodExecutor() PodExecutor { return &rabbitmqPodExecutor{} }
 
-type podExecutor struct{}
+type rabbitmqPodExecutor struct{}
 
-func (p *podExecutor) Exec(clientset *kubernetes.Clientset, clusterConfig *rest.Config, namespace, podName, containerName string, command ...string) (string, string, error) {
+func (p *rabbitmqPodExecutor) Exec(clientset *kubernetes.Clientset, clusterConfig *rest.Config, namespace, podName, containerName string, command ...string) (string, string, error) {
 	request := clientset.CoreV1().RESTClient().
 		Post().
 		Resource("pods").
