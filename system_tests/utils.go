@@ -745,20 +745,18 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 	c := mqtt.NewClient(opts)
 
 	var token mqtt.Token
-	for retry := 0; retry < 5; retry++ {
-		fmt.Printf("Attempt #%d to connect using MQTT\n", retry)
+	Eventually(func() bool {
 		token = c.Connect()
 		// Waits for the network request to reach the destination and receive a response
-		Expect(token.WaitTimeout(3 * time.Second)).To(BeTrue())
-
-		if err := token.Error(); err == nil {
-			break
+		if !token.WaitTimeout(3 * time.Second) {
+			return false
 		}
 
-		time.Sleep(2 * time.Second)
-	}
-
-	Expect(token.Error()).ToNot(HaveOccurred())
+		if err := token.Error(); err == nil {
+			return true
+		}
+		return false
+	}, 10, 2).Should(BeTrue(), "Expected to be able to connect to MQTT port")
 
 	topic := "tests/mqtt"
 	msgReceived := false
