@@ -27,6 +27,7 @@ import (
 var _ = Describe("RabbitmqCluster", func() {
 
 	var three int32 = 3
+	var one int32 = 1
 
 	Context("RabbitmqClusterSpec", func() {
 		It("can be created with a single replica", func() {
@@ -138,19 +139,33 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		Context("Default settings", func() {
 			var (
-				rmqClusterInstance RabbitmqCluster
-				rmqClusterTemplate RabbitmqCluster
+				rmqClusterInstance      RabbitmqCluster
+				expectedClusterInstance RabbitmqCluster
 			)
-			BeforeEach(func() {
-				rmqClusterInstance = RabbitmqCluster{}
-				rmqClusterTemplate = *generateRabbitmqClusterObject("foo")
 
+			BeforeEach(func() {
+				expectedClusterInstance = *generateRabbitmqClusterObject("foo")
 			})
 
-			When("CR is empty", func() {
-				It("outputs the template", func() {
-					instance := MergeDefaults(rmqClusterInstance)
-					Expect(instance.Spec).To(Equal(rmqClusterTemplate.Spec))
+			When("CR spec is empty", func() {
+				It("creates CR with defaults", func() {
+					rmqClusterInstance = RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "rabbitmq-defaults",
+							Namespace: "default",
+						},
+						Spec: RabbitmqClusterSpec{
+							Replicas: &one,
+						},
+					}
+
+					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+						Name:      "rabbitmq-defaults",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
 			})
 
@@ -158,101 +173,126 @@ var _ = Describe("RabbitmqCluster", func() {
 				It("outputs the CR", func() {
 					storage := k8sresource.MustParse("987Gi")
 					storageClassName := "some-class"
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
-						Replicas:        &three,
-						Image:           "rabbitmq-image-from-cr",
-						ImagePullSecret: "my-super-secret",
-						Service: RabbitmqClusterServiceSpec{
-							Type: "this-is-a-service",
-							Annotations: map[string]string{
-								"myannotation": "is-set",
-							},
+					rmqClusterInstance = RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "rabbitmq-full-manifest",
+							Namespace: "default",
 						},
-						Persistence: RabbitmqClusterPersistenceSpec{
-							StorageClassName: &storageClassName,
-							Storage:          &storage,
-						},
-						Resources: &corev1.ResourceRequirements{
-							Limits: map[corev1.ResourceName]k8sresource.Quantity{
-								"cpu":    k8sresource.MustParse("16"),
-								"memory": k8sresource.MustParse("16Gi"),
+						Spec: RabbitmqClusterSpec{
+							Replicas:        &three,
+							Image:           "rabbitmq-image-from-cr",
+							ImagePullSecret: "my-super-secret",
+							Service: RabbitmqClusterServiceSpec{
+								Type: "NodePort",
+								Annotations: map[string]string{
+									"myannotation": "is-set",
+								},
 							},
-							Requests: map[corev1.ResourceName]k8sresource.Quantity{
-								"cpu":    k8sresource.MustParse("15"),
-								"memory": k8sresource.MustParse("15Gi"),
+							Persistence: RabbitmqClusterPersistenceSpec{
+								StorageClassName: &storageClassName,
+								Storage:          &storage,
 							},
-						},
-						Affinity: &corev1.Affinity{
-							NodeAffinity: &corev1.NodeAffinity{
-								RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-									NodeSelectorTerms: []corev1.NodeSelectorTerm{
-										{
-											MatchExpressions: []corev1.NodeSelectorRequirement{
-												{
-													Key:      "somekey",
-													Operator: "Equal",
-													Values:   []string{"this-value"},
+							Resources: &corev1.ResourceRequirements{
+								Limits: map[corev1.ResourceName]k8sresource.Quantity{
+									"cpu":    k8sresource.MustParse("16"),
+									"memory": k8sresource.MustParse("16Gi"),
+								},
+								Requests: map[corev1.ResourceName]k8sresource.Quantity{
+									"cpu":    k8sresource.MustParse("15"),
+									"memory": k8sresource.MustParse("15Gi"),
+								},
+							},
+							Affinity: &corev1.Affinity{
+								NodeAffinity: &corev1.NodeAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+										NodeSelectorTerms: []corev1.NodeSelectorTerm{
+											{
+												MatchExpressions: []corev1.NodeSelectorRequirement{
+													{
+														Key:      "somekey",
+														Operator: "Equal",
+														Values:   []string{"this-value"},
+													},
 												},
+												MatchFields: nil,
 											},
-											MatchFields: nil,
 										},
 									},
 								},
 							},
-						},
-						Tolerations: []corev1.Toleration{
-							{
-								Key:      "mykey",
-								Operator: "NotEqual",
-								Value:    "myvalue",
-								Effect:   "NoSchedule",
+							Tolerations: []corev1.Toleration{
+								{
+									Key:      "mykey",
+									Operator: "NotEqual",
+									Value:    "myvalue",
+									Effect:   "NoSchedule",
+								},
 							},
-						},
-						Rabbitmq: RabbitmqClusterConfigurationSpec{
-							AdditionalPlugins: []Plugin{
-								"my-plugins",
+							Rabbitmq: RabbitmqClusterConfigurationSpec{
+								AdditionalPlugins: []Plugin{
+									"my_plugins",
+								},
 							},
 						},
 					}
-					instance := MergeDefaults(rmqClusterInstance)
-					Expect(instance.Spec).To(Equal(rmqClusterInstance.Spec))
+
+					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+						Name:      "rabbitmq-full-manifest",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+					Expect(fetchedRabbit.Spec).To(Equal(rmqClusterInstance.Spec))
 				})
 			})
 
 			When("CR is partially set", func() {
-				It("applies default values to missing properties if replicas is set", func() {
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
-						Replicas: &three,
-					}
-					expectedClusterInstance := rmqClusterTemplate.DeepCopy()
-					expectedClusterInstance.Spec.Replicas = &three
-
-					instance := MergeDefaults(rmqClusterInstance)
-					Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
-				})
 
 				It("applies default values to missing properties if image is set", func() {
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
-						Image: "test-image",
+					rmqClusterInstance = RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "rabbitmq-image",
+							Namespace: "default",
+						},
+						Spec: RabbitmqClusterSpec{
+							Image:    "test-image",
+							Replicas: &one,
+						},
 					}
-					expectedClusterInstance := rmqClusterTemplate.DeepCopy()
+
 					expectedClusterInstance.Spec.Image = "test-image"
 
-					instance := MergeDefaults(rmqClusterInstance)
-					Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
+					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+						Name:      "rabbitmq-image",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
 
 				It("does not apply resource defaults if the resource object is an empty non-nil struct", func() {
 					expectedResources := &corev1.ResourceRequirements{}
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
-						Resources: expectedResources,
+					rmqClusterInstance = RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "rabbitmq-empty-resource",
+							Namespace: "default",
+						},
+						Spec: RabbitmqClusterSpec{
+							Resources: expectedResources,
+							Replicas:  &one,
+						},
 					}
-					expectedClusterInstance := rmqClusterTemplate.DeepCopy()
+
 					expectedClusterInstance.Spec.Resources = expectedResources
 
-					instance := MergeDefaults(rmqClusterInstance)
-					Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
-
+					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+						Name:      "rabbitmq-empty-resource",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
 
 				It("does not apply resource defaults if the resource object is partially set", func() {
@@ -261,14 +301,84 @@ var _ = Describe("RabbitmqCluster", func() {
 							"cpu": k8sresource.MustParse("6"),
 						},
 					}
-					rmqClusterInstance.Spec = RabbitmqClusterSpec{
-						Resources: expectedResources,
+					rmqClusterInstance = RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "rabbitmq-partial-resource",
+							Namespace: "default",
+						},
+						Spec: RabbitmqClusterSpec{
+							Resources: expectedResources,
+							Replicas:  &one,
+						},
 					}
-					expectedClusterInstance := rmqClusterTemplate.DeepCopy()
+
 					expectedClusterInstance.Spec.Resources = expectedResources
 
-					instance := MergeDefaults(rmqClusterInstance)
-					Expect(instance.Spec).To(Equal(expectedClusterInstance.Spec))
+					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+						Name:      "rabbitmq-partial-resource",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
+				})
+
+				It("sets spec.service.type if spec.service is partially set", func() {
+					rmqClusterInstance = RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "rabbit-service-type",
+							Namespace: "default",
+						},
+						Spec: RabbitmqClusterSpec{
+							Replicas: &one,
+							Service: RabbitmqClusterServiceSpec{
+								Annotations: map[string]string{"key": "value"},
+							},
+						},
+					}
+
+					expectedClusterInstance.Spec.Service = RabbitmqClusterServiceSpec{
+						Annotations: map[string]string{"key": "value"},
+						Type:        "ClusterIP",
+					}
+
+					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+						Name:      "rabbit-service-type",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
+				})
+
+				It("sets spec.persistence.storage if spec.persistence is partially set", func() {
+					myStorage := "mystorage"
+					tenGi := k8sresource.MustParse("10Gi")
+					rmqClusterInstance = RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "rabbit-storage",
+							Namespace: "default",
+						},
+						Spec: RabbitmqClusterSpec{
+							Replicas: &one,
+							Persistence: RabbitmqClusterPersistenceSpec{
+								StorageClassName: &myStorage,
+							},
+						},
+					}
+
+					expectedClusterInstance.Spec.Persistence = RabbitmqClusterPersistenceSpec{
+						StorageClassName: &myStorage,
+						Storage:          &tenGi,
+					}
+
+					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+						Name:      "rabbit-storage",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
 			})
 		})

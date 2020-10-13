@@ -643,6 +643,7 @@ spec:
                     type: object
                 type: object
               image:
+                default: rabbitmq:3.8.9
                 description: Image is the name of the RabbitMQ docker image to use
                   for RabbitMQ nodes in the RabbitmqCluster.
                 type: string
@@ -3594,6 +3595,8 @@ spec:
                     type: object
                 type: object
               persistence:
+                default:
+                  storage: 10Gi
                 description: The settings for the persistent storage desired for each
                   Pod in the RabbitmqCluster.
                 properties:
@@ -3601,6 +3604,7 @@ spec:
                     anyOf:
                     - type: integer
                     - type: string
+                    default: 10Gi
                     description: The requested size of the persistent volume attached
                       to each Pod in the RabbitmqCluster.
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
@@ -3644,6 +3648,7 @@ spec:
                     type: string
                 type: object
               replicas:
+                default: 1
                 description: Replicas is the number of nodes in the RabbitMQ cluster.
                   Each node is deployed as a Replica in a StatefulSet. Only 1, 3,
                   5 replicas clusters are tested.
@@ -3651,6 +3656,13 @@ spec:
                 minimum: 0
                 type: integer
               resources:
+                default:
+                  limits:
+                    cpu: 2000m
+                    memory: 2Gi
+                  requests:
+                    cpu: 1000m
+                    memory: 2Gi
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:
                   limits:
@@ -3677,6 +3689,8 @@ spec:
                     type: object
                 type: object
               service:
+                default:
+                  type: ClusterIP
                 description: Settable attributes for the Client Service resource.
                 properties:
                   annotations:
@@ -3685,6 +3699,7 @@ spec:
                     description: Annotations to add to the Client Service.
                     type: object
                   type:
+                    default: ClusterIP
                     description: Service Type string describes ingress methods for
                       a service
                     enum:
