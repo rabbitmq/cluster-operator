@@ -108,6 +108,7 @@ func main() {
 		Namespace:     operatorNamespace,
 		ClusterConfig: clusterConfig,
 		Clientset:     kubernetes.NewForConfigOrDie(clusterConfig),
+		PodExecutor:   controllers.NewPodExecutor(),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		log.Error(err, "unable to create controller", controllerName)
