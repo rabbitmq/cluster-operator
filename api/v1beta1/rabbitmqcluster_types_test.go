@@ -322,6 +322,64 @@ var _ = Describe("RabbitmqCluster", func() {
 					}, fetchedRabbit)).To(Succeed())
 					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
+
+				It("sets spec.service.type if spec.service is partially set", func() {
+					rmqClusterInstance = RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "rabbit-service-type",
+							Namespace: "default",
+						},
+						Spec: RabbitmqClusterSpec{
+							Replicas: &one,
+							Service: RabbitmqClusterServiceSpec{
+								Annotations: map[string]string{"key": "value"},
+							},
+						},
+					}
+
+					expectedClusterInstance.Spec.Service = RabbitmqClusterServiceSpec{
+						Annotations: map[string]string{"key": "value"},
+						Type:        "ClusterIP",
+					}
+
+					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+						Name:      "rabbit-service-type",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
+				})
+
+				It("sets spec.persistence.storage if spec.persistence is partially set", func() {
+					myStorage := "mystorage"
+					tenGi := k8sresource.MustParse("10Gi")
+					rmqClusterInstance = RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "rabbit-storage",
+							Namespace: "default",
+						},
+						Spec: RabbitmqClusterSpec{
+							Replicas: &one,
+							Persistence: RabbitmqClusterPersistenceSpec{
+								StorageClassName: &myStorage,
+							},
+						},
+					}
+
+					expectedClusterInstance.Spec.Persistence = RabbitmqClusterPersistenceSpec{
+						StorageClassName: &myStorage,
+						Storage:          &tenGi,
+					}
+
+					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+						Name:      "rabbit-storage",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
+				})
 			})
 		})
 	})
