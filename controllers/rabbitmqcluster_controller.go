@@ -103,13 +103,17 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{}, nil
 	}
 
-	// Resource has been marked for deletion
+	// Check if the resource has been marked for deletion
 	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		logger.Info("Deleting RabbitmqCluster",
 			"namespace", rabbitmqCluster.Namespace,
 			"name", rabbitmqCluster.Name)
-		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
+	}
+
+	// Ensure the resource have a deletion marker
+	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// TLS: check if specified, and if secret exists
@@ -119,12 +123,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
-	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
-
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -600,8 +599,8 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 	return nil
 }
 
+// addFinalizerIfNeeded adds a deletion finalizer if the RabbitmqCluster does not have one yet and is not marked for deletion
 func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	// The RabbitmqCluster is not marked for deletion (no deletion timestamp) but does not have the deletion finalizer
 	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
 		controllerutil.AddFinalizer(rabbitmqCluster, deletionFinalizer)
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {

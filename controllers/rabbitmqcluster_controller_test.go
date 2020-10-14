@@ -1572,7 +1572,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})
 		})
 
-		When("the cluster is only 1 node large", func() {
+		When("the cluster is a single node cluster", func() {
 			BeforeEach(func() {
 				cluster = &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
