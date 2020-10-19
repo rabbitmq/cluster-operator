@@ -35,10 +35,6 @@ type ClientServiceBuilder struct {
 	Scheme   *runtime.Scheme
 }
 
-func (builder *ClientServiceBuilder) UpdateRequiresStsRestart() bool {
-	return false
-}
-
 func (builder *ClientServiceBuilder) Build() (runtime.Object, error) {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{

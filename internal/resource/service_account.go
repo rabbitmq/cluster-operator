@@ -35,10 +35,6 @@ func (builder *RabbitmqResourceBuilder) ServiceAccount() *ServiceAccountBuilder 
 	}
 }
 
-func (builder *ServiceAccountBuilder) UpdateRequiresStsRestart() bool {
-	return false
-}
-
 func (builder *ServiceAccountBuilder) Update(object runtime.Object) error {
 	serviceAccount := object.(*corev1.ServiceAccount)
 	serviceAccount.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
