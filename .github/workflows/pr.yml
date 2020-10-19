@@ -22,7 +22,7 @@ jobs:
       run: ./test.sh
 
   system_test_latest:
-    name: system tests
+    name: system tests on K8s latest
     runs-on: ubuntu-latest
     steps:
     - name: Check out code into the Go module directory
@@ -38,7 +38,7 @@ jobs:
         make system-tests
 
   system_tests_1_18:
-    name: system tests
+    name: system tests on K8s v1.18
     runs-on: ubuntu-latest
     steps:
     - name: Check out code into the Go module directory
@@ -54,7 +54,7 @@ jobs:
         make system-tests
 
   system_tests_1_17:
-    name: system tests
+    name: system tests on K8s v1.17
     runs-on: ubuntu-latest
     steps:
     - name: Check out code into the Go module directory
