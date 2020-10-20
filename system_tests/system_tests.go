@@ -87,16 +87,17 @@ var _ = Describe("Operator", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(output)).To(Equal("'True'"))
 
-				output, err = kubectl(
-					"-n",
-					cluster.Namespace,
-					"get",
-					"rabbitmqclusters",
-					cluster.Name,
-					"-ojsonpath='{.status.conditions[?(@.type==\"ClusterAvailable\")].status}'",
-				)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(output)).To(Equal("'True'"))
+				Eventually(func() (string, error) {
+					output, err := kubectl(
+						"-n",
+						cluster.Namespace,
+						"get",
+						"rabbitmqclusters",
+						cluster.Name,
+						"-ojsonpath='{.status.conditions[?(@.type==\"ClusterAvailable\")].status}'",
+					)
+					return string(output), err
+				}, 30, 2).Should(Equal("'True'"))
 			})
 		})
 	})
