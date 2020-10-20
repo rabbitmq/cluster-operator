@@ -428,8 +428,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					},
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        &one,
-					ImagePullSecret: "rabbit-two-secret",
+					Replicas: &one,
 				},
 			}
 
@@ -459,8 +458,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        &one,
-					ImagePullSecret: "rabbit-two-secret",
+					Replicas:         &one,
+					ImagePullSecrets: []corev1.LocalObjectReference{{Name: "rabbit-two-secret"}},
 				},
 			}
 
@@ -502,9 +501,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        &one,
-					Affinity:        affinity,
-					ImagePullSecret: "rabbit-two-secret",
+					Replicas: &one,
+					Affinity: affinity,
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -534,8 +532,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        &one,
-					ImagePullSecret: "rabbit-service-secret",
+					Replicas: &one,
 				},
 			}
 			cluster.Spec.Service.Type = "LoadBalancer"
@@ -561,8 +558,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        &one,
-					ImagePullSecret: "rabbit-resource-secret",
+					Replicas: &one,
 				},
 			}
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
@@ -605,8 +601,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        &one,
-					ImagePullSecret: "rabbit-resource-secret",
+					Replicas: &one,
 				},
 			}
 			storageClassName := "my-storage-class"
@@ -636,8 +631,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        &one,
-					ImagePullSecret: "rabbit-two-secret",
+					Replicas: &one,
 				},
 			}
 			clientServiceName = cluster.ChildResourceName("client")
@@ -716,7 +710,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 		It("the rabbitmq ImagePullSecret is updated", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				r.Spec.ImagePullSecret = "my-new-secret"
+				r.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: "my-new-secret"}}
 			})).To(Succeed())
 
 			Eventually(func() []corev1.LocalObjectReference {
@@ -917,8 +911,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:        &one,
-					ImagePullSecret: "rabbit-two-secret",
+					Replicas: &one,
 				},
 			}
 			clientServiceName = cluster.ChildResourceName("client")

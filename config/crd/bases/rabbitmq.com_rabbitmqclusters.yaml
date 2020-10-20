@@ -647,11 +647,20 @@ spec:
                 description: Image is the name of the RabbitMQ docker image to use
                   for RabbitMQ nodes in the RabbitmqCluster.
                 type: string
-              imagePullSecret:
-                description: Name of the Secret resource containing access credentials
+              imagePullSecrets:
+                description: List of Secret resource containing access credentials
                   to the registry for the RabbitMQ image. Required if the docker registry
                   is private.
-                type: string
+                items:
+                  description: LocalObjectReference contains enough information to
+                    let you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?'
+                      type: string
+                  type: object
+                type: array
               override:
                 properties:
                   clientService:
