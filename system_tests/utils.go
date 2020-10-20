@@ -548,20 +548,15 @@ func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 }
 
 func assertHttpReady(hostname, port string) {
-	EventuallyWithOffset(1, func() int {
+	EventuallyWithOffset(1, func() (*http.Response, error) {
 		client := &http.Client{Timeout: 10 * time.Second}
-		url := fmt.Sprintf("http://%s:%s", hostname, port)
+		rabbitURL := fmt.Sprintf("http://%s:%s", hostname, port)
 
-		req, _ := http.NewRequest(http.MethodGet, url, nil)
+		req, err := http.NewRequest(http.MethodGet, rabbitURL, nil)
+		Expect(err).ToNot(HaveOccurred())
 
-		resp, err := client.Do(req)
-		if err != nil {
-			return 0
-		}
-		defer resp.Body.Close()
-
-		return resp.StatusCode
-	}, podCreationTimeout, 5).Should(Equal(http.StatusOK))
+		return client.Do(req)
+	}, podCreationTimeout, 5).Should(HaveHTTPStatus(http.StatusOK))
 }
 
 func createTLSSecret(secretName, secretNamespace, hostname string) string {
