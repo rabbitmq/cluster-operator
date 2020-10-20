@@ -115,7 +115,7 @@ create() {
 
     # special case when no options are provided
     if [[ "$#" -eq 0 ]]; then
-        echo "  replicas: 1" >>"$rabbitmq_manifest_file"
+        echo "  {}" >>"$rabbitmq_manifest_file"
     fi
 
     while [[ "$#" -ne 0 ]]; do

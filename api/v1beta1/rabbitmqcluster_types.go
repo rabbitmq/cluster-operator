@@ -38,6 +38,7 @@ type RabbitmqCluster struct {
 // Spec is the desired state of the RabbitmqCluster Custom Resource.
 type RabbitmqClusterSpec struct {
 	// Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5 replicas clusters are tested.
+	// +optional
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:default:=1
 	Replicas *int32 `json:"replicas"`

@@ -22,7 +22,6 @@ metadata:
 spec:
   image: rabbitmq:3.8.1
   imagePullSecret: foo
-
   replicas: 3
   service:
     type: LoadBalancer

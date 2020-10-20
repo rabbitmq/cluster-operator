@@ -3773,8 +3773,6 @@ spec:
                       type: string
                   type: object
                 type: array
-            required:
-            - replicas
             type: object
           status:
             description: Status presents the observed state of RabbitmqCluster

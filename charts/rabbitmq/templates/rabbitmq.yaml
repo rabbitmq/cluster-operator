@@ -30,7 +30,9 @@ spec:
   imagePullSecret: {{ .Values.imagePullSecret }}
   {{- end }}
 
+  {{- if .Values.replicas }}
   replicas: {{ .Values.replicas }}
+  {{- end }}
 
   {{- if .Values.service }}
   service:
