@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	ServerConfigMap     = "server-conf"
+	ServerConfigMapName = "server-conf"
 	defaultRabbitmqConf = `
 cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host = kubernetes.default
@@ -112,7 +112,7 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(ServerConfigMap),
+			Name:      builder.Instance.ChildResourceName(ServerConfigMapName),
 			Namespace: builder.Instance.Namespace,
 		},
 	}, nil

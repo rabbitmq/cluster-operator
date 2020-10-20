@@ -346,7 +346,7 @@ func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Conte
 	}
 
 	// Retrieve the plugins config map, if it exists.
-	pluginsConfig, err := r.configMap(ctx, rmq, rmq.ChildResourceName(resource.PluginsConfig))
+	pluginsConfig, err := r.configMap(ctx, rmq, rmq.ChildResourceName(resource.PluginsConfigName))
 	if client.IgnoreNotFound(err) != nil {
 		return 0, err
 	}
@@ -431,7 +431,7 @@ func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rm
 // it compares annotation "rabbitmq.com/serverConfUpdatedAt" from server-conf configMap and annotation "rabbitmq.com/lastRestartAt" from sts
 // to determine whether to restart sts
 func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (time.Duration, error) {
-	serverConf, err := r.configMap(ctx, rmq, rmq.ChildResourceName(resource.ServerConfigMap))
+	serverConf, err := r.configMap(ctx, rmq, rmq.ChildResourceName(resource.ServerConfigMapName))
 	if err != nil {
 		// requeue request after 10s if unable to find server-conf configmap, else return the error
 		return 10 * time.Second, client.IgnoreNotFound(err)
@@ -506,10 +506,10 @@ func (r *RabbitmqClusterReconciler) annotateConfigMapIfUpdated(ctx context.Conte
 	var configMap, annotationKey string
 	switch builder.(type) {
 	case *resource.RabbitmqPluginsConfigMapBuilder:
-		configMap = rmq.ChildResourceName(resource.PluginsConfig)
+		configMap = rmq.ChildResourceName(resource.PluginsConfigName)
 		annotationKey = pluginsUpdateAnnotation
 	case *resource.ServerConfigMapBuilder:
-		configMap = rmq.ChildResourceName(resource.ServerConfigMap)
+		configMap = rmq.ChildResourceName(resource.ServerConfigMapName)
 		annotationKey = serverConfAnnotation
 	default:
 		return nil
