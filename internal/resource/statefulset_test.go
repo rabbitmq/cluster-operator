@@ -675,12 +675,12 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
-		It("updates the image pull secret; sets it back to default after deleting the configuration", func() {
-			stsBuilder.Instance.Spec.ImagePullSecret = "my-shiny-new-secret"
+		It("updates the imagePullSecrets list; sets it back to empty list after deleting the configuration", func() {
+			stsBuilder.Instance.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: "my-shiny-new-secret"}}
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-shiny-new-secret"}))
 
-			stsBuilder.Instance.Spec.ImagePullSecret = ""
+			stsBuilder.Instance.Spec.ImagePullSecrets = nil
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 		})
@@ -1065,9 +1065,9 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		When("configures private image", func() {
-			It("uses the instance ImagePullSecret and image reference when provided", func() {
+			It("uses the instance ImagePullSecrets and image reference when provided", func() {
 				instance.Spec.Image = "my-private-repo/rabbitmq:latest"
-				instance.Spec.ImagePullSecret = "my-great-secret"
+				instance.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: "my-great-secret"}}
 				builder = &resource.RabbitmqResourceBuilder{
 					Instance: &instance,
 					Scheme:   scheme,
@@ -1410,9 +1410,9 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 			Namespace: "foo-namespace",
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas:        &one,
-			Image:           "rabbitmq-image-from-cr",
-			ImagePullSecret: "my-super-secret",
+			Replicas:         &one,
+			Image:            "rabbitmq-image-from-cr",
+			ImagePullSecrets: []corev1.LocalObjectReference{{Name: "my-super-secret"}},
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Type:        "this-is-a-service",
 				Annotations: map[string]string{},

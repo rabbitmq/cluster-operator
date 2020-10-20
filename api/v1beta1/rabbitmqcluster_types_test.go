@@ -179,9 +179,9 @@ var _ = Describe("RabbitmqCluster", func() {
 							Namespace: "default",
 						},
 						Spec: RabbitmqClusterSpec{
-							Replicas:        &three,
-							Image:           "rabbitmq-image-from-cr",
-							ImagePullSecret: "my-super-secret",
+							Replicas:         &three,
+							Image:            "rabbitmq-image-from-cr",
+							ImagePullSecrets: []corev1.LocalObjectReference{{Name: "my-super-secret"}},
 							Service: RabbitmqClusterServiceSpec{
 								Type: "NodePort",
 								Annotations: map[string]string{

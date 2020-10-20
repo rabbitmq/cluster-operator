@@ -245,12 +245,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
 
-	//Image Pull Secret
-	var imagePullSecrets []corev1.LocalObjectReference
-	if builder.Instance.Spec.ImagePullSecret != "" {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: builder.Instance.Spec.ImagePullSecret})
-	}
-
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
@@ -506,7 +500,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				RunAsGroup: &rabbitmqGID,
 				RunAsUser:  &rabbitmqUID,
 			},
-			ImagePullSecrets:              imagePullSecrets,
+			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
 			TerminationGracePeriodSeconds: &terminationGracePeriod,
 			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
 			AutomountServiceAccountToken:  &automountServiceAccountToken,

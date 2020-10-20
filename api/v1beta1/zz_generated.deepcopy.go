@@ -369,6 +369,11 @@ func (in *RabbitmqClusterSpec) DeepCopyInto(out *RabbitmqClusterSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.ImagePullSecrets != nil {
+		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
+		*out = make([]v1.LocalObjectReference, len(*in))
+		copy(*out, *in)
+	}
 	in.Service.DeepCopyInto(&out.Service)
 	in.Persistence.DeepCopyInto(&out.Persistence)
 	if in.Resources != nil {
