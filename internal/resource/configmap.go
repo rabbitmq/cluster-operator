@@ -12,6 +12,7 @@ package resource
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -90,8 +91,11 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	}
 
 	if builder.Instance.MemoryLimitProvided() {
-		if _, err := defaultSection.NewKey("total_memory_available_override_value",
-			formatMemory(builder.Instance.Spec.Resources.Limits.Memory().String())); err != nil {
+		memLimit, err := formatMemory(builder.Instance.Spec.Resources.Limits.Memory().String())
+		if err != nil {
+			return err
+		}
+		if _, err := defaultSection.NewKey("total_memory_available_override_value", memLimit); err != nil {
 			return err
 		}
 	}
@@ -139,9 +143,19 @@ func updateProperty(configMapData map[string]string, key string, value string) {
 	}
 }
 
-func formatMemory(k8sMemory string) string {
-	if strings.HasSuffix(k8sMemory, "Ki") || strings.HasSuffix(k8sMemory, "Mi") || strings.HasSuffix(k8sMemory, "Gi") {
-		return k8sMemory + "B"
+func formatMemory(k8sMemory string) (string, error) {
+	if strings.HasSuffix(k8sMemory, "Ki") || strings.HasSuffix(k8sMemory, "Mi") ||
+		strings.HasSuffix(k8sMemory, "Gi") || strings.HasSuffix(k8sMemory, "Ti") ||
+		strings.HasSuffix(k8sMemory, "Pi") || strings.HasSuffix(k8sMemory, "Ei") {
+		return k8sMemory + "B", nil
 	}
-	return k8sMemory
+	if strings.Contains(k8sMemory, "e") {
+		splitMemory := strings.Split(k8sMemory, "e")
+		exp, err := strconv.Atoi(splitMemory[1])
+		if err != nil {
+			return "", err
+		}
+		return splitMemory[0] + strings.Repeat("0", exp), nil
+	}
+	return k8sMemory, nil
 }
