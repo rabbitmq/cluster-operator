@@ -314,6 +314,10 @@ func (cluster *RabbitmqCluster) MutualTLSEnabled() bool {
 	return cluster.TLSEnabled() && cluster.Spec.TLS.CaSecretName != ""
 }
 
+func (cluster *RabbitmqCluster) MemoryLimitProvided() bool {
+	return cluster.Spec.Resources != nil && cluster.Spec.Resources.Limits != nil && !cluster.Spec.Resources.Limits.Memory().IsZero()
+}
+
 func (cluster *RabbitmqCluster) SingleTLSSecret() bool {
 	return cluster.MutualTLSEnabled() && cluster.Spec.TLS.CaSecretName == cluster.Spec.TLS.SecretName
 }

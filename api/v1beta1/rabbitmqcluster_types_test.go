@@ -113,6 +113,16 @@ var _ = Describe("RabbitmqCluster", func() {
 			Expect(created.MutualTLSEnabled()).To(BeTrue())
 		})
 
+		It("can be queried if memory limits are provided", func() {
+			created := generateRabbitmqClusterObject("rabbit-mem-limit")
+			Expect(created.MemoryLimitProvided()).To(BeTrue())
+
+			created.Spec.Resources = &corev1.ResourceRequirements{
+				Limits: map[corev1.ResourceName]resource.Quantity{},
+			}
+			Expect(created.MemoryLimitProvided()).To(BeFalse())
+		})
+
 		It("is validated", func() {
 			By("checking the replica count", func() {
 				nOne := int32(-1)

@@ -12,6 +12,8 @@ package resource
 import (
 	"bytes"
 	"fmt"
+	"strings"
+
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"gopkg.in/ini.v1"
@@ -87,6 +89,13 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		}
 	}
 
+	if builder.Instance.MemoryLimitProvided() {
+		if _, err := defaultSection.NewKey("total_memory_available_override_value",
+			formatMemory(builder.Instance.Spec.Resources.Limits.Memory().String())); err != nil {
+			return err
+		}
+	}
+
 	rmqProperties := builder.Instance.Spec.Rabbitmq
 	if err := cfg.Append([]byte(rmqProperties.AdditionalConfig)); err != nil {
 		return fmt.Errorf("failed to append spec.rabbitmq.additionalConfig: %w", err)
@@ -128,4 +137,11 @@ func updateProperty(configMapData map[string]string, key string, value string) {
 	} else {
 		configMapData[key] = value
 	}
+}
+
+func formatMemory(k8sMemory string) string {
+	if strings.HasSuffix(k8sMemory, "Ki") || strings.HasSuffix(k8sMemory, "Mi") || strings.HasSuffix(k8sMemory, "Gi") {
+		return k8sMemory + "B"
+	}
+	return k8sMemory
 }

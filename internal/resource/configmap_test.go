@@ -15,6 +15,7 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -246,6 +247,27 @@ ssl_options.keyfile                             = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default                           = 5671
 ssl_options.cacertfile                          = /etc/rabbitmq-tls/ca.certificate
 ssl_options.verify                              = verify_peer`)))
+			})
+		})
+
+		Context("Memory Limits", func() {
+			It("sets a RabbitMQ memory limit when memory limits are specified", func() {
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "rabbit-mem-limit",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Resources: &corev1.ResourceRequirements{
+							Limits: map[corev1.ResourceName]k8sresource.Quantity{
+								corev1.ResourceMemory: k8sresource.MustParse("4Gi"),
+							},
+						},
+					},
+				}
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", ContainSubstring(`
+total_memory_available_override_value           = 4GiB`)))
 			})
 		})
 
