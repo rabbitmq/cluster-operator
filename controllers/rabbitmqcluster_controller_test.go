@@ -716,7 +716,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Eventually(func() []corev1.LocalObjectReference {
 				stsName := cluster.ChildResourceName("server")
 				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
-				Expect(len(sts.Spec.Template.Spec.ImagePullSecrets)).To(Equal(1))
 				return sts.Spec.Template.Spec.ImagePullSecrets
 			}, 3).Should(ConsistOf(corev1.LocalObjectReference{Name: "my-new-secret"}))
 		})
