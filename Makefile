@@ -12,7 +12,7 @@ list:    ## list Makefile targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 unit-tests: install-tools generate fmt vet manifests ## Run unit tests
-	ginkgo -r api/ internal/
+	ginkgo -r --randomizeAllSpecs api/ internal/
 
 integration-tests: install-tools generate fmt vet manifests ## Run integration tests
 	ginkgo -r controllers/

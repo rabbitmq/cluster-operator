@@ -18,7 +18,7 @@ var requiredPlugins = []string{
 	"rabbitmq_management",
 }
 
-const PluginsConfig = "plugins-conf"
+const PluginsConfigName = "plugins-conf"
 
 type RabbitmqPlugins struct {
 	requiredPlugins   []string
@@ -67,10 +67,6 @@ func (builder *RabbitmqResourceBuilder) RabbitmqPluginsConfigMap() *RabbitmqPlug
 	}
 }
 
-func (builder *RabbitmqPluginsConfigMapBuilder) UpdateRequiresStsRestart() bool {
-	return false
-}
-
 func (builder *RabbitmqPluginsConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
@@ -90,7 +86,7 @@ func (builder *RabbitmqPluginsConfigMapBuilder) Update(object runtime.Object) er
 func (builder *RabbitmqPluginsConfigMapBuilder) Build() (runtime.Object, error) {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(PluginsConfig),
+			Name:      builder.Instance.ChildResourceName(PluginsConfigName),
 			Namespace: builder.Instance.Namespace,
 		},
 		Data: map[string]string{

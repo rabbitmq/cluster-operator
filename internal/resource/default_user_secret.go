@@ -81,10 +81,6 @@ func (builder *DefaultUserSecretBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func (builder *DefaultUserSecretBuilder) UpdateRequiresStsRestart() bool {
-	return false
-}
-
 func generateDefaultUserConf(username, password string) ([]byte, error) {
 	ini.PrettySection = false // Remove trailing new line because default_user.conf has only a default section.
 	cfg, err := ini.Load([]byte{})

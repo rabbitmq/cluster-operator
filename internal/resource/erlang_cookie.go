@@ -38,10 +38,6 @@ func (builder *RabbitmqResourceBuilder) ErlangCookie() *ErlangCookieBuilder {
 	}
 }
 
-func (builder *ErlangCookieBuilder) UpdateRequiresStsRestart() bool {
-	return false
-}
-
 func (builder *ErlangCookieBuilder) Build() (runtime.Object, error) {
 	cookie, err := randomEncodedString(24)
 	if err != nil {

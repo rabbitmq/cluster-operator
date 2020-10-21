@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	serverConfigMapName = "server-conf"
+	ServerConfigMapName = "server-conf"
 	defaultRabbitmqConf = `
 cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host = kubernetes.default
@@ -50,10 +50,6 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilde
 		Instance: builder.Instance,
 		Scheme:   builder.Scheme,
 	}
-}
-
-func (builder *ServerConfigMapBuilder) UpdateRequiresStsRestart() bool {
-	return true // because rabbitmq.conf and advanced.config changes take effect only after a node restart
 }
 
 func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
@@ -116,7 +112,7 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(serverConfigMapName),
+			Name:      builder.Instance.ChildResourceName(ServerConfigMapName),
 			Namespace: builder.Instance.Namespace,
 		},
 	}, nil

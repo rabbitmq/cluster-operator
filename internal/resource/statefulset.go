@@ -45,10 +45,6 @@ type StatefulSetBuilder struct {
 	Scheme   *runtime.Scheme
 }
 
-func (builder *StatefulSetBuilder) UpdateRequiresStsRestart() bool {
-	return false
-}
-
 func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 	// PVC, ServiceName & Selector: can't be updated without deleting the statefulset
 	pvc, err := persistentVolumeClaim(builder.Instance, builder.Scheme)
@@ -257,7 +253,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: builder.Instance.ChildResourceName(serverConfigMapName),
+						Name: builder.Instance.ChildResourceName(ServerConfigMapName),
 					},
 				},
 			},
@@ -267,7 +263,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: builder.Instance.ChildResourceName(PluginsConfig),
+						Name: builder.Instance.ChildResourceName(PluginsConfigName),
 					},
 				},
 			},
