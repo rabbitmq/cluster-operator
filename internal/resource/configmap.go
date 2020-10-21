@@ -144,10 +144,41 @@ func updateProperty(configMapData map[string]string, key string, value string) {
 }
 
 func formatMemory(k8sMemory string) (string, error) {
-	if strings.HasSuffix(k8sMemory, "Ki") || strings.HasSuffix(k8sMemory, "Mi") ||
-		strings.HasSuffix(k8sMemory, "Gi") || strings.HasSuffix(k8sMemory, "Ti") ||
-		strings.HasSuffix(k8sMemory, "Pi") || strings.HasSuffix(k8sMemory, "Ei") {
+	if strings.HasSuffix(k8sMemory, "Mi") || strings.HasSuffix(k8sMemory, "Gi") || strings.HasSuffix(k8sMemory, "M") || strings.HasSuffix(k8sMemory, "G") {
 		return k8sMemory + "B", nil
+	}
+	if strings.HasSuffix(k8sMemory, "K") || strings.HasSuffix(k8sMemory, "Ki") {
+		return strings.ToLower(k8sMemory) + "B", nil
+	}
+	if strings.HasSuffix(k8sMemory, "Ti") {
+		tb, err := strconv.Atoi(strings.TrimSuffix(k8sMemory, "Ti"))
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%dGiB", tb*1024), nil
+	}
+	if strings.HasSuffix(k8sMemory, "Pi") {
+		pb, err := strconv.Atoi(strings.TrimSuffix(k8sMemory, "Pi"))
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%dGiB", pb*1048576), nil
+	}
+	if strings.HasSuffix(k8sMemory, "Ei") {
+		eb, err := strconv.Atoi(strings.TrimSuffix(k8sMemory, "Ei"))
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%dGiB", eb*1073741824), nil
+	}
+	if strings.HasSuffix(k8sMemory, "T") {
+		return strings.TrimSuffix(k8sMemory, "T")+"000GB", nil
+	}
+	if strings.HasSuffix(k8sMemory, "P") {
+		return strings.TrimSuffix(k8sMemory, "P")+"000000GB", nil
+	}
+	if strings.HasSuffix(k8sMemory, "E") {
+		return strings.TrimSuffix(k8sMemory, "E")+"000000000GB", nil
 	}
 	if strings.Contains(k8sMemory, "e") {
 		splitMemory := strings.Split(k8sMemory, "e")
