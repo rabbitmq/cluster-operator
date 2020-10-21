@@ -172,13 +172,13 @@ func formatMemory(k8sMemory string) (string, error) {
 		return fmt.Sprintf("%dGiB", eb*1073741824), nil
 	}
 	if strings.HasSuffix(k8sMemory, "T") {
-		return strings.TrimSuffix(k8sMemory, "T")+"000GB", nil
+		return strings.TrimSuffix(k8sMemory, "T") + "000GB", nil
 	}
 	if strings.HasSuffix(k8sMemory, "P") {
-		return strings.TrimSuffix(k8sMemory, "P")+"000000GB", nil
+		return strings.TrimSuffix(k8sMemory, "P") + "000000GB", nil
 	}
 	if strings.HasSuffix(k8sMemory, "E") {
-		return strings.TrimSuffix(k8sMemory, "E")+"000000000GB", nil
+		return strings.TrimSuffix(k8sMemory, "E") + "000000000GB", nil
 	}
 	if strings.Contains(k8sMemory, "e") {
 		splitMemory := strings.Split(k8sMemory, "e")
