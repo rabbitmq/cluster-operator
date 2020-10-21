@@ -622,7 +622,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("Custom Resource updates", func() {
 		var (
 			clientServiceName string
-			statefulSetName   string
+			stsName           string
 		)
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
@@ -635,7 +635,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				},
 			}
 			clientServiceName = cluster.ChildResourceName("client")
-			statefulSetName = cluster.ChildResourceName("server")
+			stsName = cluster.ChildResourceName("server")
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
@@ -680,7 +680,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() corev1.ResourceList {
-				stsName := cluster.ChildResourceName("server")
 				sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				resourceRequirements = sts.Spec.Template.Spec.Containers[0].Resources
@@ -702,7 +701,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() string {
-				stsName := cluster.ChildResourceName("server")
 				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 				return sts.Spec.Template.Spec.Containers[0].Image
 			}, 3).Should(Equal("rabbitmq:3.8.0"))
@@ -714,9 +712,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() []corev1.LocalObjectReference {
-				stsName := cluster.ChildResourceName("server")
 				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
-				Expect(len(sts.Spec.Template.Spec.ImagePullSecrets)).To(Equal(1))
 				return sts.Spec.Template.Spec.ImagePullSecrets
 			}, 3).Should(ConsistOf(corev1.LocalObjectReference{Name: "my-new-secret"}))
 		})
@@ -734,7 +730,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			}, 3).Should(HaveKeyWithValue("foo", "bar"))
 			var sts *appsv1.StatefulSet
 			Eventually(func() map[string]string {
-				sts, _ = clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, statefulSetName, metav1.GetOptions{})
+				sts, _ = clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 				return sts.Labels
 			}, 3).Should(HaveKeyWithValue("foo", "bar"))
 		})
@@ -766,7 +762,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			It("updates annotations for stateful set", func() {
 				Eventually(func() map[string]string {
-					sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, statefulSetName, metav1.GetOptions{})
+					sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return sts.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -876,7 +872,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() *corev1.Affinity {
-				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, statefulSetName, metav1.GetOptions{})
+				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 				return sts.Spec.Template.Spec.Affinity
 			}, 3).Should(Equal(affinity))
 
@@ -891,7 +887,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				r.Spec.Affinity = affinity
 			})).To(Succeed())
 			Eventually(func() *corev1.Affinity {
-				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, statefulSetName, metav1.GetOptions{})
+				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
 				return sts.Spec.Template.Spec.Affinity
 			}, 3).Should(BeNil())
 		})
