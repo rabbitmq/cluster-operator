@@ -314,7 +314,7 @@ func (cluster *RabbitmqCluster) MutualTLSEnabled() bool {
 	return cluster.TLSEnabled() && cluster.Spec.TLS.CaSecretName != ""
 }
 
-func (cluster *RabbitmqCluster) MemoryLimitProvided() bool {
+func (cluster *RabbitmqCluster) MemoryLimited() bool {
 	return cluster.Spec.Resources != nil && cluster.Spec.Resources.Limits != nil && !cluster.Spec.Resources.Limits.Memory().IsZero()
 }
 

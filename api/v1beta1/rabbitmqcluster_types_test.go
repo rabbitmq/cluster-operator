@@ -115,12 +115,12 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("can be queried if memory limits are provided", func() {
 			created := generateRabbitmqClusterObject("rabbit-mem-limit")
-			Expect(created.MemoryLimitProvided()).To(BeTrue())
+			Expect(created.MemoryLimited()).To(BeTrue())
 
 			created.Spec.Resources = &corev1.ResourceRequirements{
 				Limits: map[corev1.ResourceName]resource.Quantity{},
 			}
-			Expect(created.MemoryLimitProvided()).To(BeFalse())
+			Expect(created.MemoryLimited()).To(BeFalse())
 		})
 
 		It("is validated", func() {

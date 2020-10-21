@@ -88,7 +88,7 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		}
 	}
 
-	if builder.Instance.MemoryLimitProvided() {
+	if builder.Instance.MemoryLimited() {
 		if _, err := defaultSection.NewKey("total_memory_available_override_value", fmt.Sprintf("%d", removeHeadroom(builder.Instance.Spec.Resources.Limits.Memory().Value()))); err != nil {
 			return err
 		}
@@ -137,6 +137,8 @@ func updateProperty(configMapData map[string]string, key string, value string) {
 	}
 }
 
+// The Erlang VM needs headroom above Rabbit to avoid being OOM killed
+// We set the headroom to be the smaller amount of 20% memory or 2GiB
 func removeHeadroom(memLimit int64) int64 {
 	const GiB int64 = 1073741824
 	if memLimit/5 > 2*GiB {
