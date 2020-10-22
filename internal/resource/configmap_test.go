@@ -10,11 +10,14 @@
 package resource_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -246,6 +249,27 @@ ssl_options.keyfile                             = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default                           = 5671
 ssl_options.cacertfile                          = /etc/rabbitmq-tls/ca.certificate
 ssl_options.verify                              = verify_peer`)))
+			})
+		})
+
+		Context("Memory Limits", func() {
+			It("sets a RabbitMQ memory limit with headroom when memory limits are specified", func() {
+				const GiB int64 = 1073741824
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "rabbit-mem-limit",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Resources: &corev1.ResourceRequirements{
+							Limits: map[corev1.ResourceName]k8sresource.Quantity{
+								corev1.ResourceMemory: k8sresource.MustParse("10Gi"),
+							},
+						},
+					},
+				}
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", ContainSubstring(fmt.Sprintf("total_memory_available_override_value           = %d", 8*GiB))))
 			})
 		})
 
