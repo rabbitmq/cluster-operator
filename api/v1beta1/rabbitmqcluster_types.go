@@ -41,7 +41,7 @@ type RabbitmqClusterSpec struct {
 	// +optional
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:default:=1
-	Replicas *int32 `json:"replicas"`
+	Replicas *int32 `json:"replicas,omitempty"`
 	// Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster.
 	// +kubebuilder:default:="rabbitmq:3.8.9"
 	Image string `json:"image,omitempty"`
