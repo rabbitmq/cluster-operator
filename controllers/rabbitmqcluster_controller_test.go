@@ -70,9 +70,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Name:      "rabbitmq-one",
 					Namespace: defaultNamespace,
 				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
-				},
 			}
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -356,7 +353,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
 					TLS: rabbitmqv1beta1.TLSSpec{
 						SecretName: "tls-secret",
 					},
@@ -428,9 +424,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 						"my-annotation": "this-annotation",
 					},
 				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
-				},
 			}
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -459,7 +452,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:         &one,
 					ImagePullSecrets: []corev1.LocalObjectReference{{Name: "rabbit-two-secret"}},
 				},
 			}
@@ -502,7 +494,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
 					Affinity: affinity,
 				},
 			}
@@ -532,9 +523,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Name:      "rabbit-service-2",
 					Namespace: defaultNamespace,
 				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
-				},
 			}
 			cluster.Spec.Service.Type = "LoadBalancer"
 			cluster.Spec.Service.Annotations = map[string]string{"annotations": "cr-annotation"}
@@ -557,9 +545,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbit-resource-2",
 					Namespace: defaultNamespace,
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
 				},
 			}
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
@@ -601,9 +586,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Name:      "rabbit-persistence-1",
 					Namespace: defaultNamespace,
 				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
-				},
 			}
 			storageClassName := "my-storage-class"
 			cluster.Spec.Persistence.StorageClassName = &storageClassName
@@ -630,9 +612,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-cr-update",
 					Namespace: defaultNamespace,
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
 				},
 			}
 			clientServiceName = cluster.ChildResourceName("client")
@@ -906,9 +885,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-delete",
 					Namespace: defaultNamespace,
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
 				},
 			}
 			clientServiceName = cluster.ChildResourceName("client")
@@ -1326,7 +1302,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
 					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 						Type: "LoadBalancer",
 					},
@@ -1637,9 +1612,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Name:      "rabbitmq-" + testCase,
 					Namespace: defaultNamespace,
 				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &one,
-				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
@@ -1786,15 +1758,13 @@ func createSecret(ctx context.Context, secretName string, namespace string, data
 }
 
 func rabbitmqClusterWithTLS(ctx context.Context, clustername string, namespace string, tlsSpec rabbitmqv1beta1.TLSSpec) *rabbitmqv1beta1.RabbitmqCluster {
-	var one int32 = 1
 	rabbitmqCluster := &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clustername,
 			Namespace: namespace,
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas: &one,
-			TLS:      tlsSpec,
+			TLS: tlsSpec,
 		},
 	}
 

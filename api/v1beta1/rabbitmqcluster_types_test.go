@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 
 	"golang.org/x/net/context"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -27,11 +28,11 @@ import (
 var _ = Describe("RabbitmqCluster", func() {
 
 	var three int32 = 3
-	var one int32 = 1
 
 	Context("RabbitmqClusterSpec", func() {
 		It("can be created with a single replica", func() {
 			created := generateRabbitmqClusterObject("rabbit1")
+			created.Spec.Replicas = pointer.Int32Ptr(1)
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
@@ -164,9 +165,6 @@ var _ = Describe("RabbitmqCluster", func() {
 							Name:      "rabbitmq-defaults",
 							Namespace: "default",
 						},
-						Spec: RabbitmqClusterSpec{
-							Replicas: &one,
-						},
 					}
 
 					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
@@ -265,8 +263,7 @@ var _ = Describe("RabbitmqCluster", func() {
 							Namespace: "default",
 						},
 						Spec: RabbitmqClusterSpec{
-							Image:    "test-image",
-							Replicas: &one,
+							Image: "test-image",
 						},
 					}
 
@@ -290,7 +287,6 @@ var _ = Describe("RabbitmqCluster", func() {
 						},
 						Spec: RabbitmqClusterSpec{
 							Resources: expectedResources,
-							Replicas:  &one,
 						},
 					}
 
@@ -318,7 +314,6 @@ var _ = Describe("RabbitmqCluster", func() {
 						},
 						Spec: RabbitmqClusterSpec{
 							Resources: expectedResources,
-							Replicas:  &one,
 						},
 					}
 
@@ -340,7 +335,6 @@ var _ = Describe("RabbitmqCluster", func() {
 							Namespace: "default",
 						},
 						Spec: RabbitmqClusterSpec{
-							Replicas: &one,
 							Service: RabbitmqClusterServiceSpec{
 								Annotations: map[string]string{"key": "value"},
 							},
@@ -370,7 +364,6 @@ var _ = Describe("RabbitmqCluster", func() {
 							Namespace: "default",
 						},
 						Spec: RabbitmqClusterSpec{
-							Replicas: &one,
 							Persistence: RabbitmqClusterPersistenceSpec{
 								StorageClassName: &myStorage,
 							},
@@ -477,14 +470,13 @@ func getKey(cluster *RabbitmqCluster) types.NamespacedName {
 
 func generateRabbitmqClusterObject(clusterName string) *RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
-	one := int32(1)
 	return &RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
 			Namespace: "default",
 		},
 		Spec: RabbitmqClusterSpec{
-			Replicas: &one,
+			Replicas: pointer.Int32Ptr(1),
 			Image:    "rabbitmq:3.8.9",
 			Service: RabbitmqClusterServiceSpec{
 				Type: "ClusterIP",
