@@ -491,6 +491,19 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			Labels:      labels,
 		},
 		Spec: corev1.PodSpec{
+			TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+				{
+					MaxSkew: 1,
+					// "topology.kubernetes.io/zone" is a well-known label.
+					// It is automatically set by kubelet if the cloud provider provides the zone information.
+					// See: https://kubernetes.io/docs/reference/kubernetes-api/labels-annotations-taints/#topologykubernetesiozone
+					TopologyKey:       "topology.kubernetes.io/zone",
+					WhenUnsatisfiable: corev1.ScheduleAnyway,
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: metadata.LabelSelector(builder.Instance.Name),
+					},
+				},
+			},
 			SecurityContext: &corev1.PodSecurityContext{
 				FSGroup:    &rabbitmqGID,
 				RunAsGroup: &rabbitmqGID,
