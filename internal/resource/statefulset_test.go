@@ -692,6 +692,23 @@ var _ = Describe("StatefulSet", func() {
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(1)))
 		})
 
+		It("sets a TopologySpreadConstraint", func() {
+			stsBuilder := builder.StatefulSet()
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+			Expect(statefulSet.Spec.Template.Spec.TopologySpreadConstraints).To(ConsistOf(
+				corev1.TopologySpreadConstraint{
+					MaxSkew:           1,
+					TopologyKey:       "topology.kubernetes.io/zone",
+					WhenUnsatisfiable: corev1.ScheduleAnyway,
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/name": instance.Name,
+						},
+					},
+				}))
+		})
+
 		It("has resources requirements on the init container", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
@@ -1236,6 +1253,18 @@ var _ = Describe("StatefulSet", func() {
 						Spec: &rabbitmqv1beta1.StatefulSetSpec{
 							Template: &rabbitmqv1beta1.PodTemplateSpec{
 								Spec: &corev1.PodSpec{
+									TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+										{
+											MaxSkew:           1,
+											TopologyKey:       "my-topology",
+											WhenUnsatisfiable: corev1.DoNotSchedule,
+											LabelSelector: &metav1.LabelSelector{
+												MatchLabels: map[string]string{
+													"key": "value",
+												},
+											},
+										},
+									},
 									Containers: []corev1.Container{
 										{
 											Name: "rabbitmq",
@@ -1272,6 +1301,29 @@ var _ = Describe("StatefulSet", func() {
 					}
 					stsBuilder := builder.StatefulSet()
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.Template.Spec.TopologySpreadConstraints).To(ConsistOf(
+						corev1.TopologySpreadConstraint{
+							MaxSkew:           1,
+							TopologyKey:       "my-topology",
+							WhenUnsatisfiable: corev1.DoNotSchedule,
+							LabelSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"key": "value",
+								},
+							},
+						},
+						corev1.TopologySpreadConstraint{
+							MaxSkew:           1,
+							TopologyKey:       "topology.kubernetes.io/zone",
+							WhenUnsatisfiable: corev1.ScheduleAnyway,
+							LabelSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app.kubernetes.io/name": instance.Name,
+								},
+							},
+						},
+					))
 
 					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
 						corev1.EnvVar{
