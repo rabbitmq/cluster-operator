@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
@@ -603,15 +604,22 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					},
 					Ports:        ports,
 					VolumeMounts: rabbitmqContainerVolumeMounts,
+					// Why using a tcp readiness probe instead of running `rabbitmq-diagnostics check_port_connectivity`?
+					// Using rabbitmq-diagnostics command as the probe could cause context deadline exceeded errors
+					// Pods could be stuck at terminating at deletion as a result of that
+					// More details see issue: https://github.com/rabbitmq/cluster-operator/issues/409
 					ReadinessProbe: &corev1.Probe{
 						Handler: corev1.Handler{
-							Exec: &corev1.ExecAction{
-								Command: []string{"/bin/sh", "-c", "rabbitmq-diagnostics check_port_connectivity"},
+							TCPSocket: &corev1.TCPSocketAction{
+								Port: intstr.IntOrString{
+									Type:   intstr.String,
+									StrVal: "amqp",
+								},
 							},
 						},
 						InitialDelaySeconds: 10,
 						TimeoutSeconds:      5,
-						PeriodSeconds:       30,
+						PeriodSeconds:       10,
 						SuccessThreshold:    1,
 						FailureThreshold:    3,
 					},
