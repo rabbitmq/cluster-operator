@@ -96,6 +96,7 @@ cluster_formation.node_cleanup.interval         = 30
 cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling                      = pause_minority
 queue_master_locator                            = min-masters
+disk_free_limit.absolute                        = 2GB
 cluster_name                                    = ` + builder.Instance.Name + "\n"
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", defaultRabbitmqConf))
@@ -117,6 +118,7 @@ cluster_formation.node_cleanup.interval         = 30
 cluster_formation.node_cleanup.only_log_warning = true
 cluster_partition_handling                      = pause_minority
 queue_master_locator                            = min-masters
+disk_free_limit.absolute                        = 2GB
 cluster_name                                    = ` + builder.Instance.Name + `
 my-config-property-0                            = great-value
 my-config-property-1                            = better-value
