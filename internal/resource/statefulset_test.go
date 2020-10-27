@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 )
@@ -958,8 +959,9 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-			actualProbeCommand := container.ReadinessProbe.Handler.Exec.Command
-			Expect(actualProbeCommand).To(Equal([]string{"/bin/sh", "-c", "rabbitmq-diagnostics check_port_connectivity"}))
+			TCPProbe := container.ReadinessProbe.TCPSocket
+			Expect(TCPProbe.Port.Type).To(Equal(intstr.String))
+			Expect(TCPProbe.Port.StrVal).To(Equal("amqp"))
 		})
 
 		It("templates the correct InitContainer", func() {
