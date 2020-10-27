@@ -188,7 +188,7 @@ var _ = Describe("HeadlessService", func() {
 					{
 						Protocol: corev1.ProtocolTCP,
 						Port:     25672,
-						Name:     "cluster-links",
+						Name:     "cluster-rpc",
 					},
 				},
 				PublishNotReadyAddresses: true,

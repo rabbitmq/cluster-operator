@@ -60,7 +60,7 @@ func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
 			{
 				Protocol: corev1.ProtocolTCP,
 				Port:     25672,
-				Name:     "cluster-links", // aka distribution port
+				Name:     "cluster-rpc", // aka distribution port
 			},
 		},
 		PublishNotReadyAddresses: true,
