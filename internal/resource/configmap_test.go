@@ -89,13 +89,13 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		When("additionalConfig is not provided", func() {
 			It("returns the default rabbitmq conf", func() {
 				builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
-				defaultRabbitmqConf := `cluster_formation.peer_discovery_backend        = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host                      = kubernetes.default
-cluster_formation.k8s.address_type              = hostname
-cluster_partition_handling                      = pause_minority
-queue_master_locator                            = min-masters
-disk_free_limit.absolute                        = 2GB
-cluster_name                                    = ` + builder.Instance.Name + "\n"
+				defaultRabbitmqConf := `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+cluster_formation.k8s.host               = kubernetes.default
+cluster_formation.k8s.address_type       = hostname
+cluster_partition_handling               = pause_minority
+queue_master_locator                     = min-masters
+disk_free_limit.absolute                 = 2GB
+cluster_name                             = ` + builder.Instance.Name + "\n"
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", defaultRabbitmqConf))
 			})
@@ -109,15 +109,15 @@ my-config-property-1 = better-value`
 			})
 
 			It("appends configurations to the default rabbitmq.conf and overwrites duplicate keys", func() {
-				expectedRabbitmqConf := `cluster_formation.peer_discovery_backend        = my-backend
-cluster_formation.k8s.host                      = kubernetes.default
-cluster_formation.k8s.address_type              = hostname
-cluster_partition_handling                      = pause_minority
-queue_master_locator                            = min-masters
-disk_free_limit.absolute                        = 2GB
-cluster_name                                    = ` + builder.Instance.Name + `
-my-config-property-0                            = great-value
-my-config-property-1                            = better-value
+				expectedRabbitmqConf := `cluster_formation.peer_discovery_backend = my-backend
+cluster_formation.k8s.host               = kubernetes.default
+cluster_formation.k8s.address_type       = hostname
+cluster_partition_handling               = pause_minority
+queue_master_locator                     = min-masters
+disk_free_limit.absolute                 = 2GB
+cluster_name                             = ` + builder.Instance.Name + `
+my-config-property-0                     = great-value
+my-config-property-1                     = better-value
 `
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
@@ -219,9 +219,9 @@ CONSOLE_LOG=new`
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", ContainSubstring(`
-ssl_options.certfile                            = /etc/rabbitmq-tls/tls.crt
-ssl_options.keyfile                             = /etc/rabbitmq-tls/tls.key
-listeners.ssl.default                           = 5671`)))
+ssl_options.certfile                     = /etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile                      = /etc/rabbitmq-tls/tls.key
+listeners.ssl.default                    = 5671`)))
 			})
 		})
 
@@ -242,11 +242,11 @@ listeners.ssl.default                           = 5671`)))
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", ContainSubstring(`
-ssl_options.certfile                            = /etc/rabbitmq-tls/tls.crt
-ssl_options.keyfile                             = /etc/rabbitmq-tls/tls.key
-listeners.ssl.default                           = 5671
-ssl_options.cacertfile                          = /etc/rabbitmq-tls/ca.certificate
-ssl_options.verify                              = verify_peer`)))
+ssl_options.certfile                     = /etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile                      = /etc/rabbitmq-tls/tls.key
+listeners.ssl.default                    = 5671
+ssl_options.cacertfile                   = /etc/rabbitmq-tls/ca.certificate
+ssl_options.verify                       = verify_peer`)))
 			})
 		})
 
@@ -267,7 +267,7 @@ ssl_options.verify                              = verify_peer`)))
 				}
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", ContainSubstring(fmt.Sprintf("total_memory_available_override_value           = %d", 8*GiB))))
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", ContainSubstring(fmt.Sprintf("total_memory_available_override_value    = %d", 8*GiB))))
 			})
 		})
 
