@@ -1022,13 +1022,22 @@ var _ = Describe("StatefulSet", func() {
 			}))
 		})
 
-		It("adds the required terminationGracePeriodSeconds", func() {
+		It("sets TerminationGracePeriodSeconds in podTemplate as provided in instance spec", func() {
+			instance.Spec.TerminationGracePeriodSeconds = pointer.Int64Ptr(10)
+			builder = &resource.RabbitmqResourceBuilder{
+				Instance: &instance,
+				Scheme:   scheme,
+			}
+
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			gracePeriodSeconds := statefulSet.Spec.Template.Spec.TerminationGracePeriodSeconds
-			expectedGracePeriodSeconds := int64(60 * 60 * 24 * 7)
-			Expect(gracePeriodSeconds).To(Equal(&expectedGracePeriodSeconds))
+			Expect(gracePeriodSeconds).To(Equal(pointer.Int64Ptr(10)))
+
+			// TerminationGracePeriodSeconds is used to set commands timeouts in the preStop hook
+			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 10; rabbitmq-upgrade await_online_synchronized_mirror -t 10; rabbitmq-upgrade drain -t 10"}
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Lifecycle.PreStop.Exec.Command).To(Equal(expectedPreStopCommand))
 		})
 
 		It("checks mirror and querum queue status in preStop hook", func() {
@@ -1473,9 +1482,10 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 			Namespace: "foo-namespace",
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas:         &one,
-			Image:            "rabbitmq-image-from-cr",
-			ImagePullSecrets: []corev1.LocalObjectReference{{Name: "my-super-secret"}},
+			Replicas:                      &one,
+			Image:                         "rabbitmq-image-from-cr",
+			ImagePullSecrets:              []corev1.LocalObjectReference{{Name: "my-super-secret"}},
+			TerminationGracePeriodSeconds: pointer.Int64Ptr(604800),
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Type:        "this-is-a-service",
 				Annotations: map[string]string{},
