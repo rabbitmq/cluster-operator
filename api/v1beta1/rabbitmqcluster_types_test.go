@@ -179,6 +179,7 @@ var _ = Describe("RabbitmqCluster", func() {
 
 			When("CR is fully populated", func() {
 				It("outputs the CR", func() {
+					zero := int64(0)
 					storage := k8sresource.MustParse("987Gi")
 					storageClassName := "some-class"
 					rmqClusterInstance = RabbitmqCluster{
@@ -187,9 +188,10 @@ var _ = Describe("RabbitmqCluster", func() {
 							Namespace: "default",
 						},
 						Spec: RabbitmqClusterSpec{
-							Replicas:         &three,
-							Image:            "rabbitmq-image-from-cr",
-							ImagePullSecrets: []corev1.LocalObjectReference{{Name: "my-super-secret"}},
+							Replicas:                      &three,
+							Image:                         "rabbitmq-image-from-cr",
+							ImagePullSecrets:              []corev1.LocalObjectReference{{Name: "my-super-secret"}},
+							TerminationGracePeriodSeconds: &zero,
 							Service: RabbitmqClusterServiceSpec{
 								Type: "NodePort",
 								Annotations: map[string]string{
@@ -470,14 +472,16 @@ func getKey(cluster *RabbitmqCluster) types.NamespacedName {
 
 func generateRabbitmqClusterObject(clusterName string) *RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
+	terminationPeriod := int64(604800)
 	return &RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
 			Namespace: "default",
 		},
 		Spec: RabbitmqClusterSpec{
-			Replicas: pointer.Int32Ptr(1),
-			Image:    "rabbitmq:3.8.9",
+			Replicas:                      pointer.Int32Ptr(1),
+			Image:                         "rabbitmq:3.8.9",
+			TerminationGracePeriodSeconds: &terminationPeriod,
 			Service: RabbitmqClusterServiceSpec{
 				Type: "ClusterIP",
 			},

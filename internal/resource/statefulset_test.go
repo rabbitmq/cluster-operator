@@ -1011,12 +1011,19 @@ var _ = Describe("StatefulSet", func() {
 			}))
 		})
 
-		It("adds the required terminationGracePeriodSeconds", func() {
+		It("sets TerminationGracePeriodSeconds in podTemplate as provided in instance spec", func() {
+			ten := int64(10)
+			instance.Spec.TerminationGracePeriodSeconds = &ten
+			builder = &resource.RabbitmqResourceBuilder{
+				Instance: &instance,
+				Scheme:   scheme,
+			}
+
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			gracePeriodSeconds := statefulSet.Spec.Template.Spec.TerminationGracePeriodSeconds
-			expectedGracePeriodSeconds := int64(60 * 60 * 24 * 7)
+			expectedGracePeriodSeconds := int64(10)
 			Expect(gracePeriodSeconds).To(Equal(&expectedGracePeriodSeconds))
 		})
 

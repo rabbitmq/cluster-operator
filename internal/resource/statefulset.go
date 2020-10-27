@@ -245,8 +245,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
-	terminationGracePeriod := defaultGracePeriodTimeoutSeconds
-
 	volumes := []corev1.Volume{
 		{
 			Name: "server-conf",
@@ -510,7 +508,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				RunAsUser:  &rabbitmqUID,
 			},
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
-			TerminationGracePeriodSeconds: &terminationGracePeriod,
+			TerminationGracePeriodSeconds: builder.Instance.Spec.TerminationGracePeriodSeconds,
 			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
 			AutomountServiceAccountToken:  &automountServiceAccountToken,
 			Affinity:                      builder.Instance.Spec.Affinity,

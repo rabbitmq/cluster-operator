@@ -63,6 +63,12 @@ type RabbitmqClusterSpec struct {
 	// Has no effect if the cluster only consists of one node.
 	// For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
 	SkipPostDeploySteps bool `json:"skipPostDeploySteps,omitempty"`
+	// TerminationGracePeriodSeconds is the timeout that each rabbitmqcluster pod will have to terminate gracefully
+	// It defaults to 604800 seconds ( a week long) to ensure that the container preStop lifecycle hook can finish running
+	// For more information, see: https://github.com/rabbitmq/cluster-operator/blob/main/docs/design/20200520-graceful-pod-termination.md
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:default:=604800
+	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
 }
 
 type RabbitmqClusterOverrideSpec struct {
