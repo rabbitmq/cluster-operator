@@ -11,6 +11,8 @@ This product may include a number of subcomponents with separate copyright notic
 package controllers_test
 
 import (
+	"context"
+	"k8s.io/client-go/util/retry"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -38,14 +40,30 @@ import (
 const controllerName = "rabbitmqcluster-controller"
 
 var (
-	cfg          *rest.Config
-	testEnv      *envtest.Environment
-	client       runtimeClient.Client
-	clientSet    *kubernetes.Clientset
-	stopMgr      chan struct{}
-	mgrStopped   *sync.WaitGroup
-	scheme       *runtime.Scheme
-	fakeExecutor *fakePodExecutor
+	cfg             *rest.Config
+	testEnv         *envtest.Environment
+	client          runtimeClient.Client
+	clientSet       *kubernetes.Clientset
+	stopMgr         chan struct{}
+	mgrStopped      *sync.WaitGroup
+	scheme          *runtime.Scheme
+	fakeExecutor    *fakePodExecutor
+	ctx             = context.Background()
+	updateWithRetry = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
+		return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			objKey, err := runtimeClient.ObjectKeyFromObject(cr)
+			if err != nil {
+				return err
+			}
+
+			if err := client.Get(ctx, objKey, cr); err != nil {
+				return err
+			}
+
+			mutateFn(cr)
+			return client.Update(ctx, cr)
+		})
+	}
 )
 
 func TestControllers(t *testing.T) {
