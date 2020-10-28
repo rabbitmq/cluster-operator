@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -34,16 +35,16 @@ const (
 	DeletionMarker                   string = "skipPreStopChecks"
 )
 
+type StatefulSetBuilder struct {
+	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
+}
+
 func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
 	return &StatefulSetBuilder{
 		Instance: builder.Instance,
 		Scheme:   builder.Scheme,
 	}
-}
-
-type StatefulSetBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
 }
 
 func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
@@ -96,41 +97,6 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 	}
 
 	return sts, nil
-}
-
-func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
-	pvc := corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "persistence",
-			Namespace:   instance.GetNamespace(),
-			Labels:      metadata.Label(instance.Name),
-			Annotations: metadata.ReconcileAndFilterAnnotations(map[string]string{}, instance.Annotations),
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
-				},
-			},
-			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			StorageClassName: instance.Spec.Persistence.StorageClassName,
-		},
-	}
-
-	if err := controllerutil.SetControllerReference(instance, &pvc, scheme); err != nil {
-		return []corev1.PersistentVolumeClaim{}, fmt.Errorf("failed setting controller reference: %v", err)
-	}
-	disableBlockOwnerDeletion(pvc)
-
-	return []corev1.PersistentVolumeClaim{pvc}, nil
-}
-
-// required for OpenShift compatibility, see https://github.com/rabbitmq/cluster-operator/issues/234
-func disableBlockOwnerDeletion(pvc corev1.PersistentVolumeClaim) {
-	refs := pvc.OwnerReferences
-	for i := range refs {
-		refs[i].BlockOwnerDeletion = pointer.BoolPtr(false)
-	}
 }
 
 func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
@@ -211,6 +177,41 @@ func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.Stat
 		sts.Spec.Template.Spec = patchedPodSpec
 	}
 	return nil
+}
+
+func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
+	pvc := corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "persistence",
+			Namespace:   instance.GetNamespace(),
+			Labels:      metadata.Label(instance.Name),
+			Annotations: metadata.ReconcileAndFilterAnnotations(map[string]string{}, instance.Annotations),
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+				},
+			},
+			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			StorageClassName: instance.Spec.Persistence.StorageClassName,
+		},
+	}
+
+	if err := controllerutil.SetControllerReference(instance, &pvc, scheme); err != nil {
+		return []corev1.PersistentVolumeClaim{}, fmt.Errorf("failed setting controller reference: %v", err)
+	}
+	disableBlockOwnerDeletion(pvc)
+
+	return []corev1.PersistentVolumeClaim{pvc}, nil
+}
+
+// required for OpenShift compatibility, see https://github.com/rabbitmq/cluster-operator/issues/234
+func disableBlockOwnerDeletion(pvc corev1.PersistentVolumeClaim) {
+	refs := pvc.OwnerReferences
+	for i := range refs {
+		refs[i].BlockOwnerDeletion = pointer.BoolPtr(false)
+	}
 }
 
 func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, error) {

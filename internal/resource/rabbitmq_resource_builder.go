@@ -20,8 +20,8 @@ type RabbitmqResourceBuilder struct {
 }
 
 type ResourceBuilder interface {
-	Update(runtime.Object) error
 	Build() (runtime.Object, error)
+	Update(runtime.Object) error
 }
 
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, error) {
