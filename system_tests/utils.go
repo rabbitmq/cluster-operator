@@ -741,7 +741,7 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 	c := mqtt.NewClient(opts)
 
 	var token mqtt.Token
-	Eventually(func() bool {
+	EventuallyWithOffset(1, func() bool {
 		token = c.Connect()
 		// Waits for the network request to reach the destination and receive a response
 		if !token.WaitTimeout(3 * time.Second) {
@@ -752,7 +752,7 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 			return true
 		}
 		return false
-	}, 10, 2).Should(BeTrue(), "Expected to be able to connect to MQTT port")
+	}, 15, 2).Should(BeTrue(), "Expected to be able to connect to MQTT port")
 
 	topic := "tests/mqtt"
 	msgReceived := false
