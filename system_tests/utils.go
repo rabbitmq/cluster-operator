@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"k8s.io/utils/pointer"
 	"log"
 	"net/http"
 	"os"
@@ -376,14 +377,13 @@ func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset
 }
 
 func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
-	one := int32(1)
 	return &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instanceName,
 			Namespace: namespace,
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas: &one,
+			Replicas: pointer.Int32Ptr(1),
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Type: "NodePort",
 			},

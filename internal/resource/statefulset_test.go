@@ -326,10 +326,9 @@ var _ = Describe("StatefulSet", func() {
 		It("specifies the upgrade policy", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-			zero := int32(0)
 			updateStrategy := appsv1.StatefulSetUpdateStrategy{
 				RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-					Partition: &zero,
+					Partition: pointer.Int32Ptr(0),
 				},
 				Type: appsv1.RollingUpdateStatefulSetStrategyType,
 			}
@@ -1012,8 +1011,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets TerminationGracePeriodSeconds in podTemplate as provided in instance spec", func() {
-			ten := int64(10)
-			instance.Spec.TerminationGracePeriodSeconds = &ten
+			instance.Spec.TerminationGracePeriodSeconds = pointer.Int64Ptr(10)
 			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
@@ -1023,8 +1021,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			gracePeriodSeconds := statefulSet.Spec.Template.Spec.TerminationGracePeriodSeconds
-			expectedGracePeriodSeconds := int64(10)
-			Expect(gracePeriodSeconds).To(Equal(&expectedGracePeriodSeconds))
+			Expect(gracePeriodSeconds).To(Equal(pointer.Int64Ptr(10)))
 		})
 
 		It("checks mirror and querum queue status in preStop hook", func() {
@@ -1106,8 +1103,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets the replica count of the StatefulSet to the instance value", func() {
-			three := int32(3)
-			instance.Spec.Replicas = &three
+			instance.Spec.Replicas = pointer.Int32Ptr(3)
 			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
@@ -1203,13 +1199,12 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.spec.UpdateStrategy", func() {
-				one := int32(1)
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						UpdateStrategy: &appsv1.StatefulSetUpdateStrategy{
 							Type: "OnDelete",
 							RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-								Partition: &one,
+								Partition: pointer.Int32Ptr(1),
 							},
 						},
 					},
@@ -1462,14 +1457,13 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 
 func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
-	one := int32(1)
 	return rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "foo-namespace",
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas:         &one,
+			Replicas:         pointer.Int32Ptr(1),
 			Image:            "rabbitmq-image-from-cr",
 			ImagePullSecrets: []corev1.LocalObjectReference{{Name: "my-super-secret"}},
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
