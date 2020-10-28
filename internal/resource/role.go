@@ -11,6 +11,7 @@ package resource
 
 import (
 	"fmt"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -35,6 +36,15 @@ func (builder *RabbitmqResourceBuilder) Role() *RoleBuilder {
 	}
 }
 
+func (builder *RoleBuilder) Build() (runtime.Object, error) {
+	return &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: builder.Instance.Namespace,
+			Name:      builder.Instance.ChildResourceName(roleName),
+		},
+	}, nil
+}
+
 func (builder *RoleBuilder) Update(object runtime.Object) error {
 	role := object.(*rbacv1.Role)
 	role.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
@@ -55,15 +65,5 @@ func (builder *RoleBuilder) Update(object runtime.Object) error {
 	if err := controllerutil.SetControllerReference(builder.Instance, role, builder.Scheme); err != nil {
 		return fmt.Errorf("failed setting controller reference: %v", err)
 	}
-
 	return nil
-}
-
-func (builder *RoleBuilder) Build() (runtime.Object, error) {
-	return &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: builder.Instance.Namespace,
-			Name:      builder.Instance.ChildResourceName(roleName),
-		},
-	}, nil
 }

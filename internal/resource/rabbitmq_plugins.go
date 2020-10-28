@@ -2,8 +2,9 @@ package resource
 
 import (
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
@@ -20,14 +21,49 @@ var requiredPlugins = []string{
 
 const PluginsConfigName = "plugins-conf"
 
-type RabbitmqPlugins struct {
-	requiredPlugins   []string
-	additionalPlugins []string
-}
-
 type RabbitmqPluginsConfigMapBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
 	Scheme   *runtime.Scheme
+}
+
+func (builder *RabbitmqResourceBuilder) RabbitmqPluginsConfigMap() *RabbitmqPluginsConfigMapBuilder {
+	return &RabbitmqPluginsConfigMapBuilder{
+		Instance: builder.Instance,
+		Scheme:   builder.Scheme,
+	}
+}
+
+func (builder *RabbitmqPluginsConfigMapBuilder) Build() (runtime.Object, error) {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      builder.Instance.ChildResourceName(PluginsConfigName),
+			Namespace: builder.Instance.Namespace,
+		},
+		Data: map[string]string{
+			"enabled_plugins": desiredPluginsAsString([]rabbitmqv1beta1.Plugin{}),
+		},
+	}, nil
+}
+
+func (builder *RabbitmqPluginsConfigMapBuilder) Update(object runtime.Object) error {
+	configMap := object.(*corev1.ConfigMap)
+	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
+	configMap.Annotations = metadata.ReconcileAndFilterAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
+
+	if configMap.Data == nil {
+		configMap.Data = make(map[string]string)
+	}
+	configMap.Data["enabled_plugins"] = desiredPluginsAsString(builder.Instance.Spec.Rabbitmq.AdditionalPlugins)
+
+	if err := controllerutil.SetControllerReference(builder.Instance, configMap, builder.Scheme); err != nil {
+		return fmt.Errorf("failed setting controller reference: %v", err)
+	}
+	return nil
+}
+
+type RabbitmqPlugins struct {
+	requiredPlugins   []string
+	additionalPlugins []string
 }
 
 func NewRabbitmqPlugins(plugins []rabbitmqv1beta1.Plugin) RabbitmqPlugins {
@@ -58,41 +94,6 @@ func (r *RabbitmqPlugins) DesiredPlugins() []string {
 
 func (r *RabbitmqPlugins) AsString(sep string) string {
 	return strings.Join(r.DesiredPlugins(), sep)
-}
-
-func (builder *RabbitmqResourceBuilder) RabbitmqPluginsConfigMap() *RabbitmqPluginsConfigMapBuilder {
-	return &RabbitmqPluginsConfigMapBuilder{
-		Instance: builder.Instance,
-		Scheme:   builder.Scheme,
-	}
-}
-
-func (builder *RabbitmqPluginsConfigMapBuilder) Update(object runtime.Object) error {
-	configMap := object.(*corev1.ConfigMap)
-	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	configMap.Annotations = metadata.ReconcileAndFilterAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
-
-	if configMap.Data == nil {
-		configMap.Data = make(map[string]string)
-	}
-	configMap.Data["enabled_plugins"] = desiredPluginsAsString(builder.Instance.Spec.Rabbitmq.AdditionalPlugins)
-
-	if err := controllerutil.SetControllerReference(builder.Instance, configMap, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
-	}
-	return nil
-}
-
-func (builder *RabbitmqPluginsConfigMapBuilder) Build() (runtime.Object, error) {
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(PluginsConfigName),
-			Namespace: builder.Instance.Namespace,
-		},
-		Data: map[string]string{
-			"enabled_plugins": desiredPluginsAsString([]rabbitmqv1beta1.Plugin{}),
-		},
-	}, nil
 }
 
 func desiredPluginsAsString(additionalPlugins []rabbitmqv1beta1.Plugin) string {

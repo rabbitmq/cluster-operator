@@ -23,16 +23,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+type ClientServiceBuilder struct {
+	Instance *rabbitmqv1beta1.RabbitmqCluster
+	Scheme   *runtime.Scheme
+}
+
 func (builder *RabbitmqResourceBuilder) ClientService() *ClientServiceBuilder {
 	return &ClientServiceBuilder{
 		Instance: builder.Instance,
 		Scheme:   builder.Scheme,
 	}
-}
-
-type ClientServiceBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
 }
 
 func (builder *ClientServiceBuilder) Build() (runtime.Object, error) {

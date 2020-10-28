@@ -52,6 +52,15 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilde
 	}
 }
 
+func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      builder.Instance.ChildResourceName(ServerConfigMapName),
+			Namespace: builder.Instance.Namespace,
+		},
+	}, nil
+}
+
 func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
@@ -113,15 +122,6 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	}
 
 	return nil
-}
-
-func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(ServerConfigMapName),
-			Namespace: builder.Instance.Namespace,
-		},
-	}, nil
 }
 
 func updateProperty(configMapData map[string]string, key string, value string) {
