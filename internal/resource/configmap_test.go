@@ -382,6 +382,6 @@ func iniString(input string) string {
 	var output bytes.Buffer
 	cfg, _ := ini.Load([]byte(input))
 	_, err := cfg.WriteTo(&output)
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	return output.String()
 }
