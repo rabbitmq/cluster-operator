@@ -2,6 +2,7 @@ package controllers_test
 
 import (
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -15,8 +16,6 @@ import (
 var _ = Describe("Reconcile queue Rebalance", func() {
 	var (
 		cluster          *rabbitmqv1beta1.RabbitmqCluster
-		one              int32 = 1
-		three            int32 = 3
 		annotations      map[string]string
 		defaultNamespace = "default"
 	)
@@ -38,7 +37,7 @@ var _ = Describe("Reconcile queue Rebalance", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &three,
+					Replicas: pointer.Int32Ptr(3),
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -119,7 +118,7 @@ var _ = Describe("Reconcile queue Rebalance", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:            &three,
+					Replicas:            pointer.Int32Ptr(3),
 					SkipPostDeploySteps: true,
 				},
 			}
@@ -183,7 +182,7 @@ var _ = Describe("Reconcile queue Rebalance", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:            &one,
+					Replicas:            pointer.Int32Ptr(1),
 					SkipPostDeploySteps: false,
 				},
 			}

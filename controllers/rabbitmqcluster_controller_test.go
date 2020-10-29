@@ -13,6 +13,7 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/pointer"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -40,8 +41,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 	var (
 		cluster          *rabbitmqv1beta1.RabbitmqCluster
-		one              int32 = 1
-		defaultNamespace       = "default"
+		defaultNamespace = "default"
 	)
 
 	Context("default settings", func() {
@@ -709,7 +709,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 			}
-			cluster.Spec.Replicas = &one
+			cluster.Spec.Replicas = pointer.Int32Ptr(1)
 		})
 
 		It("exposes ReconcileSuccess condition", func() {
@@ -774,14 +774,13 @@ var _ = Describe("RabbitmqClusterController", func() {
 			storageClassName = "my-storage-class"
 			myStorage = k8sresource.MustParse("100Gi")
 			q, _ = k8sresource.ParseQuantity("10Gi")
-			ten := int32(10)
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-sts-override",
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: &ten,
+					Replicas: pointer.Int32Ptr(10),
 					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
 						StatefulSet: &rabbitmqv1beta1.StatefulSet{
 							Spec: &rabbitmqv1beta1.StatefulSetSpec{
@@ -1016,10 +1015,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 
 		It("updates", func() {
-			five := int32(5)
-
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				cluster.Spec.Override.StatefulSet.Spec.Replicas = &five
+				cluster.Spec.Override.StatefulSet.Spec.Replicas = pointer.Int32Ptr(5)
 				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.Containers = []corev1.Container{
 					{
 						Name:  "additional-container-2",

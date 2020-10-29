@@ -29,10 +29,9 @@ import (
 )
 
 const (
-	defaultGracePeriodTimeoutSeconds int64  = 60 * 60 * 24 * 7
-	initContainerCPU                 string = "100m"
-	initContainerMemory              string = "500Mi"
-	DeletionMarker                   string = "skipPreStopChecks"
+	initContainerCPU    string = "100m"
+	initContainerMemory string = "500Mi"
+	DeletionMarker      string = "skipPreStopChecks"
 )
 
 type StatefulSetBuilder struct {
@@ -106,10 +105,9 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	sts.Spec.Replicas = builder.Instance.Spec.Replicas
 
 	//Update Strategy
-	zero := int32(0)
 	sts.Spec.UpdateStrategy = appsv1.StatefulSetUpdateStrategy{
 		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-			Partition: &zero,
+			Partition: pointer.Int32Ptr(0),
 		},
 		Type: appsv1.RollingUpdateStatefulSetStrategyType,
 	}
@@ -246,8 +244,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 	automountServiceAccountToken := true
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
-
-	terminationGracePeriod := defaultGracePeriodTimeoutSeconds
 
 	volumes := []corev1.Volume{
 		{
@@ -512,7 +508,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				RunAsUser:  &rabbitmqUID,
 			},
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
-			TerminationGracePeriodSeconds: &terminationGracePeriod,
+			TerminationGracePeriodSeconds: builder.Instance.Spec.TerminationGracePeriodSeconds,
 			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
 			AutomountServiceAccountToken:  &automountServiceAccountToken,
 			Affinity:                      builder.Instance.Spec.Affinity,
@@ -653,7 +649,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 									fmt.Sprintf("if [ ! -z \"$(cat /etc/pod-info/%s)\" ]; then exit 0; fi;", DeletionMarker) +
 										fmt.Sprintf(" rabbitmq-upgrade await_online_quorum_plus_one -t %d;"+
 											" rabbitmq-upgrade await_online_synchronized_mirror -t %d;"+
-											" rabbitmq-upgrade drain -t %d", defaultGracePeriodTimeoutSeconds, defaultGracePeriodTimeoutSeconds, defaultGracePeriodTimeoutSeconds),
+											" rabbitmq-upgrade drain -t %d",
+											*builder.Instance.Spec.TerminationGracePeriodSeconds,
+											*builder.Instance.Spec.TerminationGracePeriodSeconds,
+											*builder.Instance.Spec.TerminationGracePeriodSeconds),
 								},
 							},
 						},

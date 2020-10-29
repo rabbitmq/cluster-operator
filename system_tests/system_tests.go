@@ -11,6 +11,7 @@ package system_tests
 
 import (
 	"context"
+	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -269,9 +270,8 @@ CONSOLE_LOG=new`
 			var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 			BeforeEach(func() {
-				three := int32(3)
 				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
-				cluster.Spec.Replicas = &three
+				cluster.Spec.Replicas = pointer.Int32Ptr(3)
 
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
