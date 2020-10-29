@@ -63,7 +63,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
 
-			Expect(statefulSet.Spec.ServiceName).To(Equal(instance.ChildResourceName("headless")))
+			Expect(statefulSet.Spec.ServiceName).To(Equal(instance.ChildResourceName("")))
 		})
 		It("adds the correct label selector", func() {
 			obj, err := stsBuilder.Build()
@@ -782,7 +782,7 @@ var _ = Describe("StatefulSet", func() {
 				},
 				{
 					Name:  "K8S_SERVICE_NAME",
-					Value: instance.ChildResourceName("headless"),
+					Value: instance.ChildResourceName(""),
 				},
 				{
 					Name:  "RABBITMQ_USE_LONGNAME",
@@ -1366,7 +1366,7 @@ var _ = Describe("StatefulSet", func() {
 						},
 						corev1.EnvVar{
 							Name:  "K8S_SERVICE_NAME",
-							Value: instance.ChildResourceName("headless"),
+							Value: instance.ChildResourceName(""),
 						},
 						corev1.EnvVar{
 							Name:  "RABBITMQ_USE_LONGNAME",

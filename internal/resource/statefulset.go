@@ -59,7 +59,7 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 			Namespace: builder.Instance.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: builder.Instance.ChildResourceName(headlessServiceName),
+			ServiceName: builder.Instance.ChildResourceName(headlessServiceSuffix),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: metadata.LabelSelector(builder.Instance.Name),
 			},
@@ -631,7 +631,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						},
 						{
 							Name:  "K8S_SERVICE_NAME",
-							Value: builder.Instance.ChildResourceName("headless"),
+							Value: builder.Instance.ChildResourceName(headlessServiceSuffix),
 						},
 						{
 							Name:  "RABBITMQ_USE_LONGNAME",

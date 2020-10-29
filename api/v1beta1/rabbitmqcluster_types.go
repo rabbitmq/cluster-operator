@@ -396,7 +396,8 @@ type RabbitmqClusterList struct {
 }
 
 func (cluster RabbitmqCluster) ChildResourceName(name string) string {
-	return strings.Join([]string{cluster.Name, "rabbitmq", name}, "-")
+	// trim the trailing "-" if name is an empty string
+	return strings.TrimSuffix(strings.Join([]string{cluster.Name, "rabbitmq", name}, "-"), "-")
 }
 
 func init() {
