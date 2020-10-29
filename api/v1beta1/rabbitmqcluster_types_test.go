@@ -27,8 +27,6 @@ import (
 
 var _ = Describe("RabbitmqCluster", func() {
 
-	var three int32 = 3
-
 	Context("RabbitmqClusterSpec", func() {
 		It("can be created with a single replica", func() {
 			created := generateRabbitmqClusterObject("rabbit1")
@@ -42,7 +40,7 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("can be created with three replicas", func() {
 			created := generateRabbitmqClusterObject("rabbit2")
-			created.Spec.Replicas = &three
+			created.Spec.Replicas = pointer.Int32Ptr(3)
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
@@ -51,9 +49,8 @@ var _ = Describe("RabbitmqCluster", func() {
 		})
 
 		It("can be created with five replicas", func() {
-			five := int32(5)
 			created := generateRabbitmqClusterObject("rabbit3")
-			created.Spec.Replicas = &five
+			created.Spec.Replicas = pointer.Int32Ptr(5)
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
@@ -126,9 +123,8 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("is validated", func() {
 			By("checking the replica count", func() {
-				nOne := int32(-1)
 				invalidReplica := generateRabbitmqClusterObject("rabbit4")
-				invalidReplica.Spec.Replicas = &nOne
+				invalidReplica.Spec.Replicas = pointer.Int32Ptr(-1)
 				Expect(apierrors.IsInvalid(k8sClient.Create(context.TODO(), invalidReplica))).To(BeTrue())
 				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("spec.replicas in body should be greater than or equal to 0")))
 			})
@@ -179,7 +175,6 @@ var _ = Describe("RabbitmqCluster", func() {
 
 			When("CR is fully populated", func() {
 				It("outputs the CR", func() {
-					zero := int64(0)
 					storage := k8sresource.MustParse("987Gi")
 					storageClassName := "some-class"
 					rmqClusterInstance = RabbitmqCluster{
@@ -188,10 +183,10 @@ var _ = Describe("RabbitmqCluster", func() {
 							Namespace: "default",
 						},
 						Spec: RabbitmqClusterSpec{
-							Replicas:                      &three,
+							Replicas:                      pointer.Int32Ptr(3),
 							Image:                         "rabbitmq-image-from-cr",
 							ImagePullSecrets:              []corev1.LocalObjectReference{{Name: "my-super-secret"}},
-							TerminationGracePeriodSeconds: &zero,
+							TerminationGracePeriodSeconds: pointer.Int64Ptr(0),
 							Service: RabbitmqClusterServiceSpec{
 								Type: "NodePort",
 								Annotations: map[string]string{

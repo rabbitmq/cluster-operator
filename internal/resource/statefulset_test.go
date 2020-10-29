@@ -327,10 +327,9 @@ var _ = Describe("StatefulSet", func() {
 		It("specifies the upgrade policy", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-			zero := int32(0)
 			updateStrategy := appsv1.StatefulSetUpdateStrategy{
 				RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-					Partition: &zero,
+					Partition: pointer.Int32Ptr(0),
 				},
 				Type: appsv1.RollingUpdateStatefulSetStrategyType,
 			}
@@ -1119,8 +1118,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		It("sets the replica count of the StatefulSet to the instance value", func() {
-			three := int32(3)
-			instance.Spec.Replicas = &three
+			instance.Spec.Replicas = pointer.Int32Ptr(3)
 			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
@@ -1191,10 +1189,9 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.spec.replicas", func() {
-				ten := int32(10)
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						Replicas: &ten,
+						Replicas: pointer.Int32Ptr(10),
 					},
 				}
 
@@ -1216,13 +1213,12 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.spec.UpdateStrategy", func() {
-				one := int32(1)
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						UpdateStrategy: &appsv1.StatefulSetUpdateStrategy{
 							Type: "OnDelete",
 							RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-								Partition: &one,
+								Partition: pointer.Int32Ptr(1),
 							},
 						},
 					},
@@ -1428,14 +1424,12 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {
-				two := int32(2)
-				four := int32(4)
 				instance.Spec.Image = "should-be-replaced-image"
-				instance.Spec.Replicas = &two
+				instance.Spec.Replicas = pointer.Int32Ptr(2)
 
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						Replicas: &four,
+						Replicas: pointer.Int32Ptr(4),
 						Template: &rabbitmqv1beta1.PodTemplateSpec{
 							Spec: &corev1.PodSpec{
 								Containers: []corev1.Container{
@@ -1475,14 +1469,13 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 
 func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
-	one := int32(1)
 	return rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "foo-namespace",
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas:                      &one,
+			Replicas:                      pointer.Int32Ptr(1),
 			Image:                         "rabbitmq-image-from-cr",
 			ImagePullSecrets:              []corev1.LocalObjectReference{{Name: "my-super-secret"}},
 			TerminationGracePeriodSeconds: pointer.Int64Ptr(604800),

@@ -105,10 +105,9 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 	sts.Spec.Replicas = builder.Instance.Spec.Replicas
 
 	//Update Strategy
-	zero := int32(0)
 	sts.Spec.UpdateStrategy = appsv1.StatefulSetUpdateStrategy{
 		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-			Partition: &zero,
+			Partition: pointer.Int32Ptr(0),
 		},
 		Type: appsv1.RollingUpdateStatefulSetStrategyType,
 	}
