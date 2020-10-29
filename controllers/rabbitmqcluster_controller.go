@@ -14,14 +14,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	"reflect"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -182,7 +183,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return ctrl.Result{}, err
 		}
 
-		if err = r.annotateConfigMapIfUpdated(ctx, builder, operationResult, rabbitmqCluster); err != nil {
+		if err = r.annotateIfNeeded(ctx, builder, operationResult, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
 	}

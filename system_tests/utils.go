@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"k8s.io/utils/pointer"
 	"log"
 	"net/http"
 	"os"
@@ -54,6 +53,11 @@ import (
 )
 
 const podCreationTimeout = 600 * time.Second
+
+type featureFlag struct {
+	Name  string
+	State string
+}
 
 func MustHaveEnv(name string) string {
 	value := os.Getenv(name)
@@ -376,14 +380,13 @@ func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset
 	return string(username), string(password), nil
 }
 
-func generateRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
+func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
 	return &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instanceName,
 			Namespace: namespace,
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas: pointer.Int32Ptr(1),
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Type: "NodePort",
 			},

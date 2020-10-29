@@ -3,11 +3,13 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 const queueRebalanceAnnotation = "rabbitmq.com/queueRebalanceNeededAt"
@@ -53,7 +55,7 @@ func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Conte
 		// plugins configMap was updated very recently
 		// give StatefulSet controller some time to trigger restart of StatefulSet if necessary
 		// otherwise, there would be race conditions where we exec into containers losing the connection due to pods being terminated
-		r.Log.Info("requeuing request to set plugins on RabbitmqCluster",
+		r.Log.Info("requeuing request to set plugins",
 			"namespace", rmq.Namespace,
 			"name", rmq.Name)
 		return 2 * time.Second, nil
@@ -65,28 +67,85 @@ func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Conte
 		}
 	}
 
-	// If the cluster has been marked as needing it, run rabbitmq-queues rebalance all
-	if rmq.ObjectMeta.Annotations != nil && len(rmq.ObjectMeta.Annotations[queueRebalanceAnnotation]) > 0 {
-		err = r.runQueueRebalanceCommand(ctx, rmq)
+	// If RabbitMQ cluster is newly created, enable all feature flags since some are disabled by default
+	if sts.ObjectMeta.Annotations != nil && sts.ObjectMeta.Annotations[stsCreateAnnotation] != "" {
+		if err := r.enableAllFeatureFlags(ctx, rmq, sts); err != nil {
+			return 0, err
+		}
 	}
-	return 0, err
+
+	// If the cluster has been marked as needing it, run rabbitmq-queues rebalance all
+	if rmq.ObjectMeta.Annotations != nil && rmq.ObjectMeta.Annotations[queueRebalanceAnnotation] != "" {
+		if err := r.runQueueRebalanceCommand(ctx, rmq); err != nil {
+			return 0, err
+		}
+	}
+
+	return 0, nil
+}
+
+func (r *RabbitmqClusterReconciler) enableAllFeatureFlags(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, sts *appsv1.StatefulSet) error {
+	podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
+	cmd := "set -eo pipefail; rabbitmqctl -s list_feature_flags name state stability | (grep 'disabled\\sstable$' || true) | cut -f 1 | xargs -r -n1 rabbitmqctl enable_feature_flag"
+	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "bash", "-c", cmd)
+	if err != nil {
+		r.Log.Error(err, "failed to enable all feature flags",
+			"namespace", rmq.Namespace,
+			"name", rmq.Name,
+			"pod", podName,
+			"command", cmd,
+			"stdout", stdout,
+			"stderr", stderr)
+		return err
+	}
+	r.Log.Info("successfully enabled all feature flags",
+		"namespace", rmq.Namespace,
+		"name", rmq.Name)
+	return r.deleteAnnotation(ctx, sts, stsCreateAnnotation)
+}
+
+// There are 2 paths how plugins are set:
+// 1. When StatefulSet is (re)started, the up-to-date plugins list (ConfigMap copied by the init container) is read by RabbitMQ nodes during node start up.
+// 2. When the plugins ConfigMap is changed, 'rabbitmq-plugins set' updates the plugins on every node (without the need to re-start the nodes).
+// This method implements the 2nd path.
+func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, configMap *corev1.ConfigMap) error {
+	plugins := resource.NewRabbitmqPlugins(rmq.Spec.Rabbitmq.AdditionalPlugins)
+	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
+		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
+		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s", plugins.AsString(" "))
+		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", rabbitCommand)
+		if err != nil {
+			r.Log.Error(err, "failed to set plugins",
+				"namespace", rmq.Namespace,
+				"name", rmq.Name,
+				"pod", podName,
+				"command", rabbitCommand,
+				"stdout", stdout,
+				"stderr", stderr)
+			return err
+		}
+	}
+	r.Log.Info("successfully set plugins",
+		"namespace", rmq.Namespace,
+		"name", rmq.Name)
+	return r.deleteAnnotation(ctx, configMap, pluginsUpdateAnnotation)
 }
 
 func (r *RabbitmqClusterReconciler) runQueueRebalanceCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 	podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
-	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", "rabbitmq-queues rebalance all")
+	cmd := "rabbitmq-queues rebalance all"
+	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", cmd)
 	if err != nil {
 		r.Log.Error(err, "failed to run queue rebalance",
 			"namespace", rmq.Namespace,
 			"name", rmq.Name,
 			"pod", podName,
-			"command", "rabbitmq-queues rebalance all",
+			"command", cmd,
 			"stdout", stdout,
 			"stderr", stderr)
 		return err
 	}
-	delete(rmq.ObjectMeta.Annotations, queueRebalanceAnnotation)
-	return r.Update(ctx, rmq)
+	return r.deleteAnnotation(ctx, rmq, queueRebalanceAnnotation)
 }
 
 func statefulSetNeedsQueueRebalance(sts *appsv1.StatefulSet, rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
