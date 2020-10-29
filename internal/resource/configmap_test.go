@@ -10,12 +10,14 @@
 package resource_test
 
 import (
+	"bytes"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
+	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +25,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
+
+func defaultRabbitmqConf(instanceName string) string {
+	return iniString(`
+cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+cluster_formation.k8s.host               = kubernetes.default
+cluster_formation.k8s.address_type       = hostname
+cluster_partition_handling               = pause_minority
+queue_master_locator                     = min-masters
+disk_free_limit.absolute                 = 2GB
+cluster_name                             = ` + instanceName)
+}
 
 var _ = Describe("GenerateServerConfigMap", func() {
 	var (
@@ -89,36 +102,28 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		When("additionalConfig is not provided", func() {
 			It("returns the default rabbitmq conf", func() {
 				builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
-				defaultRabbitmqConf := `cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host               = kubernetes.default
-cluster_formation.k8s.address_type       = hostname
-cluster_partition_handling               = pause_minority
-queue_master_locator                     = min-masters
-disk_free_limit.absolute                 = 2GB
-cluster_name                             = ` + builder.Instance.Name + "\n"
+
+				expectedRabbitmqConf := defaultRabbitmqConf(builder.Instance.Name)
+
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", defaultRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
 			})
 		})
 
 		When("valid additionalConfig is provided", func() {
 			BeforeEach(func() {
-				instance.Spec.Rabbitmq.AdditionalConfig = `cluster_formation.peer_discovery_backend = my-backend
+				instance.Spec.Rabbitmq.AdditionalConfig = `
+cluster_formation.peer_discovery_backend = my-backend
 my-config-property-0 = great-value
 my-config-property-1 = better-value`
 			})
 
 			It("appends configurations to the default rabbitmq.conf and overwrites duplicate keys", func() {
-				expectedRabbitmqConf := `cluster_formation.peer_discovery_backend = my-backend
-cluster_formation.k8s.host               = kubernetes.default
-cluster_formation.k8s.address_type       = hostname
-cluster_partition_handling               = pause_minority
-queue_master_locator                     = min-masters
-disk_free_limit.absolute                 = 2GB
-cluster_name                             = ` + builder.Instance.Name + `
-my-config-property-0                     = great-value
-my-config-property-1                     = better-value
-`
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+cluster_formation.peer_discovery_backend = my-backend
+my-config-property-0 = great-value
+my-config-property-1 = better-value
+`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
@@ -217,11 +222,14 @@ CONSOLE_LOG=new`
 					},
 				}
 
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
+listeners.ssl.default = 5671
+`)
+
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", ContainSubstring(`
-ssl_options.certfile                     = /etc/rabbitmq-tls/tls.crt
-ssl_options.keyfile                      = /etc/rabbitmq-tls/tls.key
-listeners.ssl.default                    = 5671`)))
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
 			})
 		})
 
@@ -240,13 +248,16 @@ listeners.ssl.default                    = 5671`)))
 					},
 				}
 
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+listeners.ssl.default  = 5671
+ssl_options.cacertfile = /etc/rabbitmq-tls/ca.certificate
+ssl_options.verify     = verify_peer
+`)
+
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", ContainSubstring(`
-ssl_options.certfile                     = /etc/rabbitmq-tls/tls.crt
-ssl_options.keyfile                      = /etc/rabbitmq-tls/tls.key
-listeners.ssl.default                    = 5671
-ssl_options.cacertfile                   = /etc/rabbitmq-tls/ca.certificate
-ssl_options.verify                       = verify_peer`)))
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
 			})
 		})
 
@@ -266,8 +277,10 @@ ssl_options.verify                       = verify_peer`)))
 					},
 				}
 
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + fmt.Sprintf("total_memory_available_override_value = %d", 8*GiB))
+
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", ContainSubstring(fmt.Sprintf("total_memory_available_override_value    = %d", 8*GiB))))
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
 			})
 		})
 
@@ -362,3 +375,13 @@ ssl_options.verify                       = verify_peer`)))
 		})
 	})
 })
+
+// iniString formats the input string using "gopkg.in/ini.v1"
+func iniString(input string) string {
+	ini.PrettySection = false
+	var output bytes.Buffer
+	cfg, _ := ini.Load([]byte(input))
+	_, err := cfg.WriteTo(&output)
+	Expect(err).NotTo(HaveOccurred())
+	return output.String()
+}
