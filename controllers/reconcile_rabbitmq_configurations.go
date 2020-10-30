@@ -128,14 +128,10 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Conte
 }
 
 func pluginsConfigUpdatedRecently(cfg *corev1.ConfigMap) (bool, error) {
-	if cfg == nil {
-		return false, nil
-	}
 	pluginsUpdatedAt, ok := cfg.Annotations[pluginsUpdateAnnotation]
 	if !ok {
 		return false, nil // plugins configMap was not updated
 	}
-
 	annotationTime, err := time.Parse(time.RFC3339, pluginsUpdatedAt)
 	if err != nil {
 		return false, err

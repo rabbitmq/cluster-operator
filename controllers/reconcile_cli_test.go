@@ -14,7 +14,7 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 )
 
-var _ = Describe("Reconcile post deploy", func() {
+var _ = Describe("Reconcile CLI", func() {
 	var (
 		cluster          *rabbitmqv1beta1.RabbitmqCluster
 		annotations      map[string]string

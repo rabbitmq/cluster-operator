@@ -14,29 +14,13 @@ import (
 
 const queueRebalanceAnnotation = "rabbitmq.com/queueRebalanceNeededAt"
 
-func (r *RabbitmqClusterReconciler) markForQueueRebalance(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
-	if rmq.ObjectMeta.Annotations == nil {
-		rmq.ObjectMeta.Annotations = make(map[string]string)
-	}
-
-	if len(rmq.ObjectMeta.Annotations[queueRebalanceAnnotation]) > 0 {
-		return nil
-	}
-
-	rmq.ObjectMeta.Annotations[queueRebalanceAnnotation] = time.Now().Format(time.RFC3339)
-	if err := r.Update(ctx, rmq); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (requeueAfter time.Duration, err error) {
+func (r *RabbitmqClusterReconciler) runRabbitmqCLICommandsIfAnnotated(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (requeueAfter time.Duration, err error) {
 	sts, err := r.statefulSet(ctx, rmq)
 	if err != nil {
 		return 0, err
 	}
 	if !allReplicasReadyAndUpdated(sts) {
-		r.Log.Info("not all replicas ready yet; requeuing request to run post deploy steps",
+		r.Log.Info("not all replicas ready yet; requeuing request to run RabbitMQ CLI commands",
 			"namespace", rmq.Namespace,
 			"name", rmq.Name)
 		return 15 * time.Second, nil
@@ -61,7 +45,7 @@ func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Conte
 		return 2 * time.Second, nil
 	}
 
-	if pluginsConfig != nil {
+	if pluginsConfig.ObjectMeta.Annotations != nil && pluginsConfig.ObjectMeta.Annotations[pluginsUpdateAnnotation] != "" {
 		if err = r.runSetPluginsCommand(ctx, rmq, pluginsConfig); err != nil {
 			return 0, err
 		}
@@ -69,7 +53,7 @@ func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Conte
 
 	// If RabbitMQ cluster is newly created, enable all feature flags since some are disabled by default
 	if sts.ObjectMeta.Annotations != nil && sts.ObjectMeta.Annotations[stsCreateAnnotation] != "" {
-		if err := r.enableAllFeatureFlags(ctx, rmq, sts); err != nil {
+		if err := r.runEnableFeatureFlagsCommand(ctx, rmq, sts); err != nil {
 			return 0, err
 		}
 	}
@@ -84,7 +68,7 @@ func (r *RabbitmqClusterReconciler) runPostDeployStepsIfNeeded(ctx context.Conte
 	return 0, nil
 }
 
-func (r *RabbitmqClusterReconciler) enableAllFeatureFlags(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, sts *appsv1.StatefulSet) error {
+func (r *RabbitmqClusterReconciler) runEnableFeatureFlagsCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, sts *appsv1.StatefulSet) error {
 	podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
 	cmd := "set -eo pipefail; rabbitmqctl -s list_feature_flags name state stability | (grep 'disabled\\sstable$' || true) | cut -f 1 | xargs -r -n1 rabbitmqctl enable_feature_flag"
 	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "bash", "-c", cmd)
@@ -112,14 +96,14 @@ func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rm
 	plugins := resource.NewRabbitmqPlugins(rmq.Spec.Rabbitmq.AdditionalPlugins)
 	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
 		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
-		rabbitCommand := fmt.Sprintf("rabbitmq-plugins set %s", plugins.AsString(" "))
-		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", rabbitCommand)
+		cmd := fmt.Sprintf("rabbitmq-plugins set %s", plugins.AsString(" "))
+		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", cmd)
 		if err != nil {
 			r.Log.Error(err, "failed to set plugins",
 				"namespace", rmq.Namespace,
 				"name", rmq.Name,
 				"pod", podName,
-				"command", rabbitCommand,
+				"command", cmd,
 				"stdout", stdout,
 				"stderr", stderr)
 			return err
