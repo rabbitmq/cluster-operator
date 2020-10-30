@@ -9,7 +9,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: rabbitmq-system
-namePrefix: rabbitmq-cluster-
 resources:
 - ../../manager
 # [CERTMANAGER] Uncomment next line to enable cert-manager
