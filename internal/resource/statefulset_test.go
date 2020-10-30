@@ -1421,6 +1421,111 @@ var _ = Describe("StatefulSet", func() {
 						},
 					))
 				})
+				Context("Container EnvVar", func() {
+					It("Overrides the envVar list while making sure that 'My_POD_NAME' and 'MY_POD_NAMESPACE' are always defined first", func() {
+						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+							Spec: &rabbitmqv1beta1.StatefulSetSpec{
+								Template: &rabbitmqv1beta1.PodTemplateSpec{
+									Spec: &corev1.PodSpec{
+										Containers: []corev1.Container{
+											{
+												Name: "rabbitmq",
+												Env: []corev1.EnvVar{
+													{
+														Name:  "test1",
+														Value: "test1",
+													},
+													{
+														Name:  "RABBITMQ_USE_LONGNAME",
+														Value: "false",
+													},
+													{
+														Name:  "RABBITMQ_STREAM_ADVERTISED_HOST",
+														Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						}
+
+						builder = &resource.RabbitmqResourceBuilder{
+							Instance: &instance,
+							Scheme:   scheme,
+						}
+						stsBuilder := builder.StatefulSet()
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env[0]).To(Equal(
+							corev1.EnvVar{
+								Name: "MY_POD_NAME",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath:  "metadata.name",
+										APIVersion: "v1",
+									},
+								},
+							}))
+						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env[1]).To(Equal(
+							corev1.EnvVar{
+								Name: "MY_POD_NAMESPACE",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath:  "metadata.namespace",
+										APIVersion: "v1",
+									},
+								},
+							}))
+						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
+							corev1.EnvVar{
+								Name: "MY_POD_NAME",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath:  "metadata.name",
+										APIVersion: "v1",
+									},
+								},
+							},
+							corev1.EnvVar{
+								Name: "MY_POD_NAMESPACE",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath:  "metadata.namespace",
+										APIVersion: "v1",
+									},
+								},
+							},
+							corev1.EnvVar{
+								Name:  "test1",
+								Value: "test1",
+							},
+							corev1.EnvVar{
+								Name:  "K8S_SERVICE_NAME",
+								Value: instance.ChildResourceName("headless"),
+							},
+							corev1.EnvVar{
+								Name:  "RABBITMQ_USE_LONGNAME",
+								Value: "false",
+							},
+							corev1.EnvVar{
+								Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+								Value: "/operator/enabled_plugins",
+							},
+							corev1.EnvVar{
+								Name:  "RABBITMQ_NODENAME",
+								Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+							},
+							corev1.EnvVar{
+								Name:  "K8S_HOSTNAME_SUFFIX",
+								Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+							},
+							corev1.EnvVar{
+								Name:  "RABBITMQ_STREAM_ADVERTISED_HOST",
+								Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+							}))
+					})
+				})
 			})
 
 			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {

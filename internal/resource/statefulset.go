@@ -233,7 +233,28 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 	if err != nil {
 		return corev1.PodSpec{}, fmt.Errorf("error unmarshalling patched Stateful Set: %v", err)
 	}
+
+	// handle the rabbitmq container envVar list as a special case if it's overwritten
+	// we need to ensure that MY_POD_NAME and MY_POD_NAMESPACE are defined first so other envVars values can reference them
+	if rmqContainer := containerRabbitmq(podSpecOverride.Containers); rmqContainer.Env != nil {
+		sortEnvVar(patchedPodSpec.Containers[0].Env)
+	}
+
 	return patchedPodSpec, nil
+}
+
+// sortEnvVar ensures that 'MY_POD_NAME' and 'My_POD_NAMESPACE' envVars is defined first in the list
+// this is to enable other envVars to reference them as variables successfully
+func sortEnvVar(envVar []corev1.EnvVar) {
+	for i, e := range envVar {
+		if e.Name == "MY_POD_NAME" {
+			envVar[0], envVar[i] = envVar[i], envVar[0]
+			continue
+		}
+		if e.Name == "MY_POD_NAMESPACE" {
+			envVar[1], envVar[i] = envVar[i], envVar[1]
+		}
+	}
 }
 
 func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) corev1.PodTemplateSpec {
@@ -702,4 +723,13 @@ func mergeMap(base, override map[string]string) map[string]string {
 	}
 
 	return result
+}
+
+func containerRabbitmq(containers []corev1.Container) corev1.Container {
+	for _, container := range containers {
+		if container.Name == "rabbitmq" {
+			return container
+		}
+	}
+	return corev1.Container{}
 }
