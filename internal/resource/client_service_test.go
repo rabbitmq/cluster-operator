@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
@@ -94,9 +95,10 @@ var _ = Context("ClientServices", func() {
 
 				Expect(serviceBuilder.Update(svc)).To(Succeed())
 				Expect(svc.Spec.Ports).Should(ContainElement(corev1.ServicePort{
-					Name:     "amqps",
-					Protocol: "TCP",
-					Port:     5671,
+					Name:       "amqps",
+					Protocol:   "TCP",
+					Port:       5671,
+					TargetPort: intstr.FromInt(5671),
 				}))
 			})
 		})
@@ -291,14 +293,16 @@ var _ = Context("ClientServices", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				amqpPort := corev1.ServicePort{
-					Name:     "amqp",
-					Port:     5672,
-					Protocol: corev1.ProtocolTCP,
+					Name:       "amqp",
+					Port:       5672,
+					TargetPort: intstr.FromInt(5672),
+					Protocol:   corev1.ProtocolTCP,
 				}
 				managementPort := corev1.ServicePort{
-					Name:     "management",
-					Port:     15672,
-					Protocol: corev1.ProtocolTCP,
+					Name:       "management",
+					Port:       15672,
+					TargetPort: intstr.FromInt(15672),
+					Protocol:   corev1.ProtocolTCP,
 				}
 				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, managementPort))
 			})
@@ -309,9 +313,10 @@ var _ = Context("ClientServices", func() {
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 
 					expectedPort := corev1.ServicePort{
-						Name:     servicePortName,
-						Port:     int32(port),
-						Protocol: corev1.ProtocolTCP,
+						Name:       servicePortName,
+						Port:       int32(port),
+						TargetPort: intstr.FromInt(port),
+						Protocol:   corev1.ProtocolTCP,
 					}
 					Expect(svc.Spec.Ports).To(ContainElement(expectedPort))
 				},
@@ -335,16 +340,18 @@ var _ = Context("ClientServices", func() {
 				svc.Spec.Type = corev1.ServiceTypeLoadBalancer
 				svc.Spec.Ports = []corev1.ServicePort{
 					{
-						Protocol: corev1.ProtocolTCP,
-						Port:     5672,
-						Name:     "amqp",
-						NodePort: 12345,
+						Protocol:   corev1.ProtocolTCP,
+						Port:       5672,
+						TargetPort: intstr.FromInt(5672),
+						Name:       "amqp",
+						NodePort:   12345,
 					},
 					{
-						Protocol: corev1.ProtocolTCP,
-						Port:     15672,
-						Name:     "management",
-						NodePort: 1234,
+						Protocol:   corev1.ProtocolTCP,
+						Port:       15672,
+						TargetPort: intstr.FromInt(15672),
+						Name:       "management",
+						NodePort:   1234,
 					},
 				}
 
@@ -353,16 +360,18 @@ var _ = Context("ClientServices", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expectedAmqpServicePort := corev1.ServicePort{
-					Name:     "amqp",
-					Protocol: corev1.ProtocolTCP,
-					Port:     5672,
-					NodePort: 12345,
+					Name:       "amqp",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       5672,
+					TargetPort: intstr.FromInt(5672),
+					NodePort:   12345,
 				}
 				expectedManagementServicePort := corev1.ServicePort{
-					Protocol: corev1.ProtocolTCP,
-					Port:     15672,
-					Name:     "management",
-					NodePort: 1234,
+					Protocol:   corev1.ProtocolTCP,
+					Port:       15672,
+					TargetPort: intstr.FromInt(15672),
+					Name:       "management",
+					NodePort:   1234,
 				}
 
 				Expect(svc.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
@@ -373,10 +382,11 @@ var _ = Context("ClientServices", func() {
 				svc.Spec.Type = corev1.ServiceTypeNodePort
 				svc.Spec.Ports = []corev1.ServicePort{
 					{
-						Protocol: corev1.ProtocolTCP,
-						Port:     5672,
-						Name:     "amqp",
-						NodePort: 12345,
+						Protocol:   corev1.ProtocolTCP,
+						Port:       5672,
+						TargetPort: intstr.FromInt(5672),
+						Name:       "amqp",
+						NodePort:   12345,
 					},
 				}
 
@@ -387,10 +397,11 @@ var _ = Context("ClientServices", func() {
 				// We cant set nodePort to nil because its a primitive
 				// For Kubernetes API, setting it to 0 is the same as not setting it at all
 				expectedServicePort := corev1.ServicePort{
-					Name:     "amqp",
-					Protocol: corev1.ProtocolTCP,
-					Port:     5672,
-					NodePort: 0,
+					Name:       "amqp",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       5672,
+					TargetPort: intstr.FromInt(5672),
+					NodePort:   0,
 				}
 
 				Expect(svc.Spec.Ports).To(ContainElement(expectedServicePort))
@@ -400,10 +411,11 @@ var _ = Context("ClientServices", func() {
 				svc.Spec.Type = corev1.ServiceTypeNodePort
 				svc.Spec.Ports = []corev1.ServicePort{
 					{
-						Protocol: corev1.ProtocolTCP,
-						Port:     5672,
-						Name:     "amqp",
-						NodePort: 12345,
+						Protocol:   corev1.ProtocolTCP,
+						Port:       5672,
+						TargetPort: intstr.FromInt(5672),
+						Name:       "amqp",
+						NodePort:   12345,
 					},
 				}
 
@@ -412,10 +424,11 @@ var _ = Context("ClientServices", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expectedServicePort := corev1.ServicePort{
-					Name:     "amqp",
-					Protocol: corev1.ProtocolTCP,
-					Port:     5672,
-					NodePort: 0,
+					Name:       "amqp",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       5672,
+					TargetPort: intstr.FromInt(5672),
+					NodePort:   0,
 				}
 
 				Expect(svc.Spec.Ports).To(ContainElement(expectedServicePort))
@@ -470,9 +483,10 @@ var _ = Context("ClientServices", func() {
 					Spec: &corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
-								Protocol: corev1.ProtocolUDP,
-								Port:     12345,
-								Name:     "my-new-port",
+								Protocol:   corev1.ProtocolUDP,
+								Port:       12345,
+								TargetPort: intstr.FromInt(12345),
+								Name:       "my-new-port",
 							},
 						},
 						Selector: map[string]string{
@@ -499,19 +513,22 @@ var _ = Context("ClientServices", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(svc.Spec.Ports).To(ConsistOf(
 					corev1.ServicePort{
-						Name:     "amqp",
-						Port:     5672,
-						Protocol: corev1.ProtocolTCP,
+						Name:       "amqp",
+						Port:       5672,
+						TargetPort: intstr.FromInt(5672),
+						Protocol:   corev1.ProtocolTCP,
 					},
 					corev1.ServicePort{
-						Name:     "management",
-						Port:     15672,
-						Protocol: corev1.ProtocolTCP,
+						Name:       "management",
+						Port:       15672,
+						TargetPort: intstr.FromInt(15672),
+						Protocol:   corev1.ProtocolTCP,
 					},
 					corev1.ServicePort{
-						Protocol: corev1.ProtocolUDP,
-						Port:     12345,
-						Name:     "my-new-port",
+						Protocol:   corev1.ProtocolUDP,
+						Port:       12345,
+						TargetPort: intstr.FromInt(12345),
+						Name:       "my-new-port",
 					},
 				))
 				Expect(svc.Spec.Selector).To(Equal(map[string]string{"a-selector": "a-label", "app.kubernetes.io/name": "foo"}))
