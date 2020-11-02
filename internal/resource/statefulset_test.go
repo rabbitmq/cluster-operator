@@ -1422,7 +1422,7 @@ var _ = Describe("StatefulSet", func() {
 					))
 				})
 				Context("Container EnvVar", func() {
-					It("Overrides the envVar list while making sure that 'My_POD_NAME' and 'MY_POD_NAMESPACE' are always defined first", func() {
+					It("Overrides the envVar list while making sure that 'MY_POD_NAME', 'MY_POD_NAMESPACE' and 'K8S_SERVICE_NAME' are always defined first", func() {
 						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 							Spec: &rabbitmqv1beta1.StatefulSetSpec{
 								Template: &rabbitmqv1beta1.PodTemplateSpec{
@@ -1476,6 +1476,11 @@ var _ = Describe("StatefulSet", func() {
 										APIVersion: "v1",
 									},
 								},
+							}))
+						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env[2]).To(Equal(
+							corev1.EnvVar{
+								Name:  "K8S_SERVICE_NAME",
+								Value: "foo-rabbitmq-headless",
 							}))
 						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
 							corev1.EnvVar{

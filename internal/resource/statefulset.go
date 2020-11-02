@@ -235,7 +235,7 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 	}
 
 	// handle the rabbitmq container envVar list as a special case if it's overwritten
-	// we need to ensure that MY_POD_NAME and MY_POD_NAMESPACE are defined first so other envVars values can reference them
+	// we need to ensure that MY_POD_NAME, MY_POD_NAMESPACE and K8S_SERVICE_NAME are defined first so other envVars values can reference them
 	if rmqContainer := containerRabbitmq(podSpecOverride.Containers); rmqContainer.Env != nil {
 		sortEnvVar(patchedPodSpec.Containers[0].Env)
 	}
@@ -243,7 +243,7 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 	return patchedPodSpec, nil
 }
 
-// sortEnvVar ensures that 'MY_POD_NAME' and 'My_POD_NAMESPACE' envVars is defined first in the list
+// sortEnvVar ensures that 'MY_POD_NAME', 'MY_POD_NAMESPACE' and 'K8S_SERVICE_NAME' envVars are defined first in the list
 // this is to enable other envVars to reference them as variables successfully
 func sortEnvVar(envVar []corev1.EnvVar) {
 	for i, e := range envVar {
@@ -253,6 +253,10 @@ func sortEnvVar(envVar []corev1.EnvVar) {
 		}
 		if e.Name == "MY_POD_NAMESPACE" {
 			envVar[1], envVar[i] = envVar[i], envVar[1]
+			continue
+		}
+		if e.Name == "K8S_SERVICE_NAME" {
+			envVar[2], envVar[i] = envVar[i], envVar[2]
 		}
 	}
 }
