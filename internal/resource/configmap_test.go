@@ -226,6 +226,10 @@ CONSOLE_LOG=new`
 ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default = 5671
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
 `)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
@@ -252,8 +256,14 @@ listeners.ssl.default = 5671
 ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default  = 5671
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
+
 ssl_options.cacertfile = /etc/rabbitmq-tls/ca.certificate
 ssl_options.verify     = verify_peer
+management.ssl.cacertfile = /etc/rabbitmq-tls/ca.certificate
 `)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())

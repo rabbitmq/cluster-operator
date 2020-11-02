@@ -37,7 +37,12 @@ disk_free_limit.absolute = 2GB`
 	defaultTLSConf = `
 ssl_options.certfile = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile = /etc/rabbitmq-tls/tls.key
-listeners.ssl.default = 5671`
+listeners.ssl.default = 5671
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
+`
 )
 
 type ServerConfigMapBuilder struct {
@@ -88,6 +93,10 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 			return err
 		}
 		if _, err := defaultSection.NewKey("ssl_options.verify", "verify_peer"); err != nil {
+			return err
+		}
+
+		if _, err := defaultSection.NewKey("management.ssl.cacertfile", "/etc/rabbitmq-tls/"+builder.Instance.Spec.TLS.CaCertName); err != nil {
 			return err
 		}
 	}

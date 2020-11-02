@@ -608,14 +608,20 @@ var _ = Describe("StatefulSet", func() {
 				}))
 			})
 
-			It("opens port 5671 on the rabbitmq container", func() {
+			It("opens ports 5671 and 15671 on the rabbitmq container", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(rabbitmqContainerSpec.Ports).To(ContainElement(corev1.ContainerPort{
-					Name:          "amqps",
-					ContainerPort: 5671,
+				Expect(rabbitmqContainerSpec.Ports).To(ContainElements([]corev1.ContainerPort{
+					{
+						Name:          "amqps",
+						ContainerPort: 5671,
+					},
+					{
+						Name:          "https",
+						ContainerPort: 15671,
+					},
 				}))
 			})
 
