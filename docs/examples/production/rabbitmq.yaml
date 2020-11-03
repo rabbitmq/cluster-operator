@@ -6,11 +6,11 @@ spec:
   replicas: 3
   resources:
     requests:
-      cpu: 2
-      memory: 8Gi
+      cpu: 4
+      memory: 10Gi
     limits:
-      cpu: 2
-      memory: 8Gi
+      cpu: 4
+      memory: 10Gi
   rabbitmq:
     additionalConfig: |
       cluster_partition_handling = ignore
@@ -18,7 +18,7 @@ spec:
       disk_free_limit.relative = 1.0
   persistence:
     storageClassName: ssd
-    storage: "128Gi"
+    storage: "500Gi"
   override:
     statefulSet:
       spec:
