@@ -616,7 +616,6 @@ var _ = Describe("StatefulSet", func() {
 				Expect(rabbitmqContainerSpec.Ports).To(ContainElement(corev1.ContainerPort{
 					Name:          "amqps",
 					ContainerPort: 5671,
-					Protocol:      corev1.ProtocolTCP,
 				}))
 			})
 
@@ -744,7 +743,6 @@ var _ = Describe("StatefulSet", func() {
 				expectedPort := corev1.ContainerPort{
 					Name:          containerPortName,
 					ContainerPort: int32(port),
-					Protocol:      corev1.ProtocolTCP,
 				}
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Ports).To(ContainElement(expectedPort))
@@ -853,7 +851,6 @@ var _ = Describe("StatefulSet", func() {
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: instance.ChildResourceName("server-conf"),
 							},
-							DefaultMode: pointer.Int32Ptr(corev1.ConfigMapVolumeSourceDefaultMode),
 						},
 					},
 				},
@@ -864,7 +861,6 @@ var _ = Describe("StatefulSet", func() {
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: instance.ChildResourceName("plugins-conf"),
 							},
-							DefaultMode: pointer.Int32Ptr(corev1.ConfigMapVolumeSourceDefaultMode),
 						},
 					},
 				},
@@ -887,7 +883,6 @@ var _ = Describe("StatefulSet", func() {
 									},
 								},
 							},
-							DefaultMode: pointer.Int32Ptr(corev1.ProjectedVolumeSourceDefaultMode),
 						},
 					},
 				},
@@ -901,8 +896,7 @@ var _ = Describe("StatefulSet", func() {
 					Name: "erlang-cookie-secret",
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							SecretName:  instance.ChildResourceName("erlang-cookie"),
-							DefaultMode: pointer.Int32Ptr(corev1.SecretVolumeSourceDefaultMode),
+							SecretName: instance.ChildResourceName("erlang-cookie"),
 						},
 					},
 				},
@@ -920,12 +914,10 @@ var _ = Describe("StatefulSet", func() {
 								{
 									Path: "skipPreStopChecks",
 									FieldRef: &corev1.ObjectFieldSelector{
-										FieldPath:  "metadata.labels['skipPreStopChecks']",
-										APIVersion: "v1",
+										FieldPath: "metadata.labels['skipPreStopChecks']",
 									},
 								},
 							},
-							DefaultMode: pointer.Int32Ptr(corev1.DownwardAPIVolumeSourceDefaultMode),
 						},
 					},
 				},

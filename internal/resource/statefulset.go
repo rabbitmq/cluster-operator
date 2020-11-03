@@ -278,7 +278,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: builder.Instance.ChildResourceName(ServerConfigMapName),
 					},
-					DefaultMode: pointer.Int32Ptr(corev1.ConfigMapVolumeSourceDefaultMode),
 				},
 			},
 		},
@@ -289,7 +288,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: builder.Instance.ChildResourceName(PluginsConfigName),
 					},
-					DefaultMode: pointer.Int32Ptr(corev1.ConfigMapVolumeSourceDefaultMode),
 				},
 			},
 		},
@@ -312,7 +310,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							},
 						},
 					},
-					DefaultMode: pointer.Int32Ptr(corev1.ProjectedVolumeSourceDefaultMode),
 				},
 			},
 		},
@@ -326,8 +323,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			Name: "erlang-cookie-secret",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName:  builder.Instance.ChildResourceName(erlangCookieName),
-					DefaultMode: pointer.Int32Ptr(corev1.SecretVolumeSourceDefaultMode),
+					SecretName: builder.Instance.ChildResourceName(erlangCookieName),
 				},
 			},
 		},
@@ -345,12 +341,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 						{
 							Path: DeletionMarker,
 							FieldRef: &corev1.ObjectFieldSelector{
-								FieldPath:  fmt.Sprintf("metadata.labels['%s']", DeletionMarker),
-								APIVersion: "v1",
+								FieldPath: fmt.Sprintf("metadata.labels['%s']", DeletionMarker),
 							},
 						},
 					},
-					DefaultMode: pointer.Int32Ptr(corev1.DownwardAPIVolumeSourceDefaultMode),
 				},
 			},
 		},
@@ -360,22 +354,18 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		{
 			Name:          "epmd",
 			ContainerPort: 4369,
-			Protocol:      corev1.ProtocolTCP,
 		},
 		{
 			Name:          "amqp",
 			ContainerPort: 5672,
-			Protocol:      corev1.ProtocolTCP,
 		},
 		{
 			Name:          "http",
 			ContainerPort: 15672,
-			Protocol:      corev1.ProtocolTCP,
 		},
 		{
 			Name:          "prometheus",
 			ContainerPort: 15692,
-			Protocol:      corev1.ProtocolTCP,
 		},
 	}
 
@@ -383,28 +373,24 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "mqtt",
 			ContainerPort: 1883,
-			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "web-mqtt",
 			ContainerPort: 15675,
-			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "stomp",
 			ContainerPort: 61613,
-			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "web-stomp",
 			ContainerPort: 15674,
-			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 
@@ -455,7 +441,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "amqps",
 			ContainerPort: 5671,
-			Protocol:      corev1.ProtocolTCP,
 		})
 
 		// add tls volume
@@ -550,7 +535,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
 			TerminationGracePeriodSeconds: builder.Instance.Spec.TerminationGracePeriodSeconds,
 			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
-			DeprecatedServiceAccount:      builder.Instance.ChildResourceName(serviceAccountName),
 			AutomountServiceAccountToken:  &automountServiceAccountToken,
 			Affinity:                      builder.Instance.Spec.Affinity,
 			Tolerations:                   builder.Instance.Spec.Tolerations,
@@ -614,9 +598,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							SubPath:   "default_user.conf",
 						},
 					},
-					ImagePullPolicy:          corev1.PullIfNotPresent,
-					TerminationMessagePath:   "/dev/termination-log",
-					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 				},
 			},
 			Volumes: volumes,
@@ -701,14 +682,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 							},
 						},
 					},
-					ImagePullPolicy:          corev1.PullIfNotPresent,
-					TerminationMessagePath:   "/dev/termination-log",
-					TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 				},
 			},
-			DNSPolicy:     corev1.DNSClusterFirst,
-			RestartPolicy: corev1.RestartPolicyAlways,
-			SchedulerName: corev1.DefaultSchedulerName,
 		},
 	}
 }
