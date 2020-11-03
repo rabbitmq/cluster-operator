@@ -11,6 +11,7 @@ spec:
           - name: additional-port # adds an additional port on the service
             protocol: TCP
             port: 12345
+            targetPort: 12345
     statefulSet:
       spec:
         template:

@@ -11,11 +11,13 @@ package resource
 
 import (
 	"fmt"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -49,18 +51,22 @@ func (builder *HeadlessServiceBuilder) Update(object runtime.Object) error {
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	service.Annotations = metadata.ReconcileAndFilterAnnotations(service.GetAnnotations(), builder.Instance.Annotations)
 	service.Spec = corev1.ServiceSpec{
-		ClusterIP: "None",
-		Selector:  metadata.LabelSelector(builder.Instance.Name),
+		Type:            corev1.ServiceTypeClusterIP,
+		ClusterIP:       "None",
+		SessionAffinity: corev1.ServiceAffinityNone,
+		Selector:        metadata.LabelSelector(builder.Instance.Name),
 		Ports: []corev1.ServicePort{
 			{
-				Protocol: corev1.ProtocolTCP,
-				Port:     4369,
-				Name:     "epmd",
+				Protocol:   corev1.ProtocolTCP,
+				Port:       4369,
+				TargetPort: intstr.FromInt(4369),
+				Name:       "epmd",
 			},
 			{
-				Protocol: corev1.ProtocolTCP,
-				Port:     25672,
-				Name:     "cluster-rpc", // aka distribution port
+				Protocol:   corev1.ProtocolTCP,
+				Port:       25672,
+				TargetPort: intstr.FromInt(25672),
+				Name:       "cluster-rpc", // aka distribution port
 			},
 		},
 		PublishNotReadyAddresses: true,

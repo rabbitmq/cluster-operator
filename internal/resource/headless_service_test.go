@@ -17,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
@@ -175,20 +176,24 @@ var _ = Describe("HeadlessService", func() {
 
 		It("sets the required Spec", func() {
 			expectedSpec := corev1.ServiceSpec{
+				Type:      corev1.ServiceTypeClusterIP,
 				ClusterIP: "None",
 				Selector: map[string]string{
 					"app.kubernetes.io/name": "rabbit-spec",
 				},
+				SessionAffinity: corev1.ServiceAffinityNone,
 				Ports: []corev1.ServicePort{
 					{
-						Protocol: corev1.ProtocolTCP,
-						Port:     4369,
-						Name:     "epmd",
+						Protocol:   corev1.ProtocolTCP,
+						Port:       4369,
+						TargetPort: intstr.FromInt(4369),
+						Name:       "epmd",
 					},
 					{
-						Protocol: corev1.ProtocolTCP,
-						Port:     25672,
-						Name:     "cluster-rpc",
+						Protocol:   corev1.ProtocolTCP,
+						Port:       25672,
+						TargetPort: intstr.FromInt(25672),
+						Name:       "cluster-rpc",
 					},
 				},
 				PublishNotReadyAddresses: true,
