@@ -11,16 +11,18 @@ package system_tests
 
 import (
 	"context"
-	"k8s.io/utils/pointer"
+	"encoding/json"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	"gopkg.in/ini.v1"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("Operator", func() {
@@ -29,7 +31,7 @@ var _ = Describe("Operator", func() {
 		ctx       = context.Background()
 	)
 
-	Context("Publish and consume a message in a single node cluster", func() {
+	Context("single node cluster", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
@@ -39,7 +41,7 @@ var _ = Describe("Operator", func() {
 		)
 
 		BeforeEach(func() {
-			cluster = generateRabbitmqCluster(namespace, "basic-rabbit")
+			cluster = newRabbitmqCluster(namespace, "basic-rabbit")
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 
@@ -57,7 +59,7 @@ var _ = Describe("Operator", func() {
 		})
 
 		It("works", func() {
-			By("being able to create a test queue and publish a message", func() {
+			By("publishing and consuming a message", func() {
 				response, err := alivenessTest(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
@@ -72,7 +74,6 @@ var _ = Describe("Operator", func() {
 					"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",
 				)
-
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -100,6 +101,23 @@ var _ = Describe("Operator", func() {
 					return string(output), err
 				}, 30, 2).Should(Equal("'True'"))
 			})
+
+			By("having all feature flags enabled", func() {
+				Eventually(func() []featureFlag {
+					output, err := kubectlExec(namespace,
+						statefulSetPodName(cluster, 0),
+						"rabbitmqctl",
+						"list_feature_flags",
+						"--formatter=json",
+					)
+					Expect(err).NotTo(HaveOccurred())
+					var flags []featureFlag
+					Expect(json.Unmarshal(output, &flags)).To(Succeed())
+					return flags
+				}, 30, 2).ShouldNot(ContainElement(MatchFields(IgnoreExtras, Fields{
+					"State": Not(Equal("enabled")),
+				})))
+			})
 		})
 	})
 
@@ -107,7 +125,7 @@ var _ = Describe("Operator", func() {
 		var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 		BeforeEach(func() {
-			cluster = generateRabbitmqCluster(namespace, "config-rabbit")
+			cluster = newRabbitmqCluster(namespace, "config-rabbit")
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 		})
@@ -222,7 +240,7 @@ CONSOLE_LOG=new`
 		)
 
 		BeforeEach(func() {
-			cluster = generateRabbitmqCluster(namespace, "persistence-rabbit")
+			cluster = newRabbitmqCluster(namespace, "persistence-rabbit")
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
@@ -270,7 +288,7 @@ CONSOLE_LOG=new`
 			var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 			BeforeEach(func() {
-				cluster = generateRabbitmqCluster(namespace, "ha-rabbit")
+				cluster = newRabbitmqCluster(namespace, "ha-rabbit")
 				cluster.Spec.Replicas = pointer.Int32Ptr(3)
 
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
@@ -307,7 +325,7 @@ CONSOLE_LOG=new`
 			)
 
 			BeforeEach(func() {
-				cluster = generateRabbitmqCluster(namespace, "tls-test-rabbit")
+				cluster = newRabbitmqCluster(namespace, "tls-test-rabbit")
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
 
@@ -345,7 +363,7 @@ CONSOLE_LOG=new`
 		})
 
 		When("the TLS secret does not exist", func() {
-			cluster := generateRabbitmqCluster(namespace, "tls-test-rabbit-faulty")
+			cluster := newRabbitmqCluster(namespace, "tls-test-rabbit-faulty")
 			cluster.Spec.TLS = rabbitmqv1beta1.TLSSpec{SecretName: "tls-secret-does-not-exist"}
 
 			It("reports a TLSError event with the reason", func() {
@@ -366,7 +384,7 @@ CONSOLE_LOG=new`
 
 		BeforeEach(func() {
 			instanceName := "mqtt-stomp-rabbit"
-			cluster = generateRabbitmqCluster(namespace, instanceName)
+			cluster = newRabbitmqCluster(namespace, instanceName)
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
 				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},

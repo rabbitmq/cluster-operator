@@ -14,14 +14,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
+	"time"
+
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	"reflect"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -182,7 +184,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			return ctrl.Result{}, err
 		}
 
-		if err = r.annotateConfigMapIfUpdated(ctx, builder, operationResult, rabbitmqCluster); err != nil {
+		if err = r.annotateIfNeeded(ctx, builder, operationResult, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -210,7 +212,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// By this point the StatefulSet may have finished deploying. Run any
 	// post-deploy steps if so, or requeue until the deployment is finished.
-	requeueAfter, err = r.runPostDeployStepsIfNeeded(ctx, rabbitmqCluster)
+	requeueAfter, err = r.runRabbitmqCLICommandsIfAnnotated(ctx, rabbitmqCluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -337,4 +339,20 @@ func validateAndGetOwner(owner *metav1.OwnerReference) []string {
 		return nil
 	}
 	return []string{owner.Name}
+}
+
+func (r *RabbitmqClusterReconciler) markForQueueRebalance(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+	if rmq.ObjectMeta.Annotations == nil {
+		rmq.ObjectMeta.Annotations = make(map[string]string)
+	}
+
+	if len(rmq.ObjectMeta.Annotations[queueRebalanceAnnotation]) > 0 {
+		return nil
+	}
+
+	rmq.ObjectMeta.Annotations[queueRebalanceAnnotation] = time.Now().Format(time.RFC3339)
+	if err := r.Update(ctx, rmq); err != nil {
+		return err
+	}
+	return nil
 }

@@ -12,17 +12,16 @@ package controllers_test
 
 import (
 	"context"
-	"k8s.io/client-go/util/retry"
 	"path/filepath"
 	"sync"
 	"testing"
+
+	"k8s.io/client-go/util/retry"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/controllers"
-
-	// "github.com/rabbitmq/cluster-operator/internal/config"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -101,8 +100,7 @@ var _ = AfterSuite(func() {
 	close(stopMgr)
 	mgrStopped.Wait()
 	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
+	Expect(testEnv.Stop()).To(Succeed())
 })
 
 func startManager(scheme *runtime.Scheme) {

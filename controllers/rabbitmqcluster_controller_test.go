@@ -1188,12 +1188,11 @@ func createSecret(ctx context.Context, secretName string, namespace string, data
 func waitForClusterCreation(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, client runtimeClient.Client) {
 	EventuallyWithOffset(1, func() string {
 		rabbitmqClusterCreated := rabbitmqv1beta1.RabbitmqCluster{}
-		err := client.Get(
+		if err := client.Get(
 			ctx,
 			types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace},
 			&rabbitmqClusterCreated,
-		)
-		if err != nil {
+		); err != nil {
 			return fmt.Sprintf("%v+", err)
 		}
 
