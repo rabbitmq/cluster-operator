@@ -20,7 +20,7 @@ metadata:
     annotation2: bar
 
 spec:
-  image: rabbitmq:3.8.1
+  image: rabbitmq:3.8.9-management
   imagePullSecret: foo
   replicas: 3
   service:
