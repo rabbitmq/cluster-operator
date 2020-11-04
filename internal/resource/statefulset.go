@@ -360,7 +360,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 			ContainerPort: 5672,
 		},
 		{
-			Name:          "http",
+			Name:          "management",
 			ContainerPort: 15672,
 		},
 		{
