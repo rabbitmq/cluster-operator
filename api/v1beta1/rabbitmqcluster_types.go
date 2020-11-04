@@ -43,7 +43,7 @@ type RabbitmqClusterSpec struct {
 	// +kubebuilder:default:=1
 	Replicas *int32 `json:"replicas,omitempty"`
 	// Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster.
-	// +kubebuilder:default:="rabbitmq:3.8.9"
+	// +kubebuilder:default:="rabbitmq:3.8.9-management"
 	Image string `json:"image,omitempty"`
 	// List of Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
