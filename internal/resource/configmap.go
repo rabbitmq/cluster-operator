@@ -86,6 +86,16 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		if err := cfg.Append([]byte(defaultTLSConf)); err != nil {
 			return err
 		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+			if _, err := defaultSection.NewKey("mqtt.listeners.ssl.default", "8883"); err != nil {
+				return err
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+			if _, err := defaultSection.NewKey("stomp.listeners.ssl.1", "61614"); err != nil {
+				return err
+			}
+		}
 	}
 
 	if builder.Instance.MutualTLSEnabled() {

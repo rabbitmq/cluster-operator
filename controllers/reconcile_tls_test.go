@@ -192,7 +192,6 @@ var _ = Describe("Reconcile TLS", func() {
 				statefulSet(ctx, cluster)
 			})
 		})
-
 	})
 })
 

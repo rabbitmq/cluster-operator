@@ -11,7 +11,10 @@ package system_tests
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"io/ioutil"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -46,7 +49,7 @@ var _ = Describe("Operator", func() {
 			waitForRabbitmqRunning(cluster)
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
-			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
+			port = rabbitmqNodePort(ctx, clientSet, cluster, "http")
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -246,7 +249,7 @@ CONSOLE_LOG=new`
 			waitForRabbitmqRunning(cluster)
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
-			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
+			port = rabbitmqNodePort(ctx, clientSet, cluster, "http")
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -302,7 +305,7 @@ CONSOLE_LOG=new`
 			It("works", func() {
 				username, password, err := getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
 				hostname := kubernetesNodeIp(ctx, clientSet)
-				port := rabbitmqNodePort(ctx, clientSet, cluster, "management")
+				port := rabbitmqNodePort(ctx, clientSet, cluster, "http")
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
@@ -327,6 +330,11 @@ CONSOLE_LOG=new`
 
 			BeforeEach(func() {
 				cluster = newRabbitmqCluster(namespace, "tls-test-rabbit")
+				// Enable additional plugins that can share TLS config.
+				cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+					"rabbitmq_mqtt",
+					"rabbitmq_stomp",
+				}
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
 
@@ -371,9 +379,37 @@ CONSOLE_LOG=new`
 					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
 					Expect(err).NotTo(HaveOccurred())
 
-					// try to connect to a management API endpoint over TLS
 					err = connectHTTPS(username, password, hostname, httpsNodePort, caFilePath)
 					Expect(err).NotTo(HaveOccurred())
+				})
+
+				By("talking MQTTS", func() {
+					var err error
+					// TLSConfig()
+					cfg := new(tls.Config)
+					cfg.RootCAs = x509.NewCertPool()
+					ca, err := ioutil.ReadFile(caFilePath)
+					Expect(err).NotTo(HaveOccurred())
+
+					cfg.RootCAs.AppendCertsFromPEM(ca)
+
+					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
+					Expect(err).NotTo(HaveOccurred())
+					publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "mqtts"), username, password, false, cfg)
+				})
+
+				By("talking STOMPS", func() {
+					var err error
+					cfg := new(tls.Config)
+					cfg.RootCAs = x509.NewCertPool()
+					ca, err := ioutil.ReadFile(caFilePath)
+					Expect(err).NotTo(HaveOccurred())
+
+					cfg.RootCAs.AppendCertsFromPEM(ca)
+
+					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
+					Expect(err).NotTo(HaveOccurred())
+					publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomps"), username, password, cfg)
 				})
 			})
 		})
@@ -426,13 +462,13 @@ CONSOLE_LOG=new`
 
 		It("publishes and consumes a message", func() {
 			By("MQTT")
-			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "mqtt"), username, password, false)
+			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "mqtt"), username, password, false, nil)
 
 			By("MQTT-over-WebSockets")
-			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "web-mqtt"), username, password, true)
+			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "web-mqtt"), username, password, true, nil)
 
 			By("STOMP")
-			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password)
+			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password, nil)
 
 			// github.com/go-stomp/stomp does not support STOMP-over-WebSockets
 		})

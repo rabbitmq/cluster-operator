@@ -437,7 +437,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 
 	tlsSpec := builder.Instance.Spec.TLS
 	if builder.Instance.TLSEnabled() {
-		// add tls port
+		// add tls port, should we disable non tls ports here?
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "amqps",
 			ContainerPort: 5671,
@@ -447,6 +447,21 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				ContainerPort: 15671,
 			},
 		)
+
+		// enable tls ports for plugins
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "mqtts",
+				ContainerPort: 8883,
+			})
+		}
+
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "stomps",
+				ContainerPort: 61614,
+			})
+		}
 
 		// add tls volume
 		filePermissions := int32(400)
