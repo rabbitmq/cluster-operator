@@ -27,7 +27,7 @@ type ResourceBuilder interface {
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, error) {
 	return []ResourceBuilder{
 		builder.HeadlessService(),
-		builder.ClientService(),
+		builder.Service(),
 		builder.ErlangCookie(),
 		builder.DefaultUserSecret(),
 		builder.RabbitmqPluginsConfigMap(),

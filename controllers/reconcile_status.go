@@ -12,7 +12,7 @@ func (r *RabbitmqClusterReconciler) setDefaultUserStatus(ctx context.Context, rm
 	defaultUserStatus := &rabbitmqv1beta1.RabbitmqClusterDefaultUser{}
 
 	serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{
-		Name:      rmq.ChildResourceName("client"),
+		Name:      rmq.ChildResourceName(""),
 		Namespace: rmq.Namespace,
 	}
 	defaultUserStatus.ServiceReference = serviceRef

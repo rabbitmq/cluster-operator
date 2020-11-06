@@ -52,7 +52,7 @@ var _ = Describe("Reconcile status", func() {
 		Expect(secretRef.Keys).To(HaveKeyWithValue("username", "username"))
 		Expect(secretRef.Keys).To(HaveKeyWithValue("password", "password"))
 
-		By("setting the client service details")
+		By("setting the service details")
 		rmq = &rabbitmqv1beta1.RabbitmqCluster{}
 		serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{}
 		Eventually(func() *rabbitmqv1beta1.RabbitmqClusterServiceReference {
@@ -69,7 +69,7 @@ var _ = Describe("Reconcile status", func() {
 			return nil
 		}, 5).ShouldNot(BeNil())
 
-		Expect(serviceRef.Name).To(Equal(rmq.ChildResourceName("client")))
+		Expect(serviceRef.Name).To(Equal(rmq.ChildResourceName("")))
 		Expect(serviceRef.Namespace).To(Equal(rmq.Namespace))
 	})
 })

@@ -23,28 +23,32 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-type ClientServiceBuilder struct {
+const (
+	ServiceSuffix = ""
+)
+
+type ServiceBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
 	Scheme   *runtime.Scheme
 }
 
-func (builder *RabbitmqResourceBuilder) ClientService() *ClientServiceBuilder {
-	return &ClientServiceBuilder{
+func (builder *RabbitmqResourceBuilder) Service() *ServiceBuilder {
+	return &ServiceBuilder{
 		Instance: builder.Instance,
 		Scheme:   builder.Scheme,
 	}
 }
 
-func (builder *ClientServiceBuilder) Build() (runtime.Object, error) {
+func (builder *ServiceBuilder) Build() (runtime.Object, error) {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName("client"),
+			Name:      builder.Instance.ChildResourceName(ServiceSuffix),
 			Namespace: builder.Instance.Namespace,
 		},
 	}, nil
 }
 
-func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
+func (builder *ServiceBuilder) Update(object runtime.Object) error {
 	service := object.(*corev1.Service)
 	builder.setAnnotations(service)
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
@@ -59,9 +63,9 @@ func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
 		}
 	}
 
-	if builder.Instance.Spec.Override.ClientService != nil {
-		if err := applySvcOverride(service, builder.Instance.Spec.Override.ClientService); err != nil {
-			return fmt.Errorf("failed applying Client Service override: %v", err)
+	if builder.Instance.Spec.Override.Service != nil {
+		if err := applySvcOverride(service, builder.Instance.Spec.Override.Service); err != nil {
+			return fmt.Errorf("failed applying Service override: %v", err)
 		}
 	}
 
@@ -72,7 +76,7 @@ func (builder *ClientServiceBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.ClientService) error {
+func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.Service) error {
 	if override.EmbeddedLabelsAnnotations != nil {
 		copyLabelsAnnotations(&svc.ObjectMeta, *override.EmbeddedLabelsAnnotations)
 	}
@@ -80,23 +84,23 @@ func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.ClientServi
 	if override.Spec != nil {
 		originalSvcSpec, err := json.Marshal(svc.Spec)
 		if err != nil {
-			return fmt.Errorf("error marshalling Client ServiceSpec: %v", err)
+			return fmt.Errorf("error marshalling Service Spec: %v", err)
 		}
 
 		patch, err := json.Marshal(override.Spec)
 		if err != nil {
-			return fmt.Errorf("error marshalling Client ServiceSpec override: %v", err)
+			return fmt.Errorf("error marshalling Service Spec override: %v", err)
 		}
 
 		patchedJSON, err := strategicpatch.StrategicMergePatch(originalSvcSpec, patch, corev1.ServiceSpec{})
 		if err != nil {
-			return fmt.Errorf("error patching CLient ServiceSpec: %v", err)
+			return fmt.Errorf("error patching Service Spec: %v", err)
 		}
 
 		patchedSvcSpec := corev1.ServiceSpec{}
 		err = json.Unmarshal(patchedJSON, &patchedSvcSpec)
 		if err != nil {
-			return fmt.Errorf("error unmarshalling patched Client ServiceSpec: %v", err)
+			return fmt.Errorf("error unmarshalling patched Service Spec: %v", err)
 		}
 		svc.Spec = patchedSvcSpec
 	}
@@ -104,7 +108,7 @@ func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.ClientServi
 	return nil
 }
 
-func (builder *ClientServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
+func (builder *ServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
 	servicePortsMap := map[string]corev1.ServicePort{
 		"amqp": {
 			Protocol: corev1.ProtocolTCP,
@@ -172,7 +176,7 @@ func (builder *ClientServiceBuilder) updatePorts(servicePorts []corev1.ServicePo
 
 }
 
-func (builder *ClientServiceBuilder) setAnnotations(service *corev1.Service) {
+func (builder *ServiceBuilder) setAnnotations(service *corev1.Service) {
 	if builder.Instance.Spec.Service.Annotations != nil {
 		service.Annotations = metadata.ReconcileAnnotations(metadata.ReconcileAndFilterAnnotations(service.Annotations, builder.Instance.Annotations), builder.Instance.Spec.Service.Annotations)
 	} else {

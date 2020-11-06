@@ -13,7 +13,7 @@ UPSTREAM_PASSWORD=$(kubectl get secret upstream-rabbitmq-default-user -o jsonpat
 DOWNSTREAM_USERNAME=$(kubectl get secret downstream-rabbitmq-default-user -o jsonpath="{.data.username}" | base64 --decode)
 DOWNSTREAM_PASSWORD=$(kubectl get secret downstream-rabbitmq-default-user -o jsonpath="{.data.password}" | base64 --decode)
 
-kubectl exec downstream-rabbitmq-server-0 -- rabbitmqctl set_parameter federation-upstream my-upstream "{\"uri\":\"amqps://${UPSTREAM_USERNAME}:${UPSTREAM_PASSWORD}@upstream-rabbitmq-client\",\"expires\":3600001}"
+kubectl exec downstream-rabbitmq-server-0 -- rabbitmqctl set_parameter federation-upstream my-upstream "{\"uri\":\"amqps://${UPSTREAM_USERNAME}:${UPSTREAM_PASSWORD}@upstream-rabbitmq\",\"expires\":3600001}"
 
 kubectl exec downstream-rabbitmq-server-0 -- rabbitmqctl set_policy --apply-to exchanges federate-me "^amq\." '{"federation-upstream-set":"all"}'
 
@@ -23,8 +23,8 @@ echo "*              and press ENTER when ready                *"
 echo "**********************************************************"
 read
 
-UPSTREAM_RABBITMQADMIN="rabbitmqadmin -U http://upstream-rabbitmq-client/ -u ${UPSTREAM_USERNAME} -p ${UPSTREAM_PASSWORD} -V /"
-DOWNSTREAM_RABBITMQADMIN="rabbitmqadmin -U http://downstream-rabbitmq-client/ -u ${DOWNSTREAM_USERNAME} -p ${DOWNSTREAM_PASSWORD} -V /"
+UPSTREAM_RABBITMQADMIN="rabbitmqadmin -U http://upstream-rabbitmq/ -u ${UPSTREAM_USERNAME} -p ${UPSTREAM_PASSWORD} -V /"
+DOWNSTREAM_RABBITMQADMIN="rabbitmqadmin -U http://downstream-rabbitmq/ -u ${DOWNSTREAM_USERNAME} -p ${DOWNSTREAM_PASSWORD} -V /"
 
 $UPSTREAM_RABBITMQADMIN declare queue name=test.queue queue_type=quorum
 $UPSTREAM_RABBITMQADMIN declare binding source=amq.fanout destination=test.queue

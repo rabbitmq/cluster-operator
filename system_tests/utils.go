@@ -455,7 +455,7 @@ func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) stri
 
 func rabbitmqNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster, portName string) string {
 	service, err := clientSet.CoreV1().Services(cluster.Namespace).
-		Get(ctx, cluster.ChildResourceName("client"), metav1.GetOptions{})
+		Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
