@@ -5,10 +5,10 @@ metadata:
 spec:
   replicas: 1
   override:
-    clientService:
+    service:
       spec:
         ports:
-          - name: additional-port # adds an additional port on the client service
+          - name: additional-port # adds an additional port on the service
             protocol: TCP
             port: 12345
             targetPort: 12345

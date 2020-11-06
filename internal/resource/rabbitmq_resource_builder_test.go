@@ -53,7 +53,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 
 			expectedBuildersInOrder := []ResourceBuilder{
 				&HeadlessServiceBuilder{},
-				&ClientServiceBuilder{},
+				&ServiceBuilder{},
 				&ErlangCookieBuilder{},
 				&DefaultUserSecretBuilder{},
 				&RabbitmqPluginsConfigMapBuilder{},

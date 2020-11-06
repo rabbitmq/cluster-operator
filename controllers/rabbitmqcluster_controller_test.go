@@ -109,9 +109,9 @@ var _ = Describe("RabbitmqClusterController", func() {
 				Expect(secret.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
 
-			By("creating a rabbitmq client service", func() {
-				svc := service(ctx, cluster, "client")
-				Expect(svc.Name).To(Equal(cluster.ChildResourceName("client")))
+			By("creating a rabbitmq service", func() {
+				svc := service(ctx, cluster, "")
+				Expect(svc.Name).To(Equal(cluster.ChildResourceName("")))
 				Expect(svc.OwnerReferences[0].Name).To(Equal(cluster.Name))
 				Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 			})
@@ -148,7 +148,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			By("recording SuccessfulCreate events for all child resources", func() {
 				allEventMsgs := aggregateEventMsgs(ctx, cluster, "SuccessfulCreate")
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("client")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("nodes")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("plugins-conf")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("server-conf")))
@@ -259,10 +259,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 	})
 
-	Context("Client service configurations", func() {
+	Context("Service configurations", func() {
 		AfterEach(func() {
 			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			Expect(clientSet.CoreV1().Services(cluster.Namespace).Delete(ctx, cluster.ChildResourceName("client"), metav1.DeleteOptions{}))
+			Expect(clientSet.CoreV1().Services(cluster.Namespace).Delete(ctx, cluster.ChildResourceName(""), metav1.DeleteOptions{}))
 		})
 
 		It("creates the service type and annotations as configured in instance spec", func() {
@@ -277,7 +277,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 
-			clientSvc := service(ctx, cluster, "client")
+			clientSvc := service(ctx, cluster, "")
 			Expect(clientSvc.Spec.Type).Should(Equal(corev1.ServiceTypeLoadBalancer))
 			Expect(clientSvc.Annotations).Should(HaveKeyWithValue("annotations", "cr-annotation"))
 		})
@@ -352,8 +352,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 	Context("Custom Resource updates", func() {
 		var (
-			clientServiceName string
-			stsName           string
+			svcName string
+			stsName string
 		)
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
@@ -362,7 +362,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 			}
-			clientServiceName = cluster.ChildResourceName("client")
+			svcName = cluster.ChildResourceName("")
 			stsName = cluster.ChildResourceName("server")
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -380,14 +380,14 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() map[string]string {
-				clientServiceName := cluster.ChildResourceName("client")
-				service, _ := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, clientServiceName, metav1.GetOptions{})
-				return service.Annotations
+				svcName := cluster.ChildResourceName("")
+				svc, _ := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, svcName, metav1.GetOptions{})
+				return svc.Annotations
 			}, 3).Should(HaveKeyWithValue("test-key", "test-value"))
 
-			// verify that SuccessfulUpdate event is recorded for the client service
+			// verify that SuccessfulUpdate event is recorded for the service
 			Expect(aggregateEventMsgs(ctx, cluster, "SuccessfulUpdate")).To(
-				ContainSubstring("updated resource %s of Type *v1.Service", cluster.ChildResourceName("client")))
+				ContainSubstring("updated resource %s of Type *v1.Service", cluster.ChildResourceName("")))
 		})
 
 		It("the CPU and memory requirements are updated", func() {
@@ -452,7 +452,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() map[string]string {
-				service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, clientServiceName, metav1.GetOptions{})
+				service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, svcName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return service.Labels
 			}, 3).Should(HaveKeyWithValue("foo", "bar"))
@@ -482,7 +482,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
 
 				Eventually(func() map[string]string {
-					service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName("client"), metav1.GetOptions{})
+					service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return service.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -570,7 +570,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() string {
-				service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName("client"), metav1.GetOptions{})
+				service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				return string(service.Spec.Type)
 			}, 3).Should(Equal("NodePort"))
@@ -623,7 +623,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 	Context("Recreate child resources after deletion", func() {
 		var (
-			clientServiceName   string
+			svcName             string
 			headlessServiceName string
 			stsName             string
 			configMapName       string
@@ -635,7 +635,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 			}
-			clientServiceName = cluster.ChildResourceName("client")
+			svcName = cluster.ChildResourceName("")
 			headlessServiceName = cluster.ChildResourceName("nodes")
 			stsName = cluster.ChildResourceName("server")
 			configMapName = cluster.ChildResourceName("server-conf")
@@ -652,7 +652,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			oldConfMap, err := clientSet.CoreV1().ConfigMaps(defaultNamespace).Get(ctx, configMapName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			oldClientSvc := service(ctx, cluster, "client")
+			oldClientSvc := service(ctx, cluster, "")
 
 			oldHeadlessSvc := service(ctx, cluster, "nodes")
 
@@ -660,7 +660,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			Expect(clientSet.AppsV1().StatefulSets(defaultNamespace).Delete(ctx, stsName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
 			Expect(clientSet.CoreV1().ConfigMaps(defaultNamespace).Delete(ctx, configMapName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
-			Expect(clientSet.CoreV1().Services(defaultNamespace).Delete(ctx, clientServiceName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
+			Expect(clientSet.CoreV1().Services(defaultNamespace).Delete(ctx, svcName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
 			Expect(clientSet.CoreV1().Services(defaultNamespace).Delete(ctx, headlessServiceName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
 			Eventually(func() bool {
@@ -672,7 +672,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			}, 5).Should(BeTrue())
 
 			Eventually(func() bool {
-				clientSvc, err := clientSet.CoreV1().Services(defaultNamespace).Get(ctx, clientServiceName, metav1.GetOptions{})
+				clientSvc, err := clientSet.CoreV1().Services(defaultNamespace).Get(ctx, svcName, metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -1038,7 +1038,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 	})
 
-	Context("Client Service Override", func() {
+	Context("Service Override", func() {
 
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
@@ -1051,7 +1051,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 						Type: "LoadBalancer",
 					},
 					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
-						ClientService: &rabbitmqv1beta1.ClientService{
+						Service: &rabbitmqv1beta1.Service{
 							Spec: &corev1.ServiceSpec{
 								Ports: []corev1.ServicePort{
 									{
@@ -1081,11 +1081,11 @@ var _ = Describe("RabbitmqClusterController", func() {
 			waitForClusterDeletion(ctx, cluster, client)
 		})
 
-		It("creates a Client Service with the override applied", func() {
+		It("creates a Service with the override applied", func() {
 			amqpTargetPort := intstr.IntOrString{IntVal: int32(5672)}
 			managementTargetPort := intstr.IntOrString{IntVal: int32(15672)}
 			additionalTargetPort := intstr.IntOrString{IntVal: int32(15535)}
-			svc := service(ctx, cluster, "client")
+			svc := service(ctx, cluster, "")
 			Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 			Expect(svc.Spec.Ports).To(ConsistOf(
 				corev1.ServicePort{
@@ -1114,11 +1114,11 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 		It("updates", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				cluster.Spec.Override.ClientService.Spec.Type = "LoadBalancer"
+				cluster.Spec.Override.Service.Spec.Type = "LoadBalancer"
 			})).To(Succeed())
 
 			Eventually(func() corev1.ServiceType {
-				svc := service(ctx, cluster, "client")
+				svc := service(ctx, cluster, "")
 				return svc.Spec.Type
 			}, 5).Should(Equal(corev1.ServiceTypeLoadBalancer))
 		})
