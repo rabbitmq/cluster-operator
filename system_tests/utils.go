@@ -363,19 +363,19 @@ type HealthcheckResponse struct {
 }
 
 func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset, namespace, instanceName string) (string, string, error) {
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(ctx, fmt.Sprintf("%s-rabbitmq-default-user", instanceName), metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(ctx, fmt.Sprintf("%s-default-user", instanceName), metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
 	}
 
 	username, ok := secret.Data["username"]
 	if !ok {
-		return "", "", fmt.Errorf("cannot find 'username' in %s-rabbitmq-default-user", instanceName)
+		return "", "", fmt.Errorf("cannot find 'username' in %s-default-user", instanceName)
 	}
 
 	password, ok := secret.Data["password"]
 	if !ok {
-		return "", "", fmt.Errorf("cannot find 'password' in %s-rabbitmq-default-user", instanceName)
+		return "", "", fmt.Errorf("cannot find 'password' in %s-default-user", instanceName)
 	}
 	return string(username), string(password), nil
 }

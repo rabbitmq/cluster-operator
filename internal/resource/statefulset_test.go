@@ -54,7 +54,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(err).NotTo(HaveOccurred())
 			sts := obj.(*appsv1.StatefulSet)
 
-			Expect(sts.Name).To(Equal("foo-rabbitmq-server"))
+			Expect(sts.Name).To(Equal("foo-server"))
 			Expect(sts.Namespace).To(Equal("foo-namespace"))
 		})
 
@@ -1480,7 +1480,7 @@ var _ = Describe("StatefulSet", func() {
 						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env[2]).To(Equal(
 							corev1.EnvVar{
 								Name:  "K8S_SERVICE_NAME",
-								Value: "foo-rabbitmq-headless",
+								Value: "foo-headless",
 							}))
 						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
 							corev1.EnvVar{

@@ -140,7 +140,7 @@ var _ = Describe("RabbitmqCluster", func() {
 		Describe("ChildResourceName", func() {
 			It("prefixes the passed string with the name of the RabbitmqCluster name", func() {
 				resource := generateRabbitmqClusterObject("iam")
-				Expect(resource.ChildResourceName("great")).To(Equal("iam-rabbitmq-great"))
+				Expect(resource.ChildResourceName("great")).To(Equal("iam-great"))
 			})
 		})
 

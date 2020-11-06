@@ -870,7 +870,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				"app.kubernetes.io/part-of":   "rabbitmq",
 			}))
 
-			Expect(sts.Spec.ServiceName).To(Equal("rabbitmq-sts-override-rabbitmq-headless"))
+			Expect(sts.Spec.ServiceName).To(Equal("rabbitmq-sts-override-headless"))
 			Expect(sts.Spec.Selector.MatchLabels).To(Equal(map[string]string{
 				"app.kubernetes.io/name": "rabbitmq-sts-override",
 			}))
@@ -934,7 +934,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 								{
 									Secret: &corev1.SecretProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "rabbitmq-sts-override-rabbitmq-default-user",
+											Name: "rabbitmq-sts-override-default-user",
 										},
 										Items: []corev1.KeyToPath{
 											{
@@ -955,7 +955,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							DefaultMode: &defaultMode,
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "rabbitmq-sts-override-rabbitmq-server-conf",
+								Name: "rabbitmq-sts-override-server-conf",
 							},
 						},
 					},
@@ -966,7 +966,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							DefaultMode: &defaultMode,
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "rabbitmq-sts-override-rabbitmq-plugins-conf",
+								Name: "rabbitmq-sts-override-plugins-conf",
 							},
 						},
 					},
@@ -989,7 +989,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
 							DefaultMode: &defaultMode,
-							SecretName:  "rabbitmq-sts-override-rabbitmq-erlang-cookie",
+							SecretName:  "rabbitmq-sts-override-erlang-cookie",
 						},
 					},
 				},
