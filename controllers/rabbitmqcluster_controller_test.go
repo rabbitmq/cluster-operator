@@ -117,8 +117,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})
 
 			By("creating a rabbitmq headless service", func() {
-				svc := service(ctx, cluster, "headless")
-				Expect(svc.Name).To(Equal(cluster.ChildResourceName("headless")))
+				svc := service(ctx, cluster, "nodes")
+				Expect(svc.Name).To(Equal(cluster.ChildResourceName("nodes")))
 				Expect(svc.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
 
@@ -149,7 +149,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				allEventMsgs := aggregateEventMsgs(ctx, cluster, "SuccessfulCreate")
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("client")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("headless")))
+				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("nodes")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("plugins-conf")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("server-conf")))
 				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Secret", cluster.ChildResourceName("erlang-cookie")))
@@ -183,7 +183,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 
 		It("adds annotations to child resources", func() {
-			headlessSvc := service(ctx, cluster, "headless")
+			headlessSvc := service(ctx, cluster, "nodes")
 			Expect(headlessSvc.Annotations).Should(HaveKeyWithValue("my-annotation", "this-annotation"))
 
 			sts := statefulSet(ctx, cluster)
@@ -476,7 +476,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			It("updates annotations for services", func() {
 				Eventually(func() map[string]string {
-					service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName("headless"), metav1.GetOptions{})
+					service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName("nodes"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return service.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
@@ -636,7 +636,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				},
 			}
 			clientServiceName = cluster.ChildResourceName("client")
-			headlessServiceName = cluster.ChildResourceName("headless")
+			headlessServiceName = cluster.ChildResourceName("nodes")
 			stsName = cluster.ChildResourceName("server")
 			configMapName = cluster.ChildResourceName("server-conf")
 
@@ -654,7 +654,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			oldClientSvc := service(ctx, cluster, "client")
 
-			oldHeadlessSvc := service(ctx, cluster, "headless")
+			oldHeadlessSvc := service(ctx, cluster, "nodes")
 
 			oldSts := statefulSet(ctx, cluster)
 
@@ -870,7 +870,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				"app.kubernetes.io/part-of":   "rabbitmq",
 			}))
 
-			Expect(sts.Spec.ServiceName).To(Equal("rabbitmq-sts-override-headless"))
+			Expect(sts.Spec.ServiceName).To(Equal("rabbitmq-sts-override-nodes"))
 			Expect(sts.Spec.Selector.MatchLabels).To(Equal(map[string]string{
 				"app.kubernetes.io/name": "rabbitmq-sts-override",
 			}))
