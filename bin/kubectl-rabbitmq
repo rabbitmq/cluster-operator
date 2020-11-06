@@ -16,60 +16,66 @@ password=""
 service=""
 
 usage() {
-    echo "USAGE:"
-    echo "  Install RabbitMQ Cluster Operator (optionally provide image to use a relocated image or a specific version)"
-    echo "    kubectl rabbitmq install-cluster-operator [IMAGE]"
-    echo
-    echo "  Open Management UI for an instance"
-    echo "    kubectl rabbitmq manage INSTANCE"
-    echo
-    echo "  Print default-user secrets for an instance"
-    echo "    kubectl rabbitmq secrets INSTANCE"
-    echo
-    echo "  List all RabbitMQ clusters"
-    echo "    kubectl rabbitmq list"
-    echo
-    echo "  Delete a RabbitMQ cluster (or multiple clusters)"
-    echo "    kubectl rabbitmq delete INSTANCE ..."
-    echo
-    echo "  Create a RabbitMQ custom resource - INSTANCE name required, all other flags optional"
-    echo "    kubectl rabbitmq create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.9-management --image-pull-secret mysecret"
-    echo "      --tls-secret secret-name --storage-class mystorageclass"
-    echo
-    echo "  Get a RabbitMQ custom resource and dependant objects"
-    echo "    kubectl rabbitmq get INSTANCE"
-    echo
-    echo "  Set log level to 'debug' on all nodes"
-    echo "    kubectl rabbitmq debug INSTANCE"
-    echo
-    echo "  Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE"
-    echo "    kubectl rabbitmq observe INSTANCE 0"
-    echo
-    echo "  Enable all feature flags on an INSTANCE"
-    echo "    kubectl rabbitmq enable-all-feature-flags INSTANCE"
-    echo
-    echo "  Run perf-test against an instance - you can pass as many perf test parameters as you want"
-    echo "    kubectl rabbitmq perf-test INSTANCE --rate 100"
-    echo
-    echo "If you want to monitor perf-test, create the following ServiceMonitor"
-    echo "    apiVersion: monitoring.coreos.com/v1"
-    echo "    kind: ServiceMonitor"
-    echo "    metadata:"
-    echo "      name: kubectl-perf-test"
-    echo "    spec:"
-    echo "      endpoints:"
-    echo "      - interval: 15s"
-    echo "        targetPort: 8080"
-    echo "      selector:"
-    echo "        matchLabels:"
-    echo "          app: perf-test"
+  usage=$(cat <<-END
+USAGE:
+  Install (latest released) RabbitMQ Cluster Operator
+    kubectl rabbitmq install-cluster-operator
+
+  Create a RabbitMQ custom resource - INSTANCE name required, all other flags optional
+    kubectl rabbitmq create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.9-management --image-pull-secret mysecret
+      --tls-secret secret-name --storage-class mystorageclass
+
+  Get a RabbitMQ custom resource and dependant objects
+    kubectl rabbitmq get INSTANCE
+
+  List all RabbitMQ clusters
+    kubectl rabbitmq list
+
+  Delete a RabbitMQ cluster (or multiple clusters)
+    kubectl rabbitmq delete INSTANCE ...
+
+  Print default-user secrets for an instance
+    kubectl rabbitmq secrets INSTANCE
+
+  Open Management UI for an instance
+    kubectl rabbitmq manage INSTANCE
+
+  Set log level to 'debug' on all nodes
+    kubectl rabbitmq debug INSTANCE
+
+  Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE
+    kubectl rabbitmq observe INSTANCE 0
+
+  Enable all feature flags on an INSTANCE
+    kubectl rabbitmq enable-all-feature-flags INSTANCE
+
+  Run perf-test against an instance - you can pass as many perf test parameters as you want
+    kubectl rabbitmq perf-test INSTANCE --rate 100
+  If you want to monitor perf-test, create the following ServiceMonitor:
+    apiVersion: monitoring.coreos.com/v1
+    kind: ServiceMonitor
+    metadata:
+      name: kubectl-perf-test
+    spec:
+      endpoints:
+      - interval: 15s
+        targetPort: 8080
+      selector:
+        matchLabels:
+          app: perf-test
+
+  Print this help
+    kubectl rabbitmq help
+END
+)
+  echo "$usage"
 }
 
 get_instance_details() {
     instance=${1}
-    username=$(kubectl get secret "${instance}-rabbitmq-default-user" -o jsonpath="{.data.username}" | base64 --decode)
-    password=$(kubectl get secret "${instance}-rabbitmq-default-user" -o jsonpath="{.data.password}" | base64 --decode)
-    service=${instance}-rabbitmq-client
+    username=$(kubectl get secret "${instance}-default-user" -o jsonpath="{.data.username}" | base64 --decode)
+    password=$(kubectl get secret "${instance}-default-user" -o jsonpath="{.data.password}" | base64 --decode)
+    service="$instance"
 }
 
 perf_test() {
@@ -119,7 +125,6 @@ create() {
     fi
 
     while [[ "$#" -ne 0 ]]; do
-        #statements
         case "$1" in
         "--replicas")
             shift 1
@@ -161,9 +166,8 @@ create() {
             shift 1
             ;;
         *)
-            # Unrecognised or unsupported option
             echo "Option '$1' not recongnised"
-            shift 1
+            exit 1
             ;;
         esac
     done
@@ -177,7 +181,7 @@ delete() {
 }
 
 observe() {
-    kubectl exec -it "${1}-rabbitmq-server-${2}" -- rabbitmq-diagnostics observer
+    kubectl exec -it "${1}-server-${2}" -- rabbitmq-diagnostics observer
 }
 
 get() {
@@ -192,7 +196,7 @@ debug() {
 }
 
 enable_all_feature_flags() {
-    kubectl exec "${1}-rabbitmq-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
+    kubectl exec "${1}-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
 }
 
 secrets() {
@@ -286,13 +290,21 @@ main() {
         ;;
     "install-cluster-operator")
         shift 1
-        if [[ "$#" -gt 1 ]]; then
+        if [[ "$#" -gt 0 ]]; then
             usage
             exit 1
         fi
-        install_cluster_operator "${1:-}"
+        install_cluster_operator
         ;;
-
+    "help")
+        usage
+        ;;
+    "--help")
+        usage
+        ;;
+    "-h")
+        usage
+        ;;
     *)
         usage
         exit 1
