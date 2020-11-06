@@ -61,5 +61,6 @@ jobs:
         export PATH=$PATH:$GOPATH/bin
         make install-tools
         kind create cluster --image kindest/node:"$K8S_VERSION"
+        DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
         PATH=$PATH:$(pwd)/bin
         kubectl-rabbitmq.bats

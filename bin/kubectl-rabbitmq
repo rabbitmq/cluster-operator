@@ -73,9 +73,9 @@ END
 
 get_instance_details() {
     instance=${1}
-    username=$(kubectl get secret "${instance}-rabbitmq-default-user" -o jsonpath="{.data.username}" | base64 --decode)
-    password=$(kubectl get secret "${instance}-rabbitmq-default-user" -o jsonpath="{.data.password}" | base64 --decode)
-    service=${instance}-rabbitmq-client
+    username=$(kubectl get secret "${instance}-default-user" -o jsonpath="{.data.username}" | base64 --decode)
+    password=$(kubectl get secret "${instance}-default-user" -o jsonpath="{.data.password}" | base64 --decode)
+    service="$instance"
 }
 
 perf_test() {
@@ -181,7 +181,7 @@ delete() {
 }
 
 observe() {
-    kubectl exec -it "${1}-rabbitmq-server-${2}" -- rabbitmq-diagnostics observer
+    kubectl exec -it "${1}-server-${2}" -- rabbitmq-diagnostics observer
 }
 
 get() {
@@ -196,7 +196,7 @@ debug() {
 }
 
 enable_all_feature_flags() {
-    kubectl exec "${1}-rabbitmq-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
+    kubectl exec "${1}-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
 }
 
 secrets() {

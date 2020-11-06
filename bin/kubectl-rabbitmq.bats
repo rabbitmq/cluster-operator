@@ -23,12 +23,6 @@ eventually() {
   [ "${lines[0]}" = "USAGE:" ]
 }
 
-@test "install-cluster-operator installs cluster operator" {
-  kubectl rabbitmq install-cluster-operator
-
-  eventually 'kubectl -n rabbitmq-system get deployment rabbitmq-cluster-operator | grep 1/1' 600
-}
-
 @test "create creates RabbitMQ cluster" {
   kubectl rabbitmq create bats-default \
     --unlimited # otherwise scheduling the pod fails on kind in GitHub actions because of insufficient CPU
@@ -59,12 +53,12 @@ eventually() {
 
   sleep 10 # let the RabbitMQ controller create the K8s objects
 
-  sts_spec=$(kubectl get statefulset bats-configured-rabbitmq-server -o jsonpath='{.spec}')
+  sts_spec=$(kubectl get statefulset bats-configured-server -o jsonpath='{.spec}')
   [[ $(jq -r '.replicas' <<< "$sts_spec") -eq "$replicas" ]]
   [[ $(jq -r '.template.spec.containers | .[0].image' <<< "$sts_spec") == "$image" ]]
 
-  [[ $(kubectl get service bats-configured-rabbitmq-client -o jsonpath='{.spec.type}') == "$service" ]]
-  [[ $(kubectl get pvc persistence-bats-configured-rabbitmq-server-0 -o jsonpath='{.spec.storageClassName}') == "$storage_class" ]]
+  [[ $(kubectl get service bats-configured -o jsonpath='{.spec.type}') == "$service" ]]
+  [[ $(kubectl get pvc persistence-bats-configured-server-0 -o jsonpath='{.spec.storageClassName}') == "$storage_class" ]]
 }
 
 @test "list lists all RabbitMQ clusters" {
@@ -80,14 +74,14 @@ eventually() {
   run kubectl rabbitmq get bats-default
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"statefulset.apps/bats-default-rabbitmq-server"* ]]
-  [[ "$output" == *"pod/bats-default-rabbitmq-server-0"* ]]
-  [[ "$output" == *"service/bats-default-rabbitmq-headless"* ]]
-  [[ "$output" == *"service/bats-default-rabbitmq-client"* ]]
-  [[ "$output" == *"configmap/bats-default-rabbitmq-server-conf"* ]]
-  [[ "$output" == *"configmap/bats-default-rabbitmq-plugins-conf"* ]]
-  [[ "$output" == *"secret/bats-default-rabbitmq-default-user"* ]]
-  [[ "$output" == *"secret/bats-default-rabbitmq-erlang-cookie"* ]]
+  [[ "$output" == *"statefulset.apps/bats-default-server"* ]]
+  [[ "$output" == *"pod/bats-default-server-0"* ]]
+  [[ "$output" == *"service/bats-default-nodes"* ]]
+  [[ "$output" == *"service/bats-default"* ]]
+  [[ "$output" == *"configmap/bats-default-server-conf"* ]]
+  [[ "$output" == *"configmap/bats-default-plugins-conf"* ]]
+  [[ "$output" == *"secret/bats-default-default-user"* ]]
+  [[ "$output" == *"secret/bats-default-erlang-cookie"* ]]
 }
 
 @test "secrets prints secrets of default-user" {
@@ -104,14 +98,14 @@ eventually() {
 @test "enable-all-feature-flags enables all feature flags" {
   kubectl rabbitmq enable-all-feature-flags bats-default
 
-  states=$(kubectl exec bats-default-rabbitmq-server-0 -- rabbitmqctl list_feature_flags --silent state --formatter=json)
+  states=$(kubectl exec bats-default-server-0 -- rabbitmqctl list_feature_flags --silent state --formatter=json)
   [[ $(jq 'map(select(.state=="disabled")) | length' <<< "$states") -eq 0 ]]
 }
 
 @test "perf-test runs perf-test" {
   kubectl rabbitmq perf-test bats-default --rate 1
 
-  eventually "kubectl exec bats-default-rabbitmq-server-0 -- rabbitmqctl list_connections client_properties | grep perf-test " 600
+  eventually "kubectl exec bats-default-server-0 -- rabbitmqctl list_connections client_properties | grep perf-test " 600
 
   kubectl delete pod -l "app=perf-test,run=perf-test"
   kubectl delete svc -l "app=perf-test,run=perf-test"
@@ -121,7 +115,7 @@ eventually() {
   kubectl rabbitmq debug bats-default
 
   # '[debug] <pid> Lager installed handler' is logged even without enabling debug logging
-  eventually "kubectl logs bats-default-rabbitmq-server-0 | grep -v ' \[debug\] .* Lager installed handler ' | grep ' \[debug\] '" 30
+  eventually "kubectl logs bats-default-server-0 | grep -v ' \[debug\] .* Lager installed handler ' | grep ' \[debug\] '" 30
 }
 
 @test "delete deletes RabbitMQ cluster" {
