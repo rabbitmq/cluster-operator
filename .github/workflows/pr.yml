@@ -41,3 +41,25 @@ jobs:
         kind create cluster --image kindest/node:"$K8S_VERSION"
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
         make system-tests
+
+  kubectl_tests:
+    name: kubectl rabbitmq tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Bats
+      run: |
+        git clone https://github.com/bats-core/bats-core.git "$HOME"/bats-core
+        cd "$HOME"/bats-core
+        sudo ./install.sh /usr/local
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: kubectl rabbitmq tests
+      env:
+        K8S_VERSION: v1.19.1
+      run: |
+        export GOPATH=$HOME/go
+        export PATH=$PATH:$GOPATH/bin
+        make install-tools
+        kind create cluster --image kindest/node:"$K8S_VERSION"
+        PATH=$PATH:$(pwd)/bin
+        kubectl-rabbitmq.bats

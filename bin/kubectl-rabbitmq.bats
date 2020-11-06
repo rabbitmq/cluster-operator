@@ -30,7 +30,8 @@ eventually() {
 }
 
 @test "create creates RabbitMQ cluster" {
-  kubectl rabbitmq create bats-default
+  kubectl rabbitmq create bats-default \
+    --unlimited # otherwise scheduling the pod fails on kind in GitHub actions because of insufficient CPU
 
   eventually '[[ $(kubectl get rabbitmqcluster bats-default -o json | jq -r '"'"'.status.conditions | .[] | select(.type=="AllReplicasReady").status'"'"') == "True" ]]' 600
 }
