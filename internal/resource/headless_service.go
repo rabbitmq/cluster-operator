@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	headlessServiceSuffix = ""
+	headlessServiceSuffix = "nodes"
 )
 
 type HeadlessServiceBuilder struct {
