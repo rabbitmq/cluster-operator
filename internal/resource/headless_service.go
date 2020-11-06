@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	headlessServiceName = "headless"
+	headlessServiceSuffix = "nodes"
 )
 
 type HeadlessServiceBuilder struct {
@@ -40,7 +40,7 @@ func (builder *RabbitmqResourceBuilder) HeadlessService() *HeadlessServiceBuilde
 func (builder *HeadlessServiceBuilder) Build() (runtime.Object, error) {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(headlessServiceName),
+			Name:      builder.Instance.ChildResourceName(headlessServiceSuffix),
 			Namespace: builder.Instance.Namespace,
 		},
 	}, nil

@@ -363,19 +363,19 @@ type HealthcheckResponse struct {
 }
 
 func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset, namespace, instanceName string) (string, string, error) {
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(ctx, fmt.Sprintf("%s-rabbitmq-default-user", instanceName), metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(ctx, fmt.Sprintf("%s-default-user", instanceName), metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
 	}
 
 	username, ok := secret.Data["username"]
 	if !ok {
-		return "", "", fmt.Errorf("cannot find 'username' in %s-rabbitmq-default-user", instanceName)
+		return "", "", fmt.Errorf("cannot find 'username' in %s-default-user", instanceName)
 	}
 
 	password, ok := secret.Data["password"]
 	if !ok {
-		return "", "", fmt.Errorf("cannot find 'password' in %s-rabbitmq-default-user", instanceName)
+		return "", "", fmt.Errorf("cannot find 'password' in %s-default-user", instanceName)
 	}
 	return string(username), string(password), nil
 }
@@ -455,7 +455,7 @@ func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) stri
 
 func rabbitmqNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster, portName string) string {
 	service, err := clientSet.CoreV1().Services(cluster.Namespace).
-		Get(ctx, cluster.ChildResourceName("client"), metav1.GetOptions{})
+		Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 

@@ -54,7 +54,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(err).NotTo(HaveOccurred())
 			sts := obj.(*appsv1.StatefulSet)
 
-			Expect(sts.Name).To(Equal("foo-rabbitmq-server"))
+			Expect(sts.Name).To(Equal("foo-server"))
 			Expect(sts.Namespace).To(Equal("foo-namespace"))
 		})
 
@@ -63,7 +63,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(err).NotTo(HaveOccurred())
 			statefulSet := obj.(*appsv1.StatefulSet)
 
-			Expect(statefulSet.Spec.ServiceName).To(Equal(instance.ChildResourceName("headless")))
+			Expect(statefulSet.Spec.ServiceName).To(Equal(instance.ChildResourceName("nodes")))
 		})
 		It("adds the correct label selector", func() {
 			obj, err := stsBuilder.Build()
@@ -782,7 +782,7 @@ var _ = Describe("StatefulSet", func() {
 				},
 				{
 					Name:  "K8S_SERVICE_NAME",
-					Value: instance.ChildResourceName("headless"),
+					Value: instance.ChildResourceName("nodes"),
 				},
 				{
 					Name:  "RABBITMQ_USE_LONGNAME",
@@ -1366,7 +1366,7 @@ var _ = Describe("StatefulSet", func() {
 						},
 						corev1.EnvVar{
 							Name:  "K8S_SERVICE_NAME",
-							Value: instance.ChildResourceName("headless"),
+							Value: instance.ChildResourceName("nodes"),
 						},
 						corev1.EnvVar{
 							Name:  "RABBITMQ_USE_LONGNAME",
@@ -1480,7 +1480,7 @@ var _ = Describe("StatefulSet", func() {
 						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env[2]).To(Equal(
 							corev1.EnvVar{
 								Name:  "K8S_SERVICE_NAME",
-								Value: "foo-rabbitmq-headless",
+								Value: "foo-nodes",
 							}))
 						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
 							corev1.EnvVar{
@@ -1507,7 +1507,7 @@ var _ = Describe("StatefulSet", func() {
 							},
 							corev1.EnvVar{
 								Name:  "K8S_SERVICE_NAME",
-								Value: instance.ChildResourceName("headless"),
+								Value: instance.ChildResourceName("nodes"),
 							},
 							corev1.EnvVar{
 								Name:  "RABBITMQ_USE_LONGNAME",

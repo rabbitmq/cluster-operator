@@ -72,11 +72,11 @@ type RabbitmqClusterSpec struct {
 }
 
 type RabbitmqClusterOverrideSpec struct {
-	StatefulSet   *StatefulSet   `json:"statefulSet,omitempty"`
-	ClientService *ClientService `json:"clientService,omitempty"`
+	StatefulSet *StatefulSet `json:"statefulSet,omitempty"`
+	Service     *Service     `json:"service,omitempty"`
 }
 
-type ClientService struct {
+type Service struct {
 	// +optional
 	*EmbeddedLabelsAnnotations `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Spec defines the behavior of a service.
@@ -151,7 +151,7 @@ type StatefulSetSpec struct {
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty" protobuf:"bytes,7,opt,name=updateStrategy"`
 }
 
-// It is used in ClientService and StatefulSet
+// It is used in Service and StatefulSet
 type EmbeddedLabelsAnnotations struct {
 	// Map of string keys and values that can be used to organize and categorize
 	// (scope and select) objects. May match selectors of replication controllers
@@ -277,12 +277,12 @@ type RabbitmqClusterPersistenceSpec struct {
 	Storage *k8sresource.Quantity `json:"storage,omitempty"`
 }
 
-// Settable attributes for the Client Service resource.
+// Settable attributes for the Service resource.
 type RabbitmqClusterServiceSpec struct {
 	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
 	// +kubebuilder:default:="ClusterIP"
 	Type corev1.ServiceType `json:"type,omitempty"`
-	// Annotations to add to the Client Service.
+	// Annotations to add to the Service.
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
@@ -396,7 +396,7 @@ type RabbitmqClusterList struct {
 }
 
 func (cluster RabbitmqCluster) ChildResourceName(name string) string {
-	return strings.Join([]string{cluster.Name, "rabbitmq", name}, "-")
+	return strings.TrimSuffix(strings.Join([]string{cluster.Name, name}, "-"), "-")
 }
 
 func init() {

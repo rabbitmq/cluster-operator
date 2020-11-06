@@ -23,7 +23,7 @@ import (
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-var _ = Context("ClientServices", func() {
+var _ = Context("Services", func() {
 	var (
 		instance rabbitmqv1beta1.RabbitmqCluster
 		builder  resource.RabbitmqResourceBuilder
@@ -43,13 +43,13 @@ var _ = Context("ClientServices", func() {
 		})
 
 		It("Builds using the values from the CR", func() {
-			serviceBuilder := builder.ClientService()
+			serviceBuilder := builder.Service()
 			obj, err := serviceBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
 			service := obj.(*corev1.Service)
 
 			By("generates a service object with the correct name and labels", func() {
-				expectedName := instance.ChildResourceName("client")
+				expectedName := instance.Name
 				Expect(service.Name).To(Equal(expectedName))
 			})
 
@@ -85,7 +85,7 @@ var _ = Context("ClientServices", func() {
 					},
 				}
 				builder.Instance = instance
-				serviceBuilder := builder.ClientService()
+				serviceBuilder := builder.Service()
 				svc := &corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo-service",
@@ -202,11 +202,11 @@ var _ = Context("ClientServices", func() {
 
 		Context("Labels", func() {
 			var (
-				serviceBuilder *resource.ClientServiceBuilder
+				serviceBuilder *resource.ServiceBuilder
 				svc            *corev1.Service
 			)
 			BeforeEach(func() {
-				serviceBuilder = builder.ClientService()
+				serviceBuilder = builder.Service()
 				instance = rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-labelled",
@@ -251,11 +251,11 @@ var _ = Context("ClientServices", func() {
 		Context("Service Type", func() {
 			var (
 				svc            *corev1.Service
-				serviceBuilder *resource.ClientServiceBuilder
+				serviceBuilder *resource.ServiceBuilder
 			)
 
 			BeforeEach(func() {
-				serviceBuilder = builder.ClientService()
+				serviceBuilder = builder.Service()
 				instance = generateRabbitmqCluster()
 
 				svc = &corev1.Service{
@@ -438,11 +438,11 @@ var _ = Context("ClientServices", func() {
 		When("Override is provided", func() {
 			var (
 				svc            *corev1.Service
-				serviceBuilder *resource.ClientServiceBuilder
+				serviceBuilder *resource.ServiceBuilder
 			)
 
 			BeforeEach(func() {
-				serviceBuilder = builder.ClientService()
+				serviceBuilder = builder.Service()
 				instance = generateRabbitmqCluster()
 
 				svc = &corev1.Service{
@@ -453,8 +453,8 @@ var _ = Context("ClientServices", func() {
 				}
 			})
 
-			It("overrides clientService.ObjectMeta", func() {
-				instance.Spec.Override.ClientService = &rabbitmqv1beta1.ClientService{
+			It("overrides Service.ObjectMeta", func() {
+				instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
 					EmbeddedLabelsAnnotations: &rabbitmqv1beta1.EmbeddedLabelsAnnotations{
 						Labels: map[string]string{
 							"new-label-key": "new-label-value",
@@ -479,7 +479,7 @@ var _ = Context("ClientServices", func() {
 			It("overrides ServiceSpec", func() {
 				var IPv4 corev1.IPFamily = "IPv4"
 				ten := int32(10)
-				instance.Spec.Override.ClientService = &rabbitmqv1beta1.ClientService{
+				instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
 					Spec: &corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
@@ -546,7 +546,7 @@ var _ = Context("ClientServices", func() {
 
 			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {
 				instance.Spec.Service.Type = "LoadBalancer"
-				instance.Spec.Override.ClientService = &rabbitmqv1beta1.ClientService{
+				instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
 					Spec: &corev1.ServiceSpec{
 						Type: corev1.ServiceTypeNodePort,
 					},
@@ -575,7 +575,7 @@ func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, i
 	}
 
 	rmqBuilder.Instance = instance
-	serviceBuilder := rmqBuilder.ClientService()
+	serviceBuilder := rmqBuilder.Service()
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo-service",

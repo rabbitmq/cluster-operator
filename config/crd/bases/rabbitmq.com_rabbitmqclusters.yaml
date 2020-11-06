@@ -663,7 +663,7 @@ spec:
                 type: array
               override:
                 properties:
-                  clientService:
+                  service:
                     properties:
                       metadata:
                         properties:
@@ -3700,12 +3700,12 @@ spec:
               service:
                 default:
                   type: ClusterIP
-                description: Settable attributes for the Client Service resource.
+                description: Settable attributes for the Service resource.
                 properties:
                   annotations:
                     additionalProperties:
                       type: string
-                    description: Annotations to add to the Client Service.
+                    description: Annotations to add to the Service.
                     type: object
                   type:
                     default: ClusterIP

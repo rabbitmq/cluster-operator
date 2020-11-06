@@ -50,7 +50,7 @@ var _ = Describe("HeadlessService", func() {
 			service = obj.(*corev1.Service)
 		})
 		It("generates a service object with the correct name", func() {
-			Expect(service.Name).To(Equal(instance.ChildResourceName("headless")))
+			Expect(service.Name).To(Equal(instance.ChildResourceName("nodes")))
 		})
 
 		It("generates a service object with the correct namespace", func() {

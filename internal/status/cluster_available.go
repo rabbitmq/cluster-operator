@@ -50,7 +50,7 @@ func ClusterAvailableCondition(resources []runtime.Object,
 
 			condition.Status = corev1.ConditionFalse
 			condition.Reason = "NoEndpointsAvailable"
-			condition.Message = "The client service has no endpoints available"
+			condition.Message = "The service has no endpoints available"
 		}
 	}
 
