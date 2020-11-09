@@ -66,9 +66,36 @@ USAGE:
 
   Print this help
     kubectl rabbitmq help
+
+  Print kubectl-rabbitmq plugin version
+    kubectl rabbitmq version
 END
 )
   echo "$usage"
+}
+
+version() {
+  # Since we require to install this plugin via krew, we get the version from krew instead of hardcoding a version to this file.
+  failure_msg="version cannot be determined because plugin was not installed via krew"
+  if ! command -v kubectl-krew &> /dev/null
+  then
+      echo "$failure_msg"
+      exit 1
+  fi
+
+  # We can't use `krew info` because it provides versions about available - not installed - plugins.
+  # `krew list` provides versions of installed plugins.
+  # We can't redirect stdout of `krew list` because this will suppress the version number (see `kubectl krew list --help`)
+  # Therefore, we have to get the version number from the `krew list` logs.
+  version_line=$(kubectl krew -v 4 list 2>&1 | grep 'rabbitmq: version=' || true)
+  if [[ -z "$version_line" ]];
+  then
+      echo "$failure_msg"
+      exit 1
+  fi
+
+  version="${version_line##*rabbitmq: version=}"
+  echo "kubectl-rabbitmq $version"
 }
 
 get_instance_details() {
@@ -304,6 +331,9 @@ main() {
         ;;
     "-h")
         usage
+        ;;
+    "version")
+        version
         ;;
     *)
         usage
