@@ -401,11 +401,21 @@ var _ = Describe("StatefulSet", func() {
 				testLabels(statefulSet.Labels)
 			})
 
-			It("has the labels from the instance on the pod", func() {
+			It("adds default labels to pods but does not populate labels from the instance onto pods", func() {
 				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-				podTemplate := statefulSet.Spec.Template
-				testLabels(podTemplate.Labels)
+
+				labels := statefulSet.Spec.Template.ObjectMeta.Labels
+				Expect(len(labels)).To(Equal(3))
+				Expect(labels).To(SatisfyAll(
+					HaveKeyWithValue("app.kubernetes.io/name", instance.Name),
+					HaveKeyWithValue("app.kubernetes.io/component", "rabbitmq"),
+					HaveKeyWithValue("app.kubernetes.io/part-of", "rabbitmq"),
+					Not(HaveKey("foo")),
+					Not(HaveKey("rabbitmq")),
+					Not(HaveKey("foo/app.kubernetes.io")),
+					Not(HaveKey("app.kubernetes.io/foo")),
+				))
 			})
 
 			It("adds the correct labels on the statefulset", func() {
@@ -437,16 +447,6 @@ var _ = Describe("StatefulSet", func() {
 				By("deleting the labels that are removed from the CR")
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				Expect(statefulSet.Labels).NotTo(HaveKey("this-was-the-previous-label"))
-			})
-
-			It("adds the correct labels on the rabbitmq pods", func() {
-				stsBuilder := builder.StatefulSet()
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-				labels := statefulSet.Spec.Template.ObjectMeta.Labels
-				Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
-				Expect(labels["app.kubernetes.io/component"]).To(Equal("rabbitmq"))
-				Expect(labels["app.kubernetes.io/part-of"]).To(Equal("rabbitmq"))
 			})
 		})
 
@@ -483,8 +483,6 @@ var _ = Describe("StatefulSet", func() {
 						"prometheus.io/scrape":           "true",
 						"prometheus.io/port":             "15692",
 						"this-was-the-previous-pod-anno": "should-be-preserved",
-						"app.kubernetes.io/part-of":      "rabbitmq-pod",
-						"app.k8s.io/something":           "something-amazing-on-pod",
 					}
 
 					existingPvcTemplateAnnotations = map[string]string{
@@ -501,7 +499,7 @@ var _ = Describe("StatefulSet", func() {
 					statefulSet.Spec.VolumeClaimTemplates[0].Annotations = existingPvcTemplateAnnotations
 				})
 
-				It("updates annotations", func() {
+				It("updates sts annotations", func() {
 					stsBuilder.Instance.Annotations = map[string]string{
 						"kubernetes.io/name":          "i-do-not-like-this",
 						"kubectl.kubernetes.io/name":  "i-do-not-like-this",
@@ -523,28 +521,24 @@ var _ = Describe("StatefulSet", func() {
 					Expect(statefulSet.Annotations).To(Equal(expectedAnnotations))
 				})
 
-				It("update annotations from the instance to the pod", func() {
+				It("adds default annotations but does not populate annotations from the instance to the pod", func() {
 					stsBuilder.Instance.Annotations = map[string]string{
-						"kubernetes.io/name":          "i-do-not-like-this",
-						"kubectl.kubernetes.io/name":  "i-do-not-like-this",
-						"k8s.io/name":                 "i-do-not-like-this",
-						"kubernetes.io/other":         "i-do-not-like-this",
-						"kubectl.kubernetes.io/other": "i-do-not-like-this",
-						"k8s.io/other":                "i-do-not-like-this",
-						"my-annotation":               "i-like-this",
+						"my-annotation": "my-annotation",
+						"k8s.io/other":  "i-do-not-like-this",
 					}
 
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-					expectedAnnotations := map[string]string{
-						"prometheus.io/scrape":           "true",
-						"prometheus.io/port":             "15692",
-						"my-annotation":                  "i-like-this",
-						"app.kubernetes.io/part-of":      "rabbitmq-pod",
-						"this-was-the-previous-pod-anno": "should-be-preserved",
-						"app.k8s.io/something":           "something-amazing-on-pod",
-					}
-
-					Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedAnnotations))
+					annotations := statefulSet.Spec.Template.Annotations
+					Expect(len(annotations)).To(Equal(3))
+					Expect(annotations).To(SatisfyAll(
+						HaveKeyWithValue("prometheus.io/scrape", "true"),
+						HaveKeyWithValue("prometheus.io/port", "15692"),
+						HaveKeyWithValue("this-was-the-previous-pod-anno", "should-be-preserved"),
+						Not(HaveKey("app.kubernetes.io/part-of")),
+						Not(HaveKey("app.k8s.io/something")),
+						Not(HaveKey("my-annotation")),
+						Not(HaveKey("k8s.io/other")),
+					))
 				})
 
 				It("does not update annotations from the instance to the pvc template", func() {
