@@ -534,34 +534,13 @@ var _ = Describe("RabbitmqClusterController", func() {
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
 			})
 
-			It("updates annotations for config maps", func() {
-				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server-conf"), metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return roleBinding.Annotations
-				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
-
+			It("updates annotations for plugins config map", func() {
 				Eventually(func() map[string]string {
 					roleBinding, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, cluster.ChildResourceName("plugins-conf"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return roleBinding.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
 			})
-
-			It("updates annotations for config maps", func() {
-				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server-conf"), metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return roleBinding.Annotations
-				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
-
-				Eventually(func() map[string]string {
-					roleBinding, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, cluster.ChildResourceName("plugins-conf"), metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return roleBinding.Annotations
-				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
-			})
-
 		})
 
 		It("service type is updated", func() {
