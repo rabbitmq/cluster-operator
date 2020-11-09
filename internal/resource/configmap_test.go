@@ -66,11 +66,6 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		var configMap *corev1.ConfigMap
 
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit-example",
-				},
-			}
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
 				"foo":                   "bar",
@@ -98,8 +93,8 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 
 		It("adds labels from the instance and default labels", func() {
-			Expect(len(configMap.Labels)).To(Equal(6))
 			Expect(configMap.Labels).To(SatisfyAll(
+				HaveLen(6),
 				HaveKeyWithValue("foo", "bar"),
 				HaveKeyWithValue("rabbitmq", "is-great"),
 				HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
@@ -111,8 +106,8 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 
 		It("adds annotations from the instance", func() {
-			Expect(len(configMap.Annotations)).To(Equal(1))
 			Expect(configMap.Annotations).To(SatisfyAll(
+				HaveLen(1),
 				HaveKeyWithValue("my-annotation", "i-like-this"),
 				Not(HaveKey("kubernetes.io/name")),
 				Not(HaveKey("kubectl.kubernetes.io/name")),
@@ -342,8 +337,8 @@ ssl_options.verify     = verify_peer
 				"new-label": "test",
 			}
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
-			Expect(len(configMap.Labels)).To(Equal(3))
 			Expect(configMap.Labels).To(SatisfyAll(
+				HaveLen(3),
 				HaveKeyWithValue("app.kubernetes.io/name", instance.Name),
 				HaveKeyWithValue("app.kubernetes.io/component", "rabbitmq"),
 				HaveKeyWithValue("app.kubernetes.io/part-of", "rabbitmq"),
@@ -352,7 +347,7 @@ ssl_options.verify     = verify_peer
 		})
 
 		// this is to ensure that pods are not restarted when instance annotations are updated
-		It("does not update labels on the config map", func() {
+		It("does not update annotations on the config map", func() {
 			instance.Annotations = map[string]string{
 				"new-annotation": "test",
 			}

@@ -405,9 +405,8 @@ var _ = Describe("StatefulSet", func() {
 				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-				labels := statefulSet.Spec.Template.ObjectMeta.Labels
-				Expect(len(labels)).To(Equal(3))
-				Expect(labels).To(SatisfyAll(
+				Expect(statefulSet.Spec.Template.ObjectMeta.Labels).To(SatisfyAll(
+					HaveLen(3),
 					HaveKeyWithValue("app.kubernetes.io/name", instance.Name),
 					HaveKeyWithValue("app.kubernetes.io/component", "rabbitmq"),
 					HaveKeyWithValue("app.kubernetes.io/part-of", "rabbitmq"),
@@ -528,9 +527,8 @@ var _ = Describe("StatefulSet", func() {
 					}
 
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-					annotations := statefulSet.Spec.Template.Annotations
-					Expect(len(annotations)).To(Equal(3))
-					Expect(annotations).To(SatisfyAll(
+					Expect(statefulSet.Spec.Template.Annotations).To(SatisfyAll(
+						HaveLen(3),
 						HaveKeyWithValue("prometheus.io/scrape", "true"),
 						HaveKeyWithValue("prometheus.io/port", "15692"),
 						HaveKeyWithValue("this-was-the-previous-pod-anno", "should-be-preserved"),
