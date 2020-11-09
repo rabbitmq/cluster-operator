@@ -16,6 +16,20 @@ eventually() {
   return 1
 }
 
+@test "version outputs version" {
+  run kubectl rabbitmq version
+
+  if ! command -v kubectl-krew &> /dev/null
+  then
+    [ "$status" -eq 1 ]
+    [ "${lines[0]}" = "version cannot be determined because plugin was not installed via krew" ]
+  else
+    [ "$status" -eq 0 ]
+    version_regex='kubectl-rabbitmq v([0-9]+)\.([0-9]+)\.([0-9]+)$'
+    [[ "${lines[0]}" =~ $version_regex ]]
+  fi
+}
+
 @test "install-cluster-operator with too many args fails" {
   run kubectl rabbitmq install-cluster-operator too-many-args
 
