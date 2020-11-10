@@ -43,7 +43,7 @@ USAGE:
   Set log level to 'debug' on all nodes
     kubectl rabbitmq debug INSTANCE
 
-  Tail logs from all all nodes
+  Tail logs from all nodes
     kubectl rabbitmq tail INSTANCE
 
   Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE
