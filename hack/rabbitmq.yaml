@@ -12,6 +12,8 @@ spec:
   caveats: |
     This plugin requires the RabbitMQ cluster operator to be installed.
     To install the RabbitMQ cluster operator run `kubectl rabbitmq install-cluster-operator`.
+
+    `tail` subcommand requires the `tail` plugin. You can install it with `kubectl krew install tail`.
   platforms:
   - selector:
       matchExpressions:
