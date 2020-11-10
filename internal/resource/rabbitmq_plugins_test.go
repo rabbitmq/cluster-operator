@@ -90,6 +90,22 @@ var _ = Describe("RabbitMQPlugins", func() {
 			var configMap *corev1.ConfigMap
 
 			BeforeEach(func() {
+				instance.Labels = map[string]string{
+					"app.kubernetes.io/foo": "bar",
+					"foo":                   "bar",
+					"rabbitmq":              "is-great",
+					"foo/app.kubernetes.io": "edgecase",
+				}
+				instance.Annotations = map[string]string{
+					"my-annotation":               "i-like-this",
+					"kubernetes.io/name":          "i-do-not-like-this",
+					"kubectl.kubernetes.io/name":  "i-do-not-like-this",
+					"k8s.io/name":                 "i-do-not-like-this",
+					"kubernetes.io/other":         "i-do-not-like-this",
+					"kubectl.kubernetes.io/other": "i-do-not-like-this",
+					"k8s.io/other":                "i-do-not-like-this",
+				}
+
 				obj, err := configMapBuilder.Build()
 				configMap = obj.(*corev1.ConfigMap)
 				Expect(err).NotTo(HaveOccurred())
@@ -111,6 +127,32 @@ var _ = Describe("RabbitMQPlugins", func() {
 
 				configMap = obj.(*corev1.ConfigMap)
 				Expect(configMap.Data).To(HaveKeyWithValue("enabled_plugins", expectedEnabledPlugins))
+			})
+
+			It("adds labels from the instance and default labels", func() {
+				Expect(configMap.Labels).To(SatisfyAll(
+					HaveLen(6),
+					HaveKeyWithValue("foo", "bar"),
+					HaveKeyWithValue("rabbitmq", "is-great"),
+					HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
+					HaveKeyWithValue("app.kubernetes.io/name", instance.Name),
+					HaveKeyWithValue("app.kubernetes.io/component", "rabbitmq"),
+					HaveKeyWithValue("app.kubernetes.io/part-of", "rabbitmq"),
+					Not(HaveKey("app.kubernetes.io/foo")),
+				))
+			})
+
+			It("adds annotations from the instance", func() {
+				Expect(configMap.Annotations).To(SatisfyAll(
+					HaveLen(1),
+					HaveKeyWithValue("my-annotation", "i-like-this"),
+					Not(HaveKey("kubernetes.io/name")),
+					Not(HaveKey("kubectl.kubernetes.io/name")),
+					Not(HaveKey("k8s.io/name")),
+					Not(HaveKey("kubernetes.io/other")),
+					Not(HaveKey("kubectl.kubernetes.io/other")),
+					Not(HaveKey("k8s.io/other")),
+				))
 			})
 		})
 
@@ -176,6 +218,34 @@ var _ = Describe("RabbitMQPlugins", func() {
 						Expect(configMap.Data).To(HaveKeyWithValue("enabled_plugins", expectedEnabledPlugins))
 					})
 				})
+			})
+
+			// ensures that we are not unnecessarily running `rabbitmq-plugins set` when CR labels are updated
+			It("does not update labels on the config map", func() {
+				configMap.Labels = map[string]string{
+					"app.kubernetes.io/name":      instance.Name,
+					"app.kubernetes.io/component": "rabbitmq",
+					"app.kubernetes.io/part-of":   "rabbitmq",
+				}
+				instance.Labels = map[string]string{
+					"new-label": "test",
+				}
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Labels).To(SatisfyAll(
+					HaveLen(3),
+					HaveKeyWithValue("app.kubernetes.io/name", instance.Name),
+					HaveKeyWithValue("app.kubernetes.io/component", "rabbitmq"),
+					HaveKeyWithValue("app.kubernetes.io/part-of", "rabbitmq"),
+					Not(HaveKey("new-label")),
+				))
+			})
+			// ensures that we are not unnecessarily running `rabbitmq-plugins set` when CR annotations are updated
+			It("does not update annotations on the config map", func() {
+				instance.Annotations = map[string]string{
+					"new-annotation": "test",
+				}
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Annotations).To(BeEmpty())
 			})
 		})
 	})

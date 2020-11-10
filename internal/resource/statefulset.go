@@ -114,17 +114,12 @@ func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
 
 	//Annotations
 	sts.Annotations = metadata.ReconcileAndFilterAnnotations(sts.Annotations, builder.Instance.Annotations)
-	defaultPodAnnotations := map[string]string{
-		"prometheus.io/scrape": "true",
-		"prometheus.io/port":   "15692",
-	}
-	podAnnotations := metadata.ReconcileAnnotations(defaultPodAnnotations, metadata.ReconcileAndFilterAnnotations(sts.Spec.Template.Annotations, builder.Instance.Annotations))
 
 	//Labels
-	updatedLabels := metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	sts.Labels = updatedLabels
+	sts.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 
-	sts.Spec.Template = builder.podTemplateSpec(podAnnotations, updatedLabels)
+	// pod template
+	sts.Spec.Template = builder.podTemplateSpec(sts.Spec.Template.Annotations)
 
 	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
 		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
@@ -261,7 +256,13 @@ func sortEnvVar(envVar []corev1.EnvVar) {
 	}
 }
 
-func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[string]string) corev1.PodTemplateSpec {
+func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[string]string) corev1.PodTemplateSpec {
+	// default pod annotations used for prometheus metrics
+	defaultPodAnnotations := map[string]string{
+		"prometheus.io/scrape": "true",
+		"prometheus.io/port":   "15692",
+	}
+
 	//Init Container resources
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
@@ -510,8 +511,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 
 	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Annotations: annotations,
-			Labels:      labels,
+			Annotations: metadata.ReconcileAnnotations(defaultPodAnnotations, previousPodAnnotations),
+			Labels:      metadata.Label(builder.Instance.Name),
 		},
 		Spec: corev1.PodSpec{
 			TopologySpreadConstraints: []corev1.TopologySpreadConstraint{

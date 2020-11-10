@@ -36,8 +36,10 @@ func (builder *RabbitmqResourceBuilder) RabbitmqPluginsConfigMap() *RabbitmqPlug
 func (builder *RabbitmqPluginsConfigMapBuilder) Build() (runtime.Object, error) {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(PluginsConfigName),
-			Namespace: builder.Instance.Namespace,
+			Name:        builder.Instance.ChildResourceName(PluginsConfigName),
+			Namespace:   builder.Instance.Namespace,
+			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
+			Annotations: metadata.ReconcileAndFilterAnnotations(nil, builder.Instance.Annotations),
 		},
 		Data: map[string]string{
 			"enabled_plugins": desiredPluginsAsString([]rabbitmqv1beta1.Plugin{}),
@@ -47,8 +49,6 @@ func (builder *RabbitmqPluginsConfigMapBuilder) Build() (runtime.Object, error) 
 
 func (builder *RabbitmqPluginsConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
-	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	configMap.Annotations = metadata.ReconcileAndFilterAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
 
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)

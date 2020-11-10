@@ -55,16 +55,16 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilde
 func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(ServerConfigMapName),
-			Namespace: builder.Instance.Namespace,
+			Name:        builder.Instance.ChildResourceName(ServerConfigMapName),
+			Namespace:   builder.Instance.Namespace,
+			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
+			Annotations: metadata.ReconcileAndFilterAnnotations(nil, builder.Instance.Annotations),
 		},
 	}, nil
 }
 
 func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	configMap := object.(*corev1.ConfigMap)
-	configMap.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
-	configMap.Annotations = metadata.ReconcileAndFilterAnnotations(configMap.GetAnnotations(), builder.Instance.Annotations)
 
 	ini.PrettySection = false // Remove trailing new line because rabbitmq.conf has only a default section.
 	cfg, err := ini.Load([]byte(defaultRabbitmqConf))
