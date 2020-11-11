@@ -43,6 +43,9 @@ USAGE:
   Set log level to 'debug' on all nodes
     kubectl rabbitmq debug INSTANCE
 
+  Tail logs from all nodes
+    kubectl rabbitmq tail INSTANCE
+
   Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE
     kubectl rabbitmq observe INSTANCE 0
 
@@ -222,6 +225,10 @@ debug() {
     done
 }
 
+tail() {
+    kubectl tail --svc "${1}"
+}
+
 enable_all_feature_flags() {
     kubectl exec "${1}-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
 }
@@ -290,6 +297,14 @@ main() {
             exit 1
         fi
         debug "$1"
+        ;;
+    "tail")
+        shift 1
+        if [[ "$#" -ne 1 ]]; then
+            usage
+            exit 1
+        fi
+        tail "$1"
         ;;
     "observe")
         shift 1
