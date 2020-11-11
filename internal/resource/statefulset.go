@@ -493,14 +493,13 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		})
 
 		if builder.Instance.MutualTLSEnabled() {
-			caCertName := builder.Instance.Spec.TLS.CaCertName
 
 			if builder.Instance.SingleTLSSecret() {
 				//Mount CaCert in TLS Secret
 				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 					Name:      "rabbitmq-tls",
-					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", caCertName),
-					SubPath:   caCertName,
+					MountPath: "/etc/rabbitmq-tls/ca.crt",
+					SubPath:   "ca.crt",
 					ReadOnly:  true,
 				})
 			} else {
@@ -520,8 +519,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 				//Mount new volume to same path as TLS cert and key
 				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 					Name:      "rabbitmq-mutual-tls",
-					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", caCertName),
-					SubPath:   caCertName,
+					MountPath: "/etc/rabbitmq-tls/ca.crt",
+					SubPath:   "ca.crt",
 					ReadOnly:  true,
 				})
 			}

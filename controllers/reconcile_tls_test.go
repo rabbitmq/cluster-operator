@@ -3,6 +3,7 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 
 	. "github.com/onsi/ginkgo"
@@ -32,11 +33,10 @@ var _ = Describe("Reconcile TLS", func() {
 
 		Context("Mutual TLS with single secret", func() {
 			It("Deploys successfully", func() {
-				tlsSecretWithCACert(ctx, "tls-secret", defaultNamespace, "caCERT")
+				tlsSecretWithCACert(ctx, "tls-secret", defaultNamespace)
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "tls-secret",
 					CaSecretName: "tls-secret",
-					CaCertName:   "caCERT",
 				}
 				cluster = rabbitmqClusterWithTLS(ctx, "mutual-tls-success", defaultNamespace, tlsSpec)
 				waitForClusterCreation(ctx, cluster, client)
@@ -45,19 +45,29 @@ var _ = Describe("Reconcile TLS", func() {
 				Expect(err).NotTo(HaveOccurred())
 				volumeMount := corev1.VolumeMount{
 					Name:      "rabbitmq-tls",
-					MountPath: "/etc/rabbitmq-tls/caCERT",
-					SubPath:   "caCERT",
+					MountPath: "/etc/rabbitmq-tls/ca.crt",
+					SubPath:   "ca.crt",
 					ReadOnly:  true,
 				}
 				Expect(sts.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(volumeMount))
 			})
 
 			It("Does not deploy if the cert name does not match the contents of the secret", func() {
-				tlsSecretWithCACert(ctx, "tls-secret-missing", defaultNamespace, "ca.c")
+				tlsData := map[string]string{
+					"tls.crt":   "this is a tls cert",
+					"tls.key":   "this is a tls key",
+					"wrong-key": "certificate",
+				}
+
+				_, err := createSecret(ctx, "tls-secret-missing", defaultNamespace, tlsData)
+
+				if !apierrors.IsAlreadyExists(err) {
+					Expect(err).NotTo(HaveOccurred())
+				}
+
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "tls-secret-missing",
 					CaSecretName: "tls-secret-missing",
-					CaCertName:   "ca.crt",
 				}
 				cluster = rabbitmqClusterWithTLS(ctx, "tls-secret-missing", defaultNamespace, tlsSpec)
 
@@ -72,7 +82,6 @@ var _ = Describe("Reconcile TLS", func() {
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "rabbitmq-tls-secret-does-not-exist",
 					CaSecretName: "ca-cert-secret",
-					CaCertName:   "ca.crt",
 				}
 				cluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist", defaultNamespace, tlsSpec)
 				verifyError(ctx, cluster, "Failed to get CA certificate secret")
@@ -105,7 +114,6 @@ var _ = Describe("Reconcile TLS", func() {
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName:   "tls-secret",
 					CaSecretName: "ca-cert-secret-invalid",
-					CaCertName:   "ca.crt",
 				}
 				cluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-mutual-tls-missing", defaultNamespace, tlsSpec)
 				verifyError(ctx, cluster, fmt.Sprintf("The TLS secret ca-cert-secret-invalid in namespace %s must have the field ca.crt", defaultNamespace))
@@ -195,11 +203,11 @@ var _ = Describe("Reconcile TLS", func() {
 	})
 })
 
-func tlsSecretWithCACert(ctx context.Context, secretName, namespace, caCertName string) {
+func tlsSecretWithCACert(ctx context.Context, secretName, namespace string) {
 	tlsData := map[string]string{
-		"tls.crt":  "this is a tls cert",
-		"tls.key":  "this is a tls key",
-		caCertName: "certificate",
+		"tls.crt": "this is a tls cert",
+		"tls.key": "this is a tls key",
+		"ca.crt":  "certificate",
 	}
 
 	_, err := createSecret(ctx, secretName, namespace, tlsData)

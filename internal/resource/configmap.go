@@ -99,14 +99,14 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	}
 
 	if builder.Instance.MutualTLSEnabled() {
-		if _, err := defaultSection.NewKey("ssl_options.cacertfile", "/etc/rabbitmq-tls/"+builder.Instance.Spec.TLS.CaCertName); err != nil {
+		if _, err := defaultSection.NewKey("ssl_options.cacertfile", "/etc/rabbitmq-tls/ca.crt"); err != nil {
 			return err
 		}
 		if _, err := defaultSection.NewKey("ssl_options.verify", "verify_peer"); err != nil {
 			return err
 		}
 
-		if _, err := defaultSection.NewKey("management.ssl.cacertfile", "/etc/rabbitmq-tls/"+builder.Instance.Spec.TLS.CaCertName); err != nil {
+		if _, err := defaultSection.NewKey("management.ssl.cacertfile", "/etc/rabbitmq-tls/ca.crt"); err != nil {
 			return err
 		}
 	}

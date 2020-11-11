@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -47,12 +48,12 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 			}
 		}
 		// Mutual TLS: verify that CA certificate is present in secret
-		_, hasCaCert := secret.Data[rabbitmqCluster.Spec.TLS.CaCertName]
+		_, hasCaCert := secret.Data["ca.crt"]
 		if !hasCaCert {
 			r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
-				fmt.Sprintf("The TLS secret %v in namespace %v must have the field %v", rabbitmqCluster.Spec.TLS.CaSecretName, rabbitmqCluster.Namespace, rabbitmqCluster.Spec.TLS.CaCertName))
+				fmt.Sprintf("The TLS secret %v in namespace %v must have the field ca.crt", rabbitmqCluster.Spec.TLS.CaSecretName, rabbitmqCluster.Namespace))
 
-			return ctrl.Result{}, errors.NewBadRequest(fmt.Sprintf("The TLS secret must have the field %s", rabbitmqCluster.Spec.TLS.CaCertName))
+			return ctrl.Result{}, errors.NewBadRequest("The TLS secret must have the field ca.crt")
 		}
 	}
 	return ctrl.Result{}, nil

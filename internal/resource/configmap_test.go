@@ -287,7 +287,6 @@ stomp.listeners.ssl.1 = 61614
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:   "tls-secret",
 							CaSecretName: "tls-mutual-secret",
-							CaCertName:   "ca.certificate",
 						},
 					},
 				}
@@ -301,9 +300,9 @@ management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 management.ssl.port       = 15671
 
-ssl_options.cacertfile = /etc/rabbitmq-tls/ca.certificate
+ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
 ssl_options.verify     = verify_peer
-management.ssl.cacertfile = /etc/rabbitmq-tls/ca.certificate
+management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 `)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
@@ -320,7 +319,6 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.certificate
 							TLS: rabbitmqv1beta1.TLSSpec{
 								SecretName:   "tls-secret",
 								CaSecretName: "tls-mutual-secret",
-								CaCertName:   "ca.certificate",
 							},
 							Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
 								AdditionalPlugins: []rabbitmqv1beta1.Plugin{
@@ -335,22 +333,22 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.certificate
 					}
 
 					expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
-ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
-ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
-listeners.ssl.default  = 5671
+			ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+			ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+			listeners.ssl.default  = 5671
 
-management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
-management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
-management.ssl.port       = 15671
+			management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+			management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+			management.ssl.port       = 15671
 
-mqtt.listeners.ssl.default = 8883
+			mqtt.listeners.ssl.default = 8883
 
-stomp.listeners.ssl.1 = 61614
+			stomp.listeners.ssl.1 = 61614
 
-ssl_options.cacertfile = /etc/rabbitmq-tls/ca.certificate
-ssl_options.verify     = verify_peer
-management.ssl.cacertfile = /etc/rabbitmq-tls/ca.certificate
-`)
+			ssl_options.cacertfile = /etc/rabbitmq-tls/ca.certificate
+			ssl_options.verify     = verify_peer
+			management.ssl.cacertfile = /etc/rabbitmq-tls/ca.certificate
+			`)
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
 					Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
