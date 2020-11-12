@@ -109,6 +109,34 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		if _, err := defaultSection.NewKey("management.ssl.cacertfile", "/etc/rabbitmq-tls/ca.crt"); err != nil {
 			return err
 		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+			if _, err := defaultSection.NewKey("web_mqtt.ssl.port", "15676"); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_mqtt.ssl.cacertfile", "/etc/rabbitmq-tls/ca.crt"); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_mqtt.ssl.certfile", "/etc/rabbitmq-tls/tls.crt"); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_mqtt.ssl.keyfile", "/etc/rabbitmq-tls/tls.key"); err != nil {
+				return err
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			if _, err := defaultSection.NewKey("web_stomp.ssl.port", "15673"); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_stomp.ssl.cacertfile", "/etc/rabbitmq-tls/ca.crt"); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_stomp.ssl.certfile", "/etc/rabbitmq-tls/tls.crt"); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_stomp.ssl.keyfile", "/etc/rabbitmq-tls/tls.key"); err != nil {
+				return err
+			}
+		}
 	}
 
 	if builder.Instance.MemoryLimited() {

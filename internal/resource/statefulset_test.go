@@ -608,7 +608,7 @@ var _ = Describe("StatefulSet", func() {
 				}))
 			})
 
-			It("opens tls ports for amqps and https on the rabbitmq container", func() {
+			It("opens tls ports for amqps and management-tls on the rabbitmq container", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
@@ -619,15 +619,14 @@ var _ = Describe("StatefulSet", func() {
 						ContainerPort: 5671,
 					},
 					{
-						Name:          "https",
+						Name:          "management-tls",
 						ContainerPort: 15671,
 					},
 				}))
 			})
 
-			It("opens additional ports when plugins are configured", func() {
+			It("opens tls ports when mqtt and stomp are configured", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
-				//enable mqtt and stomp
 				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin("rabbitmq_mqtt"), rabbitmqv1beta1.Plugin("rabbitmq_stomp")}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
@@ -646,7 +645,6 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			Context("Mutual TLS (same secret)", func() {
-
 				It("add a TLS CA cert volume mount to the rabbitmq container", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "tls-secret"
@@ -660,10 +658,29 @@ var _ = Describe("StatefulSet", func() {
 						ReadOnly:  true,
 					}))
 				})
+
+				It("opens tls ports when rabbitmq_web_mqtt and rabbitmq_web_stomp are configured", func() {
+					instance.Spec.TLS.SecretName = "tls-secret"
+					instance.Spec.TLS.CaSecretName = "tls-secret"
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin("rabbitmq_web_mqtt"), rabbitmqv1beta1.Plugin("rabbitmq_web_stomp")}
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+
+					Expect(rabbitmqContainerSpec.Ports).To(ContainElements([]corev1.ContainerPort{
+						{
+							Name:          "web-mqtt-tls",
+							ContainerPort: 15676,
+						},
+						{
+							Name:          "web-stomp-tls",
+							ContainerPort: 15673,
+						},
+					}))
+				})
 			})
 
 			Context("Mutual TLS (different secret)", func() {
-
 				It("add a TLS CA cert volume mount to the rabbitmq container", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "mutual-tls-secret"

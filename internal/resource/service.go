@@ -163,11 +163,11 @@ func (builder *ServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []
 			TargetPort: intstr.FromInt(5671),
 			Name:       "amqps",
 		}
-		servicePortsMap["https"] = corev1.ServicePort{
+		servicePortsMap["management-tls"] = corev1.ServicePort{
 			Protocol:   corev1.ProtocolTCP,
 			Port:       15671,
 			TargetPort: intstr.FromInt(15671),
-			Name:       "https",
+			Name:       "management-tls",
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
 			servicePortsMap["stomps"] = corev1.ServicePort{
@@ -181,6 +181,22 @@ func (builder *ServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []
 				Protocol: corev1.ProtocolTCP,
 				Port:     8883,
 				Name:     "mqtts",
+			}
+		}
+	}
+	if builder.Instance.MutualTLSEnabled() {
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			servicePortsMap["stomps"] = corev1.ServicePort{
+				Protocol: corev1.ProtocolTCP,
+				Port:     15673,
+				Name:     "web-stomp-tls",
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+			servicePortsMap["mqtts"] = corev1.ServicePort{
+				Protocol: corev1.ProtocolTCP,
+				Port:     15676,
+				Name:     "web-mqtt-tls",
 			}
 		}
 	}

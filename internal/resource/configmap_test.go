@@ -236,7 +236,7 @@ management.ssl.port       = 15671
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
 			})
 
-			When("additional plugins are enabled", func() {
+			When("MQTT, STOMP and AMQP 1.0 plugins are enabled", func() {
 				It("adds TLS config for the additional plugins", func() {
 					instance = rabbitmqv1beta1.RabbitmqCluster{
 						ObjectMeta: metav1.ObjectMeta{
@@ -274,7 +274,6 @@ stomp.listeners.ssl.1 = 61614
 					Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
 				})
 			})
-
 		})
 
 		Context("Mutual TLS", func() {
@@ -322,11 +321,8 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 							},
 							Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
 								AdditionalPlugins: []rabbitmqv1beta1.Plugin{
-									"rabbitmq_mqtt",
-									"rabbitmq_stomp",
 									"rabbitmq_web_mqtt",
 									"rabbitmq_web_stomp",
-									"rabbitmq_amqp_1_0",
 								},
 							},
 						},
@@ -341,13 +337,20 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 			management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 			management.ssl.port       = 15671
 
-			mqtt.listeners.ssl.default = 8883
-
-			stomp.listeners.ssl.1 = 61614
-
-			ssl_options.cacertfile = /etc/rabbitmq-tls/ca.certificate
+			ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
 			ssl_options.verify     = verify_peer
-			management.ssl.cacertfile = /etc/rabbitmq-tls/ca.certificate
+			management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+
+			web_mqtt.ssl.port       = 15676
+			web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+			web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+			web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+
+			web_stomp.ssl.port       = 15673
+			web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+			web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+			web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+
 			`)
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())

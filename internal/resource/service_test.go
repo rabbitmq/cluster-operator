@@ -72,7 +72,7 @@ var _ = Context("Services", func() {
 		})
 
 		Context("TLS", func() {
-			It("opens ports for amqps and https on the service", func() {
+			It("opens ports for amqps and management-tls on the service", func() {
 				instance := &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "foo",
@@ -102,7 +102,7 @@ var _ = Context("Services", func() {
 						TargetPort: intstr.FromInt(5671),
 					},
 					{
-						Name:       "https",
+						Name:       "management-tls",
 						Protocol:   "TCP",
 						Port:       15671,
 						TargetPort: intstr.FromInt(15671),
@@ -110,7 +110,7 @@ var _ = Context("Services", func() {
 				}))
 			})
 
-			When("additional plugins are enabled", func() {
+			When("mqtt and stomp are enabled", func() {
 				It("opens ports for those plugins", func() {
 					instance := &rabbitmqv1beta1.RabbitmqCluster{
 						ObjectMeta: v1.ObjectMeta{
@@ -146,6 +146,48 @@ var _ = Context("Services", func() {
 							Name:     "stomps",
 							Protocol: "TCP",
 							Port:     61614,
+						},
+					}))
+				})
+			})
+
+			When("rabbitmq_web_mqtt and rabbitmq_web_stomp are enabled", func() {
+				It("opens ports for those plugins", func() {
+					instance := &rabbitmqv1beta1.RabbitmqCluster{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "foo",
+							Namespace: "foo-namespace",
+						},
+						Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+							TLS: rabbitmqv1beta1.TLSSpec{
+								SecretName:   "tls-secret",
+								CaSecretName: "ca-secret",
+							},
+							Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
+								AdditionalPlugins: []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"},
+							},
+						},
+					}
+					builder.Instance = instance
+					serviceBuilder := builder.Service()
+					svc := &corev1.Service{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "foo-service",
+							Namespace: "foo-namespace",
+						},
+					}
+
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
+						{
+							Name:     "web-mqtt-tls",
+							Protocol: "TCP",
+							Port:     15676,
+						},
+						{
+							Name:     "web-stomp-tls",
+							Protocol: "TCP",
+							Port:     15673,
 						},
 					}))
 				})

@@ -437,13 +437,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 
 	tlsSpec := builder.Instance.Spec.TLS
 	if builder.Instance.TLSEnabled() {
-		// add tls port, should we disable non tls ports here?
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "amqps",
 			ContainerPort: 5671,
 		},
 			corev1.ContainerPort{
-				Name:          "https",
+				Name:          "management-tls",
 				ContainerPort: 15671,
 			},
 		)
@@ -493,7 +492,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 		})
 
 		if builder.Instance.MutualTLSEnabled() {
-
 			if builder.Instance.SingleTLSSecret() {
 				//Mount CaCert in TLS Secret
 				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
@@ -522,6 +520,19 @@ func (builder *StatefulSetBuilder) podTemplateSpec(annotations, labels map[strin
 					MountPath: "/etc/rabbitmq-tls/ca.crt",
 					SubPath:   "ca.crt",
 					ReadOnly:  true,
+				})
+			}
+			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+				ports = append(ports, corev1.ContainerPort{
+					Name:          "web-mqtt-tls",
+					ContainerPort: 15676,
+				})
+			}
+
+			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+				ports = append(ports, corev1.ContainerPort{
+					Name:          "web-stomp-tls",
+					ContainerPort: 15673,
 				})
 			}
 		}
