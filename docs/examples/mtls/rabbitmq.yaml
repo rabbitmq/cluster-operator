@@ -7,4 +7,3 @@ spec:
   tls:
     secretName: tls-secret
     caSecretName: ca-secret
-    caCertName: ca.crt
