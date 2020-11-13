@@ -5,7 +5,7 @@ metadata:
 spec:
   homepage: https://github.com/rabbitmq/cluster-operator
   shortDescription: Manage RabbitMQ clusters
-  version: v{{ .TagName }}
+  version: {{ .TagName }}
   description: |
     A plugin providing utilities to operate RabbitMQ clusters deployed
     by the RabbitMQ cluster operator.
