@@ -319,13 +319,13 @@ CONSOLE_LOG=new`
 	Context("TLS", func() {
 		When("TLS is correctly configured", func() {
 			var (
-				cluster       *rabbitmqv1beta1.RabbitmqCluster
-				hostname      string
-				amqpsNodePort string
-				httpsNodePort string
-				username      string
-				password      string
-				caFilePath    string
+				cluster               *rabbitmqv1beta1.RabbitmqCluster
+				hostname              string
+				amqpsNodePort         string
+				managementTLSNodePort string
+				username              string
+				password              string
+				caFilePath            string
 			)
 
 			BeforeEach(func() {
@@ -374,12 +374,12 @@ CONSOLE_LOG=new`
 				By("connecting to management API over TLS", func() {
 					var err error
 
-					httpsNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "https")
+					managementTLSNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "management-tls")
 
 					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
 					Expect(err).NotTo(HaveOccurred())
 
-					err = connectHTTPS(username, password, hostname, httpsNodePort, caFilePath)
+					err = connectHTTPS(username, password, hostname, managementTLSNodePort, caFilePath)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
