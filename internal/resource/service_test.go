@@ -97,13 +97,13 @@ var _ = Context("Services", func() {
 				Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
 					{
 						Name:       "amqps",
-						Protocol:   "TCP",
+						Protocol:   corev1.ProtocolTCP,
 						Port:       5671,
 						TargetPort: intstr.FromInt(5671),
 					},
 					{
 						Name:       "management-tls",
-						Protocol:   "TCP",
+						Protocol:   corev1.ProtocolTCP,
 						Port:       15671,
 						TargetPort: intstr.FromInt(15671),
 					},
@@ -138,14 +138,16 @@ var _ = Context("Services", func() {
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 					Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
 						{
-							Name:     "mqtts",
-							Protocol: "TCP",
-							Port:     8883,
+							Name:       "mqtts",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       8883,
+							TargetPort: intstr.FromInt(8883),
 						},
 						{
-							Name:     "stomps",
-							Protocol: "TCP",
-							Port:     61614,
+							Name:       "stomps",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       61614,
+							TargetPort: intstr.FromInt(61614),
 						},
 					}))
 				})
@@ -180,14 +182,16 @@ var _ = Context("Services", func() {
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 					Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
 						{
-							Name:     "web-mqtt-tls",
-							Protocol: "TCP",
-							Port:     15676,
+							Name:       "web-mqtt-tls",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       15676,
+							TargetPort: intstr.FromInt(15676),
 						},
 						{
-							Name:     "web-stomp-tls",
-							Protocol: "TCP",
-							Port:     15673,
+							Name:       "web-stomp-tls",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       15673,
+							TargetPort: intstr.FromInt(15673),
 						},
 					}))
 				})
