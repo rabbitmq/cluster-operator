@@ -268,10 +268,53 @@ CONSOLE_LOG=new`
 ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default = 5671
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
 `)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
+			})
+
+			When("MQTT, STOMP and AMQP 1.0 plugins are enabled", func() {
+				It("adds TLS config for the additional plugins", func() {
+					instance = rabbitmqv1beta1.RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "rabbit-tls",
+						},
+						Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+							TLS: rabbitmqv1beta1.TLSSpec{
+								SecretName: "tls-secret",
+							},
+							Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
+								AdditionalPlugins: []rabbitmqv1beta1.Plugin{
+									"rabbitmq_mqtt",
+									"rabbitmq_stomp",
+									"rabbitmq_amqp_1_0",
+								},
+							},
+						},
+					}
+
+					expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
+listeners.ssl.default = 5671
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
+
+mqtt.listeners.ssl.default = 8883
+
+stomp.listeners.ssl.1 = 61614
+`)
+
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
+				})
 			})
 		})
 
@@ -285,7 +328,6 @@ listeners.ssl.default = 5671
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:   "tls-secret",
 							CaSecretName: "tls-mutual-secret",
-							CaCertName:   "ca.certificate",
 						},
 					},
 				}
@@ -294,12 +336,68 @@ listeners.ssl.default = 5671
 ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default  = 5671
-ssl_options.cacertfile = /etc/rabbitmq-tls/ca.certificate
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
+
+ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
 ssl_options.verify     = verify_peer
+management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 `)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
+			})
+
+			When("Web MQTT and Web STOMP are enabled", func() {
+				It("adds TLS config for the additional plugins", func() {
+					instance = rabbitmqv1beta1.RabbitmqCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "rabbit-tls",
+						},
+						Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+							TLS: rabbitmqv1beta1.TLSSpec{
+								SecretName:   "tls-secret",
+								CaSecretName: "tls-mutual-secret",
+							},
+							Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
+								AdditionalPlugins: []rabbitmqv1beta1.Plugin{
+									"rabbitmq_web_mqtt",
+									"rabbitmq_web_stomp",
+								},
+							},
+						},
+					}
+
+					expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+			ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+			ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+			listeners.ssl.default  = 5671
+
+			management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+			management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+			management.ssl.port       = 15671
+
+			ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
+			ssl_options.verify     = verify_peer
+			management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+
+			web_mqtt.ssl.port       = 15676
+			web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+			web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+			web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+
+			web_stomp.ssl.port       = 15673
+			web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+			web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+			web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+
+			`)
+
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
+				})
 			})
 		})
 

@@ -437,12 +437,31 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	}
 
 	tlsSpec := builder.Instance.Spec.TLS
-	if tlsSpec.SecretName != "" {
-		// add tls port
+	if builder.Instance.TLSEnabled() {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "amqps",
 			ContainerPort: 5671,
-		})
+		},
+			corev1.ContainerPort{
+				Name:          "management-tls",
+				ContainerPort: 15671,
+			},
+		)
+
+		// enable tls ports for plugins
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "mqtts",
+				ContainerPort: 8883,
+			})
+		}
+
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "stomps",
+				ContainerPort: 61614,
+			})
+		}
 
 		// add tls volume
 		filePermissions := int32(400)
@@ -474,14 +493,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		})
 
 		if builder.Instance.MutualTLSEnabled() {
-			caCertName := builder.Instance.Spec.TLS.CaCertName
-
 			if builder.Instance.SingleTLSSecret() {
 				//Mount CaCert in TLS Secret
 				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 					Name:      "rabbitmq-tls",
-					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", caCertName),
-					SubPath:   caCertName,
+					MountPath: "/etc/rabbitmq-tls/ca.crt",
+					SubPath:   "ca.crt",
 					ReadOnly:  true,
 				})
 			} else {
@@ -501,9 +518,22 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 				//Mount new volume to same path as TLS cert and key
 				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 					Name:      "rabbitmq-mutual-tls",
-					MountPath: fmt.Sprintf("/etc/rabbitmq-tls/%s", caCertName),
-					SubPath:   caCertName,
+					MountPath: "/etc/rabbitmq-tls/ca.crt",
+					SubPath:   "ca.crt",
 					ReadOnly:  true,
+				})
+			}
+			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+				ports = append(ports, corev1.ContainerPort{
+					Name:          "web-mqtt-tls",
+					ContainerPort: 15676,
+				})
+			}
+
+			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+				ports = append(ports, corev1.ContainerPort{
+					Name:          "web-stomp-tls",
+					ContainerPort: 15673,
 				})
 			}
 		}

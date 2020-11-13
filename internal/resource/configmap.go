@@ -37,7 +37,15 @@ disk_free_limit.absolute = 2GB`
 	defaultTLSConf = `
 ssl_options.certfile = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile = /etc/rabbitmq-tls/tls.key
-listeners.ssl.default = 5671`
+listeners.ssl.default = 5671
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
+`
+	caCertPath  = "/etc/rabbitmq-tls/ca.crt"
+	tlsCertPath = "/etc/rabbitmq-tls/tls.crt"
+	tlsKeyPath  = "/etc/rabbitmq-tls/tls.key"
 )
 
 type ServerConfigMapBuilder struct {
@@ -81,14 +89,56 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		if err := cfg.Append([]byte(defaultTLSConf)); err != nil {
 			return err
 		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+			if _, err := defaultSection.NewKey("mqtt.listeners.ssl.default", "8883"); err != nil {
+				return err
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+			if _, err := defaultSection.NewKey("stomp.listeners.ssl.1", "61614"); err != nil {
+				return err
+			}
+		}
 	}
 
 	if builder.Instance.MutualTLSEnabled() {
-		if _, err := defaultSection.NewKey("ssl_options.cacertfile", "/etc/rabbitmq-tls/"+builder.Instance.Spec.TLS.CaCertName); err != nil {
+		if _, err := defaultSection.NewKey("ssl_options.cacertfile", caCertPath); err != nil {
 			return err
 		}
 		if _, err := defaultSection.NewKey("ssl_options.verify", "verify_peer"); err != nil {
 			return err
+		}
+
+		if _, err := defaultSection.NewKey("management.ssl.cacertfile", caCertPath); err != nil {
+			return err
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+			if _, err := defaultSection.NewKey("web_mqtt.ssl.port", "15676"); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_mqtt.ssl.cacertfile", caCertPath); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_mqtt.ssl.certfile", tlsCertPath); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_mqtt.ssl.keyfile", tlsKeyPath); err != nil {
+				return err
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			if _, err := defaultSection.NewKey("web_stomp.ssl.port", "15673"); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_stomp.ssl.cacertfile", caCertPath); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_stomp.ssl.certfile", tlsCertPath); err != nil {
+				return err
+			}
+			if _, err := defaultSection.NewKey("web_stomp.ssl.keyfile", tlsKeyPath); err != nil {
+				return err
+			}
 		}
 	}
 

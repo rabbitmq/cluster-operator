@@ -600,23 +600,46 @@ var _ = Describe("StatefulSet", func() {
 				}))
 			})
 
-			It("opens port 5671 on the rabbitmq container", func() {
+			It("opens tls ports for amqps and management-tls on the rabbitmq container", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(rabbitmqContainerSpec.Ports).To(ContainElement(corev1.ContainerPort{
-					Name:          "amqps",
-					ContainerPort: 5671,
+				Expect(rabbitmqContainerSpec.Ports).To(ContainElements([]corev1.ContainerPort{
+					{
+						Name:          "amqps",
+						ContainerPort: 5671,
+					},
+					{
+						Name:          "management-tls",
+						ContainerPort: 15671,
+					},
+				}))
+			})
+
+			It("opens tls ports when mqtt and stomp are configured", func() {
+				instance.Spec.TLS.SecretName = "tls-secret"
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin("rabbitmq_mqtt"), rabbitmqv1beta1.Plugin("rabbitmq_stomp")}
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+
+				Expect(rabbitmqContainerSpec.Ports).To(ContainElements([]corev1.ContainerPort{
+					{
+						Name:          "mqtts",
+						ContainerPort: 8883,
+					},
+					{
+						Name:          "stomps",
+						ContainerPort: 61614,
+					},
 				}))
 			})
 
 			Context("Mutual TLS (same secret)", func() {
-
 				It("add a TLS CA cert volume mount to the rabbitmq container", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "tls-secret"
-					instance.Spec.TLS.CaCertName = "ca.crt"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -627,28 +650,46 @@ var _ = Describe("StatefulSet", func() {
 						ReadOnly:  true,
 					}))
 				})
+
+				It("opens tls ports when rabbitmq_web_mqtt and rabbitmq_web_stomp are configured", func() {
+					instance.Spec.TLS.SecretName = "tls-secret"
+					instance.Spec.TLS.CaSecretName = "tls-secret"
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin("rabbitmq_web_mqtt"), rabbitmqv1beta1.Plugin("rabbitmq_web_stomp")}
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+
+					Expect(rabbitmqContainerSpec.Ports).To(ContainElements([]corev1.ContainerPort{
+						{
+							Name:          "web-mqtt-tls",
+							ContainerPort: 15676,
+						},
+						{
+							Name:          "web-stomp-tls",
+							ContainerPort: 15673,
+						},
+					}))
+				})
 			})
 
 			Context("Mutual TLS (different secret)", func() {
-
 				It("add a TLS CA cert volume mount to the rabbitmq container", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "mutual-tls-secret"
-					instance.Spec.TLS.CaCertName = "caCertificate"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 					Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
 						Name:      "rabbitmq-mutual-tls",
-						MountPath: "/etc/rabbitmq-tls/caCertificate",
-						SubPath:   "caCertificate",
+						MountPath: "/etc/rabbitmq-tls/ca.crt",
+						SubPath:   "ca.crt",
 						ReadOnly:  true,
 					}))
 				})
+
 				It("adds a mutual TLS volume to the pod template spec", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "mutual-tls-secret"
-					instance.Spec.TLS.CaCertName = "caCertificate"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					filePermissions := int32(400)

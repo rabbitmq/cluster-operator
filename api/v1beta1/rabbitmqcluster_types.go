@@ -238,12 +238,9 @@ type TLSSpec struct {
 	// The Secret must store these as tls.key and tls.crt, respectively.
 	SecretName string `json:"secretName,omitempty"`
 	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS.
-	// This can be the same as SecretName.
-	// Used for mTLS.
+	// The Secret must store this as ca.crt.
+	// Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
 	CaSecretName string `json:"caSecretName,omitempty"`
-	// The Secret defined in CaSecretName must store the Certificate Authority's public certificate under the key specified in CaCertName.
-	// Used for mTLS.
-	CaCertName string `json:"caCertName,omitempty"`
 }
 
 // kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.

@@ -29,6 +29,7 @@ import (
 
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
+	mgmtApi "github.com/michaelklishin/rabbit-hole/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/cloudflare/cfssl/csr"
@@ -207,6 +208,28 @@ func publishToQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPa
 	}
 
 	return nil
+}
+
+func connectHTTPS(username, password, hostname, httpsNodePort, caFilePath string) (err error) {
+	// create TLS config for https request
+	cfg := new(tls.Config)
+	cfg.RootCAs = x509.NewCertPool()
+	ca, err := ioutil.ReadFile(caFilePath)
+	if err != nil {
+		return err
+	}
+
+	cfg.RootCAs.AppendCertsFromPEM(ca)
+
+	transport := &http.Transport{TLSClientConfig: cfg}
+	rmqc, err := mgmtApi.NewTLSClient(fmt.Sprintf("https://%v:%v", hostname, httpsNodePort), username, password, transport)
+	if err != nil {
+		return err
+	}
+
+	_, err = rmqc.Overview()
+
+	return err
 }
 
 func connectAMQPS(username, password, hostname, port, caFilePath string) (conn *amqp.Connection, err error) {
@@ -729,7 +752,7 @@ func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter
 	return nil
 }
 
-func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, overWebSocket bool) {
+func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, overWebSocket bool, tlsConfig *tls.Config) {
 	url := fmt.Sprintf("tcp://%s:%s", hostname, nodePort)
 	if overWebSocket {
 		url = fmt.Sprintf("ws://%s:%s/ws", hostname, nodePort)
@@ -740,6 +763,13 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 		SetPassword(password).
 		SetClientID("system tests MQTT plugin").
 		SetProtocolVersion(4) // RabbitMQ MQTT plugin targets MQTT 3.1.1
+
+	if tlsConfig != nil {
+		url = fmt.Sprintf("ssl://%s:%s", hostname, nodePort)
+		opts = opts.
+			AddBroker(url).
+			SetTLSConfig(tlsConfig)
+	}
 
 	c := mqtt.NewClient(opts)
 
@@ -786,24 +816,48 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 	c.Disconnect(250)
 }
 
-func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password string) {
+func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password string, tlsConfig *tls.Config) {
 	var conn *stomp.Conn
 	var err error
-	for retry := 0; retry < 5; retry++ {
-		fmt.Printf("Attempt #%d to connect using STOMP\n", retry)
-		conn, err = stomp.Dial("tcp",
-			fmt.Sprintf("%s:%s", hostname, stompNodePort),
-			stomp.ConnOpt.Login(username, password),
-			stomp.ConnOpt.AcceptVersion(stomp.V12), // RabbitMQ STOMP plugin supports STOMP versions 1.0 through 1.2
-			stomp.ConnOpt.Host("/"),                // default virtual host
-		)
 
-		if err == nil {
-			break
+	// Create a secure tls.Conn and pass to stomp.Connect, otherwise use Stomp.Dial
+	if tlsConfig != nil {
+		secureConn, err := tls.Dial("tcp", fmt.Sprintf("%s:%s", hostname, stompNodePort), tlsConfig)
+		Expect(err).NotTo(HaveOccurred())
+		defer secureConn.Close()
+
+		for retry := 0; retry < 5; retry++ {
+			fmt.Printf("Attempt #%d to connect using STOMPS\n", retry)
+			conn, err = stomp.Connect(secureConn,
+				stomp.ConnOpt.Login(username, password),
+				stomp.ConnOpt.AcceptVersion(stomp.V12), // RabbitMQ STOMP plugin supports STOMP versions 1.0 through 1.2
+				stomp.ConnOpt.Host("/"),                // default virtual host
+			)
+
+			if err == nil {
+				break
+			}
+
+			time.Sleep(2 * time.Second)
 		}
+	} else {
+		for retry := 0; retry < 5; retry++ {
+			fmt.Printf("Attempt #%d to connect using STOMP\n", retry)
+			conn, err = stomp.Dial("tcp",
+				fmt.Sprintf("%s:%s", hostname, stompNodePort),
+				stomp.ConnOpt.Login(username, password),
+				stomp.ConnOpt.AcceptVersion(stomp.V12),
+				stomp.ConnOpt.Host("/"),
+			)
 
-		time.Sleep(2 * time.Second)
+			if err == nil {
+				break
+			}
+
+			time.Sleep(2 * time.Second)
+		}
 	}
+
 	Expect(err).ToNot(HaveOccurred())
 
 	queue := "/queue/system-tests-stomp"

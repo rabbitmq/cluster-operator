@@ -11,7 +11,10 @@ package system_tests
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"io/ioutil"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -46,7 +49,7 @@ var _ = Describe("Operator", func() {
 			waitForRabbitmqRunning(cluster)
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
-			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
+			port = rabbitmqNodePort(ctx, clientSet, cluster, "http")
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -246,7 +249,7 @@ CONSOLE_LOG=new`
 			waitForRabbitmqRunning(cluster)
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
-			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
+			port = rabbitmqNodePort(ctx, clientSet, cluster, "http")
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -302,7 +305,7 @@ CONSOLE_LOG=new`
 			It("works", func() {
 				username, password, err := getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
 				hostname := kubernetesNodeIp(ctx, clientSet)
-				port := rabbitmqNodePort(ctx, clientSet, cluster, "management")
+				port := rabbitmqNodePort(ctx, clientSet, cluster, "http")
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
@@ -316,30 +319,35 @@ CONSOLE_LOG=new`
 	Context("TLS", func() {
 		When("TLS is correctly configured", func() {
 			var (
-				cluster       *rabbitmqv1beta1.RabbitmqCluster
-				hostname      string
-				amqpsNodePort string
-				username      string
-				password      string
-				caFilePath    string
+				cluster               *rabbitmqv1beta1.RabbitmqCluster
+				hostname              string
+				amqpsNodePort         string
+				managementTLSNodePort string
+				username              string
+				password              string
+				caFilePath            string
 			)
 
 			BeforeEach(func() {
 				cluster = newRabbitmqCluster(namespace, "tls-test-rabbit")
+				// Enable additional plugins that can share TLS config.
+				cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+					"rabbitmq_mqtt",
+					"rabbitmq_stomp",
+				}
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
 
-				// Passing a single hostname for certificate creation works because
+				// Passing a single hostname for certificate creation
 				// the AMPQS client is connecting using the same hostname
 				hostname = kubernetesNodeIp(ctx, clientSet)
 				caFilePath = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
 
-				// Update CR with TLS secret name
+				// Update RabbitmqCluster with TLS secret name
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 				})).To(Succeed())
 				waitForTLSUpdate(cluster)
-				amqpsNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "amqps")
 			})
 
 			AfterEach(func() {
@@ -347,18 +355,62 @@ CONSOLE_LOG=new`
 				Expect(k8sDeleteSecret("rabbitmq-tls-test-secret", namespace)).To(Succeed())
 			})
 
-			It("talks amqps with RabbitMQ", func() {
-				var err error
-				username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
-				Expect(err).NotTo(HaveOccurred())
+			It("RabbitMQ responds to requests over secured protocols", func() {
+				By("talking AMQPS", func() {
+					amqpsNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "amqps")
+					var err error
+					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
+					Expect(err).NotTo(HaveOccurred())
 
-				// try to publish and consume a message on a amqps url
-				sentMessage := "Hello Rabbitmq!"
-				Expect(publishToQueueAMQPS(sentMessage, username, password, hostname, amqpsNodePort, caFilePath)).To(Succeed())
+					// try to publish and consume a message on a amqps url
+					sentMessage := "Hello Rabbitmq!"
+					Expect(publishToQueueAMQPS(sentMessage, username, password, hostname, amqpsNodePort, caFilePath)).To(Succeed())
 
-				recievedMessage, err := getMessageFromQueueAMQPS(username, password, hostname, amqpsNodePort, caFilePath)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(recievedMessage).To(Equal(sentMessage))
+					recievedMessage, err := getMessageFromQueueAMQPS(username, password, hostname, amqpsNodePort, caFilePath)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(recievedMessage).To(Equal(sentMessage))
+				})
+
+				By("connecting to management API over TLS", func() {
+					var err error
+
+					managementTLSNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "management-tls")
+
+					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
+					Expect(err).NotTo(HaveOccurred())
+
+					err = connectHTTPS(username, password, hostname, managementTLSNodePort, caFilePath)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				By("talking MQTTS", func() {
+					var err error
+					// TLSConfig()
+					cfg := new(tls.Config)
+					cfg.RootCAs = x509.NewCertPool()
+					ca, err := ioutil.ReadFile(caFilePath)
+					Expect(err).NotTo(HaveOccurred())
+
+					cfg.RootCAs.AppendCertsFromPEM(ca)
+
+					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
+					Expect(err).NotTo(HaveOccurred())
+					publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "mqtts"), username, password, false, cfg)
+				})
+
+				By("talking STOMPS", func() {
+					var err error
+					cfg := new(tls.Config)
+					cfg.RootCAs = x509.NewCertPool()
+					ca, err := ioutil.ReadFile(caFilePath)
+					Expect(err).NotTo(HaveOccurred())
+
+					cfg.RootCAs.AppendCertsFromPEM(ca)
+
+					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
+					Expect(err).NotTo(HaveOccurred())
+					publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomps"), username, password, cfg)
+				})
 			})
 		})
 
@@ -410,13 +462,13 @@ CONSOLE_LOG=new`
 
 		It("publishes and consumes a message", func() {
 			By("MQTT")
-			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "mqtt"), username, password, false)
+			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "mqtt"), username, password, false, nil)
 
 			By("MQTT-over-WebSockets")
-			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "web-mqtt"), username, password, true)
+			publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "web-mqtt"), username, password, true, nil)
 
 			By("STOMP")
-			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password)
+			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password, nil)
 
 			// github.com/go-stomp/stomp does not support STOMP-over-WebSockets
 		})

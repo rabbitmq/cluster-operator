@@ -13,8 +13,9 @@ package controllers_test
 import (
 	"context"
 	"fmt"
-	"k8s.io/utils/pointer"
 	"time"
+
+	"k8s.io/utils/pointer"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -1066,7 +1067,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					TargetPort: amqpTargetPort,
 				},
 				corev1.ServicePort{
-					Name:       "management",
+					Name:       "http",
 					Port:       15672,
 					Protocol:   corev1.ProtocolTCP,
 					TargetPort: managementTargetPort,
@@ -1190,7 +1191,7 @@ func waitForClusterDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta
 
 }
 
-func verifyError(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, expectedError string) {
+func verifyTLSErrorEvents(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, expectedError string) {
 	tlsEventTimeout := 5 * time.Second
 	tlsRetry := 1 * time.Second
 	Eventually(func() string { return aggregateEventMsgs(ctx, rabbitmqCluster, "TLSError") }, tlsEventTimeout, tlsRetry).Should(ContainSubstring(expectedError))

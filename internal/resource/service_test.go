@@ -72,7 +72,7 @@ var _ = Context("Services", func() {
 		})
 
 		Context("TLS", func() {
-			It("opens port 5671 on the service", func() {
+			It("opens ports for amqps and management-tls on the service", func() {
 				instance := &rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      "foo",
@@ -94,12 +94,107 @@ var _ = Context("Services", func() {
 				}
 
 				Expect(serviceBuilder.Update(svc)).To(Succeed())
-				Expect(svc.Spec.Ports).Should(ContainElement(corev1.ServicePort{
-					Name:       "amqps",
-					Protocol:   "TCP",
-					Port:       5671,
-					TargetPort: intstr.FromInt(5671),
+				Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
+					{
+						Name:       "amqps",
+						Protocol:   corev1.ProtocolTCP,
+						Port:       5671,
+						TargetPort: intstr.FromInt(5671),
+					},
+					{
+						Name:       "management-tls",
+						Protocol:   corev1.ProtocolTCP,
+						Port:       15671,
+						TargetPort: intstr.FromInt(15671),
+					},
 				}))
+			})
+
+			When("mqtt and stomp are enabled", func() {
+				It("opens ports for those plugins", func() {
+					instance := &rabbitmqv1beta1.RabbitmqCluster{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "foo",
+							Namespace: "foo-namespace",
+						},
+						Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+							TLS: rabbitmqv1beta1.TLSSpec{
+								SecretName: "tls-secret",
+							},
+							Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
+								AdditionalPlugins: []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"},
+							},
+						},
+					}
+					builder.Instance = instance
+					serviceBuilder := builder.Service()
+					svc := &corev1.Service{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "foo-service",
+							Namespace: "foo-namespace",
+						},
+					}
+
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
+						{
+							Name:       "mqtts",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       8883,
+							TargetPort: intstr.FromInt(8883),
+						},
+						{
+							Name:       "stomps",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       61614,
+							TargetPort: intstr.FromInt(61614),
+						},
+					}))
+				})
+			})
+
+			When("rabbitmq_web_mqtt and rabbitmq_web_stomp are enabled", func() {
+				It("opens ports for those plugins", func() {
+					instance := &rabbitmqv1beta1.RabbitmqCluster{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "foo",
+							Namespace: "foo-namespace",
+						},
+						Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+							TLS: rabbitmqv1beta1.TLSSpec{
+								SecretName:   "tls-secret",
+								CaSecretName: "ca-secret",
+							},
+							Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
+								AdditionalPlugins: []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"},
+							},
+						},
+					}
+					builder.Instance = instance
+					serviceBuilder := builder.Service()
+					svc := &corev1.Service{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "foo-service",
+							Namespace: "foo-namespace",
+						},
+					}
+
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
+						{
+							Name:       "web-mqtt-tls",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       15676,
+							TargetPort: intstr.FromInt(15676),
+						},
+						{
+							Name:       "web-stomp-tls",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       15673,
+							TargetPort: intstr.FromInt(15673),
+						},
+					}))
+				})
 			})
 		})
 
@@ -298,13 +393,13 @@ var _ = Context("Services", func() {
 					TargetPort: intstr.FromInt(5672),
 					Protocol:   corev1.ProtocolTCP,
 				}
-				managementPort := corev1.ServicePort{
-					Name:       "management",
+				httpPort := corev1.ServicePort{
+					Name:       "http",
 					Port:       15672,
 					TargetPort: intstr.FromInt(15672),
 					Protocol:   corev1.ProtocolTCP,
 				}
-				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, managementPort))
+				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, httpPort))
 			})
 
 			DescribeTable("plugins exposing ports",
@@ -349,8 +444,8 @@ var _ = Context("Services", func() {
 					{
 						Protocol:   corev1.ProtocolTCP,
 						Port:       15672,
+						Name:       "http",
 						TargetPort: intstr.FromInt(15672),
-						Name:       "management",
 						NodePort:   1234,
 					},
 				}
@@ -366,16 +461,16 @@ var _ = Context("Services", func() {
 					TargetPort: intstr.FromInt(5672),
 					NodePort:   12345,
 				}
-				expectedManagementServicePort := corev1.ServicePort{
+				expectedHTTPServicePort := corev1.ServicePort{
 					Protocol:   corev1.ProtocolTCP,
 					Port:       15672,
+					Name:       "http",
 					TargetPort: intstr.FromInt(15672),
-					Name:       "management",
 					NodePort:   1234,
 				}
 
 				Expect(svc.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
-				Expect(svc.Spec.Ports).To(ContainElement(expectedManagementServicePort))
+				Expect(svc.Spec.Ports).To(ContainElement(expectedHTTPServicePort))
 			})
 
 			It("unsets nodePort after updating from NodePort to ClusterIP", func() {
@@ -519,7 +614,7 @@ var _ = Context("Services", func() {
 						Protocol:   corev1.ProtocolTCP,
 					},
 					corev1.ServicePort{
-						Name:       "management",
+						Name:       "http",
 						Port:       15672,
 						TargetPort: intstr.FromInt(15672),
 						Protocol:   corev1.ProtocolTCP,
