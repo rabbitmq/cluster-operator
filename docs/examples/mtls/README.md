@@ -20,7 +20,7 @@ Assuming the CA's certificate is accessible as `ca.pem`, you can create this Sec
 kubectl create secret generic ca-secret --from-file=ca.crt=ca.pem
 ```
 
-These Secrets can also be created by [Cert Manager](https://cert-manager.io/).
+The Secret must be stored with key 'ca.crt'. These Secrets can also be created by [Cert Manager](https://cert-manager.io/).
 
 Once the secrets exist, you can deploy this example as follows:
 
