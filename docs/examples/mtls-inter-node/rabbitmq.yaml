@@ -5,7 +5,6 @@ metadata:
 spec:
   rabbitmq:
     envConfig: |
-      ERL_SSL_PATH="/usr/local/lib/erlang/lib/ssl-10.1/ebin"
       SERVER_ADDITIONAL_ERL_ARGS="-pa /usr/local/lib/erlang/lib/ssl-10.1/ebin -proto_dist inet_tls -ssl_dist_optfile /etc/rabbitmq/inter-node-tls.config"
       RABBITMQ_CTL_ERL_ARGS="-pa /usr/local/lib/erlang/lib/ssl-10.1/ebin -proto_dist inet_tls -ssl_dist_optfile /etc/rabbitmq/inter-node-tls.config"
   replicas: 3
