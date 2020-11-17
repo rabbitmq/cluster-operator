@@ -110,19 +110,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{}, err
 	}
 
-	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)
+	requeueAfter, err := r.updateStatus(ctx, rabbitmqCluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	oldConditions := make([]status.RabbitmqClusterCondition, len(rabbitmqCluster.Status.Conditions))
-	copy(oldConditions, rabbitmqCluster.Status.Conditions)
-	rabbitmqCluster.Status.SetConditions(childResources)
-
-	if !reflect.DeepEqual(rabbitmqCluster.Status.Conditions, oldConditions) {
-		if err = r.Status().Update(ctx, rabbitmqCluster); err != nil {
-			return ctrl.Result{}, err
-		}
+	if requeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
 	sts, err := r.statefulSet(ctx, rabbitmqCluster)
@@ -186,7 +179,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
-	requeueAfter, err := r.restartStatefulSetIfNeeded(ctx, rabbitmqCluster)
+	requeueAfter, err = r.restartStatefulSetIfNeeded(ctx, rabbitmqCluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -252,7 +245,31 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(rmq runtime.Obje
 	}
 }
 
-func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
+func (r *RabbitmqClusterReconciler) updateStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (time.Duration, error) {
+	childResources, err := r.getChildResources(ctx, rmq)
+	if err != nil {
+		return 0, err
+	}
+
+	oldConditions := make([]status.RabbitmqClusterCondition, len(rmq.Status.Conditions))
+	copy(oldConditions, rmq.Status.Conditions)
+	rmq.Status.SetConditions(childResources)
+
+	if !reflect.DeepEqual(rmq.Status.Conditions, oldConditions) {
+		if err = r.Status().Update(ctx, rmq); err != nil {
+			if errors.IsConflict(err) {
+				r.Log.Info("failed to update status because of conflict; requeueing...",
+					"namespace", rmq.Namespace,
+					"name", rmq.Name)
+				return 2 * time.Second, nil
+			}
+			return 0, err
+		}
+	}
+	return 0, nil
+}
+
+func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
 	sts := &appsv1.StatefulSet{}
 	endPoints := &corev1.Endpoints{}
 
