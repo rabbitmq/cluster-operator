@@ -1,7 +1,7 @@
 # mtls-inter-node Example
 
 This example shows how to [secure the Erlang Distribution with TLS](https://www.rabbitmq.com/clustering-ssl.html) so that RabbitMQ cluster nodes communicate over secure channels.
-In future, RabbitMQ Cluster Operator may make it easier to configure but it is already possible to achieve that with `envConfig` and `override` properties.
+In the future, the RabbitMQ Cluster Operator may make this easier to configure but it is already possible with the [`envConfig`](https://www.rabbitmq.com/kubernetes/operator/using-operator.html#env-config) and [`override`](https://www.rabbitmq.com/kubernetes/operator/using-operator.html#override) properties.
 
 The most important parts of this example are:
 
