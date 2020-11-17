@@ -8,7 +8,7 @@ The most important parts of this example are:
 * `rabbitmq.yaml` - `RabbitmqCluster` definition with all the necessary configuration
 * `inter_node_tls.config` - Erlang Distribution configuration file that will be mounted as a volume
 
-The other files serve as an example for setting up certificates with Cert Manager.
+The other files serve as an example for setting up certificates with [Cert Manager](https://cert-manager.io/docs/).
 
 * `rabbitmq-ca.yaml` - defines an `Issuer` (CA)
 * `rabbitmq-certificate.yaml` - defines a certificate that will be provisioned by Cert Manager and then mounted as a volume
