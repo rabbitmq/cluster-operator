@@ -21,3 +21,13 @@ kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/relea
 # deploy the example
 ./setup.sh
 ```
+
+To validate that RabbitMQ nodes connect over TLS you can run the following checks:
+
+```shell
+# check that the distribution port has TLS enabled (this command should return `Verification: OK`)
+kubectl exec -it mtls-inter-node-server-0 -- bash -c 'openssl s_client -connect ${HOSTNAME}${K8S_HOSTNAME_SUFFIX}:25672 -state -cert /etc/rabbitmq/certs/tls.crt  -key /etc/rabbitmq/certs/tls.key -CAfile /etc/rabbitmq/certs/ca.crt 2>&1 | grep Verification'
+
+# check that distribution uses TLS (this command should return `{ok,[["inet_tls"]]}`)
+kubectl exec -it mtls-inter-node-server-0 -- rabbitmqctl eval 'init:get_argument(proto_dist).'
+```
