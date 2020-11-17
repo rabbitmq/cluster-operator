@@ -25,13 +25,12 @@ require (
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/multierr v1.2.0 // indirect
 	golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
-	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	gopkg.in/ini.v1 v1.62.0
 	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.8
 	k8s.io/client-go v0.18.6
 	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	sigs.k8s.io/controller-runtime v0.6.3
-	sigs.k8s.io/controller-tools v0.4.0
+	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/kind v0.9.0
 )
