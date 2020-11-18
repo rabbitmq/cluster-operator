@@ -261,10 +261,14 @@ CONSOLE_LOG=new`
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
-		It("persists messages after pod deletion", func() {
+		It("persists messages", func() {
 			By("publishing a message", func() {
-				err := publishToQueue(hostname, port, username, password)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(publishToQueue(hostname, port, username, password)).To(Succeed())
+			})
+
+			By("deleting pod", func() {
+				Expect(clientSet.CoreV1().Pods(namespace).Delete(ctx, statefulSetPodName(cluster, 0), metav1.DeleteOptions{})).To(Succeed())
+				waitForRabbitmqUpdate(cluster)
 			})
 
 			By("consuming a message after RabbitMQ was restarted", func() {
@@ -280,7 +284,7 @@ CONSOLE_LOG=new`
 				pvcName := "persistence-" + statefulSetPodName(cluster, 0)
 				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(pvc.OwnerReferences)).To(Equal(1))
+				Expect(pvc.OwnerReferences).To(HaveLen(1))
 				Expect(pvc.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
 		})
@@ -347,7 +351,7 @@ CONSOLE_LOG=new`
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 				})).To(Succeed())
-				waitForTLSUpdate(cluster)
+				waitForRabbitmqUpdate(cluster)
 			})
 
 			AfterEach(func() {
