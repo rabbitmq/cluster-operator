@@ -491,11 +491,6 @@ func rabbitmqNodePort(ctx context.Context, clientSet *kubernetes.Clientset, clus
 	return ""
 }
 
-func waitForTLSUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
-	waitForRabbitmqNotRunningWithOffset(cluster, 2)
-	waitForRabbitmqRunning(cluster)
-}
-
 func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	waitForRabbitmqNotRunningWithOffset(cluster, 2)
 	waitForRabbitmqRunningWithOffset(cluster, 2)
