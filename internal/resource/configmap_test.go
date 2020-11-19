@@ -21,7 +21,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
@@ -46,15 +45,12 @@ var _ = Describe("GenerateServerConfigMap", func() {
 	)
 
 	BeforeEach(func() {
+		instance = generateRabbitmqCluster()
+		instance.Spec.Resources.Limits = corev1.ResourceList{}
+
 		scheme = runtime.NewScheme()
 		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-		instance = rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: v1.ObjectMeta{
-				Name:      "a name",
-				Namespace: "a namespace",
-			},
-		}
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 			Scheme:   scheme,
@@ -132,11 +128,8 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 
 		It("sets owner reference", func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit1",
-				},
-			}
+			instance.ObjectMeta.Name = "rabbit1"
+
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			Expect(configMap.OwnerReferences[0].Name).To(Equal(instance.Name))
 		})
@@ -153,19 +146,15 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 
 		When("valid additionalConfig is provided", func() {
-			BeforeEach(func() {
-				instance.Spec.Rabbitmq.AdditionalConfig = `
+			It("appends configurations to the default rabbitmq.conf and overwrites duplicate keys", func() {
+				additionalConfig := `
 cluster_formation.peer_discovery_backend = my-backend
 my-config-property-0 = great-value
 my-config-property-1 = better-value`
-			})
 
-			It("appends configurations to the default rabbitmq.conf and overwrites duplicate keys", func() {
-				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
-cluster_formation.peer_discovery_backend = my-backend
-my-config-property-0 = great-value
-my-config-property-1 = better-value
-`)
+				instance.Spec.Rabbitmq.AdditionalConfig = additionalConfig
+
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + additionalConfig)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
@@ -173,11 +162,9 @@ my-config-property-1 = better-value
 		})
 
 		When("invalid additionalConfig is provided", func() {
-			BeforeEach(func() {
-				instance.Spec.Rabbitmq.AdditionalConfig = " = invalid"
-			})
-
 			It("errors", func() {
+				instance.Spec.Rabbitmq.AdditionalConfig = " = invalid"
+
 				Expect(configMapBuilder.Update(configMap)).To(MatchError(
 					"failed to append spec.rabbitmq.additionalConfig: error creating new key: empty key name"))
 			})
@@ -253,16 +240,8 @@ CONSOLE_LOG=new`
 
 		Context("TLS", func() {
 			It("adds TLS config when TLS is enabled", func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "rabbit-tls",
-					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						TLS: rabbitmqv1beta1.TLSSpec{
-							SecretName: "tls-secret",
-						},
-					},
-				}
+				instance.ObjectMeta.Name = "rabbit-tls"
+				instance.Spec.TLS.SecretName = "tls-secret"
 
 				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
 ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
@@ -280,23 +259,11 @@ management.ssl.port       = 15671
 
 			When("MQTT, STOMP and AMQP 1.0 plugins are enabled", func() {
 				It("adds TLS config for the additional plugins", func() {
-					instance = rabbitmqv1beta1.RabbitmqCluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "rabbit-tls",
-						},
-						Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-							TLS: rabbitmqv1beta1.TLSSpec{
-								SecretName: "tls-secret",
-							},
-							Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
-								AdditionalPlugins: []rabbitmqv1beta1.Plugin{
-									"rabbitmq_mqtt",
-									"rabbitmq_stomp",
-									"rabbitmq_amqp_1_0",
-								},
-							},
-						},
-					}
+					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_amqp_1_0"}
+
+					instance.ObjectMeta.Name = "rabbit-tls"
+					instance.Spec.TLS.SecretName = "tls-secret"
+					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
 
 					expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
 ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
@@ -320,17 +287,9 @@ stomp.listeners.ssl.1 = 61614
 
 		Context("Mutual TLS", func() {
 			It("adds TLS config when TLS is enabled", func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "rabbit-tls",
-					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						TLS: rabbitmqv1beta1.TLSSpec{
-							SecretName:   "tls-secret",
-							CaSecretName: "tls-mutual-secret",
-						},
-					},
-				}
+				instance.ObjectMeta.Name = "rabbit-tls"
+				instance.Spec.TLS.SecretName = "tls-secret"
+				instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
 
 				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
 ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
@@ -352,23 +311,12 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 
 			When("Web MQTT and Web STOMP are enabled", func() {
 				It("adds TLS config for the additional plugins", func() {
-					instance = rabbitmqv1beta1.RabbitmqCluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "rabbit-tls",
-						},
-						Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-							TLS: rabbitmqv1beta1.TLSSpec{
-								SecretName:   "tls-secret",
-								CaSecretName: "tls-mutual-secret",
-							},
-							Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
-								AdditionalPlugins: []rabbitmqv1beta1.Plugin{
-									"rabbitmq_web_mqtt",
-									"rabbitmq_web_stomp",
-								},
-							},
-						},
-					}
+					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
+
+					instance.ObjectMeta.Name = "rabbit-tls"
+					instance.Spec.TLS.SecretName = "tls-secret"
+					instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
+					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
 
 					expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
 			ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
@@ -404,18 +352,8 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 		Context("Memory Limits", func() {
 			It("sets a RabbitMQ memory limit with headroom when memory limits are specified", func() {
 				const GiB int64 = 1073741824
-				instance = rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "rabbit-mem-limit",
-					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Resources: &corev1.ResourceRequirements{
-							Limits: map[corev1.ResourceName]k8sresource.Quantity{
-								corev1.ResourceMemory: k8sresource.MustParse("10Gi"),
-							},
-						},
-					},
-				}
+				instance.ObjectMeta.Name = "rabbit-mem-limit"
+				instance.Spec.Resources.Limits = map[corev1.ResourceName]k8sresource.Quantity{corev1.ResourceMemory: k8sresource.MustParse("10Gi")}
 
 				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + fmt.Sprintf("total_memory_available_override_value = %d", 8*GiB))
 
