@@ -117,11 +117,11 @@ func (builder *ServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []
 			TargetPort: intstr.FromInt(5672),
 			Name:       "amqp",
 		},
-		"http": {
+		"management": {
 			Protocol:   corev1.ProtocolTCP,
 			Port:       15672,
 			TargetPort: intstr.FromInt(15672),
-			Name:       "http",
+			Name:       "management",
 		},
 	}
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {

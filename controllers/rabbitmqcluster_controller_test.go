@@ -1067,7 +1067,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					TargetPort: amqpTargetPort,
 				},
 				corev1.ServicePort{
-					Name:       "http",
+					Name:       "management",
 					Port:       15672,
 					Protocol:   corev1.ProtocolTCP,
 					TargetPort: managementTargetPort,

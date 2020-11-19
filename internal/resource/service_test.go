@@ -393,13 +393,13 @@ var _ = Context("Services", func() {
 					TargetPort: intstr.FromInt(5672),
 					Protocol:   corev1.ProtocolTCP,
 				}
-				httpPort := corev1.ServicePort{
-					Name:       "http",
+				managementPort := corev1.ServicePort{
+					Name:       "management",
 					Port:       15672,
 					TargetPort: intstr.FromInt(15672),
 					Protocol:   corev1.ProtocolTCP,
 				}
-				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, httpPort))
+				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, managementPort))
 			})
 
 			DescribeTable("plugins exposing ports",
@@ -444,7 +444,7 @@ var _ = Context("Services", func() {
 					{
 						Protocol:   corev1.ProtocolTCP,
 						Port:       15672,
-						Name:       "http",
+						Name:       "management",
 						TargetPort: intstr.FromInt(15672),
 						NodePort:   1234,
 					},
@@ -461,16 +461,16 @@ var _ = Context("Services", func() {
 					TargetPort: intstr.FromInt(5672),
 					NodePort:   12345,
 				}
-				expectedHTTPServicePort := corev1.ServicePort{
+				expectedManagementServicePort := corev1.ServicePort{
 					Protocol:   corev1.ProtocolTCP,
 					Port:       15672,
-					Name:       "http",
+					Name:       "management",
 					TargetPort: intstr.FromInt(15672),
 					NodePort:   1234,
 				}
 
 				Expect(svc.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
-				Expect(svc.Spec.Ports).To(ContainElement(expectedHTTPServicePort))
+				Expect(svc.Spec.Ports).To(ContainElement(expectedManagementServicePort))
 			})
 
 			It("unsets nodePort after updating from NodePort to ClusterIP", func() {
@@ -614,7 +614,7 @@ var _ = Context("Services", func() {
 						Protocol:   corev1.ProtocolTCP,
 					},
 					corev1.ServicePort{
-						Name:       "http",
+						Name:       "management",
 						Port:       15672,
 						TargetPort: intstr.FromInt(15672),
 						Protocol:   corev1.ProtocolTCP,
