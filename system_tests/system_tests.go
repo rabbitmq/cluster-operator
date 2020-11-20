@@ -22,8 +22,6 @@ import (
 	"gopkg.in/ini.v1"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
@@ -441,10 +439,6 @@ CONSOLE_LOG=new`
 		BeforeEach(func() {
 			instanceName := "mqtt-stomp-rabbit"
 			cluster = newRabbitmqCluster(namespace, instanceName)
-			cluster.Spec.Resources = &corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
-				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
-			}
 			cluster.Spec.Service.Type = "NodePort"
 			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
 				"rabbitmq_mqtt",
