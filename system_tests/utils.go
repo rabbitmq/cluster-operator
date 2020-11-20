@@ -63,7 +63,7 @@ type featureFlag struct {
 func MustHaveEnv(name string) string {
 	value := os.Getenv(name)
 	if value == "" {
-		panic(fmt.Sprintf("Value '%s' not found", name))
+		panic(fmt.Sprintf("Environment variable '%s' not found", name))
 	}
 	return value
 }
@@ -404,7 +404,7 @@ func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset
 }
 
 func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
-	return &rabbitmqv1beta1.RabbitmqCluster{
+	cluster := &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instanceName,
 			Namespace: namespace,
@@ -413,12 +413,30 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Type: "NodePort",
 			},
+			// run system tests with low resources so that they can run on GitHub actions
 			Resources: &corev1.ResourceRequirements{
-				Requests: map[corev1.ResourceName]k8sresource.Quantity{},
-				Limits:   map[corev1.ResourceName]k8sresource.Quantity{},
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{
+					corev1.ResourceCPU:    k8sresource.MustParse("100m"),
+					corev1.ResourceMemory: k8sresource.MustParse("500M"),
+				},
+				Limits: map[corev1.ResourceName]k8sresource.Quantity{
+					corev1.ResourceCPU:    k8sresource.MustParse("1000m"),
+					corev1.ResourceMemory: k8sresource.MustParse("500M"),
+				},
 			},
 		},
 	}
+
+	if image := os.Getenv("RABBITMQ_IMAGE"); image != "" {
+		cluster.Spec.Image = image
+	}
+	if secret := os.Getenv("RABBITMQ_IMAGE_PULL_SECRET"); secret != "" {
+		cluster.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
+			corev1.LocalObjectReference{Name: secret},
+		}
+	}
+
+	return cluster
 }
 
 //the updateFn can change properties of the RabbitmqCluster CR
