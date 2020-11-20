@@ -420,7 +420,7 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 					corev1.ResourceMemory: k8sresource.MustParse("500M"),
 				},
 				Limits: map[corev1.ResourceName]k8sresource.Quantity{
-					corev1.ResourceCPU:    k8sresource.MustParse("1000m"),
+					corev1.ResourceCPU:    k8sresource.MustParse("2000m"),
 					corev1.ResourceMemory: k8sresource.MustParse("500M"),
 				},
 			},
