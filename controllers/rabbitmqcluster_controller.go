@@ -106,11 +106,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{}, err
 	}
 
-	// TLS: check if specified, and if secret exists
-	if rabbitmqCluster.TLSEnabled() {
-		if result, err := r.checkTLSSecrets(ctx, rabbitmqCluster); err != nil {
-			return result, err
-		}
+	if err := r.reconcileTLS(ctx, rabbitmqCluster); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	childResources, err := r.getChildResources(ctx, *rabbitmqCluster)

@@ -241,6 +241,9 @@ type TLSSpec struct {
 	// The Secret must store this as ca.crt.
 	// Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
 	CaSecretName string `json:"caSecretName,omitempty"`
+	// When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt.
+	// Only TLS-enabled clients will be able to connect.
+	DisableNonTLSListeners bool `json:"disableNonTLSListeners,omitempty"`
 }
 
 // kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.
@@ -323,6 +326,10 @@ func (cluster *RabbitmqCluster) MemoryLimited() bool {
 
 func (cluster *RabbitmqCluster) SingleTLSSecret() bool {
 	return cluster.MutualTLSEnabled() && cluster.Spec.TLS.CaSecretName == cluster.Spec.TLS.SecretName
+}
+
+func (cluster *RabbitmqCluster) DisableNonTLSListeners() bool {
+	return cluster.Spec.TLS.DisableNonTLSListeners
 }
 
 func (cluster *RabbitmqCluster) AdditionalPluginEnabled(plugin Plugin) bool {

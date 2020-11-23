@@ -19,7 +19,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	"gopkg.in/ini.v1"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +46,7 @@ var _ = Describe("Operator", func() {
 			waitForRabbitmqRunning(cluster)
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
-			port = rabbitmqNodePort(ctx, clientSet, cluster, "http")
+			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -176,15 +175,7 @@ cluster_keepalive_interval = 10000`
 				waitForRabbitmqUpdate(cluster)
 
 				// verify that rabbitmq.conf contains provided configurations
-				output, err := kubectlExec(namespace,
-					statefulSetPodName(cluster, 0),
-					"cat",
-					"/etc/rabbitmq/rabbitmq.conf",
-				)
-				Expect(err).NotTo(HaveOccurred())
-				cfg, err := ini.Load(output)
-				Expect(err).NotTo(HaveOccurred())
-				cfgMap := cfg.Section("").KeysHash()
+				cfgMap := getConfigFileFromPod(namespace, cluster, "/etc/rabbitmq/rabbitmq.conf")
 				Expect(cfgMap).To(HaveKeyWithValue("vm_memory_high_watermark_paging_ratio", "0.5"))
 				Expect(cfgMap).To(HaveKeyWithValue("cluster_keepalive_interval", "10000"))
 				Expect(cfgMap).To(HaveKeyWithValue("cluster_partition_handling", "ignore"))
@@ -247,7 +238,7 @@ CONSOLE_LOG=new`
 			waitForRabbitmqRunning(cluster)
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
-			port = rabbitmqNodePort(ctx, clientSet, cluster, "http")
+			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -307,7 +298,7 @@ CONSOLE_LOG=new`
 			It("works", func() {
 				username, password, err := getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
 				hostname := kubernetesNodeIp(ctx, clientSet)
-				port := rabbitmqNodePort(ctx, clientSet, cluster, "http")
+				port := rabbitmqNodePort(ctx, clientSet, cluster, "management")
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
@@ -319,7 +310,7 @@ CONSOLE_LOG=new`
 	})
 
 	Context("TLS", func() {
-		When("TLS is correctly configured", func() {
+		When("TLS is correctly configured and enforced", func() {
 			var (
 				cluster               *rabbitmqv1beta1.RabbitmqCluster
 				hostname              string
@@ -348,6 +339,7 @@ CONSOLE_LOG=new`
 				// Update RabbitmqCluster with TLS secret name
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
+					cluster.Spec.TLS.DisableNonTLSListeners = true
 				})).To(Succeed())
 				waitForRabbitmqUpdate(cluster)
 			})
@@ -412,6 +404,24 @@ CONSOLE_LOG=new`
 					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
 					Expect(err).NotTo(HaveOccurred())
 					publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomps"), username, password, cfg)
+				})
+
+				By("disabling non TLS listeners", func() {
+					// verify that rabbitmq.conf contains listeners.tcp = none
+					cfgMap := getConfigFileFromPod(namespace, cluster, "/etc/rabbitmq/rabbitmq.conf")
+					Expect(cfgMap).To(HaveKeyWithValue("listeners.tcp", "none"))
+					Expect(cfgMap).To(HaveKeyWithValue("stomp.listeners.tcp", "none"))
+					Expect(cfgMap).To(HaveKeyWithValue("mqtt.listeners.tcp", "none"))
+
+					// verify that only tls ports are exposed in service
+					service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					ports := service.Spec.Ports
+					Expect(ports).To(HaveLen(4))
+					Expect(containsPort(ports, "amqps")).To(BeTrue())
+					Expect(containsPort(ports, "management-tls")).To(BeTrue())
+					Expect(containsPort(ports, "mqtts")).To(BeTrue())
+					Expect(containsPort(ports, "stomps")).To(BeTrue())
 				})
 			})
 		})

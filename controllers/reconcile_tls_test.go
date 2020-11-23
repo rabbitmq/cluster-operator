@@ -201,6 +201,20 @@ var _ = Describe("Reconcile TLS", func() {
 			})
 		})
 	})
+
+	When("DiableNonTLSListeners set to true", func() {
+		It("errors and logs TLSError when TLS is not enabled", func() {
+			tlsSpec := rabbitmqv1beta1.TLSSpec{
+				DisableNonTLSListeners: true,
+			}
+			cluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-disablenontlslisteners", defaultNamespace, tlsSpec)
+
+			verifyTLSErrorEvents(ctx, cluster, "TLS must be enabled if disableNonTLSListeners is set to true")
+
+			_, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+			Expect(err).To(HaveOccurred())
+		})
+	})
 })
 
 func tlsSecretWithCACert(ctx context.Context, secretName, namespace string) {

@@ -401,6 +401,128 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 			})
 		})
 
+		When("DisableNonTLSListeners is set to true", func() {
+			It("disables non tls listeners in rabbitmq.conf", func() {
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "rabbit-tls",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						TLS: rabbitmqv1beta1.TLSSpec{
+							SecretName:             "some-secret",
+							DisableNonTLSListeners: true,
+						},
+					},
+				}
+
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
+listeners.ssl.default = 5671
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
+
+listeners.tcp = none
+`)
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
+			})
+
+			It("disables non tls listeners for mqtt and stomp when enabled", func() {
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "rabbit-tls",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						TLS: rabbitmqv1beta1.TLSSpec{
+							SecretName:             "some-secret",
+							DisableNonTLSListeners: true,
+						},
+						Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
+							AdditionalPlugins: []rabbitmqv1beta1.Plugin{
+								"rabbitmq_mqtt",
+								"rabbitmq_stomp",
+							},
+						},
+					},
+				}
+
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+listeners.ssl.default  = 5671
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
+listeners.tcp = none
+
+mqtt.listeners.ssl.default = 8883
+mqtt.listeners.tcp   = none
+
+stomp.listeners.ssl.1 = 61614
+stomp.listeners.tcp   = none
+			`)
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
+			})
+
+			It("disables non tls listeners for web mqtt and web stomp when enabled", func() {
+				instance = rabbitmqv1beta1.RabbitmqCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "rabbit-tls",
+					},
+					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						TLS: rabbitmqv1beta1.TLSSpec{
+							SecretName:             "some-secret",
+							CaSecretName:           "some-mutual-secret",
+							DisableNonTLSListeners: true,
+						},
+						Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
+							AdditionalPlugins: []rabbitmqv1beta1.Plugin{
+								"rabbitmq_web_mqtt",
+								"rabbitmq_web_stomp",
+							},
+						},
+					},
+				}
+
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+listeners.ssl.default  = 5671
+
+management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+management.ssl.port       = 15671
+listeners.tcp = none
+
+ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
+ssl_options.verify     = verify_peer
+management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+
+web_mqtt.ssl.port       = 15676
+web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+web_mqtt.tcp.listener = none
+
+web_stomp.ssl.port       = 15673
+web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+web_stomp.tcp.listener = none
+			`)
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
+			})
+		})
+
 		Context("Memory Limits", func() {
 			It("sets a RabbitMQ memory limit with headroom when memory limits are specified", func() {
 				const GiB int64 = 1073741824
