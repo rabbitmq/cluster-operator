@@ -241,7 +241,7 @@ type TLSSpec struct {
 	// The Secret must store this as ca.crt.
 	// Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
 	CaSecretName string `json:"caSecretName,omitempty"`
-	// When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt.
+	// When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ, management plugin and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt.
 	// Only TLS-enabled clients will be able to connect.
 	DisableNonTLSListeners bool `json:"disableNonTLSListeners,omitempty"`
 }

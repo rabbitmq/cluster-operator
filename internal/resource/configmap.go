@@ -93,6 +93,13 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 			if _, err := defaultSection.NewKey("listeners.tcp", "none"); err != nil {
 				return err
 			}
+		} else {
+			// management plugin does not have a *.listeners.tcp settings like other plugins
+			// management tcp listener can be disabled by setting management.ssl.port without setting management.tcp.port
+			// we set management tcp listener only if tls is enabled and disableNonTLSListeners is false
+			if _, err := defaultSection.NewKey("management.tcp.port", "15672"); err != nil {
+				return err
+			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
 			if _, err := defaultSection.NewKey("mqtt.listeners.ssl.default", "8883"); err != nil {

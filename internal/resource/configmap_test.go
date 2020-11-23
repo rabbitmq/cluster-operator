@@ -272,6 +272,7 @@ listeners.ssl.default = 5671
 management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 management.ssl.port       = 15671
+management.tcp.port       = 15672
 `)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
@@ -306,6 +307,7 @@ listeners.ssl.default = 5671
 management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 management.ssl.port       = 15671
+management.tcp.port       = 15672
 
 mqtt.listeners.ssl.default = 8883
 
@@ -340,6 +342,7 @@ listeners.ssl.default  = 5671
 management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 management.ssl.port       = 15671
+management.tcp.port       = 15672
 
 ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
 ssl_options.verify     = verify_peer
@@ -378,6 +381,7 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 			management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 			management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 			management.ssl.port       = 15671
+			management.tcp.port       = 15672
 
 			ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
 			ssl_options.verify     = verify_peer
@@ -402,7 +406,7 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 		})
 
 		When("DisableNonTLSListeners is set to true", func() {
-			It("disables non tls listeners in rabbitmq.conf", func() {
+			It("disables non tls listeners for rabbitmq and management plugin", func() {
 				instance = rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-tls",
