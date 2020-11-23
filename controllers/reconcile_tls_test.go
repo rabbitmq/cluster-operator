@@ -75,7 +75,7 @@ var _ = Describe("Reconcile TLS", func() {
 			})
 		})
 
-		Context("Mutual TLS with a seperate CA certificate secret", func() {
+		Context("Mutual TLS with a separate CA certificate secret", func() {
 			It("Does not deploy the RabbitmqCluster, and retries every 10 seconds", func() {
 				tlsSecretWithoutCACert(ctx, "rabbitmq-tls-secret-does-not-exist", defaultNamespace)
 

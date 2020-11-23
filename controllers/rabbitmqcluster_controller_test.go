@@ -641,7 +641,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					return false
 				}
 				return string(sts.UID) != string(oldSts.UID)
-			}, 5).Should(BeTrue())
+			}, 10).Should(BeTrue())
 
 			Eventually(func() bool {
 				clientSvc, err := clientSet.CoreV1().Services(defaultNamespace).Get(ctx, svcName, metav1.GetOptions{})

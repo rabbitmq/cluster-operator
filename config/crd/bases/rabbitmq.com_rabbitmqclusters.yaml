@@ -3456,7 +3456,7 @@ spec:
                       description: Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS. The Secret must store this as ca.crt. Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
                       type: string
                     disableNonTLSListeners:
-                      description: 'When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt. Only TLS-enabled clients will be able to connect.'
+                      description: 'When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ, management plugin and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt. Only TLS-enabled clients will be able to connect.'
                       type: boolean
                     secretName:
                       description: Name of a Secret in the same Namespace as the RabbitmqCluster, containing the server's private key & public certificate for TLS. The Secret must store these as tls.key and tls.crt, respectively.

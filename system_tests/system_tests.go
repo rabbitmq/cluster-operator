@@ -409,9 +409,12 @@ CONSOLE_LOG=new`
 				By("disabling non TLS listeners", func() {
 					// verify that rabbitmq.conf contains listeners.tcp = none
 					cfgMap := getConfigFileFromPod(namespace, cluster, "/etc/rabbitmq/rabbitmq.conf")
-					Expect(cfgMap).To(HaveKeyWithValue("listeners.tcp", "none"))
-					Expect(cfgMap).To(HaveKeyWithValue("stomp.listeners.tcp", "none"))
-					Expect(cfgMap).To(HaveKeyWithValue("mqtt.listeners.tcp", "none"))
+					Expect(cfgMap).To(SatisfyAll(
+						HaveKeyWithValue("listeners.tcp", "none"),
+						HaveKeyWithValue("stomp.listeners.tcp", "none"),
+						HaveKeyWithValue("mqtt.listeners.tcp", "none"),
+						HaveKeyWithValue("management.ssl.port", "15671"),
+						Not(HaveKey("management.tcp.port"))))
 
 					// verify that only tls ports are exposed in service
 					service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
