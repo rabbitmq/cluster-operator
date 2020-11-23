@@ -7,7 +7,7 @@
 # This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
 
 template: |
-  local clientFilterFunc(j) = std.length(std.findSubstr("rabbitmq-client", j.name)) > 0;
+  local clientFilterFunc(j) = std.length(std.findSubstr("rabbitmq", j.name)) > 0;
   local service = std.filter(clientFilterFunc, $.services)[0];
   local secretFilterFunc(j) = std.length(std.findSubstr("rabbitmq-default-user", j.name)) > 0;
   local defaultUser = std.filter(secretFilterFunc, $.secrets);
