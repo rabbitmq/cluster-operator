@@ -706,6 +706,76 @@ var _ = Describe("StatefulSet", func() {
 					}))
 				})
 			})
+
+			When("DisableNonTLSListeners is set to true", func() {
+				BeforeEach(func() {
+					instance.Spec.TLS.SecretName = "tls-secret"
+					instance.Spec.TLS.DisableNonTLSListeners = true
+				})
+				It("disables non tls ports for amqp and management in statefulSet", func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(rabbitmqContainerSpec.Ports).To(ConsistOf([]corev1.ContainerPort{
+						{
+							Name:          "epmd",
+							ContainerPort: 4369,
+						},
+						{
+							Name:          "prometheus",
+							ContainerPort: 15692,
+						},
+						{
+							Name:          "amqps",
+							ContainerPort: 5671,
+						},
+						{
+							Name:          "management-tls",
+							ContainerPort: 15671,
+						},
+					}))
+				})
+
+				It("disables non tls ports for mqtt and stomp when configured", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin("rabbitmq_mqtt"), rabbitmqv1beta1.Plugin("rabbitmq_stomp")}
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(rabbitmqContainerSpec.Ports).To(ConsistOf([]corev1.ContainerPort{
+						{
+							Name:          "epmd",
+							ContainerPort: 4369,
+						},
+						{
+							Name:          "prometheus",
+							ContainerPort: 15692,
+						},
+						{
+							Name:          "amqps",
+							ContainerPort: 5671,
+						},
+						{
+							Name:          "management-tls",
+							ContainerPort: 15671,
+						},
+						{
+							Name:          "mqtts",
+							ContainerPort: 8883,
+						},
+						{
+							Name:          "stomps",
+							ContainerPort: 61614,
+						},
+					}))
+				})
+
+				It("sets tcp readiness probe to use port amqps", func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					TCPProbe := container.ReadinessProbe.TCPSocket
+					Expect(TCPProbe.Port.Type).To(Equal(intstr.String))
+					Expect(TCPProbe.Port.StrVal).To(Equal("amqps"))
+				})
+			})
 		})
 
 		It("updates the imagePullSecrets list; sets it back to empty list after deleting the configuration", func() {

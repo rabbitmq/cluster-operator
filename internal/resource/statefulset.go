@@ -271,6 +271,11 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
+	readinessProbePort := "amqp"
+	if builder.Instance.DisableNonTLSListeners() {
+		readinessProbePort = "amqps"
+	}
+
 	volumes := []corev1.Volume{
 		{
 			Name: "server-conf",
@@ -351,50 +356,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 	}
 
-	ports := []corev1.ContainerPort{
-		{
-			Name:          "epmd",
-			ContainerPort: 4369,
-		},
-		{
-			Name:          "amqp",
-			ContainerPort: 5672,
-		},
-		{
-			Name:          "management",
-			ContainerPort: 15672,
-		},
-		{
-			Name:          "prometheus",
-			ContainerPort: 15692,
-		},
-	}
-
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
-		ports = append(ports, corev1.ContainerPort{
-			Name:          "mqtt",
-			ContainerPort: 1883,
-		})
-	}
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
-		ports = append(ports, corev1.ContainerPort{
-			Name:          "web-mqtt",
-			ContainerPort: 15675,
-		})
-	}
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
-		ports = append(ports, corev1.ContainerPort{
-			Name:          "stomp",
-			ContainerPort: 61613,
-		})
-	}
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
-		ports = append(ports, corev1.ContainerPort{
-			Name:          "web-stomp",
-			ContainerPort: 15674,
-		})
-	}
-
 	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "persistence",
@@ -438,31 +399,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 
 	tlsSpec := builder.Instance.Spec.TLS
 	if builder.Instance.TLSEnabled() {
-		ports = append(ports, corev1.ContainerPort{
-			Name:          "amqps",
-			ContainerPort: 5671,
-		},
-			corev1.ContainerPort{
-				Name:          "management-tls",
-				ContainerPort: 15671,
-			},
-		)
-
-		// enable tls ports for plugins
-		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
-			ports = append(ports, corev1.ContainerPort{
-				Name:          "mqtts",
-				ContainerPort: 8883,
-			})
-		}
-
-		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
-			ports = append(ports, corev1.ContainerPort{
-				Name:          "stomps",
-				ContainerPort: 61614,
-			})
-		}
-
 		// add tls volume
 		filePermissions := int32(400)
 		secretEnforced := true
@@ -521,19 +457,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 					MountPath: "/etc/rabbitmq-tls/ca.crt",
 					SubPath:   "ca.crt",
 					ReadOnly:  true,
-				})
-			}
-			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
-				ports = append(ports, corev1.ContainerPort{
-					Name:          "web-mqtt-tls",
-					ContainerPort: 15676,
-				})
-			}
-
-			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
-				ports = append(ports, corev1.ContainerPort{
-					Name:          "web-stomp-tls",
-					ContainerPort: 15673,
 				})
 			}
 		}
@@ -677,7 +600,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 							Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 						},
 					},
-					Ports:        ports,
+					Ports:        builder.updateContainerPorts(),
 					VolumeMounts: rabbitmqContainerVolumeMounts,
 					// Why using a tcp readiness probe instead of running `rabbitmq-diagnostics check_port_connectivity`?
 					// Using rabbitmq-diagnostics command as the probe could cause context deadline exceeded errors
@@ -688,7 +611,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 							TCPSocket: &corev1.TCPSocketAction{
 								Port: intstr.IntOrString{
 									Type:   intstr.String,
-									StrVal: "amqp",
+									StrVal: readinessProbePort,
 								},
 							},
 						},
@@ -717,6 +640,153 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		},
 	}
+}
+
+func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort {
+	if builder.Instance.DisableNonTLSListeners() {
+		return builder.updateContainerPortsOnlyTLSListeners()
+	}
+
+	ports := []corev1.ContainerPort{
+		{
+			Name:          "epmd",
+			ContainerPort: 4369,
+		},
+		{
+			Name:          "amqp",
+			ContainerPort: 5672,
+		},
+		{
+			Name:          "management",
+			ContainerPort: 15672,
+		},
+		{
+			Name:          "prometheus",
+			ContainerPort: 15692,
+		},
+	}
+
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "mqtt",
+			ContainerPort: 1883,
+		})
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "web-mqtt",
+			ContainerPort: 15675,
+		})
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "stomp",
+			ContainerPort: 61613,
+		})
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "web-stomp",
+			ContainerPort: 15674,
+		})
+	}
+
+	if builder.Instance.TLSEnabled() {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "amqps",
+			ContainerPort: 5671,
+		},
+			corev1.ContainerPort{
+				Name:          "management-tls",
+				ContainerPort: 15671,
+			},
+		)
+
+		// enable tls ports for plugins
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "mqtts",
+				ContainerPort: 8883,
+			})
+		}
+
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "stomps",
+				ContainerPort: 61614,
+			})
+		}
+
+		if builder.Instance.MutualTLSEnabled() {
+			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+				ports = append(ports, corev1.ContainerPort{
+					Name:          "web-mqtt-tls",
+					ContainerPort: 15676,
+				})
+			}
+
+			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+				ports = append(ports, corev1.ContainerPort{
+					Name:          "web-stomp-tls",
+					ContainerPort: 15673,
+				})
+			}
+		}
+	}
+
+	return ports
+}
+
+func (builder *StatefulSetBuilder) updateContainerPortsOnlyTLSListeners() []corev1.ContainerPort {
+	ports := []corev1.ContainerPort{
+		{
+			Name:          "epmd",
+			ContainerPort: 4369,
+		},
+		{
+			Name:          "amqps",
+			ContainerPort: 5671,
+		},
+		{
+			Name:          "management-tls",
+			ContainerPort: 15671,
+		},
+		{
+			Name:          "prometheus",
+			ContainerPort: 15692,
+		},
+	}
+
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "mqtts",
+			ContainerPort: 8883,
+		})
+	}
+
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "stomps",
+			ContainerPort: 61614,
+		})
+	}
+
+	if builder.Instance.MutualTLSEnabled() {
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "web-mqtt-tls",
+				ContainerPort: 15676,
+			})
+		}
+
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "web-stomp-tls",
+				ContainerPort: 15673,
+			})
+		}
+	}
+	return ports
 }
 
 func copyLabelsAnnotations(base *metav1.ObjectMeta, override rabbitmqv1beta1.EmbeddedLabelsAnnotations) {

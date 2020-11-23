@@ -89,14 +89,29 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		if err := cfg.Append([]byte(defaultTLSConf)); err != nil {
 			return err
 		}
+		if builder.Instance.DisableNonTLSListeners() {
+			if _, err := defaultSection.NewKey("listeners.tcp", "none"); err != nil {
+				return err
+			}
+		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
 			if _, err := defaultSection.NewKey("mqtt.listeners.ssl.default", "8883"); err != nil {
 				return err
+			}
+			if builder.Instance.DisableNonTLSListeners() {
+				if _, err := defaultSection.NewKey("mqtt.listeners.tcp", "none"); err != nil {
+					return err
+				}
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
 			if _, err := defaultSection.NewKey("stomp.listeners.ssl.1", "61614"); err != nil {
 				return err
+			}
+			if builder.Instance.DisableNonTLSListeners() {
+				if _, err := defaultSection.NewKey("stomp.listeners.tcp", "none"); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -125,6 +140,11 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 			if _, err := defaultSection.NewKey("web_mqtt.ssl.keyfile", tlsKeyPath); err != nil {
 				return err
 			}
+			if builder.Instance.DisableNonTLSListeners() {
+				if _, err := defaultSection.NewKey("web_mqtt.tcp.listener", "none"); err != nil {
+					return err
+				}
+			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
 			if _, err := defaultSection.NewKey("web_stomp.ssl.port", "15673"); err != nil {
@@ -138,6 +158,11 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 			}
 			if _, err := defaultSection.NewKey("web_stomp.ssl.keyfile", tlsKeyPath); err != nil {
 				return err
+			}
+			if builder.Instance.DisableNonTLSListeners() {
+				if _, err := defaultSection.NewKey("web_stomp.tcp.listener", "none"); err != nil {
+					return err
+				}
 			}
 		}
 	}

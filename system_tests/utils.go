@@ -16,6 +16,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/ini.v1"
 	"io"
 	"io/ioutil"
 	"log"
@@ -474,6 +475,27 @@ func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) stri
 	// we did not find an external IP
 	// we might return empty or the internal IP
 	return nodeIp
+}
+
+func getConfigFileFromPod(namespace string, cluster *rabbitmqv1beta1.RabbitmqCluster, path string) map[string]string {
+	output, err := kubectlExec(namespace,
+		statefulSetPodName(cluster, 0),
+		"cat",
+		path,
+	)
+	Expect(err).NotTo(HaveOccurred())
+	cfg, err := ini.Load(output)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	return cfg.Section("").KeysHash()
+}
+
+func containsPort(ports []corev1.ServicePort, portName string) bool {
+	for _, p := range ports {
+		if p.Name == portName {
+			return true
+		}
+	}
+	return false
 }
 
 func rabbitmqNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster, portName string) string {

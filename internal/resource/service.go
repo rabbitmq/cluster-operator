@@ -109,7 +109,65 @@ func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.Service) er
 	return nil
 }
 
-func (builder *ServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
+func (builder *ServiceBuilder) generateServicePortsMapOnlyTLSListeners() map[string]corev1.ServicePort {
+	servicePortsMap := map[string]corev1.ServicePort{
+		"amqps": {
+			Protocol:   corev1.ProtocolTCP,
+			Port:       5671,
+			TargetPort: intstr.FromInt(5671),
+			Name:       "amqps",
+		},
+		"management-tls": {
+			Protocol:   corev1.ProtocolTCP,
+			Port:       15671,
+			TargetPort: intstr.FromInt(15671),
+			Name:       "management-tls",
+		},
+	}
+
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+		servicePortsMap["stomps"] = corev1.ServicePort{
+			Protocol:   corev1.ProtocolTCP,
+			Port:       61614,
+			Name:       "stomps",
+			TargetPort: intstr.FromInt(61614),
+		}
+	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+		servicePortsMap["mqtts"] = corev1.ServicePort{
+			Protocol:   corev1.ProtocolTCP,
+			Port:       8883,
+			Name:       "mqtts",
+			TargetPort: intstr.FromInt(8883),
+		}
+	}
+
+	if builder.Instance.MutualTLSEnabled() {
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			servicePortsMap["web-stomp-tls"] = corev1.ServicePort{
+				Protocol:   corev1.ProtocolTCP,
+				Port:       15673,
+				Name:       "web-stomp-tls",
+				TargetPort: intstr.FromInt(15673),
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+			servicePortsMap["web-mqtt-tls"] = corev1.ServicePort{
+				Protocol:   corev1.ProtocolTCP,
+				Port:       15676,
+				Name:       "web-mqtt-tls",
+				TargetPort: intstr.FromInt(15676),
+			}
+		}
+	}
+	return servicePortsMap
+}
+
+func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.ServicePort {
+	if builder.Instance.DisableNonTLSListeners() {
+		return builder.generateServicePortsMapOnlyTLSListeners()
+	}
+
 	servicePortsMap := map[string]corev1.ServicePort{
 		"amqp": {
 			Protocol:   corev1.ProtocolTCP,
@@ -204,7 +262,11 @@ func (builder *ServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []
 			}
 		}
 	}
+	return servicePortsMap
+}
 
+func (builder *ServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []corev1.ServicePort {
+	servicePortsMap := builder.generateServicePortsMap()
 	var updatedServicePorts []corev1.ServicePort
 
 	for _, servicePort := range servicePorts {
@@ -221,7 +283,6 @@ func (builder *ServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []
 	}
 
 	return updatedServicePorts
-
 }
 
 func (builder *ServiceBuilder) setAnnotations(service *corev1.Service) {
