@@ -113,12 +113,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
-	requeueAfter, err := r.updateStatus(ctx, rabbitmqCluster)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if requeueAfter > 0 {
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	if requeueAfter, err := r.updateStatus(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
 	sts, err := r.statefulSet(ctx, rabbitmqCluster)
@@ -182,12 +178,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		}
 	}
 
-	requeueAfter, err = r.restartStatefulSetIfNeeded(ctx, rabbitmqCluster)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if requeueAfter > 0 {
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	if requeueAfter, err := r.restartStatefulSetIfNeeded(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
 	// Set ReconcileSuccess to true here because all CRUD operations to Kube API related
@@ -205,12 +197,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// By this point the StatefulSet may have finished deploying. Run any
 	// post-deploy steps if so, or requeue until the deployment is finished.
-	requeueAfter, err = r.runRabbitmqCLICommandsIfAnnotated(ctx, rabbitmqCluster)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if requeueAfter > 0 {
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	if requeueAfter, err := r.runRabbitmqCLICommandsIfAnnotated(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
 	logger.Info("Finished reconciling RabbitmqCluster",
