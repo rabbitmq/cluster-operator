@@ -21,6 +21,23 @@ jobs:
       working-directory: charts/rabbitmq
       run: ./test.sh
 
+  test-all-examples:
+    name: test-all-examples
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: System tests
+      run: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+        export GOPATH=$HOME/go
+        export PATH=$PATH:$GOPATH/bin
+        make install-tools
+        kind create cluster --image kindest/node:v1.19.1
+        kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/latest/download/cert-manager.crds.yaml
+        make install
+        kubectl apply --dry-run=server --recursive -f docs/examples/
+
   system_tests:
     name: system tests
     runs-on: ubuntu-latest
