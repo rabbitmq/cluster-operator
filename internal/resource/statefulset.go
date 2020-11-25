@@ -509,7 +509,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
 							"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins " +
 							"&& chown 999:999 /operator/enabled_plugins ; " +
-							"chgrp 999 /var/lib/rabbitmq/mnesia/ ; " +
+							"chown 999:999 /var/lib/rabbitmq/mnesia/ ; " +
 							"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 							"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 							"&& chown 999:999 /var/lib/rabbitmq/.rabbitmqadmin.conf " +
