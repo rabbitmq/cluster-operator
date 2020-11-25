@@ -19,7 +19,8 @@ replicas: 3
 
 image: "rabbitmq:3.8.9-management"
 
-imagePullSecret: foo
+imagePullSecrets:
+  - name: foo
 
 service:
   type: LoadBalancer
@@ -73,6 +74,12 @@ affinity:
 
 tls:
   secretName: tls-secret
+  caSecretName: tls-ca-secret
+  disableNonTLSListeners: true
+
+terminationGracePeriodSeconds: 42
+
+skipPostDeploySteps: true
 
 override:
   statefulSet:
