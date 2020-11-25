@@ -14,15 +14,15 @@ jobs:
         # Token for the repository. Can be passed in using `{{ secrets.GITHUB_TOKEN }}`.
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         # The message to post on the issue when tagging it. If none provided, will not mark issues stale.
-        stale-issue-message: "This issue has been marked as stale due to 90 days of inactivity. Stale issues will be closed after a further 30 days of inactivity; please remove the stale label in order to prevent this occurring."
+        stale-issue-message: "This issue has been marked as stale due to 60 days of inactivity. Stale issues will be closed after a further 30 days of inactivity; please remove the stale label in order to prevent this occurring."
         # The message to post on the pr when tagging it. If none provided, will not mark pull requests stale.
-        stale-pr-message: "This pull request has been marked as stale due to 90 days of inactivity. Stale PRs will be closed after a further 30 days of inactivity; please remove the stale label in order to prevent this occurring."
+        stale-pr-message: "This pull request has been marked as stale due to 60 days of inactivity. Stale PRs will be closed after a further 30 days of inactivity; please remove the stale label in order to prevent this occurring."
         # The message to post on the issue when closing it. If none provided, will not comment when closing an issue.
         close-issue-message: "Closing stale issue due to further inactivity."
         # The message to post on the pr when closing it. If none provided, will not comment when closing a pull requests.
         close-pr-message: "Closing stale PR due to further inactivity."
         # The number of days old an issue can be before marking it stale. Set to -1 to never mark issues or pull requests as stale automatically.
-        days-before-stale: 90
+        days-before-stale: 60
         # The number of days to wait to close an issue or pull request after it being marked stale. Set to -1 to never close stale issues.
         days-before-close: 30
         # The label to apply when an issue is stale.
