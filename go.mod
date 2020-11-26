@@ -14,7 +14,7 @@ require (
 	github.com/go-stomp/stomp v2.0.8+incompatible
 	github.com/gophercloud/gophercloud v0.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
-	github.com/michaelklishin/rabbit-hole/v2 v2.5.0
+	github.com/michaelklishin/rabbit-hole/v2 v2.6.0
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
 	github.com/pelletier/go-toml v1.8.1 // indirect
