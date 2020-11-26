@@ -10,12 +10,12 @@
 name: rabbitmq
 description: RabbitMQ Cluster
 apiVersion: v2
-version: 0.8.0
+version: 0.9.0
 appVersion: 3.8.9
 keywords:
-- rabbitmq
-- message queue
-- AMQP
-home:  https://www.rabbitmq.com
+  - rabbitmq
+  - message queue
+  - AMQP
+home: https://www.rabbitmq.com
 icon: https://www.rabbitmq.com/img/rabbitmq_logo_strap.png
 engine: gotpl

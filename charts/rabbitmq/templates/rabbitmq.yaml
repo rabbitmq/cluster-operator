@@ -26,8 +26,9 @@ spec:
   image: {{ .Values.image }}
   {{- end }}
 
-  {{- if .Values.imagePullSecret }}
-  imagePullSecret: {{ .Values.imagePullSecret }}
+  {{- if .Values.imagePullSecrets }}
+  imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 2 }}
   {{- end }}
 
   {{- if .Values.replicas }}
@@ -98,9 +99,23 @@ spec:
     {{- if .Values.tls.secretName }}
     secretName: {{ .Values.tls.secretName }}
     {{- end }}
+    {{- if .Values.tls.caSecretName }}
+    caSecretName: {{ .Values.tls.caSecretName }}
+    {{- end }}
+    {{- if .Values.tls.disableNonTLSListeners }}
+    disableNonTLSListeners: {{ .Values.tls.disableNonTLSListeners }}
+    {{- end }}
   {{- end }}
 
   {{- if .Values.override }}
   override:
 {{ toYaml .Values.override | indent 4 }}
+  {{- end }}
+
+  {{- if .Values.skipPostDeploySteps }}
+  skipPostDeploySteps: {{ toYaml .Values.skipPostDeploySteps }}
+  {{- end }}
+
+  {{- if .Values.terminationGracePeriodSeconds }}
+  terminationGracePeriodSeconds: {{ toYaml .Values.terminationGracePeriodSeconds }}
   {{- end }}

@@ -21,7 +21,8 @@ metadata:
 
 spec:
   image: rabbitmq:3.8.9-management
-  imagePullSecret: foo
+  imagePullSecrets:
+  - name: foo
   replicas: 3
   service:
     type: LoadBalancer
@@ -72,6 +73,8 @@ spec:
         ].
   tls:
     secretName: tls-secret
+    caSecretName: tls-ca-secret
+    disableNonTLSListeners: true
   override:
     statefulSet:
       spec:
@@ -83,3 +86,5 @@ spec:
               - containerPort: 12345
                 name: additional-port
                 protocol: TCP
+  skipPostDeploySteps: true
+  terminationGracePeriodSeconds: 42
