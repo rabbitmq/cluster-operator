@@ -11,23 +11,26 @@
 set -e
 set -o pipefail
 
-if ! yq --version | grep -q 'yq version 3'; then
-  echo "Please install https://github.com/mikefarah/yq v3"
-  exit 1
-fi
-
-for p in $(kubectl eg rabbitmqclusters.rabbitmq.com | yq d - spec.resources |  yq d - spec.tolerations |  yq d - spec.override | yq d - spec.affinity | yq r - spec | grep -v ' - ' | awk -F: '{ print $1 }'); do
-    grep -q "$p " templates/rabbitmq.yaml
-    if [[ $? != 0 ]]; then
-      echo "FAIL: Property $p not exposed in the helm chart"
-      exit 1
-    fi
-  done
-echo "Seems like all CRD properties are exposed in the helm chart"
-
-chart=$(helm package . | helm package . | awk '{print $NF}')
+chart=$(helm package . | awk '{print $NF}')
 
 helm template $chart -f example-configurations.yaml > template-output
 
 # it should be updated if we add any new configurations and when we modify plans/example-configurations.yaml
 diff -u template-output expected-template-output && echo "Successfully rendered the template"
+
+
+if [[ "$1" == "properties" ]]; then
+  if ! yq --version | grep -q 'yq version 3'; then
+    echo "Please install https://github.com/mikefarah/yq v3"
+    exit 1
+  fi
+
+  for p in $(kubectl eg rabbitmqclusters.rabbitmq.com | yq d - spec.resources |  yq d - spec.tolerations |  yq d - spec.override | yq d - spec.affinity | yq r - spec | grep -v ' - ' | awk -F: '{ print $1 }'); do
+      grep -q "$p " templates/rabbitmq.yaml
+      if [[ $? != 0 ]]; then
+        echo "FAIL: Property $p not exposed in the helm chart"
+        exit 1
+      fi
+    done
+  echo "Seems like all CRD properties are exposed in the helm chart"
+fi
