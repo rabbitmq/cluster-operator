@@ -9,6 +9,12 @@
 # This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
 
 set -e
+set -o pipefail
+
+if ! yq --version | grep -q 'yq version 3'; then
+  echo "Please install https://github.com/mikefarah/yq v3"
+  exit 1
+fi
 
 for p in $(kubectl eg rabbitmqclusters.rabbitmq.com | yq d - spec.resources |  yq d - spec.tolerations |  yq d - spec.override | yq d - spec.affinity | yq r - spec | grep -v ' - ' | awk -F: '{ print $1 }'); do
     grep -q "$p " templates/rabbitmq.yaml
