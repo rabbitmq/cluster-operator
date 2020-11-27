@@ -16,4 +16,4 @@ kubectl apply -f rabbitmq.yaml
 
 Please keep in mind that you need a multi-zone Kubernetes cluster with 12 CPUs, 30Gi RAM, 1.5Ti disk space available as well as a `storageClass` called `ssd` to deploy this example as-is. Of course you can adjust these values to your environment if needed.
 
-An SSD storage class can be defined using [the example](ssd-gke.yaml) (which is GKE-specific and needs to be adjusted for other environments). Read more about the expected disk perforamnce [in Google Cloud Documentation](https://cloud.google.com/compute/docs/disks/performance#ssd_persistent_disk).
+An SSD storage class can be defined using [the example](ssd-gke.yaml) (which is GKE-specific and needs to be adjusted for other environments). Read more about the expected disk performance [in Google Cloud Documentation](https://cloud.google.com/compute/docs/disks/performance#ssd_persistent_disk).
