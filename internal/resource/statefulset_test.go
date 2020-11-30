@@ -906,7 +906,7 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		Context("Rabbitmq container volume mounts", func() {
-			DescribeTable("Volume mounts depending on spec configuration",
+			DescribeTable("Volume mounts depending on spec configuration and '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' ",
 				func(rabbitmqEnv, advancedConfig string) {
 					stsBuilder := builder.StatefulSet()
 					stsBuilder.Instance.Spec.Rabbitmq.EnvConfig = rabbitmqEnv
@@ -934,6 +934,14 @@ var _ = Describe("StatefulSet", func() {
 
 					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 					Expect(container.VolumeMounts).To(ConsistOf(expectedVolumeMounts))
+					Expect(container.VolumeMounts[0]).To(Equal(corev1.VolumeMount{
+						Name:      "rabbitmq-erlang-cookie",
+						MountPath: "/var/lib/rabbitmq/",
+					}))
+					Expect(container.VolumeMounts[1]).To(Equal(corev1.VolumeMount{
+						Name:      "persistence",
+						MountPath: "/var/lib/rabbitmq/mnesia/",
+					}))
 				},
 				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
 				Entry("Only env config is set", "rabbitmq-env-is-set", ""),
@@ -1524,7 +1532,58 @@ var _ = Describe("StatefulSet", func() {
 						},
 					))
 				})
-				Context("Container EnvVar", func() {
+				Context("Rabbitmq Container volume mounts", func() {
+					It("Overrides the volume mounts list while making sure that '/var/lib/rabbitmq/' mounts before '/var/lib/rabbitmq/mnesia/' ", func() {
+						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+							Spec: &rabbitmqv1beta1.StatefulSetSpec{
+								Template: &rabbitmqv1beta1.PodTemplateSpec{
+									Spec: &corev1.PodSpec{
+										Containers: []corev1.Container{
+											{
+												Name: "rabbitmq",
+												VolumeMounts: []corev1.VolumeMount{
+													{
+														Name:      "test",
+														MountPath: "test",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						}
+
+						builder = &resource.RabbitmqResourceBuilder{
+							Instance: &instance,
+							Scheme:   scheme,
+						}
+						stsBuilder := builder.StatefulSet()
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+						expectedVolumeMounts := []corev1.VolumeMount{
+							{Name: "persistence", MountPath: "/var/lib/rabbitmq/mnesia/"},
+							{Name: "rabbitmq-erlang-cookie", MountPath: "/var/lib/rabbitmq/"},
+							{Name: "pod-info", MountPath: "/etc/pod-info/"},
+							{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/default_user.conf", SubPath: "default_user.conf"},
+							{Name: "server-conf", MountPath: "/etc/rabbitmq/rabbitmq.conf", SubPath: "rabbitmq.conf"},
+							{Name: "rabbitmq-plugins", MountPath: "/operator"},
+							{Name: "test", MountPath: "test"},
+						}
+
+						container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+						Expect(container.VolumeMounts).To(ConsistOf(expectedVolumeMounts))
+						Expect(container.VolumeMounts[0]).To(Equal(corev1.VolumeMount{
+							Name:      "rabbitmq-erlang-cookie",
+							MountPath: "/var/lib/rabbitmq/",
+						}))
+						Expect(container.VolumeMounts[1]).To(Equal(corev1.VolumeMount{
+							Name:      "persistence",
+							MountPath: "/var/lib/rabbitmq/mnesia/",
+						}))
+					})
+				})
+
+				Context("Rabbitmq Container EnvVar", func() {
 					It("Overrides the envVar list while making sure that 'MY_POD_NAME', 'MY_POD_NAMESPACE' and 'K8S_SERVICE_NAME' are always defined first", func() {
 						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 							Spec: &rabbitmqv1beta1.StatefulSetSpec{

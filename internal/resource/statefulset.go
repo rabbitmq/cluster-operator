@@ -229,10 +229,16 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 		return corev1.PodSpec{}, fmt.Errorf("error unmarshalling patched Stateful Set: %v", err)
 	}
 
+	rmqContainer := containerRabbitmq(podSpecOverride.Containers)
 	// handle the rabbitmq container envVar list as a special case if it's overwritten
 	// we need to ensure that MY_POD_NAME, MY_POD_NAMESPACE and K8S_SERVICE_NAME are defined first so other envVars values can reference them
-	if rmqContainer := containerRabbitmq(podSpecOverride.Containers); rmqContainer.Env != nil {
+	if rmqContainer.Env != nil {
 		sortEnvVar(patchedPodSpec.Containers[0].Env)
+	}
+	// handle the rabbitmq container volumeMounts list as a special case if it's overwritten
+	// we need to ensure that '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to avoid shadowing
+	if rmqContainer.VolumeMounts != nil {
+		sortVolumeMounts(patchedPodSpec.Containers[0].VolumeMounts)
 	}
 
 	return patchedPodSpec, nil
@@ -252,6 +258,22 @@ func sortEnvVar(envVar []corev1.EnvVar) {
 		}
 		if e.Name == "K8S_SERVICE_NAME" {
 			envVar[2], envVar[i] = envVar[i], envVar[2]
+		}
+	}
+}
+
+// sortVolumeMounts always returns '/var/lib/rabbitmq/' and '/var/lib/rabbitmq/mnesia/' first in the list.
+// this is to ensure '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to aviod shadowing
+// popular open-sourced container runtimes like docker and containerD will sort mounts in alphabetical order to
+// avoid this issue, but there's no guarantee that all container runtime would do so
+func sortVolumeMounts(mounts []corev1.VolumeMount) {
+	for i, m := range mounts {
+		if m.Name == "rabbitmq-erlang-cookie" {
+			mounts[0], mounts[i] = mounts[i], mounts[0]
+			continue
+		}
+		if m.Name == "persistence" {
+			mounts[1], mounts[i] = mounts[i], mounts[1]
 		}
 	}
 }
@@ -358,6 +380,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 
 	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{
 		{
+			Name:      "rabbitmq-erlang-cookie",
+			MountPath: "/var/lib/rabbitmq/",
+		},
+		{
 			Name:      "persistence",
 			MountPath: "/var/lib/rabbitmq/mnesia/",
 		},
@@ -374,10 +400,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			Name:      "rabbitmq-confd",
 			MountPath: "/etc/rabbitmq/conf.d/default_user.conf",
 			SubPath:   "default_user.conf",
-		},
-		{
-			Name:      "rabbitmq-erlang-cookie",
-			MountPath: "/var/lib/rabbitmq/",
 		},
 		{
 			Name:      "pod-info",
