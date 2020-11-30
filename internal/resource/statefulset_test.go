@@ -1086,8 +1086,20 @@ var _ = Describe("StatefulSet", func() {
 				"Image": Equal("rabbitmq-image-from-cr"),
 				"SecurityContext": PointTo(MatchFields(IgnoreExtras, Fields{
 					"Capabilities": PointTo(MatchAllFields(Fields{
-						"Drop": ConsistOf([]corev1.Capability{"ALL"}),
-						"Add":  ConsistOf([]corev1.Capability{"CHOWN", "FOWNER"}),
+						"Drop": ConsistOf([]corev1.Capability{
+							"FSETID",
+							"KILL",
+							"SETGID",
+							"SETUID",
+							"SETPCAP",
+							"NET_BIND_SERVICE",
+							"NET_RAW",
+							"SYS_CHROOT",
+							"MKNOD",
+							"AUDIT_WRITE",
+							"SETFCAP",
+						}),
+						"Add": BeEmpty(),
 					})),
 				})),
 				"Command": ConsistOf(

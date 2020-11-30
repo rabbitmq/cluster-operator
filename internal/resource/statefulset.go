@@ -521,8 +521,20 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 					SecurityContext: &corev1.SecurityContext{
 						RunAsUser: pointer.Int64Ptr(0),
 						Capabilities: &corev1.Capabilities{
-							Drop: []corev1.Capability{"ALL"},
-							Add:  []corev1.Capability{"CHOWN", "FOWNER"},
+							// drop default set from Docker except for CHOWN, FOWNER, and DAC_OVERRIDE
+							Drop: []corev1.Capability{
+								"FSETID",
+								"KILL",
+								"SETGID",
+								"SETUID",
+								"SETPCAP",
+								"NET_BIND_SERVICE",
+								"NET_RAW",
+								"SYS_CHROOT",
+								"MKNOD",
+								"AUDIT_WRITE",
+								"SETFCAP",
+							},
 						},
 					},
 					Command: []string{
