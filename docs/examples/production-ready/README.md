@@ -12,6 +12,7 @@ You can deploy this example like this:
 
 ```shell
 kubectl apply -f rabbitmq.yaml
+kubectl apply -f pod-disruption-budget.yaml
 ```
 
 Please keep in mind that you need a multi-zone Kubernetes cluster with 12 CPUs, 30Gi RAM, 1.5Ti disk space available as well as a `storageClass` called `ssd` to deploy this example as-is. Of course you can adjust these values to your environment if needed.
