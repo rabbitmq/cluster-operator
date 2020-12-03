@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	ClusterCreationTimeout = 5 * time.Second
+	ClusterCreationTimeout = 10 * time.Second
 	ClusterDeletionTimeout = 5 * time.Second
 )
 
@@ -1096,6 +1096,77 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 	})
 
+	Context("Skip reconcilation", func() {
+		BeforeEach(func() {
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-skip-reconcile",
+					Namespace: defaultNamespace,
+				},
+			}
+			Expect(client.Create(ctx, cluster)).To(Succeed())
+			waitForClusterCreation(ctx, cluster, client)
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(ctx, cluster)).To(Succeed())
+		})
+
+		It("works", func() {
+			By("skipping reconciling if annotation set to true", func() {
+				Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+					r.Annotations = map[string]string{"rabbitmq.com/skipReconcile": "true"}
+					r.Spec.Service.Type = "LoadBalancer"
+					r.Spec.Rabbitmq.AdditionalConfig = "test=test"
+				})).To(Succeed())
+
+				// service type is unchanged
+				Consistently(func() corev1.ServiceType {
+					svc := service(ctx, cluster, "")
+					return svc.Spec.Type
+				}, 10*time.Second).Should(Equal(corev1.ServiceTypeClusterIP))
+
+				// configMap and statefulSet do not have update and restart annotations set
+				Consistently(func() map[string]string {
+					cfm := configMap(ctx, cluster, "server-conf")
+					return cfm.Annotations
+				}, 10*time.Second).ShouldNot(HaveKey("rabbitmq.com/serverConfUpdatedAt"))
+
+				Consistently(func() map[string]string {
+					sts := statefulSet(ctx, cluster)
+					return sts.Annotations
+				}, 10*time.Second).ShouldNot(HaveKey("rabbitmq.com/lastRestartAt"))
+
+				Expect(aggregateEventMsgs(ctx, cluster, "SkipReconcile")).To(
+					ContainSubstring("annotation 'rabbitmq.com/skipReconcile' is set to true"))
+			})
+
+			By("resuming reconcilation when annotation is removed", func() {
+				Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+					r.Annotations = map[string]string{}
+				})).To(Succeed())
+
+				// service type is updated
+				Eventually(func() corev1.ServiceType {
+					svc := service(ctx, cluster, "")
+					return svc.Spec.Type
+				}, 10*time.Second).Should(Equal(corev1.ServiceTypeLoadBalancer))
+
+				// configMap and statefulSet now have annotations set
+				Eventually(func() map[string]string {
+					cfm := configMap(ctx, cluster, "server-conf")
+					fmt.Printf("annotations: %v \n", cfm.Annotations)
+					return cfm.Annotations
+				}, 10*time.Second).Should(HaveKey("rabbitmq.com/serverConfUpdatedAt"))
+
+				Eventually(func() map[string]string {
+					sts := statefulSet(ctx, cluster)
+					return sts.Spec.Template.Annotations
+				}, 10*time.Second).Should(HaveKey("rabbitmq.com/lastRestartAt"))
+			})
+		})
+	})
+
 })
 
 func extractContainer(containers []corev1.Container, containerName string) corev1.Container {
@@ -1142,6 +1213,17 @@ func service(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqClust
 		return err
 	}, 10).Should(Succeed())
 	return svc
+}
+
+func configMap(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, configMapName string) *corev1.ConfigMap {
+	cfmName := rabbitmqCluster.ChildResourceName(configMapName)
+	var cfm *corev1.ConfigMap
+	EventuallyWithOffset(1, func() error {
+		var err error
+		cfm, err = clientSet.CoreV1().ConfigMaps(rabbitmqCluster.Namespace).Get(ctx, cfmName, metav1.GetOptions{})
+		return err
+	}, 10).Should(Succeed())
+	return cfm
 }
 
 func createSecret(ctx context.Context, secretName string, namespace string, data map[string]string) (corev1.Secret, error) {

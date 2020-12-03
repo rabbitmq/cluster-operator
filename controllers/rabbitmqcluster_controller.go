@@ -48,8 +48,9 @@ var (
 )
 
 const (
-	ownerKey  = ".metadata.controller"
-	ownerKind = "RabbitmqCluster"
+	ownerKey                = ".metadata.controller"
+	ownerKind               = "RabbitmqCluster"
+	skipReconcileAnnotation = "rabbitmq.com/skipReconcile"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -99,6 +100,16 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			"namespace", rabbitmqCluster.Namespace,
 			"name", rabbitmqCluster.Name)
 		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
+	}
+
+	// exit if skip reconcile annotation is set to true
+	if v, ok := rabbitmqCluster.Annotations["rabbitmq.com/skipReconcile"]; ok && v == "true" {
+		logger.Info("Skip reconciling RabbitmqCluster",
+			"namespace", rabbitmqCluster.Namespace,
+			"name", rabbitmqCluster.Name)
+		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning,
+			"SkipReconcile", "annotation 'rabbitmq.com/skipReconcile' is set to true")
+		return ctrl.Result{}, err
 	}
 
 	// Ensure the resource have a deletion marker
