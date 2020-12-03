@@ -79,19 +79,15 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})
 
 			By("creating the server conf configmap", func() {
-				configMapName := cluster.ChildResourceName("server-conf")
-				configMap, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(configMap.Name).To(Equal(configMapName))
-				Expect(configMap.OwnerReferences[0].Name).To(Equal(cluster.Name))
+				cfm := configMap(ctx, cluster, "server-conf")
+				Expect(cfm.Name).To(Equal(cluster.ChildResourceName("server-conf")))
+				Expect(cfm.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
 
 			By("creating the plugins conf configmap", func() {
-				configMapName := cluster.ChildResourceName("plugins-conf")
-				configMap, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, configMapName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(configMap.Name).To(Equal(configMapName))
-				Expect(configMap.OwnerReferences[0].Name).To(Equal(cluster.Name))
+				cfm := configMap(ctx, cluster, "plugins-conf")
+				Expect(cfm.Name).To(Equal(cluster.ChildResourceName("plugins-conf")))
+				Expect(cfm.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
 
 			By("creating a rabbitmq default-user secret", func() {
@@ -352,10 +348,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 	})
 
 	Context("Custom Resource updates", func() {
-		var (
-			svcName string
-			stsName string
-		)
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -363,8 +355,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 			}
-			svcName = cluster.ChildResourceName("")
-			stsName = cluster.ChildResourceName("server")
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
@@ -381,8 +371,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() map[string]string {
-				svcName := cluster.ChildResourceName("")
-				svc, _ := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, svcName, metav1.GetOptions{})
+				svc := service(ctx, cluster, "")
 				return svc.Annotations
 			}, 3).Should(HaveKeyWithValue("test-key", "test-value"))
 
@@ -409,8 +398,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() corev1.ResourceList {
-				sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
+				sts := statefulSet(ctx, cluster)
 				resourceRequirements = sts.Spec.Template.Spec.Containers[0].Resources
 				return resourceRequirements.Requests
 			}, 3).Should(HaveKeyWithValue(corev1.ResourceCPU, expectedRequirements.Requests[corev1.ResourceCPU]))
@@ -430,7 +418,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() string {
-				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
+				sts := statefulSet(ctx, cluster)
 				return sts.Spec.Template.Spec.Containers[0].Image
 			}, 3).Should(Equal("rabbitmq:3.8.0"))
 		})
@@ -441,7 +429,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() []corev1.LocalObjectReference {
-				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
+				sts := statefulSet(ctx, cluster)
 				return sts.Spec.Template.Spec.ImagePullSecrets
 			}, 3).Should(ConsistOf(corev1.LocalObjectReference{Name: "my-new-secret"}))
 		})
@@ -453,13 +441,11 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() map[string]string {
-				service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, svcName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				return service.Labels
+				svc := service(ctx, cluster, "")
+				return svc.Labels
 			}, 3).Should(HaveKeyWithValue("foo", "bar"))
-			var sts *appsv1.StatefulSet
 			Eventually(func() map[string]string {
-				sts, _ = clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
+				sts := statefulSet(ctx, cluster)
 				return sts.Labels
 			}, 3).Should(HaveKeyWithValue("foo", "bar"))
 		})
@@ -477,22 +463,19 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			It("updates annotations for services", func() {
 				Eventually(func() map[string]string {
-					service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName("nodes"), metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return service.Annotations
+					svc := service(ctx, cluster, "nodes")
+					return svc.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
 
 				Eventually(func() map[string]string {
-					service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return service.Annotations
+					svc := service(ctx, cluster, "")
+					return svc.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
 			})
 
 			It("updates annotations for stateful set", func() {
 				Eventually(func() map[string]string {
-					sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
+					sts := statefulSet(ctx, cluster)
 					return sts.Annotations
 				}, 3).Should(HaveKeyWithValue(annotationKey, annotationValue))
 			})
@@ -542,9 +525,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() string {
-				service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				return string(service.Spec.Type)
+				svc := service(ctx, cluster, "")
+				return string(svc.Spec.Type)
 			}, 3).Should(Equal("NodePort"))
 		})
 
@@ -572,7 +554,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})).To(Succeed())
 
 			Eventually(func() *corev1.Affinity {
-				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
+				sts := statefulSet(ctx, cluster)
 				return sts.Spec.Template.Spec.Affinity
 			}, 3).Should(Equal(affinity))
 
@@ -587,7 +569,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				r.Spec.Affinity = affinity
 			})).To(Succeed())
 			Eventually(func() *corev1.Affinity {
-				sts, _ := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, stsName, metav1.GetOptions{})
+				sts := statefulSet(ctx, cluster)
 				return sts.Spec.Template.Spec.Affinity
 			}, 3).Should(BeNil())
 		})
@@ -621,13 +603,9 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 
 		It("recreates child resources after deletion", func() {
-			oldConfMap, err := clientSet.CoreV1().ConfigMaps(defaultNamespace).Get(ctx, configMapName, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
+			oldConfMap := configMap(ctx, cluster, "server-conf")
 			oldClientSvc := service(ctx, cluster, "")
-
 			oldHeadlessSvc := service(ctx, cluster, "nodes")
-
 			oldSts := statefulSet(ctx, cluster)
 
 			Expect(clientSet.AppsV1().StatefulSets(defaultNamespace).Delete(ctx, stsName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
@@ -636,26 +614,17 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(clientSet.CoreV1().Services(defaultNamespace).Delete(ctx, headlessServiceName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
 			Eventually(func() bool {
-				sts, err := clientSet.AppsV1().StatefulSets(defaultNamespace).Get(ctx, stsName, metav1.GetOptions{})
-				if err != nil {
-					return false
-				}
+				sts := statefulSet(ctx, cluster)
 				return string(sts.UID) != string(oldSts.UID)
 			}, 10).Should(BeTrue())
 
 			Eventually(func() bool {
-				clientSvc, err := clientSet.CoreV1().Services(defaultNamespace).Get(ctx, svcName, metav1.GetOptions{})
-				if err != nil {
-					return false
-				}
+				clientSvc := service(ctx, cluster, "")
 				return string(clientSvc.UID) != string(oldClientSvc.UID)
 			}, 5).Should(BeTrue())
 
 			Eventually(func() bool {
-				headlessSvc, err := clientSet.CoreV1().Services(defaultNamespace).Get(ctx, headlessServiceName, metav1.GetOptions{})
-				if err != nil {
-					return false
-				}
+				headlessSvc := service(ctx, cluster, "nodes")
 				return string(headlessSvc.UID) != string(oldHeadlessSvc.UID)
 			}, 5).Should(Not(Equal(oldHeadlessSvc.UID)))
 

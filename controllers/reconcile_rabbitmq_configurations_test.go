@@ -28,13 +28,11 @@ var _ = Describe("Reconcile rabbitmq Configurations", func() {
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
 
-			// ensure that configMap and statefulSet does not have annotations set when configurations haven't changed
-			configMap, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server-conf"), metav1.GetOptions{})
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(configMap.Annotations).ShouldNot(HaveKey("rabbitmq.com/serverConfUpdatedAt"))
+			// ensure that cfm and statefulSet does not have annotations set when configurations haven't changed
+			cfm := configMap(ctx, cluster, "server-conf")
+			Expect(cfm.Annotations).ShouldNot(HaveKey("rabbitmq.com/serverConfUpdatedAt"))
 
-			sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
-			Expect(err).To(Not(HaveOccurred()))
+			sts := statefulSet(ctx, cluster)
 			Expect(sts.Annotations).ShouldNot(HaveKey("rabbitmq.com/lastRestartAt"))
 
 			// update rabbitmq server configurations
@@ -54,19 +52,17 @@ var _ = Describe("Reconcile rabbitmq Configurations", func() {
 			// ensure annotations from the server-conf ConfigMap
 			var annotations map[string]string
 			Eventually(func() map[string]string {
-				configMap, err := clientSet.CoreV1().ConfigMaps(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server-conf"), metav1.GetOptions{})
-				Expect(err).To(Not(HaveOccurred()))
-				annotations = configMap.Annotations
+				cfm := configMap(ctx, cluster, "server-conf")
+				annotations = cfm.Annotations
 				return annotations
 			}, 5).Should(HaveKey("rabbitmq.com/serverConfUpdatedAt"))
-			_, err = time.Parse(time.RFC3339, annotations["rabbitmq.com/serverConfUpdatedAt"])
+			_, err := time.Parse(time.RFC3339, annotations["rabbitmq.com/serverConfUpdatedAt"])
 			Expect(err).NotTo(HaveOccurred(), "Annotation rabbitmq.com/serverConfUpdatedAt was not a valid RFC3339 timestamp")
 
 			By("annotating the sts podTemplate")
 			// ensure statefulSet annotations
 			Eventually(func() map[string]string {
-				sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
-				Expect(err).To(Not(HaveOccurred()))
+				sts := statefulSet(ctx, cluster)
 				annotations = sts.Spec.Template.Annotations
 				return annotations
 			}, 5).Should(HaveKey("rabbitmq.com/lastRestartAt"))
