@@ -8,4 +8,4 @@ kubectl apply -f rabbitmq-podmonitor.yaml
 ```
 
 Alternatively, if you deployed the Prometheus Operator via the [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) Helm chart,
-set the values in [kube-prometheus-stack-values.yaml](kube-prometheus-stack-values.yaml) when installing / upgrading the Helm chart.
+set the values in [kube-prometheus-stack-values.yaml.example](kube-prometheus-stack-values.yaml.example) when installing / upgrading the Helm chart.
