@@ -1,0 +1,11 @@
+---
+prometheus:
+  additionalPodMonitors:
+   - name: rabbitmq
+     podMetricsEndpoints:
+     - port: prometheus
+     selector:
+       matchLabels:
+         app.kubernetes.io/component: rabbitmq
+     namespaceSelector:
+       any: true

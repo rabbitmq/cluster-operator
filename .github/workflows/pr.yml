@@ -27,7 +27,7 @@ jobs:
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
-    - name: System tests
+    - name: Dry run examples
       run: |
         curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
         export GOPATH=$HOME/go
@@ -35,7 +35,10 @@ jobs:
         make install-tools
         kind create cluster --image kindest/node:v1.19.1
         kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/latest/download/cert-manager.crds.yaml
+        # Create CRD PodMonitor without running Prometheus operator
+        curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/master/bundle.yaml | sed "s/replicas: 1$/replicas: 0/" | kubectl apply -f -
         make install
+        sleep 3 # otherwise we sporadically observe 'no matches for kind "RabbitmqCluster" in version "rabbitmq.com/v1beta1'
         kubectl apply --dry-run=server --recursive -f docs/examples/
 
   system_tests:
