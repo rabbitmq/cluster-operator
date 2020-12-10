@@ -8,7 +8,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cloudflare/cfssl v1.5.0
 	github.com/eclipse/paho.mqtt.golang v1.2.0
-	github.com/go-delve/delve v1.5.0
+	github.com/go-delve/delve v1.5.1
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-stomp/stomp v2.0.8+incompatible
@@ -22,7 +22,6 @@ require (
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
-	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/multierr v1.2.0 // indirect
 	golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
 	gopkg.in/ini.v1 v1.62.0
