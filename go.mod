@@ -7,7 +7,7 @@ require (
 	github.com/Azure/go-autorest/autorest/adal v0.8.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cloudflare/cfssl v1.5.0
-	github.com/eclipse/paho.mqtt.golang v1.2.0
+	github.com/eclipse/paho.mqtt.golang v1.3.0
 	github.com/go-delve/delve v1.5.1
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
