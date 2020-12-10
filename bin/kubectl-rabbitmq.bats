@@ -98,6 +98,19 @@ eventually() {
   [[ "$output" == *"secret/bats-default-erlang-cookie"* ]]
 }
 
+@test "pause-and-resume-reconciliation" {
+  kubectl rabbitmq pause-reconciliation bats-default
+  kubectl get rabbitmqclusters.rabbitmq.com bats-default --show-labels | grep rabbitmq.com/pauseReconciliation
+
+  run kubectl rabbitmq list-pause-reconciliation-instances
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"bats-default"* ]]
+
+  kubectl rabbitmq resume-reconciliation bats-default
+  kubectl get rabbitmqclusters.rabbitmq.com bats-default --show-labels | grep none
+}
+
 @test "secrets prints secrets of default-user" {
   run kubectl rabbitmq secrets bats-default
 
