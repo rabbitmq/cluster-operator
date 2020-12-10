@@ -48,8 +48,9 @@ var (
 )
 
 const (
-	ownerKey  = ".metadata.controller"
-	ownerKind = "RabbitmqCluster"
+	ownerKey                 = ".metadata.controller"
+	ownerKind                = "RabbitmqCluster"
+	pauseReconciliationLabel = "rabbitmq.com/pauseReconciliation"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -99,6 +100,23 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			"namespace", rabbitmqCluster.Namespace,
 			"name", rabbitmqCluster.Name)
 		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
+	}
+
+	// exit if pause reconciliation label is set to true
+	if v, ok := rabbitmqCluster.Labels[pauseReconciliationLabel]; ok && v == "true" {
+		logger.Info("Not reconciling RabbitmqCluster",
+			"namespace", rabbitmqCluster.Namespace,
+			"name", rabbitmqCluster.Name)
+		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning,
+			"PausedReconciliation", fmt.Sprintf("label '%s' is set to true", pauseReconciliationLabel))
+
+		rabbitmqCluster.Status.SetCondition(status.NoWarnings, corev1.ConditionFalse, "reconciliation paused")
+		if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
+			r.Log.Error(writerErr, "Error trying to Update NoWarnings condition state",
+				"namespace", rabbitmqCluster.Namespace,
+				"name", rabbitmqCluster.Name)
+		}
+		return ctrl.Result{}, nil
 	}
 
 	// Ensure the resource have a deletion marker
