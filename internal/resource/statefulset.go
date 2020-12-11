@@ -421,67 +421,44 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 
 	tlsSpec := builder.Instance.Spec.TLS
 	if builder.Instance.TLSEnabled() {
-		// add tls volume
-		filePermissions := int32(400)
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name:      "rabbitmq-tls",
+			MountPath: "/etc/rabbitmq-tls/",
+			ReadOnly:  true,
+		})
+
 		secretEnforced := true
-		tlsSecretName := tlsSpec.SecretName
-		volumes = append(volumes, corev1.Volume{
+		filePermissions := pointer.Int32Ptr(400)
+		tlsProjectedVolume := corev1.Volume{
 			Name: "rabbitmq-tls",
 			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName:  tlsSecretName,
-					DefaultMode: &filePermissions,
-					Optional:    &secretEnforced,
-				},
-			},
-		})
-
-		// add volume mount
-		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
-			Name:      "rabbitmq-tls",
-			MountPath: "/etc/rabbitmq-tls/tls.crt",
-			SubPath:   "tls.crt",
-			ReadOnly:  true,
-		})
-		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
-			Name:      "rabbitmq-tls",
-			MountPath: "/etc/rabbitmq-tls/tls.key",
-			SubPath:   "tls.key",
-			ReadOnly:  true,
-		})
-
-		if builder.Instance.MutualTLSEnabled() {
-			if builder.Instance.SingleTLSSecret() {
-				//Mount CaCert in TLS Secret
-				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
-					Name:      "rabbitmq-tls",
-					MountPath: "/etc/rabbitmq-tls/ca.crt",
-					SubPath:   "ca.crt",
-					ReadOnly:  true,
-				})
-			} else {
-				// add tls volume
-				filePermissions := int32(400)
-				secretEnforced := true
-				volumes = append(volumes, corev1.Volume{
-					Name: "rabbitmq-mutual-tls",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName:  tlsSpec.CaSecretName,
-							DefaultMode: &filePermissions,
-							Optional:    &secretEnforced,
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							Secret: &corev1.SecretProjection{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: tlsSpec.SecretName,
+								},
+								Optional: &secretEnforced,
+							},
 						},
 					},
-				})
-				//Mount new volume to same path as TLS cert and key
-				rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
-					Name:      "rabbitmq-mutual-tls",
-					MountPath: "/etc/rabbitmq-tls/ca.crt",
-					SubPath:   "ca.crt",
-					ReadOnly:  true,
-				})
-			}
+					DefaultMode: filePermissions,
+				},
+			},
 		}
+
+		if builder.Instance.MutualTLSEnabled() && !builder.Instance.SingleTLSSecret() {
+			caSecretProjection := corev1.VolumeProjection{
+				Secret: &corev1.SecretProjection{
+					LocalObjectReference: corev1.LocalObjectReference{Name: tlsSpec.CaSecretName},
+					Optional:             &secretEnforced,
+				},
+			}
+			tlsProjectedVolume.VolumeSource.Projected.Sources = append(tlsProjectedVolume.VolumeSource.Projected.Sources, caSecretProjection)
+		}
+
+		volumes = append(volumes, tlsProjectedVolume)
 	}
 
 	return corev1.PodTemplateSpec{

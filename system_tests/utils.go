@@ -253,6 +253,18 @@ func connectAMQPS(username, password, hostname, port, caFilePath string) (conn *
 	return nil, err
 }
 
+func inspectServerCertificate(username, password, hostname, amqpsPort, caFilePath string) []byte {
+	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
+	if err != nil {
+		return nil
+	}
+	defer conn.Close()
+
+	state := conn.ConnectionState()
+	ExpectWithOffset(1, state.PeerCertificates).To(HaveLen(1))
+	return state.PeerCertificates[0].Raw
+}
+
 func publishToQueueAMQPS(message, username, password, hostname, amqpsPort, caFilePath string) error {
 	// create connection
 	conn, err := connectAMQPS(username, password, hostname, amqpsPort, caFilePath)
@@ -620,30 +632,42 @@ func assertHttpReady(hostname, port string) {
 	}, podCreationTimeout, 5).Should(HaveHTTPStatus(http.StatusOK))
 }
 
-func createTLSSecret(secretName, secretNamespace, hostname string) string {
-	// create key and crt files
-	tmpDir := os.TempDir()
-	serverCertPath := filepath.Join(tmpDir, "server.crt")
-	serverCertFile, err := os.OpenFile(serverCertPath, os.O_CREATE|os.O_RDWR, 0755)
-	Expect(err).ToNot(HaveOccurred())
-
-	serverKeyPath := filepath.Join(tmpDir, "server.key")
-	serverKeyFile, err := os.OpenFile(serverKeyPath, os.O_CREATE|os.O_RDWR, 0755)
-	Expect(err).ToNot(HaveOccurred())
-
-	caCertPath := filepath.Join(tmpDir, "ca.crt")
-	caCertFile, err := os.OpenFile(caCertPath, os.O_CREATE|os.O_RDWR, 0755)
-	Expect(err).ToNot(HaveOccurred())
+func createTLSSecret(secretName, secretNamespace, hostname string) (string, []byte, []byte) {
+	// create cert files
+	serverCertPath, serverCertFile := createCertFile(2, "server.crt")
+	serverKeyPath, serverKeyFile := createCertFile(2, "server.key")
+	caCertPath, caCertFile := createCertFile(2, "ca.crt")
 
 	// generate and write cert and key to file
-	Expect(createCertificateChain(hostname, caCertFile, serverCertFile, serverKeyFile)).To(Succeed())
+	caCert, caKey, err := createCertificateChain(hostname, caCertFile, serverCertFile, serverKeyFile)
+	ExpectWithOffset(1, err).To(Succeed())
 	// create k8s tls secret
-	Expect(k8sCreateSecretTLS(secretName, secretNamespace, serverCertPath, serverKeyPath)).To(Succeed())
+	ExpectWithOffset(1, k8sCreateTLSSecret(secretName, secretNamespace, serverCertPath, serverKeyPath)).To(Succeed())
 
-	// remove server files
-	Expect(os.Remove(serverKeyPath)).To(Succeed())
-	Expect(os.Remove(serverCertPath)).To(Succeed())
-	return caCertPath
+	// remove cert files
+	ExpectWithOffset(1, os.Remove(serverKeyPath)).To(Succeed())
+	ExpectWithOffset(1, os.Remove(serverCertPath)).To(Succeed())
+	return caCertPath, caCert, caKey
+}
+
+func updateTLSSecret(secretName, secretNamespace, hostname string, caCert, caKey []byte) {
+	serverCertPath, serverCertFile := createCertFile(2, "server.crt")
+	serverKeyPath, serverKeyFile := createCertFile(2, "server.key")
+
+	ExpectWithOffset(1, generateCertandKey(hostname, caCert, caKey, serverCertFile, serverKeyFile)).To(Succeed())
+	ExpectWithOffset(1, k8sCreateTLSSecret(secretName, secretNamespace, serverCertPath, serverKeyPath)).To(Succeed())
+
+	ExpectWithOffset(1, os.Remove(serverKeyPath)).To(Succeed())
+	ExpectWithOffset(1, os.Remove(serverCertPath)).To(Succeed())
+}
+
+func createCertFile(offset int, fileName string) (string, *os.File) {
+	tmpDir, err := ioutil.TempDir("", "certs")
+	ExpectWithOffset(offset, err).ToNot(HaveOccurred())
+	path := filepath.Join(tmpDir, fileName)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0755)
+	ExpectWithOffset(offset, err).ToNot(HaveOccurred())
+	return path, file
 }
 
 func k8sSecretExists(secretName, secretNamespace string) (bool, error) {
@@ -663,7 +687,7 @@ func k8sSecretExists(secretName, secretNamespace string) (bool, error) {
 	return true, nil
 }
 
-func k8sCreateSecretTLS(secretName, secretNamespace, certPath, keyPath string) error {
+func k8sCreateTLSSecret(secretName, secretNamespace, certPath, keyPath string) error {
 	// delete secret if it exists
 	secretExists, err := k8sSecretExists(secretName, secretNamespace)
 	Expect(err).NotTo(HaveOccurred())
@@ -706,29 +730,8 @@ func k8sDeleteSecret(secretName, secretNamespace string) error {
 	return nil
 }
 
-// creates a CA cert, and uses it to sign another cert
-func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter io.Writer) error {
-	// create a CA cert
-	caReq := &csr.CertificateRequest{
-		Names: []csr.Name{
-			{
-				C:  "UK",
-				ST: "London",
-				L:  "London",
-				O:  "VMWare",
-				OU: "RabbitMQ",
-			},
-		},
-		CN:         "tests-CA",
-		Hosts:      []string{hostname},
-		KeyRequest: &csr.KeyRequest{A: "rsa", S: 2048},
-	}
-
-	caCert, _, caKey, err := initca.New(caReq)
-	if err != nil {
-		return err
-	}
-
+// generate a pair of certificate and key, given a cacert
+func generateCertandKey(hostname string, caCert, caKey []byte, certWriter, keyWriter io.Writer) error {
 	caPriv, err := helpers.ParsePrivateKeyPEM(caKey)
 	if err != nil {
 		return err
@@ -771,10 +774,6 @@ func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter
 		return err
 	}
 
-	_, err = caCertWriter.Write(caCert)
-	if err != nil {
-		return err
-	}
 	_, err = certWriter.Write(serverCert)
 	if err != nil {
 		return err
@@ -783,8 +782,43 @@ func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter
 	if err != nil {
 		return err
 	}
-
 	return nil
+}
+
+// creates a CA cert, and uses it to sign another cert
+// it returns the generated ca cert and key so they can be reused
+func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter io.Writer) ([]byte, []byte, error) {
+	// create a CA cert
+	caReq := &csr.CertificateRequest{
+		Names: []csr.Name{
+			{
+				C:  "UK",
+				ST: "London",
+				L:  "London",
+				O:  "VMWare",
+				OU: "RabbitMQ",
+			},
+		},
+		CN:         "tests-CA",
+		Hosts:      []string{hostname},
+		KeyRequest: &csr.KeyRequest{A: "rsa", S: 2048},
+	}
+
+	caCert, _, caKey, err := initca.New(caReq)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	_, err = caCertWriter.Write(caCert)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := generateCertandKey(hostname, caCert, caKey, certWriter, keyWriter); err != nil {
+		return nil, nil, err
+	}
+
+	return caCert, caKey, nil
 }
 
 func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, overWebSocket bool, tlsConfig *tls.Config) {

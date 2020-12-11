@@ -312,13 +312,14 @@ CONSOLE_LOG=new`
 	Context("TLS", func() {
 		When("TLS is correctly configured and enforced", func() {
 			var (
-				cluster               *rabbitmqv1beta1.RabbitmqCluster
-				hostname              string
-				amqpsNodePort         string
-				managementTLSNodePort string
-				username              string
-				password              string
-				caFilePath            string
+				cluster       *rabbitmqv1beta1.RabbitmqCluster
+				hostname      string
+				amqpsNodePort string
+				username      string
+				password      string
+				caFilePath    string
+				caCert        []byte
+				caKey         []byte
 			)
 
 			BeforeEach(func() {
@@ -334,7 +335,7 @@ CONSOLE_LOG=new`
 				// Passing a single hostname for certificate creation
 				// the AMPQS client is connecting using the same hostname
 				hostname = kubernetesNodeIp(ctx, clientSet)
-				caFilePath = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
+				caFilePath, caCert, caKey = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
 
 				// Update RabbitmqCluster with TLS secret name
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
@@ -342,6 +343,10 @@ CONSOLE_LOG=new`
 					cluster.Spec.TLS.DisableNonTLSListeners = true
 				})).To(Succeed())
 				waitForRabbitmqUpdate(cluster)
+
+				var err error
+				username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			AfterEach(func() {
@@ -352,43 +357,50 @@ CONSOLE_LOG=new`
 			It("RabbitMQ responds to requests over secured protocols", func() {
 				By("talking AMQPS", func() {
 					amqpsNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "amqps")
-					var err error
-					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
-					Expect(err).NotTo(HaveOccurred())
 
-					// try to publish and consume a message on a amqps url
+					// try to publish and consume a message on using amqps
 					sentMessage := "Hello Rabbitmq!"
 					Expect(publishToQueueAMQPS(sentMessage, username, password, hostname, amqpsNodePort, caFilePath)).To(Succeed())
-
-					recievedMessage, err := getMessageFromQueueAMQPS(username, password, hostname, amqpsNodePort, caFilePath)
+					receivedMessage, err := getMessageFromQueueAMQPS(username, password, hostname, amqpsNodePort, caFilePath)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(recievedMessage).To(Equal(sentMessage))
+					Expect(receivedMessage).To(Equal(sentMessage))
+				})
+
+				By("supporting tls cert rotation", func() {
+					oldConnectionCertificate := inspectServerCertificate(username, password, hostname, amqpsNodePort, caFilePath)
+					oldServerCert, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "cat", "/etc/rabbitmq-tls/tls.crt")
+					Expect(err).NotTo(HaveOccurred())
+
+					updateTLSSecret("rabbitmq-tls-test-secret", namespace, hostname, caCert, caKey)
+
+					// takes time for mounted secret to be updated
+					Eventually(func() []byte {
+						actualCert, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "cat", "/etc/rabbitmq-tls/tls.crt")
+						Expect(err).NotTo(HaveOccurred())
+						return actualCert
+					}, 180, 10).ShouldNot(Equal(oldServerCert))
+
+
+					Eventually(func() []byte {
+						newServerCertificate := inspectServerCertificate(username, password, hostname, amqpsNodePort, caFilePath)
+						return newServerCertificate
+					}, 180).ShouldNot(Equal(oldConnectionCertificate))
 				})
 
 				By("connecting to management API over TLS", func() {
-					var err error
-
-					managementTLSNodePort = rabbitmqNodePort(ctx, clientSet, cluster, "management-tls")
-
-					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
-					Expect(err).NotTo(HaveOccurred())
-
-					err = connectHTTPS(username, password, hostname, managementTLSNodePort, caFilePath)
+					managementTLSNodePort := rabbitmqNodePort(ctx, clientSet, cluster, "management-tls")
+					err := connectHTTPS(username, password, hostname, managementTLSNodePort, caFilePath)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
 				By("talking MQTTS", func() {
 					var err error
-					// TLSConfig()
 					cfg := new(tls.Config)
 					cfg.RootCAs = x509.NewCertPool()
 					ca, err := ioutil.ReadFile(caFilePath)
 					Expect(err).NotTo(HaveOccurred())
 
 					cfg.RootCAs.AppendCertsFromPEM(ca)
-
-					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
-					Expect(err).NotTo(HaveOccurred())
 					publishAndConsumeMQTTMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "mqtts"), username, password, false, cfg)
 				})
 
@@ -400,9 +412,6 @@ CONSOLE_LOG=new`
 					Expect(err).NotTo(HaveOccurred())
 
 					cfg.RootCAs.AppendCertsFromPEM(ca)
-
-					username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
-					Expect(err).NotTo(HaveOccurred())
 					publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomps"), username, password, cfg)
 				})
 
