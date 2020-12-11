@@ -52,6 +52,15 @@ USAGE:
   Enable all feature flags on an INSTANCE
     kubectl rabbitmq enable-all-feature-flags INSTANCE
 
+  Pause reconciliation for an instance
+    kubectl rabbitmq pause-reconciliation INSTANCE
+
+  Resume reconciliation for an instance
+    kubectl rabbitmq resume-reconciliation INSTANCE
+
+  List all instances that has the pause reconciliation label
+    kubectl rabbitmq list-pause-reconciliation-instances
+
   Run perf-test against an instance - you can pass as many perf test parameters as you want
     kubectl rabbitmq perf-test INSTANCE --rate 100
   If you want to monitor perf-test, create the following ServiceMonitor:
@@ -233,6 +242,18 @@ enable_all_feature_flags() {
     kubectl exec "${1}-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
 }
 
+pause-reconciliation() {
+    kubectl label rabbitmqclusters "${1}" rabbitmq.com/pauseReconciliation=true
+}
+
+resume-reconciliation() {
+    kubectl label rabbitmqclusters "${1}" rabbitmq.com/pauseReconciliation-
+}
+
+list-pause-reconciliation-instances() {
+    kubectl get rabbitmqclusters -l rabbitmq.com/pauseReconciliation=true --show-labels
+}
+
 secrets() {
     get_instance_details "$@"
     echo "username: ${username}"
@@ -329,6 +350,25 @@ main() {
             exit 1
         fi
         enable_all_feature_flags "$1"
+        ;;
+    "pause-reconciliation")
+        shift 1
+        if [[ "$#" -ne 1 ]]; then
+            usage
+            exit 1
+        fi
+        pause-reconciliation "$1"
+        ;;
+    "resume-reconciliation")
+        shift 1
+        if [[ "$#" -ne 1 ]]; then
+            usage
+            exit 1
+        fi
+        resume-reconciliation "$1"
+        ;;
+    "list-pause-reconciliation-instances")
+        list-pause-reconciliation-instances
         ;;
     "install-cluster-operator")
         shift 1
