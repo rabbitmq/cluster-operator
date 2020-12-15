@@ -513,7 +513,7 @@ func getConfigFileFromPod(namespace string, cluster *rabbitmqv1beta1.RabbitmqClu
 		"cat",
 		path,
 	)
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	cfg, err := ini.Load(output)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	return cfg.Section("").KeysHash()
@@ -566,7 +566,7 @@ func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluste
 		)
 
 		if err != nil {
-			Expect(string(output)).To(ContainSubstring("not found"))
+			ExpectWithOffset(1, string(output)).To(ContainSubstring("not found"))
 		}
 
 		return string(output)
@@ -591,7 +591,7 @@ func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, 
 		)
 
 		if err != nil {
-			Expect(string(output)).To(ContainSubstring("not found"))
+			ExpectWithOffset(1, string(output)).To(ContainSubstring("not found"))
 		}
 
 		return string(output)
@@ -626,7 +626,7 @@ func assertHttpReady(hostname, port string) {
 		rabbitURL := fmt.Sprintf("http://%s:%s", hostname, port)
 
 		req, err := http.NewRequest(http.MethodGet, rabbitURL, nil)
-		Expect(err).ToNot(HaveOccurred())
+		ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 		return client.Do(req)
 	}, podCreationTimeout, 5).Should(HaveHTTPStatus(http.StatusOK))
@@ -680,7 +680,7 @@ func k8sSecretExists(secretName, secretNamespace string) (bool, error) {
 	)
 
 	if err != nil {
-		Expect(string(output)).To(ContainSubstring("not found"))
+		ExpectWithOffset(1, string(output)).To(ContainSubstring("not found"))
 		return false, nil
 	}
 
@@ -690,9 +690,9 @@ func k8sSecretExists(secretName, secretNamespace string) (bool, error) {
 func k8sCreateTLSSecret(secretName, secretNamespace, certPath, keyPath string) error {
 	// delete secret if it exists
 	secretExists, err := k8sSecretExists(secretName, secretNamespace)
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	if secretExists {
-		Expect(k8sDeleteSecret(secretName, secretNamespace)).To(Succeed())
+		ExpectWithOffset(1, k8sDeleteSecret(secretName, secretNamespace)).To(Succeed())
 	}
 
 	// create secret
@@ -861,26 +861,26 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 
 	handler := func(client mqtt.Client, msg mqtt.Message) {
 		defer GinkgoRecover()
-		Expect(msg.Topic()).To(Equal(topic))
-		Expect(string(msg.Payload())).To(Equal("test message MQTT"))
+		ExpectWithOffset(1, msg.Topic()).To(Equal(topic))
+		ExpectWithOffset(1, string(msg.Payload())).To(Equal("test message MQTT"))
 		msgReceived = true
 	}
 
 	token = c.Subscribe(topic, 0, handler)
-	Expect(token.Wait()).To(BeTrue())
-	Expect(token.Error()).ToNot(HaveOccurred())
+	ExpectWithOffset(1, token.Wait()).To(BeTrue())
+	ExpectWithOffset(1, token.Error()).ToNot(HaveOccurred())
 
 	token = c.Publish(topic, 0, false, "test message MQTT")
-	Expect(token.Wait()).To(BeTrue())
-	Expect(token.Error()).ToNot(HaveOccurred())
+	ExpectWithOffset(1, token.Wait()).To(BeTrue())
+	ExpectWithOffset(1, token.Error()).ToNot(HaveOccurred())
 
-	Eventually(func() bool {
+	EventuallyWithOffset(1, func() bool {
 		return msgReceived
 	}, 5*time.Second).Should(BeTrue())
 
 	token = c.Unsubscribe(topic)
-	Expect(token.Wait()).To(BeTrue())
-	Expect(token.Error()).ToNot(HaveOccurred())
+	ExpectWithOffset(1, token.Wait()).To(BeTrue())
+	ExpectWithOffset(1, token.Error()).ToNot(HaveOccurred())
 
 	c.Disconnect(250)
 }
@@ -892,7 +892,7 @@ func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password strin
 	// Create a secure tls.Conn and pass to stomp.Connect, otherwise use Stomp.Dial
 	if tlsConfig != nil {
 		secureConn, err := tls.Dial("tcp", fmt.Sprintf("%s:%s", hostname, stompNodePort), tlsConfig)
-		Expect(err).NotTo(HaveOccurred())
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		defer secureConn.Close()
 
 		for retry := 0; retry < 5; retry++ {
@@ -927,26 +927,26 @@ func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password strin
 		}
 	}
 
-	Expect(err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	queue := "/queue/system-tests-stomp"
 	sub, err := conn.Subscribe(queue, stomp.AckAuto)
-	Expect(err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	msgReceived := false
 	go func() {
 		defer GinkgoRecover()
 		var msg *stomp.Message
-		Eventually(sub.C, 5*time.Second).Should(Receive(&msg))
-		Expect(msg.Err).ToNot(HaveOccurred())
-		Expect(string(msg.Body)).To(Equal("test message STOMP"))
+		EventuallyWithOffset(1, sub.C, 5*time.Second).Should(Receive(&msg))
+		ExpectWithOffset(1, msg.Err).ToNot(HaveOccurred())
+		ExpectWithOffset(1, string(msg.Body)).To(Equal("test message STOMP"))
 		msgReceived = true
 	}()
 
-	Expect(conn.Send(queue, "text/plain", []byte("test message STOMP"), nil)).To(Succeed())
-	Eventually(func() bool {
+	ExpectWithOffset(1, conn.Send(queue, "text/plain", []byte("test message STOMP"), nil)).To(Succeed())
+	EventuallyWithOffset(1, func() bool {
 		return msgReceived
 	}, 5*time.Second).Should(BeTrue())
-	Expect(sub.Unsubscribe()).To(Succeed())
-	Expect(conn.Disconnect()).To(Succeed())
+	ExpectWithOffset(1, sub.Unsubscribe()).To(Succeed())
+	ExpectWithOffset(1, conn.Disconnect()).To(Succeed())
 }
