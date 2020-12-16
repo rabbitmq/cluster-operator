@@ -3,6 +3,7 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/pointer"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 
@@ -43,13 +44,31 @@ var _ = Describe("Reconcile TLS", func() {
 
 				sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
-				volumeMount := corev1.VolumeMount{
+				
+				Expect(sts.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
+					Name: "rabbitmq-tls",
+					VolumeSource: corev1.VolumeSource{
+						Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{
+								{
+									Secret: &corev1.SecretProjection{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "tls-secret",
+										},
+										Optional: pointer.BoolPtr(true),
+									},
+								},
+							},
+							DefaultMode: pointer.Int32Ptr(400),
+						},
+					},
+				}))
+
+				Expect(extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq").VolumeMounts).To(ContainElement(corev1.VolumeMount{
 					Name:      "rabbitmq-tls",
-					MountPath: "/etc/rabbitmq-tls/ca.crt",
-					SubPath:   "ca.crt",
+					MountPath: "/etc/rabbitmq-tls/",
 					ReadOnly:  true,
-				}
-				Expect(sts.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(volumeMount))
+				}))
 			})
 
 			It("Does not deploy if the cert name does not match the contents of the secret", func() {

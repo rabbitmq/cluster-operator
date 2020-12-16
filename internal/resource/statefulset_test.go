@@ -563,39 +563,38 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		Context("TLS", func() {
-			It("adds a TLS volume to the pod template spec", func() {
+			It("adds a TLS projected volume to the pod template spec", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-				filePermissions := int32(400)
-				secretEnforced := true
 				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
 					Name: "rabbitmq-tls",
 					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName:  "tls-secret",
-							DefaultMode: &filePermissions,
-							Optional:    &secretEnforced,
+						Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{
+								{
+									Secret: &corev1.SecretProjection{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "tls-secret",
+										},
+										Optional: pointer.BoolPtr(true),
+									},
+								},
+							},
+							DefaultMode: pointer.Int32Ptr(400),
 						},
 					},
 				}))
 			})
 
-			It("adds two TLS volume mounts to the rabbitmq container", func() {
+			It("adds a TLS volume mount to the rabbitmq container", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
 					Name:      "rabbitmq-tls",
-					MountPath: "/etc/rabbitmq-tls/tls.crt",
-					SubPath:   "tls.crt",
-					ReadOnly:  true,
-				}))
-				Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
-					Name:      "rabbitmq-tls",
-					MountPath: "/etc/rabbitmq-tls/tls.key",
-					SubPath:   "tls.key",
+					MountPath: "/etc/rabbitmq-tls/",
 					ReadOnly:  true,
 				}))
 			})
@@ -636,21 +635,7 @@ var _ = Describe("StatefulSet", func() {
 				}))
 			})
 
-			Context("Mutual TLS (same secret)", func() {
-				It("add a TLS CA cert volume mount to the rabbitmq container", func() {
-					instance.Spec.TLS.SecretName = "tls-secret"
-					instance.Spec.TLS.CaSecretName = "tls-secret"
-					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-					Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
-						Name:      "rabbitmq-tls",
-						MountPath: "/etc/rabbitmq-tls/ca.crt",
-						SubPath:   "ca.crt",
-						ReadOnly:  true,
-					}))
-				})
-
+			When("Mutual TLS (same secret) is enabled", func() {
 				It("opens tls ports when rabbitmq_web_mqtt and rabbitmq_web_stomp are configured", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "tls-secret"
@@ -672,35 +657,35 @@ var _ = Describe("StatefulSet", func() {
 				})
 			})
 
-			Context("Mutual TLS (different secret)", func() {
-				It("add a TLS CA cert volume mount to the rabbitmq container", func() {
+			When("Mutual TLS (different secret) is enabled", func() {
+				It("adds the CA cert secret to tls project volume", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "mutual-tls-secret"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-					Expect(rabbitmqContainerSpec.VolumeMounts).To(ContainElement(corev1.VolumeMount{
-						Name:      "rabbitmq-mutual-tls",
-						MountPath: "/etc/rabbitmq-tls/ca.crt",
-						SubPath:   "ca.crt",
-						ReadOnly:  true,
-					}))
-				})
-
-				It("adds a mutual TLS volume to the pod template spec", func() {
-					instance.Spec.TLS.SecretName = "tls-secret"
-					instance.Spec.TLS.CaSecretName = "mutual-tls-secret"
-					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-					filePermissions := int32(400)
-					secretEnforced := true
 					Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
-						Name: "rabbitmq-mutual-tls",
+						Name: "rabbitmq-tls",
 						VolumeSource: corev1.VolumeSource{
-							Secret: &corev1.SecretVolumeSource{
-								SecretName:  "mutual-tls-secret",
-								DefaultMode: &filePermissions,
-								Optional:    &secretEnforced,
+							Projected: &corev1.ProjectedVolumeSource{
+								Sources: []corev1.VolumeProjection{
+									{
+										Secret: &corev1.SecretProjection{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "tls-secret",
+											},
+											Optional: pointer.BoolPtr(true),
+										},
+									},
+									{
+										Secret: &corev1.SecretProjection{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "mutual-tls-secret",
+											},
+											Optional: pointer.BoolPtr(true),
+										},
+									},
+								},
+								DefaultMode: pointer.Int32Ptr(400),
 							},
 						},
 					}))

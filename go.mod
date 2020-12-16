@@ -24,6 +24,7 @@ require (
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	go.uber.org/multierr v1.2.0 // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
+	golang.org/x/tools v0.0.0-20200616195046-dc31b401abb5
 	gopkg.in/ini.v1 v1.62.0
 	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.8
