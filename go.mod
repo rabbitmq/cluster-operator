@@ -13,7 +13,6 @@ require (
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-stomp/stomp v2.0.8+incompatible
 	github.com/gophercloud/gophercloud v0.5.0 // indirect
-	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/michaelklishin/rabbit-hole/v2 v2.6.0
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.4
@@ -24,13 +23,13 @@ require (
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	go.uber.org/multierr v1.2.0 // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
-	golang.org/x/tools v0.0.0-20200616195046-dc31b401abb5
 	gopkg.in/ini.v1 v1.62.0
-	k8s.io/api v0.18.6
-	k8s.io/apimachinery v0.18.8
-	k8s.io/client-go v0.18.6
+	k8s.io/api v0.18.10
+	k8s.io/apimachinery v0.18.10
+	k8s.io/client-go v0.18.10
 	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	sigs.k8s.io/controller-runtime v0.6.4
 	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/kind v0.9.0
+	sigs.k8s.io/kustomize/kustomize/v3 v3.8.8
 )
