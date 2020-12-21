@@ -11,7 +11,7 @@ require (
 	github.com/go-delve/delve v1.5.1
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
-	github.com/go-stomp/stomp v2.0.8+incompatible
+	github.com/go-stomp/stomp v2.1.0+incompatible
 	github.com/gophercloud/gophercloud v0.5.0 // indirect
 	github.com/michaelklishin/rabbit-hole/v2 v2.6.0
 	github.com/onsi/ginkgo v1.14.2
