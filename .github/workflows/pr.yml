@@ -29,7 +29,6 @@ jobs:
       uses: actions/checkout@v2
     - name: Dry run examples
       run: |
-        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
         export GOPATH=$HOME/go
         export PATH=$PATH:$GOPATH/bin
         make install-tools
@@ -54,7 +53,6 @@ jobs:
       env:
         K8S_VERSION: ${{ matrix.k8s }}
       run: |
-        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
         export GOPATH=$HOME/go
         export PATH=$PATH:$GOPATH/bin
         make install-tools
