@@ -9,7 +9,7 @@ require (
 	github.com/cloudflare/cfssl v1.5.0
 	github.com/eclipse/paho.mqtt.golang v1.3.0
 	github.com/go-delve/delve v1.5.1
-	github.com/go-logr/logr v0.1.0
+	github.com/go-logr/logr v0.2.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-stomp/stomp v2.0.8+incompatible
 	github.com/gophercloud/gophercloud v0.5.0 // indirect
@@ -25,7 +25,7 @@ require (
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
 	gopkg.in/ini.v1 v1.62.0
 	k8s.io/api v0.18.10
-	k8s.io/apimachinery v0.18.10
+	k8s.io/apimachinery v0.20.1
 	k8s.io/client-go v0.18.10
 	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	sigs.k8s.io/controller-runtime v0.6.4
