@@ -933,12 +933,12 @@ sigs.k8s.io/controller-tools v0.4.1 h1:VkuV0MxlRPmRu5iTgBZU4UxUX2LiR99n3sdQGRxZF
 sigs.k8s.io/controller-tools v0.4.1/go.mod h1:G9rHdZMVlBDocIxGkK3jHLWqcTMNvveypYJwrvYKjWU=
 sigs.k8s.io/kind v0.9.0 h1:SoDlXq6pEc7dGagHULNRCCBYrLH6xOi7lqXTRXeAlg4=
 sigs.k8s.io/kind v0.9.0/go.mod h1:cxKQWwmbtRDzQ+RNKnR6gZG6fjbeTtItp5cGf+ww+1Y=
-sigs.k8s.io/kustomize/api v0.6.7 h1:12tbj8x8S3hqus6obQrMWTqpcibf3v4iFo+hX/jIQ8g=
-sigs.k8s.io/kustomize/api v0.6.7/go.mod h1:3TxKEyaxwOIfHmRbQF14hDUSRmVQI0iSn8qDA5zaO/0=
+sigs.k8s.io/kustomize/api v0.7.0 h1:djxH9k1izeU1BvdP1i23qqKwhmWu2BuKNEKr/Da7Dpw=
+sigs.k8s.io/kustomize/api v0.7.0/go.mod h1:3TxKEyaxwOIfHmRbQF14hDUSRmVQI0iSn8qDA5zaO/0=
 sigs.k8s.io/kustomize/cmd/config v0.8.6 h1:Rr7eyD+h32OfruN6V+cgUqHRpC2Y5ZnjjAPbjhKFLGE=
 sigs.k8s.io/kustomize/cmd/config v0.8.6/go.mod h1:e4PgdLUNnkf+Iapvjyb6gTG9DZQkDZIR6uS1Bv4YA6s=
-sigs.k8s.io/kustomize/kustomize/v3 v3.8.8 h1:GrpJqN3ydYxX90R8zt4+hlz+iV1vtC6cAspEPxz2P9U=
-sigs.k8s.io/kustomize/kustomize/v3 v3.8.8/go.mod h1:K1vE0NdKn4V34nltlT6WtRzC+d9H/1s1pPUQVpByjXQ=
+sigs.k8s.io/kustomize/kustomize/v3 v3.9.0 h1:U2B1nfr4Dvz4aMiO9DJCi1dODSiB46vtHT0a0BaG5/0=
+sigs.k8s.io/kustomize/kustomize/v3 v3.9.0/go.mod h1:IY5mZn2ehVHpWr5vpSo1MkZ7oZVQGZdN1sH2GMU5bfQ=
 sigs.k8s.io/kustomize/kyaml v0.10.3 h1:ARSJUMN/c3k31DYxRfZ+vp/UepUQjg9zCwny7Oj908I=
 sigs.k8s.io/kustomize/kyaml v0.10.3/go.mod h1:RA+iCHA2wPCOfv6uG6TfXXWhYsHpgErq/AljxWKuxtg=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e h1:4Z09Hglb792X0kfOBBJUPFEyvVfQWrYT/l8h5EKA6JQ=
