@@ -711,6 +711,10 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 				Name:          "management-tls",
 				ContainerPort: 15671,
 			},
+			corev1.ContainerPort{
+				Name:          "prometheus-tls",
+				ContainerPort: 15691,
+			},
 		)
 
 		// enable tls ports for plugins
@@ -764,7 +768,7 @@ func (builder *StatefulSetBuilder) updateContainerPortsOnlyTLSListeners() []core
 		},
 		{
 			Name:          "prometheus",
-			ContainerPort: 15692,
+			ContainerPort: 15691,
 		},
 	}
 
