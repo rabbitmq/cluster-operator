@@ -43,9 +43,9 @@ management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 management.ssl.port       = 15671
 
-prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+prometheus.ssl.certfile  = /etc/rabbitmq-tls/tls.crt
 prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
-prometheus.ssl.port       = 15691
+prometheus.ssl.port      = 15691
 `
 	caCertPath  = "/etc/rabbitmq-tls/ca.crt"
 	tlsCertPath = "/etc/rabbitmq-tls/tls.crt"

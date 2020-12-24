@@ -772,7 +772,7 @@ func (builder *StatefulSetBuilder) updateContainerPortsOnlyTLSListeners() []core
 			ContainerPort: 15671,
 		},
 		{
-			Name:          "prometheus",
+			Name:          "prometheus-tls",
 			ContainerPort: 15691,
 		},
 	}

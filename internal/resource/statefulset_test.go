@@ -706,8 +706,8 @@ var _ = Describe("StatefulSet", func() {
 							ContainerPort: 4369,
 						},
 						{
-							Name:          "prometheus",
-							ContainerPort: 15692,
+							Name:          "prometheus-tls",
+							ContainerPort: 15691,
 						},
 						{
 							Name:          "amqps",
@@ -731,8 +731,8 @@ var _ = Describe("StatefulSet", func() {
 							ContainerPort: 4369,
 						},
 						{
-							Name:          "prometheus",
-							ContainerPort: 15692,
+							Name:          "prometheus-tls",
+							ContainerPort: 15691,
 						},
 						{
 							Name:          "amqps",
