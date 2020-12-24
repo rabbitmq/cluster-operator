@@ -81,7 +81,7 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 	}
 	defaultSection := cfg.Section("")
 
-	if _, err := defaultSection.NewKey("cluster_name", builder.Instance.Name); err != nil {
+	if _, err := defaultSection.NewKey("cluster_name", fmt.Sprintf("%s/%s", builder.Instance.Namespace, builder.Instance.Name)); err != nil {
 		return err
 	}
 

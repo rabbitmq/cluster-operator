@@ -22,10 +22,11 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-func defaultRabbitmqConf(instanceName string) string {
+func defaultRabbitmqConf(instance types.NamespacedName) string {
 	return iniString(`
 cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host               = kubernetes.default
@@ -33,7 +34,7 @@ cluster_formation.k8s.address_type       = hostname
 cluster_partition_handling               = pause_minority
 queue_master_locator                     = min-masters
 disk_free_limit.absolute                 = 2GB
-cluster_name                             = ` + instanceName)
+cluster_name                             = ` + instance.String())
 }
 
 var _ = Describe("GenerateServerConfigMap", func() {
@@ -138,7 +139,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			It("returns the default rabbitmq conf", func() {
 				builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
 
-				expectedRabbitmqConf := defaultRabbitmqConf(builder.Instance.Name)
+				expectedRabbitmqConf := defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name))
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
@@ -154,7 +155,7 @@ my-config-property-1 = better-value`
 
 				instance.Spec.Rabbitmq.AdditionalConfig = additionalConfig
 
-				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + additionalConfig)
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name)) + additionalConfig)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
@@ -243,7 +244,7 @@ CONSOLE_LOG=new`
 				instance.ObjectMeta.Name = "rabbit-tls"
 				instance.Spec.TLS.SecretName = "tls-secret"
 
-				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name)) + `
 ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default = 5671
@@ -266,7 +267,7 @@ management.tcp.port       = 15672
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
 
-					expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+					expectedRabbitmqConf := iniString(defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name)) + `
 ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default = 5671
@@ -293,7 +294,7 @@ stomp.listeners.ssl.1 = 61614
 				instance.Spec.TLS.SecretName = "tls-secret"
 				instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
 
-				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name)) + `
 ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default  = 5671
@@ -321,7 +322,7 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 					instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
 					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
 
-					expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+					expectedRabbitmqConf := iniString(defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name)) + `
 			ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 			ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 			listeners.ssl.default  = 5671
@@ -367,7 +368,7 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 					},
 				}
 
-				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name)) + `
 ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default = 5671
@@ -402,7 +403,7 @@ listeners.tcp = none
 					},
 				}
 
-				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name)) + `
 ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default  = 5671
@@ -443,7 +444,7 @@ stomp.listeners.tcp   = none
 					},
 				}
 
-				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + `
+				expectedRabbitmqConf := iniString(defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name)) + `
 ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 listeners.ssl.default  = 5671
@@ -481,7 +482,9 @@ web_stomp.tcp.listener = none
 				instance.ObjectMeta.Name = "rabbit-mem-limit"
 				instance.Spec.Resources.Limits = map[corev1.ResourceName]k8sresource.Quantity{corev1.ResourceMemory: k8sresource.MustParse("10Gi")}
 
-				expectedRabbitmqConf := iniString(defaultRabbitmqConf(builder.Instance.Name) + fmt.Sprintf("total_memory_available_override_value = %d", 8*GiB))
+				expectedRabbitmqConf := iniString(
+					defaultRabbitmqConf(makeNSN(builder.Instance.Namespace, builder.Instance.Name)) +
+						fmt.Sprintf("total_memory_available_override_value = %d", 8*GiB))
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq.conf", expectedRabbitmqConf))
@@ -527,4 +530,8 @@ func iniString(input string) string {
 	_, err := cfg.WriteTo(&output)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	return output.String()
+}
+
+func makeNSN(namespace, name string) types.NamespacedName {
+	return types.NamespacedName{Namespace: namespace, Name: name}
 }
