@@ -255,6 +255,7 @@ management.ssl.port       = 15671
 prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
 prometheus.ssl.keyfile  = /etc/rabbitmq-tls/tls.key
 prometheus.ssl.port     = 15691
+
 management.tcp.port     = 15672
 
 `)
