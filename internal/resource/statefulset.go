@@ -280,9 +280,14 @@ func sortVolumeMounts(mounts []corev1.VolumeMount) {
 
 func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[string]string) corev1.PodTemplateSpec {
 	// default pod annotations used for prometheus metrics
+	prometheusPort := "15692"
+	if builder.Instance.DisableNonTLSListeners() {
+		prometheusPort = "15691"
+	}
+
 	defaultPodAnnotations := map[string]string{
 		"prometheus.io/scrape": "true",
-		"prometheus.io/port":   "15692",
+		"prometheus.io/port":   prometheusPort,
 	}
 
 	//Init Container resources
@@ -711,6 +716,10 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 				Name:          "management-tls",
 				ContainerPort: 15671,
 			},
+			corev1.ContainerPort{
+				Name:          "prometheus-tls",
+				ContainerPort: 15691,
+			},
 		)
 
 		// enable tls ports for plugins
@@ -763,8 +772,8 @@ func (builder *StatefulSetBuilder) updateContainerPortsOnlyTLSListeners() []core
 			ContainerPort: 15671,
 		},
 		{
-			Name:          "prometheus",
-			ContainerPort: 15692,
+			Name:          "prometheus-tls",
+			ContainerPort: 15691,
 		},
 	}
 
