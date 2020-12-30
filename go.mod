@@ -31,5 +31,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.6.4
 	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/kind v0.9.0
-	sigs.k8s.io/kustomize/kustomize/v3 v3.8.8
+	sigs.k8s.io/kustomize/kustomize/v3 v3.9.1
 )
