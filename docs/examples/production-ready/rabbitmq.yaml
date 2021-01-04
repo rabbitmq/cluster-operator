@@ -13,7 +13,7 @@ spec:
       memory: 10Gi
   rabbitmq:
     additionalConfig: |
-      cluster_partition_handling = ignore
+      cluster_partition_handling = pause_minority
       vm_memory_high_watermark_paging_ratio = 0.99
       disk_free_limit.relative = 1.0
   persistence:
