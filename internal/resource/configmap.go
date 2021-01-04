@@ -129,17 +129,6 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 				}
 			}
 		}
-		if builder.Instance.AdditionalPluginEnabled("rabbitmq_prometheus") {
-			if _, err := defaultSection.NewKey("prometheus.ssl.port", "61614"); err != nil {
-				return err
-			}
-			if builder.Instance.DisableNonTLSListeners() {
-				if _, err := defaultSection.NewKey("stomp.listeners.tcp", "none"); err != nil {
-					return err
-				}
-			}
-		}
-
 	}
 
 	if builder.Instance.MutualTLSEnabled() {
