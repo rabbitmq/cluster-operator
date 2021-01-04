@@ -257,6 +257,7 @@ prometheus.ssl.keyfile  = /etc/rabbitmq-tls/tls.key
 prometheus.ssl.port     = 15691
 
 management.tcp.port     = 15672
+prometheus.tcp.port     = 15692
 
 `)
 
@@ -286,6 +287,7 @@ prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
 prometheus.ssl.port       = 15691
 
 management.tcp.port       = 15672
+prometheus.tcp.port       = 15692
 
 mqtt.listeners.ssl.default = 8883
 
@@ -319,6 +321,8 @@ prometheus.ssl.port       = 15691
 
 management.tcp.port       = 15672
 
+prometheus.tcp.port       = 15692
+
 ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
 ssl_options.verify     = verify_peer
 management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
@@ -351,6 +355,7 @@ management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 			prometheus.ssl.port       = 15691
 			
 			management.tcp.port       = 15672
+			prometheus.tcp.port       = 15692
 
 			ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
 			ssl_options.verify     = verify_peer

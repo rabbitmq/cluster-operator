@@ -104,6 +104,10 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 			if _, err := defaultSection.NewKey("management.tcp.port", "15672"); err != nil {
 				return err
 			}
+
+			if _, err := defaultSection.NewKey("prometheus.tcp.port", "15692"); err != nil {
+				return err
+			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
 			if _, err := defaultSection.NewKey("mqtt.listeners.ssl.default", "8883"); err != nil {
@@ -125,6 +129,17 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 				}
 			}
 		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_prometheus") {
+			if _, err := defaultSection.NewKey("prometheus.ssl.port", "61614"); err != nil {
+				return err
+			}
+			if builder.Instance.DisableNonTLSListeners() {
+				if _, err := defaultSection.NewKey("stomp.listeners.tcp", "none"); err != nil {
+					return err
+				}
+			}
+		}
+
 	}
 
 	if builder.Instance.MutualTLSEnabled() {
