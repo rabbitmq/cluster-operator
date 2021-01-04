@@ -90,42 +90,45 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		return err
 	}
 
+	cfgUserConfiguration := ini.Empty(ini.LoadOptions{})
+	userConfigurationSection := cfgUserConfiguration.Section("")
+
 	if builder.Instance.TLSEnabled() {
-		if err := cfg.Append([]byte(defaultTLSConf)); err != nil {
+		if err := cfgUserConfiguration.Append([]byte(defaultTLSConf)); err != nil {
 			return err
 		}
 		if builder.Instance.DisableNonTLSListeners() {
-			if _, err := defaultSection.NewKey("listeners.tcp", "none"); err != nil {
+			if _, err := userConfigurationSection.NewKey("listeners.tcp", "none"); err != nil {
 				return err
 			}
 		} else {
 			// management plugin does not have a *.listeners.tcp settings like other plugins
 			// management tcp listener can be disabled by setting management.ssl.port without setting management.tcp.port
 			// we set management tcp listener only if tls is enabled and disableNonTLSListeners is false
-			if _, err := defaultSection.NewKey("management.tcp.port", "15672"); err != nil {
+			if _, err := userConfigurationSection.NewKey("management.tcp.port", "15672"); err != nil {
 				return err
 			}
 
-			if _, err := defaultSection.NewKey("prometheus.tcp.port", "15692"); err != nil {
+			if _, err := userConfigurationSection.NewKey("prometheus.tcp.port", "15692"); err != nil {
 				return err
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
-			if _, err := defaultSection.NewKey("mqtt.listeners.ssl.default", "8883"); err != nil {
+			if _, err := userConfigurationSection.NewKey("mqtt.listeners.ssl.default", "8883"); err != nil {
 				return err
 			}
 			if builder.Instance.DisableNonTLSListeners() {
-				if _, err := defaultSection.NewKey("mqtt.listeners.tcp", "none"); err != nil {
+				if _, err := userConfigurationSection.NewKey("mqtt.listeners.tcp", "none"); err != nil {
 					return err
 				}
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
-			if _, err := defaultSection.NewKey("stomp.listeners.ssl.1", "61614"); err != nil {
+			if _, err := userConfigurationSection.NewKey("stomp.listeners.ssl.1", "61614"); err != nil {
 				return err
 			}
 			if builder.Instance.DisableNonTLSListeners() {
-				if _, err := defaultSection.NewKey("stomp.listeners.tcp", "none"); err != nil {
+				if _, err := userConfigurationSection.NewKey("stomp.listeners.tcp", "none"); err != nil {
 					return err
 				}
 			}
@@ -133,55 +136,55 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	}
 
 	if builder.Instance.MutualTLSEnabled() {
-		if _, err := defaultSection.NewKey("ssl_options.cacertfile", caCertPath); err != nil {
+		if _, err := userConfigurationSection.NewKey("ssl_options.cacertfile", caCertPath); err != nil {
 			return err
 		}
-		if _, err := defaultSection.NewKey("ssl_options.verify", "verify_peer"); err != nil {
-			return err
-		}
-
-		if _, err := defaultSection.NewKey("management.ssl.cacertfile", caCertPath); err != nil {
+		if _, err := userConfigurationSection.NewKey("ssl_options.verify", "verify_peer"); err != nil {
 			return err
 		}
 
-		if _, err := defaultSection.NewKey("prometheus.ssl.cacertfile", caCertPath); err != nil {
+		if _, err := userConfigurationSection.NewKey("management.ssl.cacertfile", caCertPath); err != nil {
+			return err
+		}
+
+		if _, err := userConfigurationSection.NewKey("prometheus.ssl.cacertfile", caCertPath); err != nil {
 			return err
 		}
 
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
-			if _, err := defaultSection.NewKey("web_mqtt.ssl.port", "15676"); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.port", "15676"); err != nil {
 				return err
 			}
-			if _, err := defaultSection.NewKey("web_mqtt.ssl.cacertfile", caCertPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.cacertfile", caCertPath); err != nil {
 				return err
 			}
-			if _, err := defaultSection.NewKey("web_mqtt.ssl.certfile", tlsCertPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.certfile", tlsCertPath); err != nil {
 				return err
 			}
-			if _, err := defaultSection.NewKey("web_mqtt.ssl.keyfile", tlsKeyPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.keyfile", tlsKeyPath); err != nil {
 				return err
 			}
 			if builder.Instance.DisableNonTLSListeners() {
-				if _, err := defaultSection.NewKey("web_mqtt.tcp.listener", "none"); err != nil {
+				if _, err := userConfigurationSection.NewKey("web_mqtt.tcp.listener", "none"); err != nil {
 					return err
 				}
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
-			if _, err := defaultSection.NewKey("web_stomp.ssl.port", "15673"); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.port", "15673"); err != nil {
 				return err
 			}
-			if _, err := defaultSection.NewKey("web_stomp.ssl.cacertfile", caCertPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.cacertfile", caCertPath); err != nil {
 				return err
 			}
-			if _, err := defaultSection.NewKey("web_stomp.ssl.certfile", tlsCertPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.certfile", tlsCertPath); err != nil {
 				return err
 			}
-			if _, err := defaultSection.NewKey("web_stomp.ssl.keyfile", tlsKeyPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.keyfile", tlsKeyPath); err != nil {
 				return err
 			}
 			if builder.Instance.DisableNonTLSListeners() {
-				if _, err := defaultSection.NewKey("web_stomp.tcp.listener", "none"); err != nil {
+				if _, err := userConfigurationSection.NewKey("web_stomp.tcp.listener", "none"); err != nil {
 					return err
 				}
 			}
@@ -189,16 +192,12 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	}
 
 	if builder.Instance.MemoryLimited() {
-		if _, err := defaultSection.NewKey("total_memory_available_override_value", fmt.Sprintf("%d", removeHeadroom(builder.Instance.Spec.Resources.Limits.Memory().Value()))); err != nil {
+		if _, err := userConfigurationSection.NewKey("total_memory_available_override_value", fmt.Sprintf("%d", removeHeadroom(builder.Instance.Spec.Resources.Limits.Memory().Value()))); err != nil {
 			return err
 		}
 	}
 
-	rmqProperties := builder.Instance.Spec.Rabbitmq
-	if err := cfg.Append([]byte(rmqProperties.AdditionalConfig)); err != nil {
-		return fmt.Errorf("failed to append spec.rabbitmq.additionalConfig: %w", err)
-	}
-
+	// TODO refactor: use string builder
 	var rmqConfBuffer bytes.Buffer
 	if _, err := cfg.WriteTo(&rmqConfBuffer); err != nil {
 		return err
@@ -208,7 +207,20 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		configMap.Data = make(map[string]string)
 	}
 
-	configMap.Data["rabbitmq.conf"] = rmqConfBuffer.String()
+	configMap.Data["operatorDefaults.conf"] = rmqConfBuffer.String()
+
+	rmqConfBuffer.Reset()
+
+	rmqProperties := builder.Instance.Spec.Rabbitmq
+	if err := cfgUserConfiguration.Append([]byte(rmqProperties.AdditionalConfig)); err != nil {
+		return fmt.Errorf("failed to append spec.rabbitmq.additionalConfig: %w", err)
+	}
+
+	if _, err := cfgUserConfiguration.WriteTo(&rmqConfBuffer); err != nil {
+		return err
+	}
+
+	configMap.Data["additionalConfig.conf"] = rmqConfBuffer.String()
 
 	updateProperty(configMap.Data, "advanced.config", rmqProperties.AdvancedConfig)
 	updateProperty(configMap.Data, "rabbitmq-env.conf", rmqProperties.EnvConfig)

@@ -886,19 +886,25 @@ var _ = Describe("RabbitmqClusterController", func() {
 										},
 									},
 								},
+								{
+									ConfigMap: &corev1.ConfigMapProjection{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "rabbitmq-sts-override-server-conf",
+										},
+										Items: []corev1.KeyToPath{
+											{
+												Key:  "operatorDefaults.conf",
+												Path: "operatorDefaults.conf",
+											},
+											{
+												Key:  "additionalConfig.conf",
+												Path: "additionalConfig.conf",
+											},
+										},
+									},
+								},
 							},
 							DefaultMode: &defaultMode,
-						},
-					},
-				},
-				corev1.Volume{
-					Name: "server-conf",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							DefaultMode: &defaultMode,
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "rabbitmq-sts-override-server-conf",
-							},
 						},
 					},
 				},

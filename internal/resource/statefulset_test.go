@@ -1008,8 +1008,9 @@ var _ = Describe("StatefulSet", func() {
 						{Name: "persistence", MountPath: "/var/lib/rabbitmq/mnesia/"},
 						{Name: "rabbitmq-erlang-cookie", MountPath: "/var/lib/rabbitmq/"},
 						{Name: "pod-info", MountPath: "/etc/pod-info/"},
-						{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/default_user.conf", SubPath: "default_user.conf"},
-						{Name: "server-conf", MountPath: "/etc/rabbitmq/rabbitmq.conf", SubPath: "rabbitmq.conf"},
+						{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/10-operatorDefaults.conf", SubPath: "operatorDefaults.conf"},
+						{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf", SubPath: "default_user.conf"},
+						{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/90-additionalConfig.conf", SubPath: "additionalConfig.conf"},
 						{Name: "rabbitmq-plugins", MountPath: "/operator"},
 					}
 
@@ -1041,45 +1042,56 @@ var _ = Describe("StatefulSet", func() {
 			)
 		})
 
-		It("defines the expected volumes", func() {
-			stsBuilder := builder.StatefulSet()
-			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+		Context("Volumes", func() {
+			DescribeTable("Volumes based on user configuration", func(rabbitmqEnv, advancedConfig string) {
+				stsBuilder := builder.StatefulSet()
+				stsBuilder.Instance.Spec.Rabbitmq.EnvConfig = rabbitmqEnv
+				stsBuilder.Instance.Spec.Rabbitmq.AdvancedConfig = advancedConfig
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(
-				corev1.Volume{
-					Name: "server-conf",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: instance.ChildResourceName("server-conf"),
+				expectedVolumes := []corev1.Volume{
+					{
+						Name: "plugins-conf",
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: instance.ChildResourceName("plugins-conf"),
+								},
 							},
 						},
 					},
-				},
-				corev1.Volume{
-					Name: "plugins-conf",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: instance.ChildResourceName("plugins-conf"),
-							},
-						},
-					},
-				},
-				corev1.Volume{
-					Name: "rabbitmq-confd",
-					VolumeSource: corev1.VolumeSource{
-						Projected: &corev1.ProjectedVolumeSource{
-							Sources: []corev1.VolumeProjection{
-								{
-									Secret: &corev1.SecretProjection{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: builder.Instance.ChildResourceName("default-user"),
+					{
+						Name: "rabbitmq-confd",
+						VolumeSource: corev1.VolumeSource{
+							Projected: &corev1.ProjectedVolumeSource{
+								Sources: []corev1.VolumeProjection{
+									{
+										Secret: &corev1.SecretProjection{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: builder.Instance.ChildResourceName("default-user"),
+											},
+											Items: []corev1.KeyToPath{
+												{
+													Key:  "default_user.conf",
+													Path: "default_user.conf",
+												},
+											},
 										},
-										Items: []corev1.KeyToPath{
-											{
-												Key:  "default_user.conf",
-												Path: "default_user.conf",
+									},
+									{
+										ConfigMap: &corev1.ConfigMapProjection{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: builder.Instance.ChildResourceName("server-conf"),
+											},
+											Items: []corev1.KeyToPath{
+												{
+													Key:  "operatorDefaults.conf",
+													Path: "operatorDefaults.conf",
+												},
+												{
+													Key:  "additionalConfig.conf",
+													Path: "additionalConfig.conf",
+												},
 											},
 										},
 									},
@@ -1087,43 +1099,61 @@ var _ = Describe("StatefulSet", func() {
 							},
 						},
 					},
-				},
-				corev1.Volume{
-					Name: "rabbitmq-erlang-cookie",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
-				},
-				corev1.Volume{
-					Name: "erlang-cookie-secret",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: instance.ChildResourceName("erlang-cookie"),
+					{
+						Name: "rabbitmq-erlang-cookie",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
 						},
 					},
-				},
-				corev1.Volume{
-					Name: "rabbitmq-plugins",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					{
+						Name: "erlang-cookie-secret",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: instance.ChildResourceName("erlang-cookie"),
+							},
+						},
 					},
-				},
-				corev1.Volume{
-					Name: "pod-info",
-					VolumeSource: corev1.VolumeSource{
-						DownwardAPI: &corev1.DownwardAPIVolumeSource{
-							Items: []corev1.DownwardAPIVolumeFile{
-								{
-									Path: "skipPreStopChecks",
-									FieldRef: &corev1.ObjectFieldSelector{
-										FieldPath: "metadata.labels['skipPreStopChecks']",
+					{
+						Name: "rabbitmq-plugins",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					},
+					{
+						Name: "pod-info",
+						VolumeSource: corev1.VolumeSource{
+							DownwardAPI: &corev1.DownwardAPIVolumeSource{
+								Items: []corev1.DownwardAPIVolumeFile{
+									{
+										Path: "skipPreStopChecks",
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.labels['skipPreStopChecks']",
+										},
 									},
 								},
 							},
 						},
 					},
-				},
-			))
+				}
+
+				if rabbitmqEnv != "" || advancedConfig != "" {
+					expectedVolumes = append(expectedVolumes, corev1.Volume{
+						Name: "server-conf",
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: instance.ChildResourceName("server-conf"),
+								}}}})
+				}
+
+				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolumes))
+
+			},
+				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
+				Entry("Only env config is set", "rabbitmq-env-is-set", ""),
+				Entry("Only advanced config is set", "", "advanced-config-is-set"),
+				Entry("No configs are set", "", ""),
+			)
 		})
 
 		It("uses the correct service account", func() {
@@ -1476,6 +1506,7 @@ var _ = Describe("StatefulSet", func() {
 						"prometheus.io/port":   "15692",
 					}))
 				})
+
 				It("Overrides PodSpec", func() {
 					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 						Spec: &rabbitmqv1beta1.StatefulSetSpec{
@@ -1611,8 +1642,18 @@ var _ = Describe("StatefulSet", func() {
 						},
 						corev1.VolumeMount{
 							Name:      "rabbitmq-confd",
-							MountPath: "/etc/rabbitmq/conf.d/default_user.conf",
+							MountPath: "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
+							SubPath:   "operatorDefaults.conf",
+						},
+						corev1.VolumeMount{
+							Name:      "rabbitmq-confd",
+							MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf",
 							SubPath:   "default_user.conf",
+						},
+						corev1.VolumeMount{
+							Name:      "rabbitmq-confd",
+							MountPath: "/etc/rabbitmq/conf.d/90-additionalConfig.conf",
+							SubPath:   "additionalConfig.conf",
 						},
 						corev1.VolumeMount{
 							Name:      "rabbitmq-erlang-cookie",
@@ -1623,16 +1664,12 @@ var _ = Describe("StatefulSet", func() {
 							MountPath: "/etc/pod-info/",
 						},
 						corev1.VolumeMount{
-							Name:      "server-conf",
-							MountPath: "/etc/rabbitmq/rabbitmq.conf",
-							SubPath:   "rabbitmq.conf",
-						},
-						corev1.VolumeMount{
 							Name:      "rabbitmq-plugins",
 							MountPath: "/operator",
 						},
 					))
 				})
+
 				Context("Rabbitmq Container volume mounts", func() {
 					It("Overrides the volume mounts list while making sure that '/var/lib/rabbitmq/' mounts before '/var/lib/rabbitmq/mnesia/' ", func() {
 						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
@@ -1665,8 +1702,9 @@ var _ = Describe("StatefulSet", func() {
 							{Name: "persistence", MountPath: "/var/lib/rabbitmq/mnesia/"},
 							{Name: "rabbitmq-erlang-cookie", MountPath: "/var/lib/rabbitmq/"},
 							{Name: "pod-info", MountPath: "/etc/pod-info/"},
-							{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/default_user.conf", SubPath: "default_user.conf"},
-							{Name: "server-conf", MountPath: "/etc/rabbitmq/rabbitmq.conf", SubPath: "rabbitmq.conf"},
+							{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/10-operatorDefaults.conf", SubPath: "operatorDefaults.conf"},
+							{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf", SubPath: "default_user.conf"},
+							{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/90-additionalConfig.conf", SubPath: "additionalConfig.conf"},
 							{Name: "rabbitmq-plugins", MountPath: "/operator"},
 							{Name: "test", MountPath: "test"},
 						}

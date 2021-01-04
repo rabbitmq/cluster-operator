@@ -308,16 +308,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 
 	volumes := []corev1.Volume{
 		{
-			Name: "server-conf",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: builder.Instance.ChildResourceName(ServerConfigMapName),
-					},
-				},
-			},
-		},
-		{
 			Name: "plugins-conf",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -341,6 +331,23 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 									{
 										Key:  "default_user.conf",
 										Path: "default_user.conf",
+									},
+								},
+							},
+						},
+						{
+							ConfigMap: &corev1.ConfigMapProjection{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: builder.Instance.ChildResourceName(ServerConfigMapName),
+								},
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "operatorDefaults.conf",
+										Path: "operatorDefaults.conf",
+									},
+									{
+										Key:  "additionalConfig.conf",
+										Path: "additionalConfig.conf",
 									},
 								},
 							},
@@ -386,6 +393,16 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 	}
 
+	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" || builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: "server-conf",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: builder.Instance.ChildResourceName(ServerConfigMapName),
+					}}}})
+	}
+
 	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "rabbitmq-erlang-cookie",
@@ -400,14 +417,19 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			MountPath: "/operator",
 		},
 		{
-			Name:      "server-conf",
-			MountPath: "/etc/rabbitmq/rabbitmq.conf",
-			SubPath:   "rabbitmq.conf",
+			Name:      "rabbitmq-confd",
+			MountPath: "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
+			SubPath:   "operatorDefaults.conf",
 		},
 		{
 			Name:      "rabbitmq-confd",
-			MountPath: "/etc/rabbitmq/conf.d/default_user.conf",
+			MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf",
 			SubPath:   "default_user.conf",
+		},
+		{
+			Name:      "rabbitmq-confd",
+			MountPath: "/etc/rabbitmq/conf.d/90-additionalConfig.conf",
+			SubPath:   "additionalConfig.conf",
 		},
 		{
 			Name:      "pod-info",
