@@ -13,7 +13,6 @@ package controllers_test
 import (
 	"context"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"k8s.io/client-go/util/retry"
@@ -43,22 +42,15 @@ var (
 	testEnv         *envtest.Environment
 	client          runtimeClient.Client
 	clientSet       *kubernetes.Clientset
-	stopMgr         chan struct{}
-	mgrStopped      *sync.WaitGroup
 	scheme          *runtime.Scheme
 	fakeExecutor    *fakePodExecutor
 	ctx             = context.Background()
+	cancelFunc      context.CancelFunc
 	updateWithRetry = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
 		return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			objKey, err := runtimeClient.ObjectKeyFromObject(cr)
-			if err != nil {
+			if err := client.Get(ctx, runtimeClient.ObjectKeyFromObject(cr), cr); err != nil {
 				return err
 			}
-
-			if err := client.Get(ctx, objKey, cr); err != nil {
-				return err
-			}
-
 			mutateFn(cr)
 			return client.Update(ctx, cr)
 		})
@@ -93,17 +85,16 @@ var _ = BeforeSuite(func() {
 	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
-	startManager(scheme)
+	cancelFunc = startManager(scheme)
 })
 
 var _ = AfterSuite(func() {
-	close(stopMgr)
-	mgrStopped.Wait()
+	cancelFunc()
 	By("tearing down the test environment")
 	Expect(testEnv.Stop()).To(Succeed())
 })
 
-func startManager(scheme *runtime.Scheme) {
+func startManager(scheme *runtime.Scheme) context.CancelFunc {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
 	client = mgr.GetClient()
@@ -119,13 +110,11 @@ func startManager(scheme *runtime.Scheme) {
 	}
 	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
 
-	stopMgr = make(chan struct{})
-	mgrStopped = &sync.WaitGroup{}
-	mgrStopped.Add(1)
+	managerCtx, cancel := context.WithCancel(context.Background())
 	go func() {
-		defer mgrStopped.Done()
-		Expect(mgr.Start(stopMgr)).To(Succeed())
+		Expect(mgr.Start(managerCtx)).To(Succeed())
 	}()
+	return cancel
 }
 
 type fakePodExecutor struct {
