@@ -81,8 +81,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
 
-func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log
 
 	rabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
@@ -172,7 +171,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		var operationResult controllerutil.OperationResult
 		err = clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			var apiError error
-			operationResult, apiError = controllerutil.CreateOrUpdate(ctx, r, resource, func() error {
+			operationResult, apiError = controllerutil.CreateOrUpdate(ctx, r.Client, resource, func() error {
 				return builder.Update(resource)
 			})
 			return apiError
