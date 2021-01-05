@@ -10,7 +10,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientretry "k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,7 +27,7 @@ const (
 // These annotations are temporary markers used in later reconcile loops to perform some action (such as restarting the StatefulSet or executing RabbitMQ CLI commands)
 func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, builder resource.ResourceBuilder, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 	var (
-		obj           runtime.Object
+		obj           client.Object
 		objName       string
 		annotationKey string
 	)

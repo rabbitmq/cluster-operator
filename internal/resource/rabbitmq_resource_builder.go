@@ -12,6 +12,7 @@ package resource
 import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type RabbitmqResourceBuilder struct {
@@ -20,8 +21,8 @@ type RabbitmqResourceBuilder struct {
 }
 
 type ResourceBuilder interface {
-	Build() (runtime.Object, error)
-	Update(runtime.Object) error
+	Build() (client.Object, error)
+	Update(client.Object) error
 }
 
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, error) {

@@ -11,6 +11,7 @@ package resource
 
 import (
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
@@ -36,7 +37,7 @@ func (builder *RabbitmqResourceBuilder) ServiceAccount() *ServiceAccountBuilder 
 	}
 }
 
-func (builder *ServiceAccountBuilder) Build() (runtime.Object, error) {
+func (builder *ServiceAccountBuilder) Build() (client.Object, error) {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: builder.Instance.Namespace,
@@ -45,7 +46,7 @@ func (builder *ServiceAccountBuilder) Build() (runtime.Object, error) {
 	}, nil
 }
 
-func (builder *ServiceAccountBuilder) Update(object runtime.Object) error {
+func (builder *ServiceAccountBuilder) Update(object client.Object) error {
 	serviceAccount := object.(*corev1.ServiceAccount)
 	serviceAccount.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	serviceAccount.Annotations = metadata.ReconcileAndFilterAnnotations(serviceAccount.GetAnnotations(), builder.Instance.Annotations)

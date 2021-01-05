@@ -12,6 +12,7 @@ package resource
 import (
 	"bytes"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -64,7 +65,7 @@ func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilde
 	}
 }
 
-func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
+func (builder *ServerConfigMapBuilder) Build() (client.Object, error) {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        builder.Instance.ChildResourceName(ServerConfigMapName),
@@ -75,7 +76,7 @@ func (builder *ServerConfigMapBuilder) Build() (runtime.Object, error) {
 	}, nil
 }
 
-func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
+func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 
 	ini.PrettySection = false // Remove trailing new line because rabbitmq.conf has only a default section.
