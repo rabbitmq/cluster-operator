@@ -104,6 +104,10 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 			if _, err := defaultSection.NewKey("management.tcp.port", "15672"); err != nil {
 				return err
 			}
+
+			if _, err := defaultSection.NewKey("prometheus.tcp.port", "15692"); err != nil {
+				return err
+			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
 			if _, err := defaultSection.NewKey("mqtt.listeners.ssl.default", "8883"); err != nil {
@@ -138,6 +142,11 @@ func (builder *ServerConfigMapBuilder) Update(object runtime.Object) error {
 		if _, err := defaultSection.NewKey("management.ssl.cacertfile", caCertPath); err != nil {
 			return err
 		}
+
+		if _, err := defaultSection.NewKey("prometheus.ssl.cacertfile", caCertPath); err != nil {
+			return err
+		}
+
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
 			if _, err := defaultSection.NewKey("web_mqtt.ssl.port", "15676"); err != nil {
 				return err
