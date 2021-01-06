@@ -30,7 +30,7 @@ api-reference: install-tools ## Generate API reference documentation
 		--templates-dir ./docs/api/autogen/templates \
 		--output-path ./docs/api/autogen/out.asciidoc \
 		--max-depth 30
-	docker run -v ${PWD}/docs/api:/documents/ asciidoctor/docker-asciidoctor asciidoctor autogen/out.asciidoc -o rabbitmq.com.ref.html
+	docker run -v ${PWD}/docs/api:/documents/ asciidoctor/docker-asciidoctor asciidoctor autogen/out.asciidoc -o rabbitmq.com.ref.html -a nofooter
 
 # Run go fmt against code
 fmt:
@@ -40,8 +40,8 @@ fmt:
 vet:
 	go vet ./...
 
-# Generate code
-generate: install-tools
+# Generate code & docs
+generate: install-tools api-reference
 	controller-gen object:headerFile=./hack/NOTICE.go.txt paths=./api/...
 	controller-gen object:headerFile=./hack/NOTICE.go.txt paths=./internal/status/...
 
