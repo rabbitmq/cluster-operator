@@ -86,6 +86,7 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 			pvcList := make([]corev1.PersistentVolumeClaim, len(override))
 			for i := range override {
 				copyObjectMeta(&pvcList[i].ObjectMeta, override[i].EmbeddedObjectMeta)
+				pvcList[i].Namespace = sts.Namespace // PVC should always be in the same namespace as the Stateful Set
 				pvcList[i].Spec = override[i].Spec
 				if err := controllerutil.SetControllerReference(builder.Instance, &pvcList[i], builder.Scheme); err != nil {
 					return nil, fmt.Errorf("failed setting controller reference: %v", err)
@@ -820,13 +821,11 @@ func copyLabelsAnnotations(base *metav1.ObjectMeta, override rabbitmqv1beta1.Emb
 	}
 }
 
+// copyObjectMeta copies name, labels, and annotations from a given EmbeddedObjectMeta to a metav1.ObjectMeta
+// there is no need to copy the namespace because both PVCs and Pod have to be in the same namespace as its StatefulSet
 func copyObjectMeta(base *metav1.ObjectMeta, override rabbitmqv1beta1.EmbeddedObjectMeta) {
 	if override.Name != "" {
 		base.Name = override.Name
-	}
-
-	if override.Namespace != "" {
-		base.Namespace = override.Namespace
 	}
 
 	if override.Labels != nil {

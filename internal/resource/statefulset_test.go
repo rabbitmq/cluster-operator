@@ -262,6 +262,97 @@ var _ = Describe("StatefulSet", func() {
 					},
 				))
 			})
+
+			It("successfully overrides PVC list even when namespace not specified", func() {
+				storageClass := "my-storage-class"
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+							{
+								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+									Name: "pert-1",
+								},
+								Spec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+										},
+									},
+									StorageClassName: &storageClass,
+								},
+							},
+							{
+								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+									Name: "pert-2",
+								},
+								Spec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+										},
+									},
+									StorageClassName: &storageClass,
+								},
+							},
+						},
+					},
+				}
+				stsBuilder := builder.StatefulSet()
+				obj, err := stsBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+				statefulSet := obj.(*appsv1.StatefulSet)
+
+				Expect(statefulSet.Spec.VolumeClaimTemplates).To(ConsistOf(
+					corev1.PersistentVolumeClaim{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pert-1",
+							Namespace: "foo-namespace",
+							OwnerReferences: []v1.OwnerReference{
+								{
+									APIVersion:         "rabbitmq.com/v1beta1",
+									Kind:               "RabbitmqCluster",
+									Name:               instance.Name,
+									UID:                "",
+									Controller:         pointer.BoolPtr(true),
+									BlockOwnerDeletion: pointer.BoolPtr(false),
+								},
+							},
+						},
+						Spec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+								},
+							},
+							StorageClassName: &storageClass,
+						},
+					},
+					corev1.PersistentVolumeClaim{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pert-2",
+							Namespace: "foo-namespace",
+							OwnerReferences: []v1.OwnerReference{
+								{
+									APIVersion:         "rabbitmq.com/v1beta1",
+									Kind:               "RabbitmqCluster",
+									Name:               instance.Name,
+									UID:                "",
+									Controller:         pointer.BoolPtr(true),
+									BlockOwnerDeletion: pointer.BoolPtr(false),
+								},
+							},
+						},
+						Spec: corev1.PersistentVolumeClaimSpec{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+								},
+							},
+							StorageClassName: &storageClass,
+						},
+					},
+				))
+			})
 		})
 	})
 
@@ -1344,8 +1435,7 @@ var _ = Describe("StatefulSet", func() {
 						Spec: &rabbitmqv1beta1.StatefulSetSpec{
 							Template: &rabbitmqv1beta1.PodTemplateSpec{
 								EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
-									Namespace: "my-ns",
-									Name:      "my-name",
+									Name: "my-name",
 									Labels: map[string]string{
 										"my-label": "my-label",
 									},
@@ -1359,7 +1449,6 @@ var _ = Describe("StatefulSet", func() {
 					stsBuilder := builder.StatefulSet()
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 					Expect(statefulSet.Spec.Template.ObjectMeta.Name).To(Equal("my-name"))
-					Expect(statefulSet.Spec.Template.ObjectMeta.Namespace).To(Equal("my-ns"))
 					Expect(statefulSet.Spec.Template.ObjectMeta.Labels).To(Equal(map[string]string{
 						"my-label":                    "my-label",
 						"app.kubernetes.io/component": "rabbitmq",
