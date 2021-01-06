@@ -23,6 +23,15 @@ manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 	./hack/add-notice-to-yaml.sh config/rbac/role.yaml
 	./hack/add-notice-to-yaml.sh config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml
 
+api-reference: install-tools ## Generate API reference documentation
+	crd-ref-docs \
+		--source-path ./api/v1beta1 \
+		--config ./docs/api/autogen/config.yaml \
+		--templates-dir ./docs/api/autogen/templates \
+		--output-path ./docs/api/autogen/out.asciidoc \
+		--max-depth 30
+	docker run -v ${PWD}/docs/api:/documents/ asciidoctor/docker-asciidoctor asciidoctor autogen/out.asciidoc -o rabbitmq.com.ref.html
+
 # Run go fmt against code
 fmt:
 	go fmt ./...
