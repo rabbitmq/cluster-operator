@@ -1,0 +1,14 @@
+---
+prometheus:
+  additionalPodMonitors:
+   - name: rabbitmq
+     podMetricsEndpoints:
+     - port: prometheus-tls
+       scheme: https
+       tlsConfig:
+           insecureSkipVerify: true
+     selector:
+       matchLabels:
+         app.kubernetes.io/component: rabbitmq
+     namespaceSelector:
+       any: true
