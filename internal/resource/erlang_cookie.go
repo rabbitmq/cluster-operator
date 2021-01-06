@@ -13,6 +13,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -38,7 +39,7 @@ func (builder *RabbitmqResourceBuilder) ErlangCookie() *ErlangCookieBuilder {
 	}
 }
 
-func (builder *ErlangCookieBuilder) Build() (runtime.Object, error) {
+func (builder *ErlangCookieBuilder) Build() (client.Object, error) {
 	cookie, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func (builder *ErlangCookieBuilder) Build() (runtime.Object, error) {
 	}, nil
 }
 
-func (builder *ErlangCookieBuilder) Update(object runtime.Object) error {
+func (builder *ErlangCookieBuilder) Update(object client.Object) error {
 	secret := object.(*corev1.Secret)
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)

@@ -11,6 +11,7 @@ package resource
 
 import (
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
@@ -36,7 +37,7 @@ func (builder *RabbitmqResourceBuilder) Role() *RoleBuilder {
 	}
 }
 
-func (builder *RoleBuilder) Build() (runtime.Object, error) {
+func (builder *RoleBuilder) Build() (client.Object, error) {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: builder.Instance.Namespace,
@@ -45,7 +46,7 @@ func (builder *RoleBuilder) Build() (runtime.Object, error) {
 	}, nil
 }
 
-func (builder *RoleBuilder) Update(object runtime.Object) error {
+func (builder *RoleBuilder) Update(object client.Object) error {
 	role := object.(*rbacv1.Role)
 	role.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	role.Annotations = metadata.ReconcileAndFilterAnnotations(role.GetAnnotations(), builder.Instance.Annotations)

@@ -44,7 +44,7 @@ var _ = Describe("Reconcile TLS", func() {
 
 				sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				Expect(sts.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
 					Name: "rabbitmq-tls",
 					VolumeSource: corev1.VolumeSource{

@@ -81,8 +81,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
 
-func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log
 
 	rabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
@@ -172,7 +171,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		var operationResult controllerutil.OperationResult
 		err = clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			var apiError error
-			operationResult, apiError = controllerutil.CreateOrUpdate(ctx, r, resource, func() error {
+			operationResult, apiError = controllerutil.CreateOrUpdate(ctx, r.Client, resource, func() error {
 				return builder.Update(resource)
 			})
 			return apiError
@@ -305,7 +304,7 @@ func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, name
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	for _, resource := range []runtime.Object{&appsv1.StatefulSet{}, &corev1.ConfigMap{}, &corev1.Service{}} {
+	for _, resource := range []client.Object{&appsv1.StatefulSet{}, &corev1.ConfigMap{}, &corev1.Service{}} {
 		if err := mgr.GetFieldIndexer().IndexField(context.Background(), resource, ownerKey, addResourceToIndex); err != nil {
 			return err
 		}
@@ -323,7 +322,7 @@ func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func addResourceToIndex(rawObj runtime.Object) []string {
+func addResourceToIndex(rawObj client.Object) []string {
 	switch resourceObject := rawObj.(type) {
 	case *appsv1.StatefulSet:
 		owner := metav1.GetControllerOf(resourceObject)

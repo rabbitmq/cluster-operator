@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -46,7 +47,7 @@ func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
 	}
 }
 
-func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
+func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 	// PVC, ServiceName & Selector: can't be updated without deleting the statefulset
 	pvc, err := persistentVolumeClaim(builder.Instance, builder.Scheme)
 	if err != nil {
@@ -98,7 +99,7 @@ func (builder *StatefulSetBuilder) Build() (runtime.Object, error) {
 	return sts, nil
 }
 
-func (builder *StatefulSetBuilder) Update(object runtime.Object) error {
+func (builder *StatefulSetBuilder) Update(object client.Object) error {
 	sts := object.(*appsv1.StatefulSet)
 
 	//Replicas

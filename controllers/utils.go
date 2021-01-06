@@ -2,13 +2,13 @@ package controllers
 
 import (
 	"context"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 )
@@ -17,7 +17,7 @@ func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName strin
 	return r.PodExecutor.Exec(r.Clientset, r.ClusterConfig, namespace, podName, containerName, command...)
 }
 
-func (r *RabbitmqClusterReconciler) deleteAnnotation(ctx context.Context, obj runtime.Object, annotation string) error {
+func (r *RabbitmqClusterReconciler) deleteAnnotation(ctx context.Context, obj client.Object, annotation string) error {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (r *RabbitmqClusterReconciler) deleteAnnotation(ctx context.Context, obj ru
 	return r.Update(ctx, obj)
 }
 
-func (r *RabbitmqClusterReconciler) updateAnnotation(ctx context.Context, obj runtime.Object, namespace, objName, key, value string) error {
+func (r *RabbitmqClusterReconciler) updateAnnotation(ctx context.Context, obj client.Object, namespace, objName, key, value string) error {
 	return retry.OnError(
 		retry.DefaultRetry,
 		errorIsConflictOrNotFound, // StatefulSet needs time to be found after it got created

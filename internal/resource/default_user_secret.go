@@ -12,6 +12,7 @@ package resource
 import (
 	"bytes"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -39,7 +40,7 @@ func (builder *RabbitmqResourceBuilder) DefaultUserSecret() *DefaultUserSecretBu
 	}
 }
 
-func (builder *DefaultUserSecretBuilder) Build() (runtime.Object, error) {
+func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 	username, err := randomEncodedString(24)
 	if err != nil {
 		return nil, err
@@ -69,7 +70,7 @@ func (builder *DefaultUserSecretBuilder) Build() (runtime.Object, error) {
 	}, nil
 }
 
-func (builder *DefaultUserSecretBuilder) Update(object runtime.Object) error {
+func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	secret := object.(*corev1.Secret)
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)

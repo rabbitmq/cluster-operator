@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,7 +34,7 @@ func (builder *RabbitmqResourceBuilder) RabbitmqPluginsConfigMap() *RabbitmqPlug
 	}
 }
 
-func (builder *RabbitmqPluginsConfigMapBuilder) Build() (runtime.Object, error) {
+func (builder *RabbitmqPluginsConfigMapBuilder) Build() (client.Object, error) {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        builder.Instance.ChildResourceName(PluginsConfigName),
@@ -47,7 +48,7 @@ func (builder *RabbitmqPluginsConfigMapBuilder) Build() (runtime.Object, error) 
 	}, nil
 }
 
-func (builder *RabbitmqPluginsConfigMapBuilder) Update(object runtime.Object) error {
+func (builder *RabbitmqPluginsConfigMapBuilder) Update(object client.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 
 	if configMap.Data == nil {

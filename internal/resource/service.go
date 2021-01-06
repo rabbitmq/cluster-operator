@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -40,7 +41,7 @@ func (builder *RabbitmqResourceBuilder) Service() *ServiceBuilder {
 	}
 }
 
-func (builder *ServiceBuilder) Build() (runtime.Object, error) {
+func (builder *ServiceBuilder) Build() (client.Object, error) {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(ServiceSuffix),
@@ -49,7 +50,7 @@ func (builder *ServiceBuilder) Build() (runtime.Object, error) {
 	}, nil
 }
 
-func (builder *ServiceBuilder) Update(object runtime.Object) error {
+func (builder *ServiceBuilder) Update(object client.Object) error {
 	service := object.(*corev1.Service)
 	builder.setAnnotations(service)
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)

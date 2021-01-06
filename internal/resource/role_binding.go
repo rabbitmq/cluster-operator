@@ -14,6 +14,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -36,7 +37,7 @@ func (builder *RabbitmqResourceBuilder) RoleBinding() *RoleBindingBuilder {
 	}
 }
 
-func (builder *RoleBindingBuilder) Update(object runtime.Object) error {
+func (builder *RoleBindingBuilder) Update(object client.Object) error {
 	roleBinding := object.(*rbacv1.RoleBinding)
 	roleBinding.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	roleBinding.Annotations = metadata.ReconcileAndFilterAnnotations(roleBinding.GetAnnotations(), builder.Instance.Annotations)
@@ -58,7 +59,7 @@ func (builder *RoleBindingBuilder) Update(object runtime.Object) error {
 	return nil
 }
 
-func (builder *RoleBindingBuilder) Build() (runtime.Object, error) {
+func (builder *RoleBindingBuilder) Build() (client.Object, error) {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: builder.Instance.Namespace,

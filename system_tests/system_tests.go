@@ -380,7 +380,6 @@ CONSOLE_LOG=new`
 						return actualCert
 					}, 180, 10).ShouldNot(Equal(oldServerCert))
 
-
 					Eventually(func() []byte {
 						newServerCertificate := inspectServerCertificate(username, password, hostname, amqpsNodePort, caFilePath)
 						return newServerCertificate
