@@ -22,16 +22,21 @@ import (
 
 // +kubebuilder:object:root=true
 
-// RabbitmqCluster is the Schema for the rabbitmqclusters API
+// RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this object
+// corresponds to a single RabbitMQ cluster.
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.clusterStatus"
 // +kubebuilder:resource:shortName={"rmq"}
 type RabbitmqCluster struct {
+	// Embedded metadata identifying a Kind and API Verison of an object.
+	// For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RabbitmqClusterSpec   `json:"spec,omitempty"`
+	// Desired state of the RabbitmqCluster resource
+	Spec RabbitmqClusterSpec `json:"spec,omitempty"`
+	// Status of the RabbitmqCluster resource
 	Status RabbitmqClusterStatus `json:"status,omitempty"`
 }
 
@@ -47,18 +52,25 @@ type RabbitmqClusterSpec struct {
 	Image string `json:"image,omitempty"`
 	// List of Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	// Desired state of the Kubernetes Service to create for the cluster.
 	// +kubebuilder:default:={type: "ClusterIP"}
 	Service RabbitmqClusterServiceSpec `json:"service,omitempty"`
+	// The desired persistent storage configuration for each Pod in the cluster.
 	// +kubebuilder:default:={storage: "10Gi"}
 	Persistence RabbitmqClusterPersistenceSpec `json:"persistence,omitempty"`
+	// The desired compute resource requirements of Pods in the cluster.
 	// +kubebuilder:default:={limits: {cpu: "2000m", memory: "2Gi"}, requests: {cpu: "1000m", memory: "2Gi"}}
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
-	Affinity  *corev1.Affinity             `json:"affinity,omitempty"`
+	// Affinity scheduling rules to be applied on created Pods.
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 	// Tolerations is the list of Toleration resources attached to each Pod in the RabbitmqCluster.
-	Tolerations []corev1.Toleration              `json:"tolerations,omitempty"`
-	Rabbitmq    RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
-	TLS         TLSSpec                          `json:"tls,omitempty"`
-	Override    RabbitmqClusterOverrideSpec      `json:"override,omitempty"`
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Configuration options for RabbitMQ Pods created in the cluster.
+	Rabbitmq RabbitmqClusterConfigurationSpec `json:"rabbitmq,omitempty"`
+	// TLS-related configuration for the RabbitMQ cluster.
+	TLS TLSSpec `json:"tls,omitempty"`
+	// Provides the ability to override the generated manifest of several child resources.
+	Override RabbitmqClusterOverrideSpec `json:"override,omitempty"`
 	// If unset, or set to false, the cluster will run `rabbitmq-queues rebalance all` whenever the cluster is updated.
 	// Has no effect if the cluster only consists of one node.
 	// For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
@@ -71,20 +83,27 @@ type RabbitmqClusterSpec struct {
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
 }
 
+// Provides the ability to override the generated manifest of several child resources.
 type RabbitmqClusterOverrideSpec struct {
+	// Override configuration for the RabbitMQ StatefulSet.
 	StatefulSet *StatefulSet `json:"statefulSet,omitempty"`
-	Service     *Service     `json:"service,omitempty"`
+	// Override configuration for the Service created to serve traffic to the cluster.
+	Service *Service `json:"service,omitempty"`
 }
 
+// Override configuration for the Service created to serve traffic to the cluster.
+// Allows for the manifest of the created Service to be overwritten with custom configuration.
 type Service struct {
 	// +optional
 	*EmbeddedLabelsAnnotations `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	// Spec defines the behavior of a service.
+	// Spec defines the behavior of a Service.
 	// https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
 	Spec *corev1.ServiceSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
+// Override configuration for the RabbitMQ StatefulSet.
+// Allows for the manifest of the created StatefulSet to be overwritten with custom configuration.
 type StatefulSet struct {
 	// +optional
 	*EmbeddedLabelsAnnotations `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -151,7 +170,8 @@ type StatefulSetSpec struct {
 	UpdateStrategy *appsv1.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty" protobuf:"bytes,7,opt,name=updateStrategy"`
 }
 
-// It is used in Service and StatefulSet
+// EmbeddedLabelsAnnotations is an embedded subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta.
+// Only labels and annotations are included.
 type EmbeddedLabelsAnnotations struct {
 	// Map of string keys and values that can be used to organize and categorize
 	// (scope and select) objects. May match selectors of replication controllers
@@ -168,9 +188,8 @@ type EmbeddedLabelsAnnotations struct {
 	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
 }
 
-// EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+// EmbeddedObjectMeta is an embedded subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta.
 // Only fields which are relevant to embedded resources are included.
-// It is used in PersistentVolumeClaim and PodTemplate
 type EmbeddedObjectMeta struct {
 	// Name must be unique within a namespace. Is required when creating resources, although
 	// some resources may allow a client to request the generation of an appropriate name
@@ -223,6 +242,8 @@ type PodTemplateSpec struct {
 // It contains TypeMeta and a reduced ObjectMeta.
 // Field status is omitted.
 type PersistentVolumeClaim struct {
+	// Embedded metadata identifying a Kind and API Verison of an object.
+	// For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
 	metav1.TypeMeta `json:",inline"`
 	// +optional
 	EmbeddedObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -233,6 +254,7 @@ type PersistentVolumeClaim struct {
 	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
+// Allows for the configuration of TLS certificates to be used by RabbitMQ. Also allows for non-TLS traffic to be disabled.
 type TLSSpec struct {
 	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the server's private key & public certificate for TLS.
 	// The Secret must store these as tls.key and tls.crt, respectively.
@@ -252,7 +274,7 @@ type TLSSpec struct {
 // +kubebuilder:validation:MaxLength=100
 type Plugin string
 
-// Rabbitmq related configurations
+// RabbitMQ-related configuration.
 type RabbitmqClusterConfigurationSpec struct {
 	// List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.
 	// +kubebuilder:validation:MaxItems:=100
@@ -279,6 +301,8 @@ type RabbitmqClusterPersistenceSpec struct {
 
 // Settable attributes for the Service resource.
 type RabbitmqClusterServiceSpec struct {
+	// Type of Service to create for the cluster. Must be one of:
+	// ClusterIP, LoadBalancer, NodePort
 	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
 	// +kubebuilder:default:="ClusterIP"
 	Type corev1.ServiceType `json:"type,omitempty"`
@@ -288,6 +312,7 @@ type RabbitmqClusterServiceSpec struct {
 
 // Status presents the observed state of RabbitmqCluster
 type RabbitmqClusterStatus struct {
+	// Unused.
 	ClusterStatus string `json:"clusterStatus,omitempty"`
 	// Set of Conditions describing the current state of the RabbitmqCluster
 	Conditions []status.RabbitmqClusterCondition `json:"conditions"`
@@ -296,19 +321,30 @@ type RabbitmqClusterStatus struct {
 	DefaultUser *RabbitmqClusterDefaultUser `json:"defaultUser,omitempty"`
 }
 
+// Contains references to resources created with the RabbitmqCluster resource.
 type RabbitmqClusterDefaultUser struct {
-	SecretReference  *RabbitmqClusterSecretReference  `json:"secretReference,omitempty"`
+	// Reference to the Kubernetes Secret containing the credentials of the default
+	// user.
+	SecretReference *RabbitmqClusterSecretReference `json:"secretReference,omitempty"`
+	// Reference to the Kubernetes Service serving the cluster.
 	ServiceReference *RabbitmqClusterServiceReference `json:"serviceReference,omitempty"`
 }
 
+// Reference to the Kubernetes Secret containing the credentials of the default user.
 type RabbitmqClusterSecretReference struct {
-	Name      string            `json:"name"`
-	Namespace string            `json:"namespace"`
-	Keys      map[string]string `json:"keys"`
+	// Name of the Secret containing the default user credentials
+	Name string `json:"name"`
+	// Namespace of the Secret containing the default user credentials
+	Namespace string `json:"namespace"`
+	// Key-value pairs in the Secret corresponding to `username` and `password`
+	Keys map[string]string `json:"keys"`
 }
 
+// Reference to the Kubernetes Service serving the cluster.
 type RabbitmqClusterServiceReference struct {
-	Name      string `json:"name"`
+	// Name of the Service serving the cluster
+	Name string `json:"name"`
+	// Namespace of the Service serving the cluster
 	Namespace string `json:"namespace"`
 }
 
@@ -392,11 +428,14 @@ func (clusterStatus *RabbitmqClusterStatus) SetCondition(condType status.Rabbitm
 
 // +kubebuilder:object:root=true
 
-// RabbitmqClusterList contains a list of RabbitmqCluster
+// RabbitmqClusterList contains a list of RabbitmqClusters.
 type RabbitmqClusterList struct {
+	// Embedded metadata identifying a Kind and API Verison of an object.
+	// For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []RabbitmqCluster `json:"items"`
+	// Array of RabbitmqCluster resources.
+	Items []RabbitmqCluster `json:"items"`
 }
 
 func (cluster RabbitmqCluster) ChildResourceName(name string) string {

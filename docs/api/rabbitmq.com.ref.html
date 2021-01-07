@@ -474,7 +474,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedlabelsannotations">EmbeddedLabelsAnnotations</h5>
 <div class="paragraph">
-<p>It is used in Service and StatefulSet</p>
+<p>EmbeddedLabelsAnnotations is an embedded subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta. Only labels and annotations are included.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -525,7 +525,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta">EmbeddedObjectMeta</h5>
 <div class="paragraph">
-<p>EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in PersistentVolumeClaim and PodTemplate</p>
+<p>EmbeddedObjectMeta is an embedded subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta. Only fields which are relevant to embedded resources are included.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -623,7 +623,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>TypeMeta</code></strong> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#typemeta-v1-meta">TypeMeta</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Embedded metadata identifying a Kind and API Verison of an object. For more info, see: <a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta" class="bare">https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta</a></p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
@@ -710,7 +712,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqcluster">RabbitmqCluster</h5>
 <div class="paragraph">
-<p>RabbitmqCluster is the Schema for the rabbitmqclusters API</p>
+<p>RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this object corresponds to a single RabbitMQ cluster.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -756,7 +758,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>TypeMeta</code></strong> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#typemeta-v1-meta">TypeMeta</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Embedded metadata identifying a Kind and API Verison of an object. For more info, see: <a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta" class="bare">https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta</a></p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
@@ -770,13 +774,17 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>spec</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterspec">RabbitmqClusterSpec</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Desired state of the RabbitmqCluster resource</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>status</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterstatus">RabbitmqClusterStatus</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Status of the RabbitmqCluster resource</p>
+</div></div></td>
 </tr>
 </tbody>
 </table>
@@ -784,7 +792,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterconfigurationspec">RabbitmqClusterConfigurationSpec</h5>
 <div class="paragraph">
-<p>Rabbitmq related configurations</p>
+<p>RabbitMQ-related configuration.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -847,6 +855,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterdefaultuser">RabbitmqClusterDefaultUser</h5>
+<div class="paragraph">
+<p>Contains references to resources created with the RabbitmqCluster resource.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -875,13 +886,17 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>secretReference</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclustersecretreference">RabbitmqClusterSecretReference</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Reference to the Kubernetes Secret containing the credentials of the default user.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>serviceReference</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicereference">RabbitmqClusterServiceReference</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Reference to the Kubernetes Service serving the cluster.</p>
+</div></div></td>
 </tr>
 </tbody>
 </table>
@@ -889,7 +904,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterlist">RabbitmqClusterList</h5>
 <div class="paragraph">
-<p>RabbitmqClusterList contains a list of RabbitmqCluster</p>
+<p>RabbitmqClusterList contains a list of RabbitmqClusters.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
@@ -923,7 +938,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>TypeMeta</code></strong> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#typemeta-v1-meta">TypeMeta</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Embedded metadata identifying a Kind and API Verison of an object. For more info, see: <a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta" class="bare">https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta</a></p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
@@ -937,13 +954,18 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>items</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqcluster">RabbitmqCluster</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Array of RabbitmqCluster resources.</p>
+</div></div></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusteroverridespec">RabbitmqClusterOverrideSpec</h5>
+<div class="paragraph">
+<p>Provides the ability to override the generated manifest of several child resources.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -972,13 +994,17 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>statefulSet</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulset">StatefulSet</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Override configuration for the RabbitMQ StatefulSet.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>service</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-service">Service</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Override configuration for the Service created to serve traffic to the cluster.</p>
+</div></div></td>
 </tr>
 </tbody>
 </table>
@@ -1033,6 +1059,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclustersecretreference">RabbitmqClusterSecretReference</h5>
+<div class="paragraph">
+<p>Reference to the Kubernetes Secret containing the credentials of the default user.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1061,25 +1090,34 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>name</code></strong> <em>string</em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Name of the Secret containing the default user credentials</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>namespace</code></strong> <em>string</em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Namespace of the Secret containing the default user credentials</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>keys</code></strong> <em>object (keys:string, values:string)</em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Key-value pairs in the Secret corresponding to <code>username</code> and <code>password</code></p>
+</div></div></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicereference">RabbitmqClusterServiceReference</h5>
+<div class="paragraph">
+<p>Reference to the Kubernetes Service serving the cluster.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1108,13 +1146,17 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>name</code></strong> <em>string</em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Name of the Service serving the cluster</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>namespace</code></strong> <em>string</em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Namespace of the Service serving the cluster</p>
+</div></div></td>
 </tr>
 </tbody>
 </table>
@@ -1152,7 +1194,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>type</code></strong> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#servicetype-v1-core">ServiceType</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Type of Service to create for the cluster. Must be one of: ClusterIP, LoadBalancer, NodePort</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
@@ -1222,25 +1266,33 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>service</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicespec">RabbitmqClusterServiceSpec</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Desired state of the Kubernetes Service to create for the cluster.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>persistence</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterpersistencespec">RabbitmqClusterPersistenceSpec</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>The desired persistent storage configuration for each Pod in the cluster.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>resources</code></strong> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#resourcerequirements-v1-core">ResourceRequirements</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>The desired compute resource requirements of Pods in the cluster.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>affinity</code></strong> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#affinity-v1-core">Affinity</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Affinity scheduling rules to be applied on created Pods.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
@@ -1254,19 +1306,25 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>rabbitmq</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterconfigurationspec">RabbitmqClusterConfigurationSpec</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Configuration options for RabbitMQ Pods created in the cluster.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>tls</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-tlsspec">TLSSpec</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>TLS-related configuration for the RabbitMQ cluster.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>override</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusteroverridespec">RabbitmqClusterOverrideSpec</a></em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Provides the ability to override the generated manifest of several child resources.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
@@ -1320,7 +1378,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><strong><code>clusterStatus</code></strong> <em>string</em></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Unused.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
@@ -1343,6 +1403,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-service">Service</h5>
+<div class="paragraph">
+<p>Override configuration for the Service created to serve traffic to the cluster. Allows for the manifest of the created Service to be overwritten with custom configuration.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1380,7 +1443,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p><strong><code>spec</code></strong> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#servicespec-v1-core">ServiceSpec</a></em></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Spec defines the behavior of a service. <a href="https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status" class="bare">https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status</a></p>
+<p>Spec defines the behavior of a Service. <a href="https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status" class="bare">https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status</a></p>
 </div></div></td>
 </tr>
 </tbody>
@@ -1388,6 +1451,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulset">StatefulSet</h5>
+<div class="paragraph">
+<p>Override configuration for the RabbitMQ StatefulSet. Allows for the manifest of the created StatefulSet to be overwritten with custom configuration.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1521,6 +1587,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="sect4">
 <h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-tlsspec">TLSSpec</h5>
+<div class="paragraph">
+<p>Allows for the configuration of TLS certificates to be used by RabbitMQ. Also allows for non-TLS traffic to be disabled.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
