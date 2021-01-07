@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	"time"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -25,7 +26,7 @@ const (
 
 // Annotates an object depending on object type and operationResult.
 // These annotations are temporary markers used in later reconcile loops to perform some action (such as restarting the StatefulSet or executing RabbitMQ CLI commands)
-func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, builder resource.ResourceBuilder, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, logger logr.Logger, builder resource.ResourceBuilder, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 	var (
 		obj           client.Object
 		objName       string
@@ -64,19 +65,19 @@ func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, builde
 
 	if err := r.updateAnnotation(ctx, obj, rmq.Namespace, objName, annotationKey, time.Now().Format(time.RFC3339)); err != nil {
 		msg := "failed to annotate " + objName
-		r.Log.Error(err, msg, "namespace", rmq.Namespace)
+		logger.Error(err, msg, "namespace", rmq.Namespace)
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedUpdate", msg)
 		return err
 	}
 
-	r.Log.Info("successfully annotated", "namespace", rmq.Namespace, "name", objName)
+	logger.Info("successfully annotated")
 	return nil
 }
 
 // Adds an arbitrary annotation to the sts PodTemplate to trigger a sts restart.
 // It compares annotation "rabbitmq.com/serverConfUpdatedAt" from server-conf configMap and annotation "rabbitmq.com/lastRestartAt" from sts
 // to determine whether to restart sts.
-func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (time.Duration, error) {
+func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Context, logger logr.Logger, rmq *rabbitmqv1beta1.RabbitmqCluster) (time.Duration, error) {
 	serverConf, err := r.configMap(ctx, rmq, rmq.ChildResourceName(resource.ServerConfigMapName))
 	if err != nil {
 		// requeue request after 10s if unable to find server-conf configmap, else return the error
@@ -112,15 +113,15 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Conte
 		sts.Spec.Template.ObjectMeta.Annotations[stsRestartAnnotation] = time.Now().Format(time.RFC3339)
 		return r.Update(ctx, sts)
 	}); err != nil {
-		msg := fmt.Sprintf("failed to restart StatefulSet %s of Namespace %s; rabbitmq.conf configuration may be outdated", rmq.ChildResourceName("server"), rmq.Namespace)
-		r.Log.Error(err, msg)
+		msg := fmt.Sprintf("failed to restart StatefulSet %s; rabbitmq.conf configuration may be outdated", rmq.ChildResourceName("server"))
+		logger.Error(err, msg)
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedUpdate", msg)
 		// failed to restart sts; return error to requeue request
 		return 0, err
 	}
 
-	msg := fmt.Sprintf("restarted StatefulSet %s of Namespace %s", rmq.ChildResourceName("server"), rmq.Namespace)
-	r.Log.Info(msg)
+	msg := fmt.Sprintf("restarted StatefulSet %s", rmq.ChildResourceName("server"))
+	logger.Info(msg)
 	r.Recorder.Event(rmq, corev1.EventTypeNormal, "SuccessfulUpdate", msg)
 
 	return 0, nil

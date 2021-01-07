@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
@@ -36,7 +37,7 @@ func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitm
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, logger logr.Logger, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
 		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			sts := &appsv1.StatefulSet{
@@ -58,11 +59,11 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 
 			return nil
 		}); err != nil {
-			r.Log.Error(err, "RabbitmqCluster deletion")
+			logger.Error(err, "RabbitmqCluster deletion")
 		}
 
 		if err := r.removeFinalizer(ctx, rabbitmqCluster); err != nil {
-			r.Log.Error(err, "Failed to remove finalizer for deletion")
+			logger.Error(err, "Failed to remove finalizer for deletion")
 			return err
 		}
 	}
