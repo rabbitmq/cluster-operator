@@ -176,9 +176,11 @@ cluster_keepalive_interval = 10000`
 
 				// verify that rabbitmq.conf contains provided configurations
 				cfgMap := getConfigFileFromPod(namespace, cluster, "/etc/rabbitmq/rabbitmq.conf")
-				Expect(cfgMap).To(HaveKeyWithValue("vm_memory_high_watermark_paging_ratio", "0.5"))
-				Expect(cfgMap).To(HaveKeyWithValue("cluster_keepalive_interval", "10000"))
-				Expect(cfgMap).To(HaveKeyWithValue("cluster_partition_handling", "ignore"))
+				Expect(cfgMap).To(SatisfyAll(
+					HaveKeyWithValue("vm_memory_high_watermark_paging_ratio", "0.5"),
+					HaveKeyWithValue("cluster_keepalive_interval", "10000"),
+					HaveKeyWithValue("cluster_partition_handling", "ignore"),
+				))
 			})
 
 			By("updating the advanced.config file when advancedConfig are modified", func() {
