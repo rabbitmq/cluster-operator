@@ -10,8 +10,9 @@
 package resource
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -198,7 +199,7 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	}
 
 	// TODO refactor: use string builder
-	var rmqConfBuffer bytes.Buffer
+	var rmqConfBuffer strings.Builder
 	if _, err := cfg.WriteTo(&rmqConfBuffer); err != nil {
 		return err
 	}
