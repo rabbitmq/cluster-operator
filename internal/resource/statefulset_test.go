@@ -709,7 +709,7 @@ var _ = Describe("StatefulSet", func() {
 
 			It("opens tls ports when mqtt and stomp are configured", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin("rabbitmq_mqtt"), rabbitmqv1beta1.Plugin("rabbitmq_stomp")}
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -730,7 +730,7 @@ var _ = Describe("StatefulSet", func() {
 				It("opens tls ports when rabbitmq_web_mqtt and rabbitmq_web_stomp are configured", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "tls-secret"
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin("rabbitmq_web_mqtt"), rabbitmqv1beta1.Plugin("rabbitmq_web_stomp")}
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -812,7 +812,7 @@ var _ = Describe("StatefulSet", func() {
 				})
 
 				It("disables non tls ports for mqtt and stomp when configured", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin("rabbitmq_mqtt"), rabbitmqv1beta1.Plugin("rabbitmq_stomp")}
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"}
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")

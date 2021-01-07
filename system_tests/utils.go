@@ -445,7 +445,7 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 	}
 	if secret := os.Getenv("RABBITMQ_IMAGE_PULL_SECRET"); secret != "" {
 		cluster.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
-			corev1.LocalObjectReference{Name: secret},
+			{Name: secret},
 		}
 	}
 
