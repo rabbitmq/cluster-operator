@@ -470,7 +470,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </div>
 <div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedlabelsannotations">EmbeddedLabelsAnnotations</h4>
+<h4 id="_definitions">Definitions</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedlabelsannotations">EmbeddedLabelsAnnotations</h5>
+<div class="paragraph">
+<p>It is used in Service and StatefulSet</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -517,8 +522,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta">EmbeddedObjectMeta</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta">EmbeddedObjectMeta</h5>
+<div class="paragraph">
+<p>EmbeddedObjectMeta contains a subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta Only fields which are relevant to embedded resources are included. It is used in PersistentVolumeClaim and PodTemplate</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -582,8 +590,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-persistentvolumeclaim">PersistentVolumeClaim</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-persistentvolumeclaim">PersistentVolumeClaim</h5>
+<div class="paragraph">
+<p>PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVolumeClaim. It contains TypeMeta and a reduced ObjectMeta. Field status is omitted.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -633,8 +644,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-plugin">Plugin</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-plugin">Plugin (string)</h5>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -648,8 +659,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-podtemplatespec">PodTemplateSpec</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-podtemplatespec">PodTemplateSpec</h5>
+<div class="paragraph">
+<p>PodTemplateSpec is an embedded version of k8s.io/api/core/v1.PodTemplateSpec. It contains a reduced ObjectMeta.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -693,8 +707,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqcluster">RabbitmqCluster</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqcluster">RabbitmqCluster</h5>
 <div class="paragraph">
 <p>RabbitmqCluster is the Schema for the rabbitmqclusters API</p>
 </div>
@@ -767,8 +781,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterconfigurationspec">RabbitmqClusterConfigurationSpec</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterconfigurationspec">RabbitmqClusterConfigurationSpec</h5>
 <div class="paragraph">
 <p>Rabbitmq related configurations</p>
 </div>
@@ -798,7 +812,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p><strong><code>additionalPlugins</code></strong> <em>Plugin array</em></p>
+<p><strong><code>additionalPlugins</code></strong> <em><a href="#k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-plugin">Plugin</a> array</em></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.</p>
@@ -831,8 +845,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterdefaultuser">RabbitmqClusterDefaultUser</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterdefaultuser">RabbitmqClusterDefaultUser</h5>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -872,8 +886,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterlist">RabbitmqClusterList</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterlist">RabbitmqClusterList</h5>
 <div class="paragraph">
 <p>RabbitmqClusterList contains a list of RabbitmqCluster</p>
 </div>
@@ -928,8 +942,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusteroverridespec">RabbitmqClusterOverrideSpec</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusteroverridespec">RabbitmqClusterOverrideSpec</h5>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -969,8 +983,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterpersistencespec">RabbitmqClusterPersistenceSpec</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterpersistencespec">RabbitmqClusterPersistenceSpec</h5>
 <div class="paragraph">
 <p>The settings for the persistent storage desired for each Pod in the RabbitmqCluster.</p>
 </div>
@@ -1017,8 +1031,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclustersecretreference">RabbitmqClusterSecretReference</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclustersecretreference">RabbitmqClusterSecretReference</h5>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1064,8 +1078,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicereference">RabbitmqClusterServiceReference</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicereference">RabbitmqClusterServiceReference</h5>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1105,8 +1119,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicespec">RabbitmqClusterServiceSpec</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicespec">RabbitmqClusterServiceSpec</h5>
 <div class="paragraph">
 <p>Settable attributes for the Service resource.</p>
 </div>
@@ -1151,8 +1165,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterspec">RabbitmqClusterSpec</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterspec">RabbitmqClusterSpec</h5>
 <div class="paragraph">
 <p>Spec is the desired state of the RabbitmqCluster Custom Resource.</p>
 </div>
@@ -1273,8 +1287,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterstatus">RabbitmqClusterStatus</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterstatus">RabbitmqClusterStatus</h5>
 <div class="paragraph">
 <p>Status presents the observed state of RabbitmqCluster</p>
 </div>
@@ -1327,8 +1341,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-service">Service</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-service">Service</h5>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1372,8 +1386,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulset">StatefulSet</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulset">StatefulSet</h5>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1417,8 +1431,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulsetspec">StatefulSetSpec</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulsetspec">StatefulSetSpec</h5>
+<div class="paragraph">
+<p>StatefulSetSpec contains a subset of the fields included in k8s.io/api/apps/v1.StatefulSetSpec. Field RevisionHistoryLimit is omitted. Every field is made optional.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1502,8 +1519,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tbody>
 </table>
 </div>
-<div class="sect3">
-<h4 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-tlsspec">TLSSpec</h4>
+<div class="sect4">
+<h5 id="k8s-api-github-com-rabbitmq-cluster-operator-api-v1beta1-tlsspec">TLSSpec</h5>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Appears In:</div>
@@ -1554,6 +1571,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tr>
 </tbody>
 </table>
+</div>
 </div>
 </div>
 </div>

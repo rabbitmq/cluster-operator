@@ -12,6 +12,7 @@
 {{- end }}
 {{ end }}
 
+==== Definitions
 {{ range $gv.SortedTypes }}
 {{ template "type" . }}
 {{ end }}
