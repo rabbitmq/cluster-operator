@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -470,7 +471,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 
 	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Annotations: metadata.ReconcileAnnotations(defaultPodAnnotations, previousPodAnnotations),
+			Annotations: metadata.ReconcileAnnotations(previousPodAnnotations, defaultPodAnnotations),
 			Labels:      metadata.Label(builder.Instance.Name),
 		},
 		Spec: corev1.PodSpec{

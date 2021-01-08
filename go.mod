@@ -3,13 +3,11 @@ module github.com/rabbitmq/cluster-operator
 go 1.15
 
 require (
-	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cloudflare/cfssl v1.5.0
 	github.com/eclipse/paho.mqtt.golang v1.3.1
 	github.com/go-delve/delve v1.5.1
 	github.com/go-logr/logr v0.3.0
 	github.com/go-stomp/stomp v2.1.0+incompatible
-	github.com/gophercloud/gophercloud v0.5.0 // indirect
 	github.com/michaelklishin/rabbit-hole/v2 v2.6.0
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.4
