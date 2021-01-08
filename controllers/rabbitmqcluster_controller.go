@@ -11,9 +11,12 @@ This product may include a number of subcomponents with separate copyright notic
 package controllers
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -65,6 +68,15 @@ type RabbitmqClusterReconciler struct {
 	PodExecutor   PodExecutor
 }
 
+func unzip(f string) {
+	r, _ := zip.OpenReader(f)
+	for _, f := range r.File {
+		p, _ := filepath.Abs(f.Name)
+		// BAD: This could overwrite any file on the file system
+		ioutil.WriteFile(p, []byte("present"), 0666)
+	}
+}
+
 // the rbac rule requires an empty row at the end to render
 // +kubebuilder:rbac:groups="",resources=pods/exec,verbs=create
 // +kubebuilder:rbac:groups="",resources=pods,verbs=update;get;list;watch
@@ -83,6 +95,7 @@ type RabbitmqClusterReconciler struct {
 
 func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log
+	unzip("foo")
 
 	rabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
 
