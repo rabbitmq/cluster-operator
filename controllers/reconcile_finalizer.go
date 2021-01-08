@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
@@ -10,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	clientretry "k8s.io/client-go/util/retry"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -58,11 +60,11 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 
 			return nil
 		}); err != nil {
-			r.Log.Error(err, "RabbitmqCluster deletion")
+			ctrl.LoggerFrom(ctx).Error(err, "RabbitmqCluster deletion")
 		}
 
 		if err := r.removeFinalizer(ctx, rabbitmqCluster); err != nil {
-			r.Log.Error(err, "Failed to remove finalizer for deletion")
+			ctrl.LoggerFrom(ctx).Error(err, "Failed to remove finalizer for deletion")
 			return err
 		}
 	}

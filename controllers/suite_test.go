@@ -102,7 +102,6 @@ func startManager(scheme *runtime.Scheme) context.CancelFunc {
 	fakeExecutor = &fakePodExecutor{}
 	reconciler := &controllers.RabbitmqClusterReconciler{
 		Client:      client,
-		Log:         ctrl.Log.WithName(controllerName),
 		Scheme:      mgr.GetScheme(),
 		Recorder:    mgr.GetEventRecorderFor(controllerName),
 		Namespace:   "rabbitmq-system",
