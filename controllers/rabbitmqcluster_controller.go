@@ -14,11 +14,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-logr/logr"
 	"reflect"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"strings"
 	"time"
+
+	"github.com/go-logr/logr"
 
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	"github.com/rabbitmq/cluster-operator/internal/status"
@@ -82,7 +82,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
 
 func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+	logger := ctrl.LoggerFrom(ctx)
 
 	rabbitmqCluster, err := r.getRabbitmqCluster(ctx, req.NamespacedName)
 
@@ -96,7 +96,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Check if the resource has been marked for deletion
 	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		logger.Info("Deleting")
-		return ctrl.Result{}, r.prepareForDeletion(ctx, logger, rabbitmqCluster)
+		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
 	}
 
 	// exit if pause reconciliation label is set to true
@@ -117,7 +117,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	if err := r.reconcileTLS(ctx, logger, rabbitmqCluster); err != nil {
+	if err := r.reconcileTLS(ctx, rabbitmqCluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -199,7 +199,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// By this point the StatefulSet may have finished deploying. Run any
 	// post-deploy steps if so, or requeue until the deployment is finished.
-	if requeueAfter, err := r.runRabbitmqCLICommandsIfAnnotated(ctx, logger, rabbitmqCluster); err != nil || requeueAfter > 0 {
+	if requeueAfter, err := r.runRabbitmqCLICommandsIfAnnotated(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
@@ -237,7 +237,7 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(logger logr.Logg
 }
 
 func (r *RabbitmqClusterReconciler) updateStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (time.Duration, error) {
-	logger := log.FromContext(ctx)
+	logger := ctrl.LoggerFrom(ctx)
 	childResources, err := r.getChildResources(ctx, rmq)
 	if err != nil {
 		return 0, err
