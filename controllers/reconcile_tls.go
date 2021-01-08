@@ -38,7 +38,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 	if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
 		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
 			fmt.Sprintf("Failed to get TLS secret %s in namespace %s: %v", secretName, rabbitmqCluster.Namespace, err.Error()))
-		logger.Error(err, "Error setting up TLS", "namespace", rabbitmqCluster.Namespace, "name", rabbitmqCluster.Name)
+		logger.Error(err, "Error setting up TLS")
 		return err
 	}
 	// check if secret has the right keys

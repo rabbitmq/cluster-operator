@@ -103,9 +103,7 @@ func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rm
 			return err
 		}
 	}
-	logger.Info("successfully set plugins",
-		"namespace", rmq.Namespace,
-		"name", rmq.Name)
+	logger.Info("successfully set plugins")
 	return r.deleteAnnotation(ctx, configMap, pluginsUpdateAnnotation)
 }
 

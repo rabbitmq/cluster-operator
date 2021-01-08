@@ -3,8 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
 	"time"
+
+	"github.com/go-logr/logr"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
@@ -65,7 +66,7 @@ func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, logger
 
 	if err := r.updateAnnotation(ctx, obj, rmq.Namespace, objName, annotationKey, time.Now().Format(time.RFC3339)); err != nil {
 		msg := "failed to annotate " + objName
-		logger.Error(err, msg, "namespace", rmq.Namespace)
+		logger.Error(err, msg)
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedUpdate", msg)
 		return err
 	}
