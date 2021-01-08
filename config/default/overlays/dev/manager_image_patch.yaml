@@ -17,3 +17,4 @@ spec:
       - image: ((operator_docker_image))
         name: operator
         imagePullPolicy: Always
+        args: ["--zap-devel"]
