@@ -143,21 +143,21 @@ var _ = Describe("GenerateServerConfigMap", func() {
 			Expect(configMap.Data).To(HaveKeyWithValue("operatorDefaults.conf", expectedRabbitmqConf))
 		})
 
-		When("valid additionalConfig is provided", func() {
+		When("valid userDefinedConfiguration is provided", func() {
 			It("adds configurations in a new rabbitmq configuration", func() {
-				additionalConfig := "cluster_formation.peer_discovery_backend = my-backend\n" +
+				userDefinedConfiguration := "cluster_formation.peer_discovery_backend = my-backend\n" +
 					"my-config-property-0 = great-value"
 
-				instance.Spec.Rabbitmq.AdditionalConfig = additionalConfig
+				instance.Spec.Rabbitmq.AdditionalConfig = userDefinedConfiguration
 
-				expectedRabbitmqConf := iniString(additionalConfig)
+				expectedRabbitmqConf := iniString(userDefinedConfiguration)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("additionalConfig.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 			})
 		})
 
-		When("invalid additionalConfig is provided", func() {
+		When("invalid userDefinedConfiguration is provided", func() {
 			It("errors", func() {
 				instance.Spec.Rabbitmq.AdditionalConfig = " = invalid"
 
@@ -233,20 +233,20 @@ CONSOLE_LOG=new`
 				instance.ObjectMeta.Name = "rabbit-tls"
 				instance.Spec.TLS.SecretName = "tls-secret"
 
-				expectedRabbitmqConf := iniString("ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt\n" +
-					"ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key\n" +
-					"listeners.ssl.default = 5671\n\n" +
-					"management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"management.ssl.port       = 15671\n\n" +
-					"prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt\n" +
-					"prometheus.ssl.keyfile  = /etc/rabbitmq-tls/tls.key\n" +
-					"prometheus.ssl.port     = 15691\n\n" +
-					"management.tcp.port     = 15672\n" +
-					"prometheus.tcp.port       = 15692\n")
+				expectedRabbitmqConf := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+					ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
+					listeners.ssl.default = 5671
+					management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+					management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+					management.ssl.port       = 15671
+					prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+					prometheus.ssl.keyfile  = /etc/rabbitmq-tls/tls.key
+					prometheus.ssl.port     = 15691
+					management.tcp.port     = 15672
+					prometheus.tcp.port       = 15692`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("additionalConfig.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 			})
 
 			When("MQTT, STOMP and AMQP 1.0 plugins are enabled", func() {
@@ -257,23 +257,44 @@ CONSOLE_LOG=new`
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
 
-					expectedRabbitmqConf := iniString("ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt\n" +
-						"ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key\n" +
-						"listeners.ssl.default = 5671\n\n" +
-						"management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-						"management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-						"management.ssl.port       = 15671\n\n" +
-						"prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt\n" +
-						"prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key\n" +
-						"prometheus.ssl.port       = 15691\n\n" +
-						"management.tcp.port     = 15672\n" +
-						"prometheus.tcp.port       = 15692\n" +
-						"mqtt.listeners.ssl.default = 8883\n\n" +
-						"stomp.listeners.ssl.1 = 61614\n")
+					expectedRabbitmqConf := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+						ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
+						listeners.ssl.default = 5671
+						management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+						management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+						management.ssl.port       = 15671
+						prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+						prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
+						prometheus.ssl.port       = 15691
+						management.tcp.port     = 15672
+						prometheus.tcp.port       = 15692
+						mqtt.listeners.ssl.default = 8883
+						stomp.listeners.ssl.1 = 61614`)
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
-					Expect(configMap.Data).To(HaveKeyWithValue("additionalConfig.conf", expectedRabbitmqConf))
+					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 				})
+			})
+
+			It("preserves user configuration over Operator generated settings", func() {
+				instance.ObjectMeta.Name = "rabbit-tls-with-user-conf"
+				instance.Spec.TLS.SecretName = "tls-secret"
+				instance.Spec.Rabbitmq.AdditionalConfig = "listeners.ssl.default = 12345"
+
+				expectedRabbitmqConf := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+					ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
+					listeners.ssl.default = 12345
+					management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+					management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+					management.ssl.port       = 15671
+					prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+					prometheus.ssl.keyfile  = /etc/rabbitmq-tls/tls.key
+					prometheus.ssl.port     = 15691
+					management.tcp.port     = 15672
+					prometheus.tcp.port       = 15692`)
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 			})
 		})
 
@@ -283,24 +304,24 @@ CONSOLE_LOG=new`
 				instance.Spec.TLS.SecretName = "tls-secret"
 				instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
 
-				expectedRabbitmqConf := iniString("ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"listeners.ssl.default  = 5671\n\n" +
-					"management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"management.ssl.port       = 15671\n\n" +
-					"prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt\n" +
-					"prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key\n" +
-					"prometheus.ssl.port       = 15691\n\n" +
-					"management.tcp.port     = 15672\n" +
-					"prometheus.tcp.port       = 15692\n" +
-					"ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-					"ssl_options.verify     = verify_peer\n" +
-					"management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-					"prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt")
+				expectedRabbitmqConf := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+					ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+					listeners.ssl.default  = 5671
+					management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+					management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+					management.ssl.port       = 15671
+					prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+					prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
+					prometheus.ssl.port       = 15691
+					management.tcp.port     = 15672
+					prometheus.tcp.port       = 15692
+					ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
+					ssl_options.verify     = verify_peer
+					management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+					prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("additionalConfig.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 			})
 
 			When("Web MQTT and Web STOMP are enabled", func() {
@@ -312,38 +333,38 @@ CONSOLE_LOG=new`
 					instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
 					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
 
-					expectedRabbitmqConf := iniString("ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-						"ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-						"listeners.ssl.default  = 5671\n" +
+					expectedRabbitmqConf := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+						ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+						listeners.ssl.default  = 5671
 
-						"management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-						"management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-						"management.ssl.port       = 15671\n" +
+						management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+						management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+						management.ssl.port       = 15671
 
-						"prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt\n" +
-						"prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key\n" +
-						"prometheus.ssl.port       = 15691\n" +
+						prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+						prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
+						prometheus.ssl.port       = 15691
 
-						"management.tcp.port       = 15672\n" +
-						"prometheus.tcp.port       = 15692\n" +
+						management.tcp.port       = 15672
+						prometheus.tcp.port       = 15692
 
-						"ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-						"ssl_options.verify     = verify_peer\n" +
-						"management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-						"prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
+						ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
+						ssl_options.verify     = verify_peer
+						management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+						prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 
-						"web_mqtt.ssl.port       = 15676\n" +
-						"web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-						"web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-						"web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
+						web_mqtt.ssl.port       = 15676
+						web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+						web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+						web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 
-						"web_stomp.ssl.port       = 15673\n" +
-						"web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-						"web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-						"web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n")
+						web_stomp.ssl.port       = 15673
+						web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+						web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+						web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key`)
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
-					Expect(configMap.Data).To(HaveKeyWithValue("additionalConfig.conf", expectedRabbitmqConf))
+					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 				})
 			})
 		})
@@ -362,22 +383,22 @@ CONSOLE_LOG=new`
 					},
 				}
 
-				expectedRabbitmqConf := iniString("ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt\n" +
-					"ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key\n" +
-					"listeners.ssl.default = 5671\n" +
+				expectedRabbitmqConf := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+					ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
+					listeners.ssl.default = 5671
 
-					"management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"management.ssl.port       = 15671\n" +
+					management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+					management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+					management.ssl.port       = 15671
 
-					"prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt\n" +
-					"prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key\n" +
-					"prometheus.ssl.port       = 15691\n" +
+					prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+					prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
+					prometheus.ssl.port       = 15691
 
-					"listeners.tcp = none\n")
+					listeners.tcp = none`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("additionalConfig.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 			})
 
 			It("disables non tls listeners for mqtt and stomp when enabled", func() {
@@ -399,28 +420,28 @@ CONSOLE_LOG=new`
 					},
 				}
 
-				expectedRabbitmqConf := iniString("ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"listeners.ssl.default  = 5671\n" +
+				expectedRabbitmqConf := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+					ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+					listeners.ssl.default  = 5671
 
-					"management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"management.ssl.port       = 15671\n" +
+					management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+					management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+					management.ssl.port       = 15671
 
-					"prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt\n" +
-					"prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key\n" +
-					"prometheus.ssl.port       = 15691\n" +
+					prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+					prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
+					prometheus.ssl.port       = 15691
 
-					"listeners.tcp = none\n" +
+					listeners.tcp = none
 
-					"mqtt.listeners.ssl.default = 8883\n" +
-					"mqtt.listeners.tcp   = none\n" +
+					mqtt.listeners.ssl.default = 8883
+					mqtt.listeners.tcp   = none
 
-					"stomp.listeners.ssl.1 = 61614\n" +
-					"stomp.listeners.tcp   = none\n")
+					stomp.listeners.ssl.1 = 61614
+					stomp.listeners.tcp   = none`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("additionalConfig.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 			})
 
 			It("disables non tls listeners for web mqtt and web stomp when enabled", func() {
@@ -443,39 +464,39 @@ CONSOLE_LOG=new`
 					},
 				}
 
-				expectedRabbitmqConf := iniString("ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"listeners.ssl.default  = 5671\n" +
+				expectedRabbitmqConf := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+					ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+					listeners.ssl.default  = 5671
 
-					"management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"management.ssl.port       = 15671\n" +
+					management.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+					management.ssl.keyfile  = /etc/rabbitmq-tls/tls.key
+					management.ssl.port     = 15671
 
-					"prometheus.ssl.certfile                  = /etc/rabbitmq-tls/tls.crt\n" +
-					"prometheus.ssl.keyfile                   = /etc/rabbitmq-tls/tls.key\n" +
-					"prometheus.ssl.port                      = 15691\n" +
+					prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+					prometheus.ssl.keyfile  = /etc/rabbitmq-tls/tls.key
+					prometheus.ssl.port     = 15691
 
-					"listeners.tcp = none\n" +
+					listeners.tcp = none
 
-					"ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-					"ssl_options.verify     = verify_peer\n" +
-					"management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-					"prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
+					ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
+					ssl_options.verify     = verify_peer
+					management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+					prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 
-					"web_mqtt.ssl.port       = 15676\n" +
-					"web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-					"web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"web_mqtt.tcp.listener = none\n" +
+					web_mqtt.ssl.port       = 15676
+					web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+					web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+					web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+					web_mqtt.tcp.listener = none
 
-					"web_stomp.ssl.port       = 15673\n" +
-					"web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt\n" +
-					"web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt\n" +
-					"web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key\n" +
-					"web_stomp.tcp.listener = none\n")
+					web_stomp.ssl.port       = 15673
+					web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+					web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+					web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+					web_stomp.tcp.listener = none`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("additionalConfig.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 			})
 		})
 
@@ -488,7 +509,7 @@ CONSOLE_LOG=new`
 				expectedRabbitmqConf := iniString(fmt.Sprintf("total_memory_available_override_value = %d", 8*GiB))
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("additionalConfig.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
 			})
 		})
 

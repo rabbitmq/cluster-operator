@@ -897,8 +897,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 												Path: "operatorDefaults.conf",
 											},
 											{
-												Key:  "additionalConfig.conf",
-												Path: "additionalConfig.conf",
+												Key:  "userDefinedConfiguration.conf",
+												Path: "userDefinedConfiguration.conf",
 											},
 										},
 									},

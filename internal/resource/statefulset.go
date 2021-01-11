@@ -346,8 +346,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 										Path: "operatorDefaults.conf",
 									},
 									{
-										Key:  "additionalConfig.conf",
-										Path: "additionalConfig.conf",
+										Key:  "userDefinedConfiguration.conf",
+										Path: "userDefinedConfiguration.conf",
 									},
 								},
 							},
@@ -428,8 +428,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 		{
 			Name:      "rabbitmq-confd",
-			MountPath: "/etc/rabbitmq/conf.d/90-additionalConfig.conf",
-			SubPath:   "additionalConfig.conf",
+			MountPath: "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
+			SubPath:   "userDefinedConfiguration.conf",
 		},
 		{
 			Name:      "pod-info",

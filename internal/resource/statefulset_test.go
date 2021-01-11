@@ -1010,7 +1010,7 @@ var _ = Describe("StatefulSet", func() {
 						{Name: "pod-info", MountPath: "/etc/pod-info/"},
 						{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/10-operatorDefaults.conf", SubPath: "operatorDefaults.conf"},
 						{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf", SubPath: "default_user.conf"},
-						{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/90-additionalConfig.conf", SubPath: "additionalConfig.conf"},
+						{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf", SubPath: "userDefinedConfiguration.conf"},
 						{Name: "rabbitmq-plugins", MountPath: "/operator"},
 					}
 
@@ -1089,8 +1089,8 @@ var _ = Describe("StatefulSet", func() {
 													Path: "operatorDefaults.conf",
 												},
 												{
-													Key:  "additionalConfig.conf",
-													Path: "additionalConfig.conf",
+													Key:  "userDefinedConfiguration.conf",
+													Path: "userDefinedConfiguration.conf",
 												},
 											},
 										},
@@ -1652,8 +1652,8 @@ var _ = Describe("StatefulSet", func() {
 						},
 						corev1.VolumeMount{
 							Name:      "rabbitmq-confd",
-							MountPath: "/etc/rabbitmq/conf.d/90-additionalConfig.conf",
-							SubPath:   "additionalConfig.conf",
+							MountPath: "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
+							SubPath:   "userDefinedConfiguration.conf",
 						},
 						corev1.VolumeMount{
 							Name:      "rabbitmq-erlang-cookie",
@@ -1704,7 +1704,7 @@ var _ = Describe("StatefulSet", func() {
 							{Name: "pod-info", MountPath: "/etc/pod-info/"},
 							{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/10-operatorDefaults.conf", SubPath: "operatorDefaults.conf"},
 							{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf", SubPath: "default_user.conf"},
-							{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/90-additionalConfig.conf", SubPath: "additionalConfig.conf"},
+							{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf", SubPath: "userDefinedConfiguration.conf"},
 							{Name: "rabbitmq-plugins", MountPath: "/operator"},
 							{Name: "test", MountPath: "test"},
 						}

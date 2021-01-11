@@ -81,21 +81,21 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 
 	ini.PrettySection = false // Remove trailing new line because rabbitmq.conf has only a default section.
-	cfg, err := ini.Load([]byte(defaultRabbitmqConf))
+	operatorConfiguration, err := ini.Load([]byte(defaultRabbitmqConf))
 	if err != nil {
 		return err
 	}
-	defaultSection := cfg.Section("")
+	defaultSection := operatorConfiguration.Section("")
 
 	if _, err := defaultSection.NewKey("cluster_name", builder.Instance.Name); err != nil {
 		return err
 	}
 
-	cfgUserConfiguration := ini.Empty(ini.LoadOptions{})
-	userConfigurationSection := cfgUserConfiguration.Section("")
+	userConfiguration := ini.Empty(ini.LoadOptions{})
+	userConfigurationSection := userConfiguration.Section("")
 
 	if builder.Instance.TLSEnabled() {
-		if err := cfgUserConfiguration.Append([]byte(defaultTLSConf)); err != nil {
+		if err := userConfiguration.Append([]byte(defaultTLSConf)); err != nil {
 			return err
 		}
 		if builder.Instance.DisableNonTLSListeners() {
@@ -198,9 +198,8 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		}
 	}
 
-	// TODO refactor: use string builder
 	var rmqConfBuffer strings.Builder
-	if _, err := cfg.WriteTo(&rmqConfBuffer); err != nil {
+	if _, err := operatorConfiguration.WriteTo(&rmqConfBuffer); err != nil {
 		return err
 	}
 
@@ -213,15 +212,15 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	rmqConfBuffer.Reset()
 
 	rmqProperties := builder.Instance.Spec.Rabbitmq
-	if err := cfgUserConfiguration.Append([]byte(rmqProperties.AdditionalConfig)); err != nil {
+	if err := userConfiguration.Append([]byte(rmqProperties.AdditionalConfig)); err != nil {
 		return fmt.Errorf("failed to append spec.rabbitmq.additionalConfig: %w", err)
 	}
 
-	if _, err := cfgUserConfiguration.WriteTo(&rmqConfBuffer); err != nil {
+	if _, err := userConfiguration.WriteTo(&rmqConfBuffer); err != nil {
 		return err
 	}
 
-	configMap.Data["additionalConfig.conf"] = rmqConfBuffer.String()
+	configMap.Data["userDefinedConfiguration.conf"] = rmqConfBuffer.String()
 
 	updateProperty(configMap.Data, "advanced.config", rmqProperties.AdvancedConfig)
 	updateProperty(configMap.Data, "rabbitmq-env.conf", rmqProperties.EnvConfig)
