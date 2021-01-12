@@ -43,16 +43,19 @@ type RabbitmqCluster struct {
 // Spec is the desired state of the RabbitmqCluster Custom Resource.
 type RabbitmqClusterSpec struct {
 	// Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5 replicas clusters are tested.
+	// This value should be an odd number to ensure the resultant cluster can establish exactly one quorum of nodes
+	// in the event of a fragmenting network partition.
 	// +optional
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:default:=1
 	Replicas *int32 `json:"replicas,omitempty"`
 	// Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster.
+	// Must be provided together with ImagePullSecrets in order to use an image in a private registry.
 	// +kubebuilder:default:="rabbitmq:3.8.9-management"
 	Image string `json:"image,omitempty"`
 	// List of Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	// Desired state of the Kubernetes Service to create for the cluster.
+	// The desired state of the Kubernetes Service to create for the cluster.
 	// +kubebuilder:default:={type: "ClusterIP"}
 	Service RabbitmqClusterServiceSpec `json:"service,omitempty"`
 	// The desired persistent storage configuration for each Pod in the cluster.
@@ -72,6 +75,7 @@ type RabbitmqClusterSpec struct {
 	// Provides the ability to override the generated manifest of several child resources.
 	Override RabbitmqClusterOverrideSpec `json:"override,omitempty"`
 	// If unset, or set to false, the cluster will run `rabbitmq-queues rebalance all` whenever the cluster is updated.
+	// Set to true to prevent the operator rebalancing queue leaders after a cluster update.
 	// Has no effect if the cluster only consists of one node.
 	// For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
 	SkipPostDeploySteps bool `json:"skipPostDeploySteps,omitempty"`
@@ -116,9 +120,8 @@ type StatefulSet struct {
 // Field RevisionHistoryLimit is omitted.
 // Every field is made optional.
 type StatefulSetSpec struct {
-	// replicas is the desired number of replicas of the given Template.
-	// These are replicas in the sense that they are instantiations of the
-	// same Template, but individual replicas also have a consistent identity.
+	// replicas corresponds to the desired number of Pods in the StatefulSet.
+	// For more info, see https://pkg.go.dev/k8s.io/api/apps/v1#StatefulSetSpec
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 
@@ -258,9 +261,11 @@ type PersistentVolumeClaim struct {
 type TLSSpec struct {
 	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the server's private key & public certificate for TLS.
 	// The Secret must store these as tls.key and tls.crt, respectively.
+	// This Secret can be created by running `kubectl create secret tls tls-secret --cert=path/to/tls.cert --key=path/to/tls.key`
 	SecretName string `json:"secretName,omitempty"`
 	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS.
 	// The Secret must store this as ca.crt.
+	// This Secret can be created by running `kubectl create secret generic ca-secret --from-file=ca.crt=path/to/ca.cert`
 	// Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
 	CaSecretName string `json:"caSecretName,omitempty"`
 	// When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ, management plugin and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt.
@@ -279,29 +284,36 @@ type RabbitmqClusterConfigurationSpec struct {
 	// List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.
 	// +kubebuilder:validation:MaxItems:=100
 	AdditionalPlugins []Plugin `json:"additionalPlugins,omitempty"`
-	// Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
+	// Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator.
+	// Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
+	// For more information on this config, see https://www.rabbitmq.com/configure.html#config-file
 	// +kubebuilder:validation:MaxLength:=2000
 	AdditionalConfig string `json:"additionalConfig,omitempty"`
-	// Specify any rabbitmq advanced.config configurations
+	// Specify any rabbitmq advanced.config configurations to apply to the cluster.
+	// For more information on advanced config, see https://www.rabbitmq.com/configure.html#advanced-config-file
 	// +kubebuilder:validation:MaxLength:=100000
 	AdvancedConfig string `json:"advancedConfig,omitempty"`
 	// Modify to add to the rabbitmq-env.conf file. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
+	// For more information on env config, see https://www.rabbitmq.com/man/rabbitmq-env.conf.5.html
 	// +kubebuilder:validation:MaxLength:=100000
 	EnvConfig string `json:"envConfig,omitempty"`
 }
 
 // The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
 type RabbitmqClusterPersistenceSpec struct {
-	// StorageClassName is the name of the StorageClass to claim a PersistentVolume from.
+	// The name of the StorageClass to claim a PersistentVolume from.
 	StorageClassName *string `json:"storageClassName,omitempty"`
 	// The requested size of the persistent volume attached to each Pod in the RabbitmqCluster.
+	// The format of this field matches that defined by kubernetes/apimachinery.
+	// See https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity for more info on the format of this field.
 	// +kubebuilder:default:="10Gi"
 	Storage *k8sresource.Quantity `json:"storage,omitempty"`
 }
 
 // Settable attributes for the Service resource.
 type RabbitmqClusterServiceSpec struct {
-	// Type of Service to create for the cluster. Must be one of: ClusterIP, LoadBalancer, NodePort
+	// Type of Service to create for the cluster. Must be one of: ClusterIP, LoadBalancer, NodePort.
+	// For more info see https://pkg.go.dev/k8s.io/api/core/v1#ServiceType
 	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
 	// +kubebuilder:default:="ClusterIP"
 	Type corev1.ServiceType `json:"type,omitempty"`

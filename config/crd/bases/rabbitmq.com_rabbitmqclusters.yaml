@@ -390,7 +390,7 @@ spec:
                   type: object
                 image:
                   default: rabbitmq:3.8.9-management
-                  description: Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster.
+                  description: Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster. Must be provided together with ImagePullSecrets in order to use an image in a private registry.
                   type: string
                 imagePullSecrets:
                   description: List of Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
@@ -3472,18 +3472,18 @@ spec:
                         - type: integer
                         - type: string
                       default: 10Gi
-                      description: The requested size of the persistent volume attached to each Pod in the RabbitmqCluster.
+                      description: The requested size of the persistent volume attached to each Pod in the RabbitmqCluster. The format of this field matches that defined by kubernetes/apimachinery. See https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity for more info on the format of this field.
                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                       x-kubernetes-int-or-string: true
                     storageClassName:
-                      description: StorageClassName is the name of the StorageClass to claim a PersistentVolume from.
+                      description: The name of the StorageClass to claim a PersistentVolume from.
                       type: string
                   type: object
                 rabbitmq:
                   description: Configuration options for RabbitMQ Pods created in the cluster.
                   properties:
                     additionalConfig:
-                      description: Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
+                      description: Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime. For more information on this config, see https://www.rabbitmq.com/configure.html#config-file
                       maxLength: 2000
                       type: string
                     additionalPlugins:
@@ -3496,17 +3496,17 @@ spec:
                       maxItems: 100
                       type: array
                     advancedConfig:
-                      description: Specify any rabbitmq advanced.config configurations
+                      description: Specify any rabbitmq advanced.config configurations to apply to the cluster. For more information on advanced config, see https://www.rabbitmq.com/configure.html#advanced-config-file
                       maxLength: 100000
                       type: string
                     envConfig:
-                      description: Modify to add to the rabbitmq-env.conf file. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
+                      description: Modify to add to the rabbitmq-env.conf file. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime. For more information on env config, see https://www.rabbitmq.com/man/rabbitmq-env.conf.5.html
                       maxLength: 100000
                       type: string
                   type: object
                 replicas:
                   default: 1
-                  description: Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5 replicas clusters are tested.
+                  description: Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5 replicas clusters are tested. This value should be an odd number to ensure the resultant cluster can establish exactly one quorum of nodes in the event of a fragmenting network partition.
                   format: int32
                   minimum: 0
                   type: integer
@@ -3542,7 +3542,7 @@ spec:
                 service:
                   default:
                     type: ClusterIP
-                  description: Desired state of the Kubernetes Service to create for the cluster.
+                  description: The desired state of the Kubernetes Service to create for the cluster.
                   properties:
                     annotations:
                       additionalProperties:
@@ -3551,7 +3551,7 @@ spec:
                       type: object
                     type:
                       default: ClusterIP
-                      description: 'Type of Service to create for the cluster. Must be one of: ClusterIP, LoadBalancer, NodePort'
+                      description: 'Type of Service to create for the cluster. Must be one of: ClusterIP, LoadBalancer, NodePort. For more info see https://pkg.go.dev/k8s.io/api/core/v1#ServiceType'
                       enum:
                         - ClusterIP
                         - LoadBalancer
@@ -3559,7 +3559,7 @@ spec:
                       type: string
                   type: object
                 skipPostDeploySteps:
-                  description: If unset, or set to false, the cluster will run `rabbitmq-queues rebalance all` whenever the cluster is updated. Has no effect if the cluster only consists of one node. For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
+                  description: If unset, or set to false, the cluster will run `rabbitmq-queues rebalance all` whenever the cluster is updated. Set to true to prevent the operator rebalancing queue leaders after a cluster update. Has no effect if the cluster only consists of one node. For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
                   type: boolean
                 terminationGracePeriodSeconds:
                   default: 604800
@@ -3571,13 +3571,13 @@ spec:
                   description: TLS-related configuration for the RabbitMQ cluster.
                   properties:
                     caSecretName:
-                      description: Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS. The Secret must store this as ca.crt. Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
+                      description: Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS. The Secret must store this as ca.crt. This Secret can be created by running `kubectl create secret generic ca-secret --from-file=ca.crt=path/to/ca.cert` Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
                       type: string
                     disableNonTLSListeners:
                       description: 'When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ, management plugin and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt. Only TLS-enabled clients will be able to connect.'
                       type: boolean
                     secretName:
-                      description: Name of a Secret in the same Namespace as the RabbitmqCluster, containing the server's private key & public certificate for TLS. The Secret must store these as tls.key and tls.crt, respectively.
+                      description: Name of a Secret in the same Namespace as the RabbitmqCluster, containing the server's private key & public certificate for TLS. The Secret must store these as tls.key and tls.crt, respectively. This Secret can be created by running `kubectl create secret tls tls-secret --cert=path/to/tls.cert --key=path/to/tls.key`
                       type: string
                   type: object
                 tolerations:
