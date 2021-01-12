@@ -1,7 +1,7 @@
 {{- define "gvDetails" -}}
 {{- $gv := . -}}
 [id="{{ asciidocGroupVersionID $gv | asciidocRenderAnchorID }}"]
-=== {{ $gv.GroupVersionString }}
+== {{ $gv.GroupVersionString }}
 
 {{ $gv.Doc }}
 
@@ -12,7 +12,7 @@
 {{- end }}
 {{ end }}
 
-==== Definitions
+=== Definitions
 {{ range $gv.SortedTypes }}
 {{ template "type" . }}
 {{ end }}

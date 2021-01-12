@@ -5,7 +5,7 @@
 :anchor_prefix: k8s-api
 
 [id="{p}-api-reference"]
-== API Reference
+= API Reference
 
 .Packages
 {{- range $groupVersions }}

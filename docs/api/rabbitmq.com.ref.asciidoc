@@ -2,14 +2,14 @@
 :anchor_prefix: k8s-api
 
 [id="{p}-api-reference"]
-== API Reference
+= API Reference
 
 .Packages
 - xref:{anchor_prefix}-rabbitmq-com-v1beta1[$$rabbitmq.com/v1beta1$$]
 
 
 [id="{anchor_prefix}-rabbitmq-com-v1beta1"]
-=== rabbitmq.com/v1beta1
+== rabbitmq.com/v1beta1
 
 Package v1beta1 contains API Schema definitions for the rabbitmq v1beta1 API group
 
@@ -18,10 +18,10 @@ Package v1beta1 contains API Schema definitions for the rabbitmq v1beta1 API gro
 - xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterlist[$$RabbitmqClusterList$$]
 
 
-==== Definitions
+=== Definitions
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedlabelsannotations"]
-===== EmbeddedLabelsAnnotations 
+==== EmbeddedLabelsAnnotations 
 
 EmbeddedLabelsAnnotations is an embedded subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta. Only labels and annotations are included.
 
@@ -40,7 +40,7 @@ EmbeddedLabelsAnnotations is an embedded subset of the fields included in k8s.io
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta"]
-===== EmbeddedObjectMeta 
+==== EmbeddedObjectMeta 
 
 EmbeddedObjectMeta is an embedded subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta. Only fields which are relevant to embedded resources are included.
 
@@ -62,7 +62,7 @@ EmbeddedObjectMeta is an embedded subset of the fields included in k8s.io/apimac
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-persistentvolumeclaim"]
-===== PersistentVolumeClaim 
+==== PersistentVolumeClaim 
 
 PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVolumeClaim. It contains TypeMeta and a reduced ObjectMeta. Field status is omitted.
 
@@ -82,7 +82,7 @@ PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVol
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-plugin"]
-===== Plugin (string) 
+==== Plugin (string) 
 
 
 
@@ -94,7 +94,7 @@ PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVol
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-podtemplatespec"]
-===== PodTemplateSpec 
+==== PodTemplateSpec 
 
 PodTemplateSpec is an embedded version of k8s.io/api/core/v1.PodTemplateSpec. It contains a reduced ObjectMeta.
 
@@ -113,7 +113,7 @@ PodTemplateSpec is an embedded version of k8s.io/api/core/v1.PodTemplateSpec. It
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqcluster"]
-===== RabbitmqCluster 
+==== RabbitmqCluster 
 
 RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this object corresponds to a single RabbitMQ cluster.
 
@@ -136,7 +136,7 @@ RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterconfigurationspec"]
-===== RabbitmqClusterConfigurationSpec 
+==== RabbitmqClusterConfigurationSpec 
 
 RabbitMQ-related configuration.
 
@@ -156,7 +156,7 @@ RabbitMQ-related configuration.
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterdefaultuser"]
-===== RabbitmqClusterDefaultUser 
+==== RabbitmqClusterDefaultUser 
 
 Contains references to resources created with the RabbitmqCluster resource.
 
@@ -174,7 +174,7 @@ Contains references to resources created with the RabbitmqCluster resource.
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterlist"]
-===== RabbitmqClusterList 
+==== RabbitmqClusterList 
 
 RabbitmqClusterList contains a list of RabbitmqClusters.
 
@@ -193,7 +193,7 @@ RabbitmqClusterList contains a list of RabbitmqClusters.
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusteroverridespec"]
-===== RabbitmqClusterOverrideSpec 
+==== RabbitmqClusterOverrideSpec 
 
 Provides the ability to override the generated manifest of several child resources.
 
@@ -211,7 +211,7 @@ Provides the ability to override the generated manifest of several child resourc
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterpersistencespec"]
-===== RabbitmqClusterPersistenceSpec 
+==== RabbitmqClusterPersistenceSpec 
 
 The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
 
@@ -229,7 +229,7 @@ The settings for the persistent storage desired for each Pod in the RabbitmqClus
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclustersecretreference"]
-===== RabbitmqClusterSecretReference 
+==== RabbitmqClusterSecretReference 
 
 Reference to the Kubernetes Secret containing the credentials of the default user.
 
@@ -248,7 +248,7 @@ Reference to the Kubernetes Secret containing the credentials of the default use
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicereference"]
-===== RabbitmqClusterServiceReference 
+==== RabbitmqClusterServiceReference 
 
 Reference to the Kubernetes Service serving the cluster.
 
@@ -266,7 +266,7 @@ Reference to the Kubernetes Service serving the cluster.
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicespec"]
-===== RabbitmqClusterServiceSpec 
+==== RabbitmqClusterServiceSpec 
 
 Settable attributes for the Service resource.
 
@@ -284,7 +284,7 @@ Settable attributes for the Service resource.
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterspec"]
-===== RabbitmqClusterSpec 
+==== RabbitmqClusterSpec 
 
 Spec is the desired state of the RabbitmqCluster Custom Resource.
 
@@ -313,7 +313,7 @@ Spec is the desired state of the RabbitmqCluster Custom Resource.
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterstatus"]
-===== RabbitmqClusterStatus 
+==== RabbitmqClusterStatus 
 
 Status presents the observed state of RabbitmqCluster
 
@@ -332,7 +332,7 @@ Status presents the observed state of RabbitmqCluster
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-service"]
-===== Service 
+==== Service 
 
 Override configuration for the Service created to serve traffic to the cluster. Allows for the manifest of the created Service to be overwritten with custom configuration.
 
@@ -351,7 +351,7 @@ Override configuration for the Service created to serve traffic to the cluster. 
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulset"]
-===== StatefulSet 
+==== StatefulSet 
 
 Override configuration for the RabbitMQ StatefulSet. Allows for the manifest of the created StatefulSet to be overwritten with custom configuration.
 
@@ -370,7 +370,7 @@ Override configuration for the RabbitMQ StatefulSet. Allows for the manifest of 
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulsetspec"]
-===== StatefulSetSpec 
+==== StatefulSetSpec 
 
 StatefulSetSpec contains a subset of the fields included in k8s.io/api/apps/v1.StatefulSetSpec. Field RevisionHistoryLimit is omitted. Every field is made optional.
 
@@ -393,7 +393,7 @@ StatefulSetSpec contains a subset of the fields included in k8s.io/api/apps/v1.S
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-tlsspec"]
-===== TLSSpec 
+==== TLSSpec 
 
 Allows for the configuration of TLS certificates to be used by RabbitMQ. Also allows for non-TLS traffic to be disabled.
 
