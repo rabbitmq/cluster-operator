@@ -34,7 +34,7 @@ spec:
       name: v1beta1
       schema:
         openAPIV3Schema:
-          description: RabbitmqCluster is the Schema for the rabbitmqclusters API
+          description: RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this object corresponds to a single RabbitMQ cluster.
           properties:
             apiVersion:
               description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -48,7 +48,7 @@ spec:
               description: Spec is the desired state of the RabbitmqCluster Custom Resource.
               properties:
                 affinity:
-                  description: Affinity is a group of affinity scheduling rules.
+                  description: Affinity scheduling rules to be applied on created Pods.
                   properties:
                     nodeAffinity:
                       description: Describes node affinity scheduling rules for the pod.
@@ -3465,7 +3465,7 @@ spec:
                 persistence:
                   default:
                     storage: 10Gi
-                  description: The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
+                  description: The desired persistent storage configuration for each Pod in the cluster.
                   properties:
                     storage:
                       anyOf:
@@ -3480,7 +3480,7 @@ spec:
                       type: string
                   type: object
                 rabbitmq:
-                  description: Rabbitmq related configurations
+                  description: Configuration options for RabbitMQ Pods created in the cluster.
                   properties:
                     additionalConfig:
                       description: Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
@@ -3518,7 +3518,7 @@ spec:
                     requests:
                       cpu: 1000m
                       memory: 2Gi
-                  description: ResourceRequirements describes the compute resource requirements.
+                  description: The desired compute resource requirements of Pods in the cluster.
                   properties:
                     limits:
                       additionalProperties:
@@ -3542,7 +3542,7 @@ spec:
                 service:
                   default:
                     type: ClusterIP
-                  description: Settable attributes for the Service resource.
+                  description: Desired state of the Kubernetes Service to create for the cluster.
                   properties:
                     annotations:
                       additionalProperties:
@@ -3551,7 +3551,7 @@ spec:
                       type: object
                     type:
                       default: ClusterIP
-                      description: Service Type string describes ingress methods for a service
+                      description: 'Type of Service to create for the cluster. Must be one of: ClusterIP, LoadBalancer, NodePort'
                       enum:
                         - ClusterIP
                         - LoadBalancer
@@ -3568,6 +3568,7 @@ spec:
                   minimum: 0
                   type: integer
                 tls:
+                  description: TLS-related configuration for the RabbitMQ cluster.
                   properties:
                     caSecretName:
                       description: Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS. The Secret must store this as ca.crt. Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
@@ -3607,6 +3608,7 @@ spec:
               description: Status presents the observed state of RabbitmqCluster
               properties:
                 clusterStatus:
+                  description: Unused.
                   type: string
                 conditions:
                   description: Set of Conditions describing the current state of the RabbitmqCluster
@@ -3637,14 +3639,18 @@ spec:
                   description: Identifying information on internal resources
                   properties:
                     secretReference:
+                      description: Reference to the Kubernetes Secret containing the credentials of the default user.
                       properties:
                         keys:
                           additionalProperties:
                             type: string
+                          description: Key-value pairs in the Secret corresponding to `username` and `password`
                           type: object
                         name:
+                          description: Name of the Secret containing the default user credentials
                           type: string
                         namespace:
+                          description: Namespace of the Secret containing the default user credentials
                           type: string
                       required:
                         - keys
@@ -3652,10 +3658,13 @@ spec:
                         - namespace
                       type: object
                     serviceReference:
+                      description: Reference to the Kubernetes Service serving the cluster.
                       properties:
                         name:
+                          description: Name of the Service serving the cluster
                           type: string
                         namespace:
+                          description: Namespace of the Service serving the cluster
                           type: string
                       required:
                         - name

@@ -34,9 +34,9 @@ type RabbitmqCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Desired state of the RabbitmqCluster resource
+	// Spec is the desired state of the RabbitmqCluster Custom Resource.
 	Spec RabbitmqClusterSpec `json:"spec,omitempty"`
-	// Status of the RabbitmqCluster resource
+	// Status presents the observed state of RabbitmqCluster
 	Status RabbitmqClusterStatus `json:"status,omitempty"`
 }
 
@@ -301,8 +301,7 @@ type RabbitmqClusterPersistenceSpec struct {
 
 // Settable attributes for the Service resource.
 type RabbitmqClusterServiceSpec struct {
-	// Type of Service to create for the cluster. Must be one of:
-	// ClusterIP, LoadBalancer, NodePort
+	// Type of Service to create for the cluster. Must be one of: ClusterIP, LoadBalancer, NodePort
 	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
 	// +kubebuilder:default:="ClusterIP"
 	Type corev1.ServiceType `json:"type,omitempty"`
