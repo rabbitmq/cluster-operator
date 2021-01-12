@@ -28,9 +28,8 @@ api-reference: install-tools ## Generate API reference documentation
 		--source-path ./api/v1beta1 \
 		--config ./docs/api/autogen/config.yaml \
 		--templates-dir ./docs/api/autogen/templates \
-		--output-path ./docs/api/autogen/out.asciidoc \
+		--output-path ./docs/api/rabbitmq.com.ref.asciidoc \
 		--max-depth 30
-	docker run -v ${PWD}/docs/api:/documents/ asciidoctor/docker-asciidoctor asciidoctor autogen/out.asciidoc -o rabbitmq.com.ref.html -a nofooter
 
 # Run go fmt against code
 fmt:
