@@ -9,20 +9,20 @@ import (
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const queueRebalanceAnnotation = "rabbitmq.com/queueRebalanceNeededAt"
 
 func (r *RabbitmqClusterReconciler) runRabbitmqCLICommandsIfAnnotated(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (requeueAfter time.Duration, err error) {
+	logger := ctrl.LoggerFrom(ctx)
 	sts, err := r.statefulSet(ctx, rmq)
 	if err != nil {
 		return 0, err
 	}
 	if !allReplicasReadyAndUpdated(sts) {
-		r.Log.Info("not all replicas ready yet; requeuing request to run RabbitMQ CLI commands",
-			"namespace", rmq.Namespace,
-			"name", rmq.Name)
+		logger.Info("not all replicas ready yet; requeuing request to run RabbitMQ CLI commands")
 		return 15 * time.Second, nil
 	}
 
@@ -39,9 +39,7 @@ func (r *RabbitmqClusterReconciler) runRabbitmqCLICommandsIfAnnotated(ctx contex
 		// plugins configMap was updated very recently
 		// give StatefulSet controller some time to trigger restart of StatefulSet if necessary
 		// otherwise, there would be race conditions where we exec into containers losing the connection due to pods being terminated
-		r.Log.Info("requeuing request to set plugins",
-			"namespace", rmq.Namespace,
-			"name", rmq.Name)
+		logger.Info("requeuing request to set plugins")
 		return 2 * time.Second, nil
 	}
 
@@ -69,22 +67,19 @@ func (r *RabbitmqClusterReconciler) runRabbitmqCLICommandsIfAnnotated(ctx contex
 }
 
 func (r *RabbitmqClusterReconciler) runEnableFeatureFlagsCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, sts *appsv1.StatefulSet) error {
+	logger := ctrl.LoggerFrom(ctx)
 	podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
 	cmd := "set -eo pipefail; rabbitmqctl -s list_feature_flags name state stability | (grep 'disabled\\sstable$' || true) | cut -f 1 | xargs -r -n1 rabbitmqctl enable_feature_flag"
 	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "bash", "-c", cmd)
 	if err != nil {
-		r.Log.Error(err, "failed to enable all feature flags",
-			"namespace", rmq.Namespace,
-			"name", rmq.Name,
+		logger.Error(err, "failed to enable all feature flags",
 			"pod", podName,
 			"command", cmd,
 			"stdout", stdout,
 			"stderr", stderr)
 		return err
 	}
-	r.Log.Info("successfully enabled all feature flags",
-		"namespace", rmq.Namespace,
-		"name", rmq.Name)
+	logger.Info("successfully enabled all feature flags")
 	return r.deleteAnnotation(ctx, sts, stsCreateAnnotation)
 }
 
@@ -93,15 +88,14 @@ func (r *RabbitmqClusterReconciler) runEnableFeatureFlagsCommand(ctx context.Con
 // 2. When the plugins ConfigMap is changed, 'rabbitmq-plugins set' updates the plugins on every node (without the need to re-start the nodes).
 // This method implements the 2nd path.
 func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, configMap *corev1.ConfigMap) error {
+	logger := ctrl.LoggerFrom(ctx)
 	plugins := resource.NewRabbitmqPlugins(rmq.Spec.Rabbitmq.AdditionalPlugins)
 	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
 		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
 		cmd := fmt.Sprintf("rabbitmq-plugins set %s", plugins.AsString(" "))
 		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", cmd)
 		if err != nil {
-			r.Log.Error(err, "failed to set plugins",
-				"namespace", rmq.Namespace,
-				"name", rmq.Name,
+			logger.Error(err, "failed to set plugins",
 				"pod", podName,
 				"command", cmd,
 				"stdout", stdout,
@@ -109,9 +103,7 @@ func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rm
 			return err
 		}
 	}
-	r.Log.Info("successfully set plugins",
-		"namespace", rmq.Namespace,
-		"name", rmq.Name)
+	logger.Info("successfully set plugins")
 	return r.deleteAnnotation(ctx, configMap, pluginsUpdateAnnotation)
 }
 
@@ -120,9 +112,7 @@ func (r *RabbitmqClusterReconciler) runQueueRebalanceCommand(ctx context.Context
 	cmd := "rabbitmq-queues rebalance all"
 	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", cmd)
 	if err != nil {
-		r.Log.Error(err, "failed to run queue rebalance",
-			"namespace", rmq.Namespace,
-			"name", rmq.Name,
+		ctrl.LoggerFrom(ctx).Error(err, "failed to run queue rebalance",
 			"pod", podName,
 			"command", cmd,
 			"stdout", stdout,

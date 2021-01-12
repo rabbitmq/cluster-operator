@@ -6,7 +6,7 @@ Please keep in mind that:
 
 1. It may not be suitable for YOUR production deployment. Please go through the [Production Checklist](https://www.rabbitmq.com/production-checklist.html) to learn more about production deployment considerations.
 
-2. While it is important to correctly deploy RabbitMQ cluster for production deployment, it is even more important to correctly use RabbitMQ from your applications. [Production Checklist](https://www.rabbitmq.com/production-checklist.html) covers some of the common issues such as connection churn and polling cunsumers. Please also consider using [Quorum Queues](https://www.rabbitmq.com/quorum-queues.html) since they provide better data safety.
+2. While it is important to correctly deploy RabbitMQ cluster for production deployment, it is even more important to correctly use RabbitMQ from your applications. [Production Checklist](https://www.rabbitmq.com/production-checklist.html) covers some of the common issues such as connection churn and polling consumers. Please also consider using [Quorum Queues](https://www.rabbitmq.com/quorum-queues.html) since they provide better data safety.
 
 You can deploy this example like this:
 

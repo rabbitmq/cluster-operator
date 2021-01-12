@@ -13,7 +13,7 @@ kubectl create secret tls tls-secret --cert=server.pem --key=server-key.pem
 ```
 
 In order to use mTLS, the RabbitMQ nodes must trust a Certificate Authority which has signed the public certificates of any clients which try to connect.
-You must create a Secret containing the CA's public certificate so that the RabbitMQ nodes know to trust any certifiates signed by the CA.
+You must create a Secret containing the CA's public certificate so that the RabbitMQ nodes know to trust any certificates signed by the CA.
 Assuming the CA's certificate is accessible as `ca.pem`, you can create this Secret by running:
 
 ```shell

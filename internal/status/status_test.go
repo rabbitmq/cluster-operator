@@ -37,7 +37,7 @@ var _ = Describe("Status", func() {
 				"Actual transition time %v is before Expected transition time %v", someCondition.LastTransitionTime, someConditionTime)
 		})
 
-		It("preserves the status and transtion time", func() {
+		It("preserves the status and transition time", func() {
 			someCondition.UpdateState("some-status")
 			Expect(someCondition.Status).To(Equal(corev1.ConditionStatus("some-status")))
 			Expect(someCondition.LastTransitionTime).To(Equal(someConditionTime))

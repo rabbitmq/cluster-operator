@@ -144,18 +144,19 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})
 			By("recording SuccessfulCreate events for all child resources", func() {
 				allEventMsgs := aggregateEventMsgs(ctx, cluster, "SuccessfulCreate")
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("nodes")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("plugins-conf")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("server-conf")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Secret", cluster.ChildResourceName("erlang-cookie")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Secret", cluster.ChildResourceName("default-user")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.ServiceAccount", cluster.ChildResourceName("server")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.Role", cluster.ChildResourceName("peer-discovery")))
-				Expect(allEventMsgs).To(ContainSubstring("created resource %s of Type *v1.RoleBinding", cluster.ChildResourceName("server")))
+				Expect(allEventMsgs).To(SatisfyAll(
+					ContainSubstring("created resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")),
+					ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("")),
+					ContainSubstring("created resource %s of Type *v1.Service", cluster.ChildResourceName("nodes")),
+					ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("plugins-conf")),
+					ContainSubstring("created resource %s of Type *v1.ConfigMap", cluster.ChildResourceName("server-conf")),
+					ContainSubstring("created resource %s of Type *v1.Secret", cluster.ChildResourceName("erlang-cookie")),
+					ContainSubstring("created resource %s of Type *v1.Secret", cluster.ChildResourceName("default-user")),
+					ContainSubstring("created resource %s of Type *v1.ServiceAccount", cluster.ChildResourceName("server")),
+					ContainSubstring("created resource %s of Type *v1.Role", cluster.ChildResourceName("peer-discovery")),
+					ContainSubstring("created resource %s of Type *v1.RoleBinding", cluster.ChildResourceName("server")),
+				))
 			})
-
 		})
 	})
 
@@ -885,19 +886,25 @@ var _ = Describe("RabbitmqClusterController", func() {
 										},
 									},
 								},
+								{
+									ConfigMap: &corev1.ConfigMapProjection{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "rabbitmq-sts-override-server-conf",
+										},
+										Items: []corev1.KeyToPath{
+											{
+												Key:  "operatorDefaults.conf",
+												Path: "operatorDefaults.conf",
+											},
+											{
+												Key:  "userDefinedConfiguration.conf",
+												Path: "userDefinedConfiguration.conf",
+											},
+										},
+									},
+								},
 							},
 							DefaultMode: &defaultMode,
-						},
-					},
-				},
-				corev1.Volume{
-					Name: "server-conf",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							DefaultMode: &defaultMode,
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "rabbitmq-sts-override-server-conf",
-							},
 						},
 					},
 				},
