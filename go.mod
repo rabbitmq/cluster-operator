@@ -15,6 +15,7 @@ require (
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
+	github.com/tidwall/match v1.0.2 // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
 	gopkg.in/ini.v1 v1.62.0
 	k8s.io/api v0.19.2
