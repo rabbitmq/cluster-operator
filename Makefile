@@ -135,7 +135,7 @@ system-tests: install-tools ## run end-to-end tests against Kubernetes cluster d
 
 chart-tests:
 	echo "running charts tests"
-	pushd charts/rabbitmq && ./test.sh && popd
+	cd charts/rabbitmq && ./test.sh
 
 kubectl-plugin-tests:
 	echo "running kubectl plugin tests"
