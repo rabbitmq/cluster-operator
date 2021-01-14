@@ -26,4 +26,4 @@ jobs:
           git config --local user.name "github-actions"
           cp ../cluster-operator/docs/api/rabbitmq.com.ref.asciidoc ./API_Reference.asciidoc
           git add .
-          git diff-index --quiet HEAD || git commit -m "Add changes" && git push
+          git diff-index --quiet HEAD || git commit -m "Update API Reference" && git push
