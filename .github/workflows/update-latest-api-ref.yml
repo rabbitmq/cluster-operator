@@ -1,4 +1,4 @@
-name: "Update API Reference Wiki page"
+name: "Update Latest API Reference Wiki page"
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   update-api-reference:
-    name: Update API Reference Wiki
+    name: Update Latest API Reference Wiki
     runs-on: ubuntu-latest
 
     steps:
@@ -24,6 +24,7 @@ jobs:
           cd wiki
           git config --local user.email "github-actions@github.com"
           git config --local user.name "github-actions"
+          # Update the latest API Reference Doc
           cp ../cluster-operator/docs/api/rabbitmq.com.ref.asciidoc ./API_Reference.asciidoc
-          git add .
-          git diff-index --quiet HEAD || git commit -m "Update API Reference" && git push
+          git add ./API_Reference.asciidoc
+          git diff-index --quiet HEAD || git commit -m "Update Latest API Reference" && git push
