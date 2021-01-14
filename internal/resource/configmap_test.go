@@ -137,10 +137,10 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		It("returns the default rabbitmq configuration", func() {
 			builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
 
-			expectedRabbitmqConf := defaultRabbitmqConf(builder.Instance.Name)
+			expectedConfiguration := defaultRabbitmqConf(builder.Instance.Name)
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
-			Expect(configMap.Data).To(HaveKeyWithValue("operatorDefaults.conf", expectedRabbitmqConf))
+			Expect(configMap.Data).To(HaveKeyWithValue("operatorDefaults.conf", expectedConfiguration))
 		})
 
 		When("valid userDefinedConfiguration is provided", func() {
@@ -150,10 +150,10 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 				instance.Spec.Rabbitmq.AdditionalConfig = userDefinedConfiguration
 
-				expectedRabbitmqConf := iniString(userDefinedConfiguration)
+				expectedConfiguration := iniString(userDefinedConfiguration)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 		})
 
@@ -233,7 +233,7 @@ CONSOLE_LOG=new`
 				instance.ObjectMeta.Name = "rabbit-tls"
 				instance.Spec.TLS.SecretName = "tls-secret"
 
-				expectedRabbitmqConf := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+				expectedConfiguration := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
 					ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
 					listeners.ssl.default = 5671
 					management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
@@ -246,7 +246,7 @@ CONSOLE_LOG=new`
 					prometheus.tcp.port       = 15692`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 
 			When("MQTT, STOMP and AMQP 1.0 plugins are enabled", func() {
@@ -257,7 +257,7 @@ CONSOLE_LOG=new`
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
 
-					expectedRabbitmqConf := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+					expectedConfiguration := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
 						ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
 						listeners.ssl.default = 5671
 						management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
@@ -272,7 +272,7 @@ CONSOLE_LOG=new`
 						stomp.listeners.ssl.1 = 61614`)
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
-					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 				})
 			})
 
@@ -281,7 +281,7 @@ CONSOLE_LOG=new`
 				instance.Spec.TLS.SecretName = "tls-secret"
 				instance.Spec.Rabbitmq.AdditionalConfig = "listeners.ssl.default = 12345"
 
-				expectedRabbitmqConf := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+				expectedConfiguration := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
 					ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
 					listeners.ssl.default = 12345
 					management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
@@ -294,7 +294,7 @@ CONSOLE_LOG=new`
 					prometheus.tcp.port       = 15692`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 		})
 
@@ -304,7 +304,7 @@ CONSOLE_LOG=new`
 				instance.Spec.TLS.SecretName = "tls-secret"
 				instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
 
-				expectedRabbitmqConf := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+				expectedConfiguration := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 					ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 					listeners.ssl.default  = 5671
 					management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
@@ -321,7 +321,7 @@ CONSOLE_LOG=new`
 					prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 
 			When("Web MQTT and Web STOMP are enabled", func() {
@@ -333,7 +333,7 @@ CONSOLE_LOG=new`
 					instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
 					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
 
-					expectedRabbitmqConf := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+					expectedConfiguration := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 						ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 						listeners.ssl.default  = 5671
 
@@ -364,7 +364,7 @@ CONSOLE_LOG=new`
 						web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key`)
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
-					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 				})
 			})
 		})
@@ -383,7 +383,7 @@ CONSOLE_LOG=new`
 					},
 				}
 
-				expectedRabbitmqConf := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
+				expectedConfiguration := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
 					ssl_options.keyfile   = /etc/rabbitmq-tls/tls.key
 					listeners.ssl.default = 5671
 
@@ -398,7 +398,7 @@ CONSOLE_LOG=new`
 					listeners.tcp = none`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 
 			It("disables non tls listeners for mqtt and stomp when enabled", func() {
@@ -420,7 +420,7 @@ CONSOLE_LOG=new`
 					},
 				}
 
-				expectedRabbitmqConf := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+				expectedConfiguration := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 					ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 					listeners.ssl.default  = 5671
 
@@ -441,7 +441,7 @@ CONSOLE_LOG=new`
 					stomp.listeners.tcp   = none`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 
 			It("disables non tls listeners for web mqtt and web stomp when enabled", func() {
@@ -464,7 +464,7 @@ CONSOLE_LOG=new`
 					},
 				}
 
-				expectedRabbitmqConf := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+				expectedConfiguration := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
 					ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
 					listeners.ssl.default  = 5671
 
@@ -496,7 +496,7 @@ CONSOLE_LOG=new`
 					web_stomp.tcp.listener = none`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 		})
 
@@ -506,10 +506,10 @@ CONSOLE_LOG=new`
 				instance.ObjectMeta.Name = "rabbit-mem-limit"
 				instance.Spec.Resources.Limits = map[corev1.ResourceName]k8sresource.Quantity{corev1.ResourceMemory: k8sresource.MustParse("10Gi")}
 
-				expectedRabbitmqConf := iniString(fmt.Sprintf("total_memory_available_override_value = %d", 8*GiB))
+				expectedConfiguration := iniString(fmt.Sprintf("total_memory_available_override_value = %d", 8*GiB))
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
-				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedRabbitmqConf))
+				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 		})
 
