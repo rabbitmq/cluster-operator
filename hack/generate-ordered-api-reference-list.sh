@@ -5,11 +5,11 @@ set -euo pipefail
 wikiDir=$1
 
 generateVersionedEntry() {
-  echo "* [$1](https://github.com/rabbitmq/cluster-operator/wiki/API_Reference_$1.asciidoc)"
+  echo "* [$1](https://github.com/rabbitmq/cluster-operator/wiki/API_Reference_$1)"
 }
 
 generateLatestEntry() {
-  echo "* [Latest](https://github.com/rabbitmq/cluster-operator/wiki/API_Reference.asciidoc)"
+  echo "* [Latest](https://github.com/rabbitmq/cluster-operator/wiki/API_Reference)"
 }
 
 lead='^<!--- BEGIN API REFERENCE LIST -->$'
