@@ -1,0 +1,29 @@
+name: "Update API Reference Wiki page"
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  update-api-reference:
+    name: Update API Reference Wiki
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout operator codebase
+        uses: actions/checkout@v2
+        with:
+          path: cluster-operator
+      - name: Checkout wiki codebase
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+      - name: Push to wiki
+        run: |
+          cd wiki
+          git config --local user.email "github-actions@github.com"
+          git config --local user.name "github-actions"
+          cp ../cluster-operator/docs/api/rabbitmq.com.ref.asciidoc ./API_Reference.asciidoc
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Update API Reference" && git push

@@ -1,0 +1,3 @@
+render:
+  kubernetesVersion: "1.20"
+

@@ -23,6 +23,14 @@ manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 	./hack/add-notice-to-yaml.sh config/rbac/role.yaml
 	./hack/add-notice-to-yaml.sh config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml
 
+api-reference: install-tools ## Generate API reference documentation
+	crd-ref-docs \
+		--source-path ./api/v1beta1 \
+		--config ./docs/api/autogen/config.yaml \
+		--templates-dir ./docs/api/autogen/templates \
+		--output-path ./docs/api/rabbitmq.com.ref.asciidoc \
+		--max-depth 30
+
 # Run go fmt against code
 fmt:
 	go fmt ./...
@@ -31,8 +39,8 @@ fmt:
 vet:
 	go vet ./...
 
-# Generate code
-generate: install-tools
+# Generate code & docs
+generate: install-tools api-reference
 	controller-gen object:headerFile=./hack/NOTICE.go.txt paths=./api/...
 	controller-gen object:headerFile=./hack/NOTICE.go.txt paths=./internal/status/...
 
