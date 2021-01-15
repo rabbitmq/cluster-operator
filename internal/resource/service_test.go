@@ -606,7 +606,7 @@ var _ = Context("Services", func() {
 								TimeoutSeconds: &ten,
 							},
 						},
-						IPFamily:     &IPv4,
+						IPFamilies:   []corev1.IPFamily{IPv4},
 						TopologyKeys: []string{"a-topology-key"},
 					},
 				}
@@ -642,7 +642,7 @@ var _ = Context("Services", func() {
 				Expect(svc.Spec.HealthCheckNodePort).To(Equal(int32(1234)))
 				Expect(svc.Spec.PublishNotReadyAddresses).To(BeFalse())
 				Expect(*svc.Spec.SessionAffinityConfig.ClientIP.TimeoutSeconds).To(Equal(int32(10)))
-				Expect(*svc.Spec.IPFamily).To(Equal(corev1.IPv4Protocol))
+				Expect(svc.Spec.IPFamilies).To(ConsistOf(corev1.IPv4Protocol))
 				Expect(svc.Spec.TopologyKeys).To(Equal([]string{"a-topology-key"}))
 			})
 
