@@ -49,7 +49,7 @@ jobs:
         rabbitmq-image:
         - rabbitmq:3.8.8-management
         - rabbitmq:3.8.9-management
-        - rabbitmq:3.8.10-rc.5-management
+        - rabbitmq:3.8-rc-management
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
