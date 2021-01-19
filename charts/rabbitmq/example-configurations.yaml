@@ -17,7 +17,7 @@ annotations:
 
 replicas: 3
 
-image: "rabbitmq:3.8.9-management"
+image: "rabbitmq:3.8.10-management"
 
 imagePullSecrets:
   - name: foo

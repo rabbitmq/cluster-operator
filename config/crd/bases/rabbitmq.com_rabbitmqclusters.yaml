@@ -389,7 +389,7 @@ spec:
                       type: object
                   type: object
                 image:
-                  default: rabbitmq:3.8.9-management
+                  default: rabbitmq:3.8.10-management
                   description: Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster. Must be provided together with ImagePullSecrets in order to use an image in a private registry.
                   type: string
                 imagePullSecrets:
