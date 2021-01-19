@@ -474,7 +474,7 @@ func generateRabbitmqClusterObject(clusterName string) *RabbitmqCluster {
 		},
 		Spec: RabbitmqClusterSpec{
 			Replicas:                      pointer.Int32Ptr(1),
-			Image:                         "rabbitmq:3.8.9-management",
+			Image:                         "rabbitmq:3.8.10-management",
 			TerminationGracePeriodSeconds: pointer.Int64Ptr(604800),
 			Service: RabbitmqClusterServiceSpec{
 				Type: "ClusterIP",
