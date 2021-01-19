@@ -18,8 +18,7 @@ jobs:
     - name: Integration tests
       run: make integration-tests
     - name: Helm chart tests
-      working-directory: charts/rabbitmq
-      run: ./test.sh
+      run: make chart-tests
 
   test-all-examples:
     name: test-all-examples
