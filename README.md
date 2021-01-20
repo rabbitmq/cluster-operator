@@ -2,8 +2,6 @@
 
 Kubernetes operator to deploy and manage [RabbitMQ](https://www.rabbitmq.com/) clusters. This repository contains a [custom controller](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#custom-controllers) and [custom resource definition (CRD)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) designed for the lifecycle (creation, upgrade, graceful shutdown) of a RabbitMQ cluster.
 
-**Note**: this repository is under active development. Official support for this software is not provided; if you encounter any issues running this software, please feel free to [contribute to the project](#contributing).
-
 ## Quickstart
 
 If you have a running Kubernetes cluster and `kubectl` configured to access it, run the following command to install the operator:
