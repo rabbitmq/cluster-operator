@@ -1,0 +1,38 @@
+name: "Publish Versioned API Reference Wiki page"
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  publish-versioned-api-reference:
+    name: Publish Versioned API Reference Wiki
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout operator codebase
+        uses: actions/checkout@v2
+        with:
+          path: cluster-operator
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: Checkout wiki codebase
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+      - name: Push to wiki
+        run: |
+          cd wiki
+          git config --local user.email "github-actions@github.com"
+          git config --local user.name "github-actions"
+          # Add the versioned API Reference to the Wiki
+          cp ../cluster-operator/docs/api/rabbitmq.com.ref.asciidoc ./API_Reference_${{ steps.get_version.outputs.VERSION }}.asciidoc
+          # Regenerate the ordered list of API Reference docs for the sidebar
+          export REGENERATED_SIDEBAR="$(../cluster-operator/hack/generate-ordered-api-reference-list.sh .)"
+          echo "$REGENERATED_SIDEBAR" > Wiki_Sidebar.md
+          git add ./API_Reference_${{ steps.get_version.outputs.VERSION }}.asciidoc
+          git add ./Wiki_Sidebar.md
+          git commit -m "Publish version ${{ steps.get_version.outputs.VERSION }} API Reference" && git push
