@@ -1,6 +1,6 @@
 // RabbitMQ Cluster Operator
 //
-// Copyright 2020 VMware, Inc. All Rights Reserved.
+// Copyright 2021 VMware, Inc. All Rights Reserved.
 //
 // This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance wit the Mozilla Public License.
 //
