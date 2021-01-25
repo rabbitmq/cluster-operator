@@ -12,7 +12,6 @@ require (
 	github.com/michaelklishin/rabbit-hole/v2 v2.6.0
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.4
-	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
@@ -23,6 +22,6 @@ require (
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	sigs.k8s.io/controller-runtime v0.8.0
 	sigs.k8s.io/controller-tools v0.4.1
-	sigs.k8s.io/kind v0.9.0
+	sigs.k8s.io/kind v0.10.0
 	sigs.k8s.io/kustomize/kustomize/v3 v3.9.2
 )
