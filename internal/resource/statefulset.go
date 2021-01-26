@@ -66,6 +66,7 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 				MatchLabels: metadata.LabelSelector(builder.Instance.Name),
 			},
 			VolumeClaimTemplates: pvc,
+			PodManagementPolicy:  appsv1.ParallelPodManagement,
 		},
 	}
 
