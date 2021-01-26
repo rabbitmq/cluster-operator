@@ -16,11 +16,11 @@ require (
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
 	gopkg.in/ini.v1 v1.62.0
-	k8s.io/api v0.20.1
-	k8s.io/apimachinery v0.20.1
-	k8s.io/client-go v0.20.1
-	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
-	sigs.k8s.io/controller-runtime v0.8.0
+	k8s.io/api v0.20.2
+	k8s.io/apimachinery v0.20.2
+	k8s.io/client-go v0.20.2
+	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
+	sigs.k8s.io/controller-runtime v0.8.1
 	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/kind v0.10.0
 	sigs.k8s.io/kustomize/kustomize/v3 v3.9.2
