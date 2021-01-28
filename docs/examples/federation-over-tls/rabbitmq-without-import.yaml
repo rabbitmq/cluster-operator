@@ -1,10 +1,12 @@
 apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster
 metadata:
-  name: downstream
+  name: federation
 spec:
   replicas: 1
   rabbitmq:
     additionalPlugins:
-      - rabbitmq_federation
-      - rabbitmq_federation_management
+    - rabbitmq_federation
+    - rabbitmq_federation_management
+  tls:
+    secretName: tls-secret

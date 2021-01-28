@@ -15,7 +15,7 @@ $OPENSSL genrsa -out rabbitmq-ca-key.pem 2048
 $OPENSSL req -x509 -new -nodes -key rabbitmq-ca-key.pem -subj "/CN=mtls-inter-node" -days 3650 -reqexts v3_req -extensions v3_ca -out rabbitmq-ca.pem
 
 # Create a CA secret
-kubectl create secret tls rabbitmq-ca --cert=rabbitmq-ca.pem --key=rabbitmq-ca-key.pem  
+kubectl create secret tls rabbitmq-ca --cert=rabbitmq-ca.pem --key=rabbitmq-ca-key.pem
 
 # Create an Issuer (Cert Manager CA)
 kubectl apply -f rabbitmq-ca.yaml
@@ -26,5 +26,3 @@ kubectl apply -f rabbitmq-certificate.yaml
 # Create a configuration file for Erlang Distribution
 kubectl create configmap mtls-inter-node-tls-config --from-file=inter_node_tls.config
 
-# Deploy a RabbitMQ cluster
-kubectl apply -f rabbitmq.yaml

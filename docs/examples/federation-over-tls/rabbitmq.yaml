@@ -1,9 +1,17 @@
 apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster
 metadata:
-  name: import-definitions
+  name: federation
 spec:
   replicas: 1
+  rabbitmq:
+    additionalConfig: |
+      load_definitions = /federation/definitions.json # Path to the mounted definitions file
+    additionalPlugins:
+    - rabbitmq_federation
+    - rabbitmq_federation_management
+  tls:
+    secretName: tls-secret
   override:
     statefulSet:
       spec:
@@ -12,12 +20,9 @@ spec:
             containers:
             - name: rabbitmq
               volumeMounts:
-              - mountPath: /path/to/exported/ # filename left out intentionally
+              - mountPath: /federation/ # filename left out intentionally
                 name: definitions
             volumes:
             - name: definitions
               configMap:
                 name: definitions # Name of the ConfigMap which contains definitions you wish to import
-  rabbitmq:
-    additionalConfig: |
-      load_definitions = /path/to/exported/definitions.json # Path to the mounted definitions file
