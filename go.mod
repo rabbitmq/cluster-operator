@@ -11,7 +11,7 @@ require (
 	github.com/go-stomp/stomp v2.1.2+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.6.0
 	github.com/onsi/ginkgo v1.14.2
-	github.com/onsi/gomega v1.10.4
+	github.com/onsi/gomega v1.10.5
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
