@@ -45,6 +45,7 @@ USAGE:
 
   Tail logs from all nodes
     kubectl rabbitmq tail INSTANCE
+    'tail' subcommand requires the 'tail' plugin. You can install it with 'kubectl krew install tail'
 
   Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE
     kubectl rabbitmq observe INSTANCE 0
