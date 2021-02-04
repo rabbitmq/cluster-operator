@@ -10,60 +10,63 @@
 
 set -euo pipefail
 
+NAMESPACE=""
+
 instance=""
 username=""
 password=""
 service=""
 
 usage() {
-  usage=$(cat <<-END
+    usage=$(
+        cat <<-END
 USAGE:
   Install (latest released) RabbitMQ Cluster Operator
     kubectl rabbitmq install-cluster-operator
 
   Create a RabbitMQ custom resource - INSTANCE name required, all other flags optional
-    kubectl rabbitmq create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.10-management --image-pull-secret mysecret
+    kubectl rabbitmq [-n NAMESPACE] create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.10-management --image-pull-secret mysecret
       --tls-secret secret-name --storage-class mystorageclass
 
   Get a RabbitMQ custom resource and dependant objects
-    kubectl rabbitmq get INSTANCE
+    kubectl rabbitmq [-n NAMESPACE | -A] get INSTANCE
 
   List all RabbitMQ clusters
-    kubectl rabbitmq list
+    kubectl rabbitmq [-n NAMESPACE | -A] list
 
   Delete a RabbitMQ cluster (or multiple clusters)
-    kubectl rabbitmq delete INSTANCE ...
+    kubectl rabbitmq [-n NAMESPACE] delete INSTANCE ...
 
   Print default-user secrets for an instance
-    kubectl rabbitmq secrets INSTANCE
+    kubectl rabbitmq [-n NAMESPACE] secrets INSTANCE
 
   Open Management UI for an instance
-    kubectl rabbitmq manage INSTANCE
+    kubectl rabbitmq [-n NAMESPACE] manage INSTANCE
 
   Set log level to 'debug' on all nodes
-    kubectl rabbitmq debug INSTANCE
+    kubectl rabbitmq [-n NAMESPACE] debug INSTANCE
 
   Tail logs from all nodes
-    kubectl rabbitmq tail INSTANCE
+    kubectl rabbitmq [-n NAMESPACE] tail INSTANCE
     'tail' subcommand requires the 'tail' plugin. You can install it with 'kubectl krew install tail'
 
   Run 'rabbitmq-diagnostics observer' on a specific INSTANCE NODE
-    kubectl rabbitmq observe INSTANCE 0
+    kubectl rabbitmq [-n NAMESPACE] observe INSTANCE 0
 
   Enable all feature flags on an INSTANCE
-    kubectl rabbitmq enable-all-feature-flags INSTANCE
+    kubectl rabbitmq [-n NAMESPACE] enable-all-feature-flags INSTANCE
 
   Pause reconciliation for an instance
-    kubectl rabbitmq pause-reconciliation INSTANCE
+    kubectl rabbitmq [-n NAMESPACE] pause-reconciliation INSTANCE
 
   Resume reconciliation for an instance
-    kubectl rabbitmq resume-reconciliation INSTANCE
+    kubectl rabbitmq [-n NAMESPACE] resume-reconciliation INSTANCE
 
   List all instances that has the pause reconciliation label
-    kubectl rabbitmq list-pause-reconciliation-instances
+    kubectl rabbitmq [-n NAMESPACE | -A] list-pause-reconciliation-instances
 
   Run perf-test against an instance - you can pass as many perf test parameters as you want
-    kubectl rabbitmq perf-test INSTANCE --rate 100
+    kubectl rabbitmq [-n NAMESPACE] perf-test INSTANCE --rate 100
   If you want to monitor perf-test, create the following ServiceMonitor:
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
@@ -83,8 +86,8 @@ USAGE:
   Print kubectl-rabbitmq plugin version
     kubectl rabbitmq version
 END
-)
-  echo "$usage"
+    )
+    echo "$usage"
 }
 
 version() {
@@ -113,8 +116,8 @@ version() {
 
 get_instance_details() {
     instance=${1}
-    username=$(kubectl get secret "${instance}-default-user" -o jsonpath="{.data.username}" | base64 --decode)
-    password=$(kubectl get secret "${instance}-default-user" -o jsonpath="{.data.password}" | base64 --decode)
+    username=$(kubectl get ${NAMESPACE} secret "${instance}-default-user" -o jsonpath="{.data.username}" | base64 --decode)
+    password=$(kubectl get ${NAMESPACE} secret "${instance}-default-user" -o jsonpath="{.data.password}" | base64 --decode)
     service="$instance"
 }
 
@@ -123,7 +126,7 @@ perf_test() {
     shift 1
     perftestopts=$*
 
-    kubectl run perf-test \
+    kubectl ${NAMESPACE} run perf-test \
         --expose=true \
         --port=8080 \
         --labels="app=perf-test,run=perf-test" \
@@ -139,11 +142,11 @@ manage() {
         sleep 2
         open "http://localhost:15672/"
     ) &
-    kubectl port-forward "service/${service}" 15672
+    kubectl ${NAMESPACE} port-forward "service/${service}" 15672
 }
 
 list_rabbitmq_clusters() {
-    kubectl get rabbitmqclusters
+    kubectl get ${NAMESPACE} rabbitmqclusters
 }
 
 create() {
@@ -211,48 +214,48 @@ create() {
             ;;
         esac
     done
-    kubectl apply -f "$rabbitmq_manifest_file"
+    kubectl ${NAMESPACE} apply -f "$rabbitmq_manifest_file"
 }
 
 delete() {
     for cluster in "$@"; do
-        kubectl delete rabbitmqcluster "${cluster}"
+        kubectl ${NAMESPACE} delete rabbitmqcluster "${cluster}"
     done
 }
 
 observe() {
-    kubectl exec -it "${1}-server-${2}" -- rabbitmq-diagnostics observer
+    kubectl ${NAMESPACE} exec -it "${1}-server-${2}" -- rabbitmq-diagnostics observer
 }
 
 get() {
-    kubectl get pods,cm,sts,svc,secrets,rs -l "app.kubernetes.io/name=$1"
+    kubectl get ${NAMESPACE} pods,cm,sts,svc,secrets,rs -l "app.kubernetes.io/name=$1"
 }
 
 debug() {
-    for node in $(kubectl get pods -l "app.kubernetes.io/name=${1}" -ocustom-columns=name:.metadata.name --no-headers); do
+    for node in $(kubectl ${NAMESPACE} get pods -l "app.kubernetes.io/name=${1}" -ocustom-columns=name:.metadata.name --no-headers); do
         echo -n "${node}: "
-        kubectl exec "${node}" -- rabbitmqctl set_log_level debug
+        kubectl ${NAMESPACE} exec "${node}" -- rabbitmqctl set_log_level debug
     done
 }
 
 tail() {
-    kubectl tail --svc "${1}"
+    kubectl ${NAMESPACE} tail --svc "${1}"
 }
 
 enable_all_feature_flags() {
-    kubectl exec "${1}-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
+    kubectl ${NAMESPACE} exec "${1}-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
 }
 
 pause-reconciliation() {
-    kubectl label rabbitmqclusters "${1}" rabbitmq.com/pauseReconciliation=true
+    kubectl ${NAMESPACE} label rabbitmqclusters "${1}" rabbitmq.com/pauseReconciliation=true
 }
 
 resume-reconciliation() {
-    kubectl label rabbitmqclusters "${1}" rabbitmq.com/pauseReconciliation-
+    kubectl ${NAMESPACE} label rabbitmqclusters "${1}" rabbitmq.com/pauseReconciliation-
 }
 
 list-pause-reconciliation-instances() {
-    kubectl get rabbitmqclusters -l rabbitmq.com/pauseReconciliation=true --show-labels
+    kubectl get ${NAMESPACE} rabbitmqclusters -l rabbitmq.com/pauseReconciliation=true --show-labels
 }
 
 secrets() {
@@ -262,10 +265,35 @@ secrets() {
 }
 
 install_cluster_operator() {
-    kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
+    kubectl ${NAMESPACE} apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
 }
 
 main() {
+    if [[ "$1" == "--help" ]]; then
+        usage
+        exit 0
+    fi
+
+    while getopts ':n:Ah' opt; do
+        case "${opt}" in
+        h)
+            usage
+            exit 0
+            ;;
+        A)
+            NAMESPACE="--all-namespaces"
+            shift 1
+            ;;
+        n)
+            NAMESPACE="-n ${OPTARG}"
+            shift 2
+            ;;
+        *)
+            usage
+            ;;
+        esac
+    done
+
     case "$1" in
     "perf-test")
         shift 1
@@ -380,12 +408,6 @@ main() {
         install_cluster_operator
         ;;
     "help")
-        usage
-        ;;
-    "--help")
-        usage
-        ;;
-    "-h")
         usage
         ;;
     "version")

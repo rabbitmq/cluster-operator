@@ -75,13 +75,49 @@ eventually() {
   [[ $(kubectl get pvc persistence-bats-configured-server-0 -o jsonpath='{.spec.storageClassName}') == "$storage_class" ]]
 }
 
-@test "list lists all RabbitMQ clusters" {
+@test "list lists all RabbitMQ clusters in the current namespace" {
   run kubectl rabbitmq list
 
   [ "$status" -eq 0 ]
   [[ "${lines[0]}" =~ ^NAME ]]
   [[ "${lines[1]}" =~ ^bats-configured ]]
   [[ "${lines[2]}" =~ ^bats-default ]]
+}
+
+@test "list supports -n NAMESPACE flag" {
+  CLUSTER_NAMESPACE="$(kubectl config view --minify --output 'jsonpath={..namespace}')"
+  # if namespace is not set in kube config, take the default namespace
+  CLUSTER_NAMESPACE="${CLUSTER_NAMESPACE:=default}"
+
+  kubectl create namespace kubectl-rabbitmq-tests
+  kubectl config set-context --current --namespace=kubectl-rabbitmq-tests
+
+  run kubectl rabbitmq -n "${CLUSTER_NAMESPACE}" list
+
+  [ "$status" -eq 0 ]
+  [[ "${lines[0]}" =~ ^NAME ]]
+  [[ "${lines[1]}" =~ ^bats-configured ]]
+  [[ "${lines[2]}" =~ ^bats-default ]]
+
+  kubectl config set-context --current --namespace="${CLUSTER_NAMESPACE}"
+  kubectl delete namespace kubectl-rabbitmq-tests
+}
+
+@test "list supports -A flag" {
+  CLUSTER_NAMESPACE="$(kubectl config view --minify --output 'jsonpath={..namespace}')"
+
+  kubectl create namespace kubectl-rabbitmq-tests
+  kubectl config set-context --current --namespace=kubectl-rabbitmq-tests
+
+  run kubectl rabbitmq -A list
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"NAMESPACE"* ]]
+  [[ "$output" == *"bats-configured"* ]]
+  [[ "$output" == *"bats-default"* ]]
+
+  kubectl config set-context --current --namespace="${CLUSTER_NAMESPACE}"
+  kubectl delete namespace kubectl-rabbitmq-tests
 }
 
 @test "get gets child resources" {
