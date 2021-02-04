@@ -86,6 +86,8 @@ eventually() {
 
 @test "list supports -n NAMESPACE flag" {
   CLUSTER_NAMESPACE="$(kubectl config view --minify --output 'jsonpath={..namespace}')"
+  # if namespace is not set in kube config, take the default namespace
+  CLUSTER_NAMESPACE="${CLUSTER_NAMESPACE:=default}"
 
   kubectl create namespace kubectl-rabbitmq-tests
   kubectl config set-context --current --namespace=kubectl-rabbitmq-tests
