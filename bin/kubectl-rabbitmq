@@ -271,12 +271,14 @@ install_cluster_operator() {
 main() {
     if [[ "$1" == "--help" ]]; then
         usage
+        exit 0
     fi
 
     while getopts ':n:Ah' opt; do
         case "${opt}" in
         h)
             usage
+            exit 0
             ;;
         A)
             NAMESPACE="--all-namespaces"
