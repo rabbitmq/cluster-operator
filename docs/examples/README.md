@@ -23,14 +23,14 @@ If the test requires some preparation or setup, a file `setup.sh` can be provide
 that `kubectl` is configured to execute commands against a working Kubernetes cluster.
 
 The script `test.sh` will be executed **after** `AllReplicasReady` condition is `True` in `RabbitmqCluster`
-object. The script `test.sh` should exit with code 0 is all assertions were successful; the script `test.sh` should
+object. The script `test.sh` should exit with code 0 if all assertions were successful; the script `test.sh` should
 exit with non-zero code if any test or assertion failed. The same is expected for `setup.sh`.
 
 If the example should not run any tests because of the reasons mentioned above, the folder should contain
 a file `.ci-skip`, so that the example is not considered in our tests.
 
 Once the `test.sh` script has completed, the namespace where the example was applied will be deleted. This allows
-to have a clean slate for the next test to execute. This also means that `test.sh` does not need to
+for a clean slate for the next test to execute. This also means that `test.sh` does not need to
 tear down namespaced resources.
 
 The test and setup scripts can assume that [Cert Manager](https://cert-manager.io/) is installed and available.
