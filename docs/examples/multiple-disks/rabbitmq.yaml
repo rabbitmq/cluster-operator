@@ -5,6 +5,8 @@ metadata:
 spec:
   replicas: 1
   rabbitmq:
+    envConfig: |
+      RABBITMQ_QUORUM_DIR=/var/lib/rabbitmq/quorum-segments
     advancedConfig: |
       [
           {ra, [
@@ -23,9 +25,6 @@ spec:
                     name: quorum-segments
                   - mountPath: /var/lib/rabbitmq/quorum-wal
                     name: quorum-wal
-                env:
-                  - name: RABBITMQ_QUORUM_DIR
-                    value: /var/lib/rabbitmq/quorum-segments
         volumeClaimTemplates:
           - apiVersion: v1
             kind: PersistentVolumeClaim

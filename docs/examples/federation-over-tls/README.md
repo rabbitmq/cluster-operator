@@ -1,15 +1,29 @@
 # Federation Over TLS Example
 
-This is the a more complex example of deploying two `RabbitmqCluster`s and setting up federation between them. Upstream cluster has TLS enabled and therefore federation works over a TLS connection.
+This is a more complex example of deploying a `RabbitmqCluster` and setting up federation between two virtual hosts. The
+cluster has TLS enabled and therefore federation works over a TLS connection.
 
-First, please follow [TLS example](../tls) to create a TLS secret. Once you have a secret, run the `setup.sh` script:
+First, please follow [TLS example](../tls) to create a TLS secret. Alternatively, if you have
+[cert-manager](https://cert-manager.io/docs/installation/kubernetes/), you can apply the certificate `certificate.yaml` file.
+The certificate expects to have a `ClusterIssuer` named `selfsigned-issuer`. Feel free to adapt this value accordingly to your
+cert-manager installation.
 
-```shell
-./setup.sh
+In addition, you have to create a ConfigMap to import the definitions with the topology pre-defined.
+
+```bash
+kubectl apply -f certificate.yaml
+kubectl create configmap definitions --from-file=./definitions.json
 ```
 
-The script will stop at some point and ask you to run `sudo kubefwd svc`. This is so that `rabbitmqadmin` can connect to the Management API and configure federation.
+The example has two vhosts "upstream" and "downstream". Both vhosts have a fanout exchange 'example', bound to quorum queue 'qq2'
+in "upstream", quorum queue 'qq1' and classic queue 'cq1' in "downstream". There is a policy in the "downstream" to federate
+the exchange 'example'. All messages published to 'example' exchange in "upstream" will be federated/copied to 'example' exchange
+in "downstream", where the bindings will be applied.
 
-Therefore to use this script as-is, you need both [kubefwd](https://github.com/txn2/kubefwd) and [rabbitmqadmin](https://www.rabbitmq.com/management-cli.html) CLIs on your machine.
+The definitions also import two users: `admin` and `federation`, with passwords matching the usernames (e.g. admin/admin). Note that
+due to the imported definitions, the credentials created by the Operator in Secret `federation-default-user` won't be applied/effective.
+
+If you don't want to import the definitions, or want to manually create the topology, the file `rabbitmq-without-import.yaml` will
+create a RabbitMQ single-node, with federation plugins enabled and TLS configured.
 
 Learn [more about RabbitMQ Federation](https://www.rabbitmq.com/federation.html).
