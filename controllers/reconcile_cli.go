@@ -25,7 +25,6 @@ func (r *RabbitmqClusterReconciler) runRabbitmqCLICommandsIfAnnotated(ctx contex
 		logger.Info("not all replicas ready yet; requeuing request to run RabbitMQ CLI commands")
 		return 15 * time.Second, nil
 	}
-
 	// Retrieve the plugins config map, if it exists.
 	pluginsConfig, err := r.configMap(ctx, rmq, rmq.ChildResourceName(resource.PluginsConfigName))
 	if client.IgnoreNotFound(err) != nil {
@@ -72,12 +71,10 @@ func (r *RabbitmqClusterReconciler) runEnableFeatureFlagsCommand(ctx context.Con
 	cmd := "set -eo pipefail; rabbitmqctl -s list_feature_flags name state stability | (grep 'disabled\\sstable$' || true) | cut -f 1 | xargs -r -n1 rabbitmqctl enable_feature_flag"
 	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "bash", "-c", cmd)
 	if err != nil {
-		logger.Error(err, "failed to enable all feature flags",
-			"pod", podName,
-			"command", cmd,
-			"stdout", stdout,
-			"stderr", stderr)
-		return err
+		msg := "failed to enable all feature flags on pod"
+		logger.Error(err, msg, "pod", podName, "command", cmd, "stdout", stdout, "stderr", stderr)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcile", fmt.Sprintf("%s %s", msg, podName))
+		return fmt.Errorf("%s %s: %v", msg, podName, err)
 	}
 	logger.Info("successfully enabled all feature flags")
 	return r.deleteAnnotation(ctx, sts, stsCreateAnnotation)
@@ -95,12 +92,10 @@ func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rm
 		cmd := fmt.Sprintf("rabbitmq-plugins set %s", plugins.AsString(" "))
 		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", cmd)
 		if err != nil {
-			logger.Error(err, "failed to set plugins",
-				"pod", podName,
-				"command", cmd,
-				"stdout", stdout,
-				"stderr", stderr)
-			return err
+			msg := "failed to set plugins on pod"
+			logger.Error(err, msg, "pod", podName, "command", cmd, "stdout", stdout, "stderr", stderr)
+			r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcile", fmt.Sprintf("%s %s", msg, podName))
+			return fmt.Errorf("%s %s: %v", msg, podName, err)
 		}
 	}
 	logger.Info("successfully set plugins")
@@ -108,16 +103,15 @@ func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rm
 }
 
 func (r *RabbitmqClusterReconciler) runQueueRebalanceCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+	logger := ctrl.LoggerFrom(ctx)
 	podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
 	cmd := "rabbitmq-queues rebalance all"
 	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", cmd)
 	if err != nil {
-		ctrl.LoggerFrom(ctx).Error(err, "failed to run queue rebalance",
-			"pod", podName,
-			"command", cmd,
-			"stdout", stdout,
-			"stderr", stderr)
-		return err
+		msg := "failed to run queue rebalance on pod"
+		logger.Error(err, msg, "pod", podName, "command", cmd, "stdout", stdout, "stderr", stderr)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcile", fmt.Sprintf("%s %s", msg, podName))
+		return fmt.Errorf("%s %s: %v", msg, podName, err)
 	}
 	return r.deleteAnnotation(ctx, rmq, queueRebalanceAnnotation)
 }

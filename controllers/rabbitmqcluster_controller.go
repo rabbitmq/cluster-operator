@@ -186,13 +186,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
-	// Set ReconcileSuccess to true here because all CRUD operations to Kube API related
-	// to child resources returned no error
-	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionTrue, "Success", "Created or Updated all child resources")
-	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
-		logger.Error(writerErr, "Failed to Update Custom Resource status")
-	}
-
 	if err := r.setDefaultUserStatus(ctx, rabbitmqCluster); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -200,7 +193,19 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// By this point the StatefulSet may have finished deploying. Run any
 	// post-deploy steps if so, or requeue until the deployment is finished.
 	if requeueAfter, err := r.runRabbitmqCLICommandsIfAnnotated(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
+		if err != nil {
+			rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "FailedCLICommand", err.Error())
+			if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
+				logger.Error(writerErr, "Failed to update ReconcileSuccess condition state")
+			}
+		}
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
+	}
+
+	// Set ReconcileSuccess to true after all reconciliation steps have finished with no error
+	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionTrue, "Success", "Finish reconciling")
+	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
+		logger.Error(writerErr, "Failed to Update Custom Resource status")
 	}
 
 	logger.Info("Finished reconciling")

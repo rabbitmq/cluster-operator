@@ -676,33 +676,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 					return "ReconcileSuccess status: condition not present"
 				}, 5).Should(Equal("ReconcileSuccess status: False"))
 			})
-
-			By("transitioning to True when a valid spec in updated", func() {
-				// We have to Get() the CR again because Reconcile() changes the object
-				// If we try to Update() without getting the latest version of the CR
-				// We are very likely to hit a Conflict error
-				Expect(client.Get(ctx, runtimeClient.ObjectKey{
-					Name:      crName,
-					Namespace: defaultNamespace,
-				}, cluster)).To(Succeed())
-				cluster.Spec.Service.Annotations = map[string]string{"thisIs": "valid"}
-				Expect(client.Update(ctx, cluster)).To(Succeed())
-
-				Eventually(func() string {
-					someRabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-					Expect(client.Get(ctx, runtimeClient.ObjectKey{
-						Name:      crName,
-						Namespace: defaultNamespace,
-					}, someRabbit)).To(Succeed())
-
-					for i := range someRabbit.Status.Conditions {
-						if someRabbit.Status.Conditions[i].Type == status.ReconcileSuccess {
-							return fmt.Sprintf("ReconcileSuccess status: %s", someRabbit.Status.Conditions[i].Status)
-						}
-					}
-					return "ReconcileSuccess status: condition not present"
-				}, 5).Should(Equal("ReconcileSuccess status: True"))
-			})
 		})
 	})
 
