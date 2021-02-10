@@ -22,9 +22,8 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/controllers"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	defaultscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,14 +37,11 @@ import (
 const controllerName = "rabbitmqcluster-controller"
 
 var (
-	cfg             *rest.Config
 	testEnv         *envtest.Environment
 	client          runtimeClient.Client
 	clientSet       *kubernetes.Clientset
-	scheme          *runtime.Scheme
 	fakeExecutor    *fakePodExecutor
 	ctx             = context.Background()
-	cancelFunc      context.CancelFunc
 	updateWithRetry = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
 		return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			if err := client.Get(ctx, runtimeClient.ObjectKeyFromObject(cr), cr); err != nil {
@@ -65,8 +61,7 @@ func TestControllers(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func() {
-	var err error
+var _ = BeforeSuite(func(done Done) {
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 
 	By("bootstrapping test environment")
@@ -74,47 +69,46 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
 	}
 
-	cfg, err = testEnv.Start()
+	cfg, err := testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
+
+	Expect(scheme.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(rabbitmqv1beta1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	clientSet, err = kubernetes.NewForConfig(cfg)
 	Expect(err).NotTo(HaveOccurred())
 
-	scheme = runtime.NewScheme()
-	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
-	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-
-	cancelFunc = startManager(scheme)
-})
-
-var _ = AfterSuite(func() {
-	cancelFunc()
-	By("tearing down the test environment")
-	Expect(testEnv.Stop()).To(Succeed())
-})
-
-func startManager(scheme *runtime.Scheme) context.CancelFunc {
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme})
-	Expect(err).NotTo(HaveOccurred())
-	client = mgr.GetClient()
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme: scheme.Scheme,
+	})
+	Expect(err).ToNot(HaveOccurred())
 
 	fakeExecutor = &fakePodExecutor{}
-	reconciler := &controllers.RabbitmqClusterReconciler{
-		Client:      client,
+	err = (&controllers.RabbitmqClusterReconciler{
+		Client:      mgr.GetClient(),
 		Scheme:      mgr.GetScheme(),
 		Recorder:    mgr.GetEventRecorderFor(controllerName),
 		Namespace:   "rabbitmq-system",
 		PodExecutor: fakeExecutor,
-	}
-	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
+	}).SetupWithManager(mgr)
+	Expect(err).ToNot(HaveOccurred())
 
-	managerCtx, cancel := context.WithCancel(context.Background())
 	go func() {
-		Expect(mgr.Start(managerCtx)).To(Succeed())
+		err = mgr.Start(ctrl.SetupSignalHandler())
+		Expect(err).ToNot(HaveOccurred())
 	}()
-	return cancel
-}
+
+	client = mgr.GetClient()
+	Expect(client).ToNot(BeNil())
+
+	close(done)
+}, 60)
+
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	Expect(testEnv.Stop()).To(Succeed())
+})
 
 type fakePodExecutor struct {
 	executedCommands []command
