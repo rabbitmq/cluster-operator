@@ -9,6 +9,7 @@
 package v1beta1
 
 import (
+	"strconv"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -362,6 +363,10 @@ type RabbitmqClusterList struct {
 
 func (cluster RabbitmqCluster) ChildResourceName(name string) string {
 	return strings.TrimSuffix(strings.Join([]string{cluster.Name, name}, "-"), "-")
+}
+
+func (cluster RabbitmqCluster) PVCName(i int) string {
+	return strings.Join([]string{"persistence", cluster.Name, "server", strconv.Itoa(i)}, "-")
 }
 
 func init() {

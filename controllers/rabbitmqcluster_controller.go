@@ -78,6 +78,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;create;patch
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
 
@@ -157,6 +158,10 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	for _, builder := range builders {
 		resource, err := builder.Build()
 		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err = r.reconcilePVC(ctx, builder, rabbitmqCluster, resource); err != nil  {
 			return ctrl.Result{}, err
 		}
 

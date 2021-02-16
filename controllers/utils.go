@@ -2,8 +2,6 @@ package controllers
 
 import (
 	"context"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -11,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (r *RabbitmqClusterReconciler) exec(namespace, podName, containerName string, command ...string) (string, string, error) {

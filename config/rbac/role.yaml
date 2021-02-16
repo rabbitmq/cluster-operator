@@ -43,6 +43,16 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - pods
   verbs:
   - get

@@ -950,3 +950,14 @@ func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password strin
 	ExpectWithOffset(1, sub.Unsubscribe()).To(Succeed())
 	ExpectWithOffset(1, conn.Disconnect()).To(Succeed())
 }
+
+func pod(ctx context.Context, clientSet *kubernetes.Clientset, r *rabbitmqv1beta1.RabbitmqCluster, i int) *corev1.Pod {
+	podName := statefulSetPodName(r, i)
+	var pod *corev1.Pod
+	EventuallyWithOffset(1, func() error {
+		var err error
+		pod, err = clientSet.CoreV1().Pods(r.Namespace).Get(ctx, podName, metav1.GetOptions{})
+		return err
+	}, 10).Should(Succeed())
+	return pod
+}
