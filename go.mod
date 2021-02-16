@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/cloudflare/cfssl v1.5.0
 	github.com/eclipse/paho.mqtt.golang v1.3.2
-	github.com/elastic/crd-ref-docs v0.0.6
+	github.com/elastic/crd-ref-docs v0.0.7
 	github.com/go-delve/delve v1.6.0
 	github.com/go-logr/logr v0.3.0
 	github.com/go-stomp/stomp v2.1.2+incompatible
