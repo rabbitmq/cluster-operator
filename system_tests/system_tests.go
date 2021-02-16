@@ -19,6 +19,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
 	"strconv"
 	"strings"
 
@@ -239,11 +240,12 @@ CONSOLE_LOG=new`
 			password string
 		)
 
+		AfterEach(func() {
+			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
+		})
+
 		BeforeEach(func() {
 			cluster = newRabbitmqCluster(namespace, "persistence-rabbit")
-			cluster.Spec.Persistence = rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
-				StorageClassName: pointer.StringPtr("persistent-test"),
-			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 
 			waitForRabbitmqRunning(cluster)
@@ -255,10 +257,6 @@ CONSOLE_LOG=new`
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			assertHttpReady(hostname, port)
-		})
-
-		AfterEach(func() {
-			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
 		It("persists messages", func() {
@@ -287,42 +285,64 @@ CONSOLE_LOG=new`
 				Expect(pvc.OwnerReferences).To(HaveLen(1))
 				Expect(pvc.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
+		})
+	})
 
-			By("allowing volume expansion", func() {
-				podUID := pod(ctx, clientSet, cluster, 0).UID
-				output, err := kubectlExec(namespace, statefulSetPodName(cluster, 0), "df", "/var/lib/rabbitmq/mnesia")
+	Context("PVC resize", func() {
+		var cluster  *rabbitmqv1beta1.RabbitmqCluster
+
+		AfterEach(func() {
+			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
+		})
+
+		BeforeEach(func() {
+			// volume expansion is supported in kinD which is use in github action
+			if os.Getenv("SUPPORT_VOLUME_EXPANSION") == "false" {
+				Skip("SUPPORT_VOLUME_EXPANSION is set to false; skipping volume expansion test")
+			}
+
+			cluster = newRabbitmqCluster(namespace, "resize-rabbit")
+			cluster.Spec.Persistence = rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
+				StorageClassName: pointer.StringPtr("persistent-test"),
+			}
+			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
+			waitForRabbitmqRunning(cluster)
+		})
+
+		It("allows volume expansion", func() {
+			podUID := pod(ctx, clientSet, cluster, 0).UID
+			output, err := kubectlExec(namespace, statefulSetPodName(cluster, 0), "df", "/var/lib/rabbitmq/mnesia")
+			Expect(err).ToNot(HaveOccurred())
+			previousDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
+
+			storageClass := &storagev1.StorageClass{}
+			Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: storageClassName, Namespace: namespace}, storageClass)).To(Succeed())
+			Expect(*storageClass.AllowVolumeExpansion).To(BeTrue(), fmt.Sprintf(" 'AllowVolumeExpansion' set to false for storage class %s", storageClassName))
+
+			newCapacity, _ := k8sresource.ParseQuantity("12Gi")
+			Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+				cluster.Spec.Persistence.Storage = &newCapacity
+			})).To(Succeed())
+
+			// PVC storage capacity updated
+			Eventually(func() k8sresource.Quantity {
+				pvcName := cluster.PVCName(0)
+				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
 				Expect(err).ToNot(HaveOccurred())
-				previousDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
+				return pvc.Spec.Resources.Requests["storage"]
+			}, 120, 5).Should(Equal(newCapacity))
 
-				storageClass := &storagev1.StorageClass{}
-				Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: storageClassName, Namespace: namespace}, storageClass)).To(Succeed())
-				Expect(*storageClass.AllowVolumeExpansion).To(BeTrue(), fmt.Sprintf(" 'AllowVolumeExpansion' set to false for storage class %s", storageClassName))
+			// storage capacity reflected in the pod
+			Eventually(func() int {
+				output, err = kubectlExec(namespace, statefulSetPodName(cluster, 0), "df", "/var/lib/rabbitmq/mnesia")
+				Expect(err).ToNot(HaveOccurred())
+				updatedDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
+				Expect(err).ToNot(HaveOccurred())
+				return updatedDiskSize
+			}, 120, 5).Should(BeNumerically(">", previousDiskSize))
 
-				newCapacity, _ := k8sresource.ParseQuantity("12Gi")
-				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
-					cluster.Spec.Persistence.Storage = &newCapacity
-				})).To(Succeed())
-
-				// PVC storage capacity updated
-				Eventually(func() k8sresource.Quantity {
-					pvcName := cluster.PVCName(0)
-					pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
-					Expect(err).ToNot(HaveOccurred())
-					return pvc.Spec.Resources.Requests["storage"]
-				}, 120, 5).Should(Equal(newCapacity))
-
-				// storage capacity reflected in the pod
-				Eventually(func() int {
-					output, err = kubectlExec(namespace, statefulSetPodName(cluster, 0), "df", "/var/lib/rabbitmq/mnesia")
-					Expect(err).ToNot(HaveOccurred())
-					updatedDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
-					Expect(err).ToNot(HaveOccurred())
-					return updatedDiskSize
-				}, 120, 5).Should(BeNumerically(">", previousDiskSize))
-
-				// pod was not recreated
-				Expect(pod(ctx, clientSet, cluster, 0).UID).To(Equal(podUID))
-			})
+			// pod was not recreated
+			Expect(pod(ctx, clientSet, cluster, 0).UID).To(Equal(podUID))
 		})
 	})
 
