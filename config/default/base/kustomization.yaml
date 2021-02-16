@@ -14,10 +14,6 @@ resources:
 # [CERTMANAGER] Uncomment next line to enable cert-manager
 #- ../certmanager
 
-# This patch stop manager from emitting any metrics
-# For more context, refer to story #167092237
-patchesStrategicMerge:
-- manager_disable_metrics_patch.yaml
 images:
 - name: rabbitmqoperator/cluster-operator-dev
   newName: rabbitmqoperator/cluster-operator

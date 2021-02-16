@@ -9,3 +9,11 @@ prometheus:
          app.kubernetes.io/component: rabbitmq
      namespaceSelector:
        any: true
+   - name: rabbitmq-cluster-operator
+     podMetricsEndpoints:
+     - port: metrics
+     selector:
+       matchLabels:
+         app.kubernetes.io/component: rabbitmq-cluster-operator
+     namespaceSelector:
+       matchNames: [rabbitmq-system]
