@@ -37,14 +37,12 @@ func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, builder re
 		}
 
 		resize, err := r.needsPVCResize(current, sts)
-
 		if err != nil {
 			return err
 		}
 
 		if resize {
 			if err := r.expandPVC(ctx, cluster, current, sts); err != nil {
-				logger.Error(err, "Failed to expand PersistentVolumeClaims", "statefulSet", cluster.ChildResourceName("server"))
 				return err
 			}
 		}
@@ -65,7 +63,7 @@ func (r *RabbitmqClusterReconciler) expandPVC(ctx context.Context, rmq *rabbitmq
 		return err
 	}
 
-	logger.Info(fmt.Sprintf("updating storage capacity from %v to %v", currentCapacity, desiredCapacity))
+	logger.Info(fmt.Sprintf("updating storage capacity from %s to %s", currentCapacity.String(), desiredCapacity.String()))
 
 	if err := r.deleteSts(ctx, rmq); err != nil {
 		return err
@@ -87,13 +85,17 @@ func (r *RabbitmqClusterReconciler) updatePVC(ctx context.Context, rmq *rabbitmq
 		PVC := corev1.PersistentVolumeClaim{}
 
 		if err := r.Client.Get(ctx, types.NamespacedName{Namespace: rmq.Namespace, Name: PVCName}, &PVC); err != nil {
-			logger.Error(err, "failed to get PersistentVolumeClaim")
-			return err
+			msg := "failed to get PersistentVolumeClaim"
+			logger.Error(err, msg, "PersistentVolumeClaim", PVCName)
+			r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", fmt.Sprintf("%s %s", msg, PVCName))
+			return fmt.Errorf("%s %s: %v", msg, PVCName, err)
 		}
 		PVC.Spec.Resources.Requests[corev1.ResourceStorage] = desiredCapacity
 		if err := r.Client.Update(ctx, &PVC, &client.UpdateOptions{}); err != nil {
-			logger.Error(err, "failed to update PersistentVolumeClaim")
-			return err
+			msg := "failed to update PersistentVolumeClaim"
+			logger.Error(err, msg, "PersistentVolumeClaim", PVCName)
+			r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", fmt.Sprintf("%s %s", msg, PVCName))
+			return fmt.Errorf("%s %s: %v", msg, PVCName, err)
 		}
 		logger.Info("successfully expanded", "PVC", PVCName)
 	}
@@ -141,8 +143,10 @@ func (r *RabbitmqClusterReconciler) deleteSts(ctx context.Context, rmq *rabbitmq
 		return err
 	}
 	if err := r.Delete(ctx, current, deleteOptions); err != nil {
-		logger.Error(err, "failed to delete statefulSet", "statefulSet", stsName)
-		return err
+		msg := "failed to delete statefulSet"
+		logger.Error(err, msg, "statefulSet", stsName)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", fmt.Sprintf("%s %s", msg, stsName))
+		return fmt.Errorf("%s %s: %v", msg, stsName, err)
 	}
 
 	if err := retryWithInterval(logger, "delete statefulSet", 10, 3*time.Second, func() bool {
@@ -152,8 +156,10 @@ func (r *RabbitmqClusterReconciler) deleteSts(ctx context.Context, rmq *rabbitmq
 		}
 		return false
 	}); err != nil {
-		logger.Error(err, "statefulSet not deleting after 50 seconds", "statefulSet", stsName)
-		return err
+		msg := "statefulSet not deleting after 30 seconds"
+		logger.Error(err, msg, "statefulSet", stsName)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", fmt.Sprintf("%s %s", msg, stsName))
+		return fmt.Errorf("%s %s: %v", msg, stsName, err)
 	}
 	logger.Info("statefulSet deleted", "statefulSet", stsName)
 	return nil

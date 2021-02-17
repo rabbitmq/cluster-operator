@@ -240,10 +240,6 @@ CONSOLE_LOG=new`
 			password string
 		)
 
-		AfterEach(func() {
-			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
-		})
-
 		BeforeEach(func() {
 			cluster = newRabbitmqCluster(namespace, "persistence-rabbit")
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
@@ -257,6 +253,10 @@ CONSOLE_LOG=new`
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			assertHttpReady(hostname, port)
+		})
+
+		AfterEach(func() {
+			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
 		It("persists messages", func() {
@@ -296,7 +296,7 @@ CONSOLE_LOG=new`
 		})
 
 		BeforeEach(func() {
-			// volume expansion is supported in kinD which is use in github action
+			// volume expansion is not supported in kinD which is use in github action
 			if os.Getenv("SUPPORT_VOLUME_EXPANSION") == "false" {
 				Skip("SUPPORT_VOLUME_EXPANSION is set to false; skipping volume expansion test")
 			}
