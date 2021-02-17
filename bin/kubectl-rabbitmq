@@ -25,7 +25,7 @@ USAGE:
     kubectl rabbitmq install-cluster-operator
 
   Create a RabbitMQ custom resource - INSTANCE name required, all other flags optional
-    kubectl rabbitmq [-n NAMESPACE] create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.10-management --image-pull-secret mysecret
+    kubectl rabbitmq [-n NAMESPACE] create INSTANCE --replicas 1 --service ClusterIP --image rabbitmq:3.8.12-management --image-pull-secret mysecret
       --tls-secret secret-name --storage-class mystorageclass
 
   Get a RabbitMQ custom resource and dependant objects
