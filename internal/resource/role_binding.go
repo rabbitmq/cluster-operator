@@ -37,6 +37,10 @@ func (builder *RabbitmqResourceBuilder) RoleBinding() *RoleBindingBuilder {
 	}
 }
 
+func (builder *RoleBindingBuilder) UpdateMayRequireStsRecreate() bool {
+	return false
+}
+
 func (builder *RoleBindingBuilder) Update(object client.Object) error {
 	roleBinding := object.(*rbacv1.RoleBinding)
 	roleBinding.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)

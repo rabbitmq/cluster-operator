@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"errors"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/go-logr/logr"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -18,33 +18,31 @@ import (
 	"time"
 )
 
-
 func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, builder resource.ResourceBuilder, cluster *rabbitmqv1beta1.RabbitmqCluster, resource client.Object) error {
 	logger := ctrl.LoggerFrom(ctx)
 
-	switch sts := resource.(type) {
-	case *appsv1.StatefulSet:
-		current, err := r.statefulSet(ctx, cluster)
-		if client.IgnoreNotFound(err) != nil {
-			return err
-		} else if k8serrors.IsNotFound(err) {
-			logger.Info("statefulSet not created yet, skipping checks to expand PersistentVolumeClaims")
-			return nil
-		}
+	sts := resource.(*appsv1.StatefulSet)
+	current, err := r.statefulSet(ctx, cluster)
 
-		if err := builder.Update(sts); err != nil {
-			return err
-		}
+	if client.IgnoreNotFound(err) != nil {
+		return err
+	} else if k8serrors.IsNotFound(err) {
+		logger.Info("statefulSet not created yet, skipping checks to expand PersistentVolumeClaims")
+		return nil
+	}
 
-		resize, err := r.needsPVCResize(current, sts)
-		if err != nil {
-			return err
-		}
+	if err := builder.Update(sts); err != nil {
+		return err
+	}
 
-		if resize {
-			if err := r.expandPVC(ctx, cluster, current, sts); err != nil {
-				return err
-			}
+	resize, err := r.needsPVCResize(current, sts)
+	if err != nil {
+		return err
+	}
+
+	if resize {
+		if err := r.expandPVC(ctx, cluster, current, sts); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -69,7 +67,7 @@ func (r *RabbitmqClusterReconciler) expandPVC(ctx context.Context, rmq *rabbitmq
 		return err
 	}
 
-	if err := r.updatePVC(ctx, rmq,  *current.Spec.Replicas, desiredCapacity); err != nil {
+	if err := r.updatePVC(ctx, rmq, *current.Spec.Replicas, desiredCapacity); err != nil {
 		return err
 	}
 
@@ -120,7 +118,7 @@ func (r *RabbitmqClusterReconciler) needsPVCResize(current, desired *appsv1.Stat
 	return false, nil
 }
 
-func persistenceStorageCapacity(templates []corev1.PersistentVolumeClaim)  (k8sresource.Quantity, error) {
+func persistenceStorageCapacity(templates []corev1.PersistentVolumeClaim) (k8sresource.Quantity, error) {
 	for _, t := range templates {
 		if t.Name == "persistence" {
 			return t.Spec.Resources.Requests[corev1.ResourceStorage], nil
@@ -129,7 +127,6 @@ func persistenceStorageCapacity(templates []corev1.PersistentVolumeClaim)  (k8sr
 	return k8sresource.Quantity{}, errors.New("cannot find PersistentVolumeClaim 'persistence'")
 }
 
-
 // deleteSts deletes a sts without deleting pods and PVCs
 // using DeletePropagationPolicy set to 'Orphan'
 func (r *RabbitmqClusterReconciler) deleteSts(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
@@ -137,16 +134,15 @@ func (r *RabbitmqClusterReconciler) deleteSts(ctx context.Context, rmq *rabbitmq
 	logger.Info("deleting statefulSet (pods won't be deleted)", "statefulSet", rmq.ChildResourceName("server"))
 	deletePropagationPolicy := metav1.DeletePropagationOrphan
 	deleteOptions := &client.DeleteOptions{PropagationPolicy: &deletePropagationPolicy}
-	stsName := rmq.ChildResourceName("server")
-	current, err := r.statefulSet(ctx, rmq)
+	currentSts, err := r.statefulSet(ctx, rmq)
 	if err != nil {
 		return err
 	}
-	if err := r.Delete(ctx, current, deleteOptions); err != nil {
+	if err := r.Delete(ctx, currentSts, deleteOptions); err != nil {
 		msg := "failed to delete statefulSet"
-		logger.Error(err, msg, "statefulSet", stsName)
-		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", fmt.Sprintf("%s %s", msg, stsName))
-		return fmt.Errorf("%s %s: %v", msg, stsName, err)
+		logger.Error(err, msg, "statefulSet", currentSts.Name)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", fmt.Sprintf("%s %s", msg, currentSts.Name))
+		return fmt.Errorf("%s %s: %v", msg, currentSts.Name, err)
 	}
 
 	if err := retryWithInterval(logger, "delete statefulSet", 10, 3*time.Second, func() bool {
@@ -157,11 +153,11 @@ func (r *RabbitmqClusterReconciler) deleteSts(ctx context.Context, rmq *rabbitmq
 		return false
 	}); err != nil {
 		msg := "statefulSet not deleting after 30 seconds"
-		logger.Error(err, msg, "statefulSet", stsName)
-		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", fmt.Sprintf("%s %s", msg, stsName))
-		return fmt.Errorf("%s %s: %v", msg, stsName, err)
+		logger.Error(err, msg, "statefulSet", currentSts.Name)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", fmt.Sprintf("%s %s", msg, currentSts.Name))
+		return fmt.Errorf("%s %s: %v", msg, currentSts.Name, err)
 	}
-	logger.Info("statefulSet deleted", "statefulSet", stsName)
+	logger.Info("statefulSet deleted", "statefulSet", currentSts.Name)
 	return nil
 }
 

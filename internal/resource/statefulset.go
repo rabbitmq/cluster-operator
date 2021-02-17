@@ -102,6 +102,11 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 	return sts, nil
 }
 
+// updates to storage capacity will recreate sts
+func (builder *StatefulSetBuilder) UpdateMayRequireStsRecreate() bool {
+	return true
+}
+
 func (builder *StatefulSetBuilder) Update(object client.Object) error {
 	sts := object.(*appsv1.StatefulSet)
 

@@ -201,4 +201,10 @@ var _ = Describe("DefaultUserSecret", func() {
 		Expect(defaultUserSecretBuilder.Update(secret)).NotTo(HaveOccurred())
 		Expect(secret.OwnerReferences[0].Name).To(Equal(instance.Name))
 	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		It("returns false", func() {
+			Expect(defaultUserSecretBuilder.UpdateMayRequireStsRecreate()).To(BeFalse())
+		})
+	})
 })

@@ -190,4 +190,10 @@ var _ = Describe("Role", func() {
 			Expect(role.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		It("returns false", func() {
+			Expect(roleBuilder.UpdateMayRequireStsRecreate()).To(BeFalse())
+		})
+	})
 })

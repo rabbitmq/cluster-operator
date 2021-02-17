@@ -316,7 +316,7 @@ CONSOLE_LOG=new`
 			previousDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
 
 			storageClass := &storagev1.StorageClass{}
-			Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: storageClassName, Namespace: namespace}, storageClass)).To(Succeed())
+			Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: *cluster.Spec.Persistence.StorageClassName, Namespace: namespace}, storageClass)).To(Succeed())
 			Expect(*storageClass.AllowVolumeExpansion).To(BeTrue(), fmt.Sprintf(" 'AllowVolumeExpansion' set to false for storage class %s", storageClassName))
 
 			newCapacity, _ := k8sresource.ParseQuantity("12Gi")

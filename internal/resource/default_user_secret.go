@@ -70,6 +70,10 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
+func (builder *DefaultUserSecretBuilder) UpdateMayRequireStsRecreate() bool {
+	return false
+}
+
 func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	secret := object.(*corev1.Secret)
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)

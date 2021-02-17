@@ -542,6 +542,12 @@ CONSOLE_LOG=new`
 			Expect(configMap.Annotations).To(BeEmpty())
 		})
 	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		It("returns false", func() {
+			Expect(configMapBuilder.UpdateMayRequireStsRecreate()).To(BeFalse())
+		})
+	})
 })
 
 // iniString formats the input string using "gopkg.in/ini.v1"

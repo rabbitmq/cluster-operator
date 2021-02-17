@@ -153,4 +153,10 @@ var _ = Describe("ServiceAccount", func() {
 			})
 		})
 	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		It("returns false", func() {
+			Expect(serviceAccountBuilder.UpdateMayRequireStsRecreate()).To(BeFalse())
+		})
+	})
 })

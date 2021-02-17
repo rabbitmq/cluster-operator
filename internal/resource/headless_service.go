@@ -38,6 +38,10 @@ func (builder *RabbitmqResourceBuilder) HeadlessService() *HeadlessServiceBuilde
 	}
 }
 
+func (builder *HeadlessServiceBuilder) UpdateMayRequireStsRecreate() bool {
+	return false
+}
+
 func (builder *HeadlessServiceBuilder) Build() (client.Object, error) {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{

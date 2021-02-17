@@ -77,6 +77,10 @@ func (builder *ServerConfigMapBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
+func (builder *ServerConfigMapBuilder) UpdateMayRequireStsRecreate() bool {
+	return false
+}
+
 func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 

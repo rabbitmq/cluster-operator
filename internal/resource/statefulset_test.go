@@ -1892,6 +1892,12 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		It("returns true", func() {
+			Expect(stsBuilder.UpdateMayRequireStsRecreate()).To(BeTrue())
+		})
+	})
 })
 
 func extractContainer(containers []corev1.Container, containerName string) corev1.Container {

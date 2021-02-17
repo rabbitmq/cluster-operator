@@ -192,4 +192,10 @@ var _ = Describe("RoleBinding", func() {
 			Expect(roleBinding.Annotations).To(Equal(expectedAnnotations))
 		})
 	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		It("returns false", func() {
+			Expect(roleBindingBuilder.UpdateMayRequireStsRecreate()).To(BeFalse())
+		})
+	})
 })
