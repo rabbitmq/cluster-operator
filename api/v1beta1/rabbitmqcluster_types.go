@@ -274,6 +274,8 @@ type TLSSpec struct {
 
 // kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.
 // Alias type 'string' as 'Plugin' to specify schema validation on items of the list 'AdditionalPlugins'
+
+// A Plugin to enable on the RabbitmqCluster.
 // +kubebuilder:validation:Pattern:="^\\w+$"
 // +kubebuilder:validation:MaxLength=100
 type Plugin string
