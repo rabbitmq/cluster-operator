@@ -660,6 +660,26 @@ var _ = Context("Services", func() {
 			})
 		})
 	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		BeforeEach(func() {
+			BeforeEach(func() {
+				scheme = runtime.NewScheme()
+				Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+				Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
+				instance = generateRabbitmqCluster()
+				builder = resource.RabbitmqResourceBuilder{
+					Instance: &instance,
+					Scheme:   scheme,
+				}
+
+			})
+			It("returns false", func() {
+				serviceBuilder := builder.Service()
+				Expect(serviceBuilder.UpdateMayRequireStsRecreate()).To(BeFalse())
+			})
+		})
+	})
 })
 
 func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnnotations, serviceAnnotations map[string]string) *corev1.Service {

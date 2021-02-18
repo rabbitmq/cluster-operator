@@ -46,6 +46,11 @@ func (builder *ServiceAccountBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
+
+func (builder *ServiceAccountBuilder) UpdateMayRequireStsRecreate() bool {
+	return false
+}
+
 func (builder *ServiceAccountBuilder) Update(object client.Object) error {
 	serviceAccount := object.(*corev1.ServiceAccount)
 	serviceAccount.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)

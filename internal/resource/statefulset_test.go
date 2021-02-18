@@ -428,7 +428,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(statefulSet.Spec.UpdateStrategy).To(Equal(updateStrategy))
 		})
 
-		It("updates tolerations", func() {
+		It("updates toleration", func() {
 			newToleration := corev1.Toleration{
 				Key:      "update",
 				Operator: "equals",
@@ -1283,7 +1283,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(statefulSet.Spec.Template.Spec.Containers[0].Lifecycle.PreStop.Exec.Command).To(Equal(expectedPreStopCommand))
 		})
 
-		It("checks mirror and querum queue status in preStop hook", func() {
+		It("checks mirror and quorum queue status in preStop hook", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
@@ -1370,6 +1370,32 @@ var _ = Describe("StatefulSet", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))
+		})
+
+		It("updates the PersistentVolumeClaim storage capacity", func() {
+			defaultCapacity, _ := k8sresource.ParseQuantity("10Gi")
+
+			statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "persistence",
+						Namespace: instance.Namespace,
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+						Resources: corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]k8sresource.Quantity{
+								corev1.ResourceStorage: defaultCapacity,
+							},
+						},
+					},
+				},
+			}
+
+			newCapacity, _ := k8sresource.ParseQuantity("21Gi")
+			stsBuilder.Instance.Spec.Persistence.Storage = &newCapacity
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(newCapacity))
 		})
 
 		When("stateful set override are provided", func() {
@@ -1864,6 +1890,12 @@ var _ = Describe("StatefulSet", func() {
 				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(4)))
 				Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Image).To(Equal("override-image"))
 			})
+		})
+	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		It("returns true", func() {
+			Expect(stsBuilder.UpdateMayRequireStsRecreate()).To(BeTrue())
 		})
 	})
 })

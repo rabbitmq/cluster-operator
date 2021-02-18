@@ -11,6 +11,7 @@ package system_tests
 
 import (
 	"context"
+	"k8s.io/utils/pointer"
 	"testing"
 
 	storagev1 "k8s.io/api/storage/v1"
@@ -33,10 +34,10 @@ func TestSystemTests(t *testing.T) {
 }
 
 var (
-	rmqClusterClient          client.Client
-	clientSet                 *kubernetes.Clientset
-	namespace                 string
-	specifiedStorageClassName = "persistent-test"
+	rmqClusterClient client.Client
+	clientSet        *kubernetes.Clientset
+	namespace        string
+	storageClassName = "persistent-test"
 )
 
 var _ = BeforeSuite(func() {
@@ -49,20 +50,23 @@ var _ = BeforeSuite(func() {
 
 	rmqClusterClient, err = client.New(restConfig, client.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
-
 	clientSet, err = createClientSet()
 	Expect(err).NotTo(HaveOccurred())
 
 	namespace = MustHaveEnv("NAMESPACE")
 
+	// Create or update the StorageClass used in persistence expansion test spec
 	storageClass := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: specifiedStorageClassName,
+			Name: storageClassName,
 		},
-		Provisioner: "kubernetes.io/gce-pd",
+		Provisioner:          "kubernetes.io/gce-pd",
+		AllowVolumeExpansion: pointer.BoolPtr(true),
 	}
 	err = rmqClusterClient.Create(context.TODO(), storageClass)
-	if !apierrors.IsAlreadyExists(err) {
+	if apierrors.IsAlreadyExists(err) {
+		Expect(rmqClusterClient.Update(context.TODO(), storageClass)).To(Succeed())
+	} else {
 		Expect(err).NotTo(HaveOccurred())
 	}
 

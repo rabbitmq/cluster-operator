@@ -248,5 +248,11 @@ var _ = Describe("RabbitMQPlugins", func() {
 				Expect(configMap.Annotations).To(BeEmpty())
 			})
 		})
+
+		Context("UpdateMayRequireStsRecreate", func() {
+			It("returns false", func() {
+				Expect(configMapBuilder.UpdateMayRequireStsRecreate()).To(BeFalse())
+			})
+		})
 	})
 })

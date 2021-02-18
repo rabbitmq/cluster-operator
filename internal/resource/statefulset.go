@@ -33,6 +33,7 @@ import (
 const (
 	initContainerCPU    string = "100m"
 	initContainerMemory string = "500Mi"
+	defaultPVCName      string = "persistence"
 	DeletionMarker      string = "skipPreStopChecks"
 )
 
@@ -101,6 +102,11 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 	return sts, nil
 }
 
+// updates to storage capacity will recreate sts
+func (builder *StatefulSetBuilder) UpdateMayRequireStsRecreate() bool {
+	return true
+}
+
 func (builder *StatefulSetBuilder) Update(object client.Object) error {
 	sts := object.(*appsv1.StatefulSet)
 
@@ -121,6 +127,9 @@ func (builder *StatefulSetBuilder) Update(object client.Object) error {
 	//Labels
 	sts.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 
+	// PVC storage capacity
+	updatePersistenceStorageCapacity(&sts.Spec.VolumeClaimTemplates, builder.Instance.Spec.Persistence.Storage)
+
 	// pod template
 	sts.Spec.Template = builder.podTemplateSpec(sts.Spec.Template.Annotations)
 
@@ -139,6 +148,14 @@ func (builder *StatefulSetBuilder) Update(object client.Object) error {
 		return fmt.Errorf("failed setting controller reference: %v", err)
 	}
 	return nil
+}
+
+func updatePersistenceStorageCapacity(templates *[]corev1.PersistentVolumeClaim, capacity *k8sresource.Quantity) {
+	for _, t := range *templates {
+		if t.Name == defaultPVCName {
+			t.Spec.Resources.Requests[corev1.ResourceStorage] = *capacity
+		}
+	}
 }
 
 func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.StatefulSet) error {
@@ -178,7 +195,7 @@ func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.Stat
 func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        "persistence",
+			Name:        defaultPVCName,
 			Namespace:   instance.GetNamespace(),
 			Labels:      metadata.Label(instance.Name),
 			Annotations: metadata.ReconcileAndFilterAnnotations(map[string]string{}, instance.Annotations),
@@ -275,7 +292,7 @@ func sortVolumeMounts(mounts []corev1.VolumeMount) {
 			mounts[0], mounts[i] = mounts[i], mounts[0]
 			continue
 		}
-		if m.Name == "persistence" {
+		if m.Name == defaultPVCName {
 			mounts[1], mounts[i] = mounts[i], mounts[1]
 		}
 	}

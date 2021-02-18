@@ -50,6 +50,11 @@ func (builder *ServiceBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
+
+func (builder *ServiceBuilder) UpdateMayRequireStsRecreate() bool {
+	return false
+}
+
 func (builder *ServiceBuilder) Update(object client.Object) error {
 	service := object.(*corev1.Service)
 	builder.setAnnotations(service)

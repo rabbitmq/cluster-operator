@@ -48,6 +48,10 @@ func (builder *RabbitmqPluginsConfigMapBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
+func (builder *RabbitmqPluginsConfigMapBuilder) UpdateMayRequireStsRecreate() bool {
+	return false
+}
+
 func (builder *RabbitmqPluginsConfigMapBuilder) Update(object client.Object) error {
 	configMap := object.(*corev1.ConfigMap)
 

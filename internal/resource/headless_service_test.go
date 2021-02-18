@@ -213,4 +213,10 @@ var _ = Describe("HeadlessService", func() {
 		Expect(serviceBuilder.Update(service)).NotTo(HaveOccurred())
 		Expect(service.OwnerReferences[0].Name).To(Equal(instance.Name))
 	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		It("returns false", func() {
+			Expect(serviceBuilder.UpdateMayRequireStsRecreate()).To(BeFalse())
+		})
+	})
 })

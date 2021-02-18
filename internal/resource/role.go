@@ -46,6 +46,11 @@ func (builder *RoleBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
+
+func (builder *RoleBuilder) UpdateMayRequireStsRecreate() bool {
+	return false
+}
+
 func (builder *RoleBuilder) Update(object client.Object) error {
 	role := object.(*rbacv1.Role)
 	role.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)

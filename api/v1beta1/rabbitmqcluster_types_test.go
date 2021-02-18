@@ -456,6 +456,12 @@ var _ = Describe("RabbitmqCluster", func() {
 			Expect(updatedCondition.LastTransitionTime.Before(&notExpectedTime)).To(BeFalse())
 		})
 	})
+	Context("PVC Name helper function", func() {
+		It("returns the correct PVC name", func() {
+			r := generateRabbitmqClusterObject("testrabbit")
+			Expect(r.PVCName(0)).To(Equal("persistence-testrabbit-server-0"))
+		})
+	})
 })
 
 func getKey(cluster *RabbitmqCluster) types.NamespacedName {

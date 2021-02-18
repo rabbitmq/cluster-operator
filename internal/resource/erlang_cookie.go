@@ -57,6 +57,10 @@ func (builder *ErlangCookieBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
+func (builder *ErlangCookieBuilder) UpdateMayRequireStsRecreate() bool {
+	return false
+}
+
 func (builder *ErlangCookieBuilder) Update(object client.Object) error {
 	secret := object.(*corev1.Secret)
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)

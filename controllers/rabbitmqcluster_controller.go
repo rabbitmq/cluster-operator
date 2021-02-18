@@ -78,6 +78,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;create;patch
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
 
@@ -158,6 +159,17 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		resource, err := builder.Build()
 		if err != nil {
 			return ctrl.Result{}, err
+		}
+
+		// only StatefulSetBuilder returns true
+		if  builder.UpdateMayRequireStsRecreate() {
+			if err = r.reconcilePVC(ctx, builder, rabbitmqCluster, resource); err != nil {
+				rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
+				if statusErr := r.Status().Update(ctx, rabbitmqCluster); statusErr != nil {
+					logger.Error(statusErr, "Failed to update ReconcileSuccess condition state")
+				}
+				return ctrl.Result{}, err
+			}
 		}
 
 		var operationResult controllerutil.OperationResult

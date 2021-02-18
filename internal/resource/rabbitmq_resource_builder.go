@@ -23,6 +23,7 @@ type RabbitmqResourceBuilder struct {
 type ResourceBuilder interface {
 	Build() (client.Object, error)
 	Update(client.Object) error
+	UpdateMayRequireStsRecreate() bool
 }
 
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, error) {

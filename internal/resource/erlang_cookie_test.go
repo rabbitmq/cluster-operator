@@ -174,4 +174,10 @@ var _ = Describe("ErlangCookie", func() {
 		Expect(erlangCookieBuilder.Update(secret)).NotTo(HaveOccurred())
 		Expect(secret.OwnerReferences[0].Name).To(Equal(instance.Name))
 	})
+
+	Context("UpdateMayRequireStsRecreate", func() {
+		It("returns false", func() {
+			Expect(erlangCookieBuilder.UpdateMayRequireStsRecreate()).To(BeFalse())
+		})
+	})
 })
