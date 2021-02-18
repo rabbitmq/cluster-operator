@@ -14,11 +14,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	storagev1 "k8s.io/api/storage/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strconv"
 	"strings"
@@ -288,7 +285,7 @@ CONSOLE_LOG=new`
 		})
 	})
 
-	Context("PVC resize", func() {
+	Context("Persistence expansion", func() {
 		var cluster  *rabbitmqv1beta1.RabbitmqCluster
 
 		AfterEach(func() {
@@ -303,7 +300,7 @@ CONSOLE_LOG=new`
 
 			cluster = newRabbitmqCluster(namespace, "resize-rabbit")
 			cluster.Spec.Persistence = rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
-				StorageClassName: pointer.StringPtr("persistent-test"),
+				StorageClassName: pointer.StringPtr(storageClassName),
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
@@ -314,10 +311,6 @@ CONSOLE_LOG=new`
 			output, err := kubectlExec(namespace, statefulSetPodName(cluster, 0), "df", "/var/lib/rabbitmq/mnesia")
 			Expect(err).ToNot(HaveOccurred())
 			previousDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
-
-			storageClass := &storagev1.StorageClass{}
-			Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: *cluster.Spec.Persistence.StorageClassName, Namespace: namespace}, storageClass)).To(Succeed())
-			Expect(*storageClass.AllowVolumeExpansion).To(BeTrue(), fmt.Sprintf(" 'AllowVolumeExpansion' set to false for storage class %s", storageClassName))
 
 			newCapacity, _ := k8sresource.ParseQuantity("12Gi")
 			Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {

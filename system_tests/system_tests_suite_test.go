@@ -55,6 +55,7 @@ var _ = BeforeSuite(func() {
 
 	namespace = MustHaveEnv("NAMESPACE")
 
+	// Create or update the StorageClass used in persistence expansion test spec
 	storageClass := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: storageClassName,
@@ -63,7 +64,9 @@ var _ = BeforeSuite(func() {
 		AllowVolumeExpansion: pointer.BoolPtr(true),
 	}
 	err = rmqClusterClient.Create(context.TODO(), storageClass)
-	if !apierrors.IsAlreadyExists(err) {
+	if apierrors.IsAlreadyExists(err) {
+		Expect(rmqClusterClient.Update(context.TODO(), storageClass)).To(Succeed())
+	} else {
 		Expect(err).NotTo(HaveOccurred())
 	}
 
