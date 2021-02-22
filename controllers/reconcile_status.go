@@ -38,7 +38,7 @@ func (r *RabbitmqClusterReconciler) setDefaultUserStatus(ctx context.Context, rm
 	return nil
 }
 
-// Status.Bindings exposes the default user secret which contains the binding
+// Status.Binding exposes the default user secret which contains the binding
 // information for this RabbitmqCluster.
 // Default user secret implements the service binding Provisioned Service
 // See: https://k8s-service-bindings.github.io/spec/#provisioned-service
