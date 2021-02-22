@@ -201,6 +201,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err := r.setDefaultUserStatus(ctx, rabbitmqCluster); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err := r.setBinding(ctx, rabbitmqCluster); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// By this point the StatefulSet may have finished deploying. Run any
 	// post-deploy steps if so, or requeue until the deployment is finished.

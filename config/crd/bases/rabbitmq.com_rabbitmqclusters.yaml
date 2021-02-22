@@ -3617,6 +3617,13 @@ spec:
             status:
               description: Status presents the observed state of RabbitmqCluster
               properties:
+                binding:
+                  description: 'Binding exposes a secret containing the binding information for this RabbitmqCluster. It implements the service binding Provisioned Service duck type. See: https://k8s-service-bindings.github.io/spec/#provisioned-service'
+                  properties:
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                      type: string
+                  type: object
                 clusterStatus:
                   description: Unused.
                   type: string
