@@ -3,6 +3,7 @@ package controllers_test
 import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo"
@@ -71,5 +72,19 @@ var _ = Describe("Reconcile status", func() {
 
 		Expect(serviceRef.Name).To(Equal(rmq.ChildResourceName("")))
 		Expect(serviceRef.Namespace).To(Equal(rmq.Namespace))
+
+		By("setting Status.Binding")
+		rmq = &rabbitmqv1beta1.RabbitmqCluster{}
+		binding := &corev1.LocalObjectReference{}
+		Eventually(func() *corev1.LocalObjectReference {
+			client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+			if rmq.Status.Binding != nil {
+				binding = rmq.Status.Binding
+				return binding
+			}
+			return nil
+		}, 5).ShouldNot(BeNil())
+
+		Expect(binding.Name).To(Equal(rmq.ChildResourceName(resource.DefaultUserSecretName)))
 	})
 })

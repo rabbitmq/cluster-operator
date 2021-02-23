@@ -50,7 +50,6 @@ func (builder *ServiceBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
-
 func (builder *ServiceBuilder) UpdateMayRequireStsRecreate() bool {
 	return false
 }

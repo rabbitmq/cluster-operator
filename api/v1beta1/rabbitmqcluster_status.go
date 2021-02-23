@@ -15,6 +15,11 @@ type RabbitmqClusterStatus struct {
 
 	// Identifying information on internal resources
 	DefaultUser *RabbitmqClusterDefaultUser `json:"defaultUser,omitempty"`
+
+	// Binding exposes a secret containing the binding information for this
+	// RabbitmqCluster. It implements the service binding Provisioned Service
+	// duck type. See: https://k8s-service-bindings.github.io/spec/#provisioned-service
+	Binding *corev1.LocalObjectReference `json:"binding,omitempty"`
 }
 
 // Contains references to resources created with the RabbitmqCluster resource.

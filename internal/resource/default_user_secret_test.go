@@ -99,6 +99,18 @@ var _ = Describe("DefaultUserSecret", func() {
 				Expect(cfg.Section("").Key("default_user").Value()).To(Equal(string(username)))
 				Expect(cfg.Section("").Key("default_pass").Value()).To(Equal(string(password)))
 			})
+
+			By("setting 'data.provider' to 'rabbitmq' ", func() {
+				provider, ok := secret.Data["provider"]
+				Expect(ok).NotTo(BeFalse(), "Failed to find key 'provider' ")
+				Expect(string(provider)).To(Equal("rabbitmq"))
+			})
+
+			By("setting 'data.type' to 'rabbitmq' ", func() {
+				t, ok := secret.Data["type"]
+				Expect(ok).NotTo(BeFalse(), "Failed to find key 'type' ")
+				Expect(string(t)).To(Equal("rabbitmq"))
+			})
 		})
 	})
 

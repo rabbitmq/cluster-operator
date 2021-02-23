@@ -26,6 +26,8 @@ import (
 
 const (
 	DefaultUserSecretName = "default-user"
+	bindingProvider       = "rabbitmq"
+	bindingType           = "rabbitmq"
 )
 
 type DefaultUserSecretBuilder struct {
@@ -62,7 +64,11 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 			Namespace: builder.Instance.Namespace,
 		},
 		Type: corev1.SecretTypeOpaque,
+		// Default user secret implements the service binding Provisioned Service
+		// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
 		Data: map[string][]byte{
+			"provider":          []byte(bindingProvider),
+			"type":              []byte(bindingType),
 			"username":          []byte(username),
 			"password":          []byte(password),
 			"default_user.conf": defaultUserConf,

@@ -46,7 +46,6 @@ func (builder *ServiceAccountBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
-
 func (builder *ServiceAccountBuilder) UpdateMayRequireStsRecreate() bool {
 	return false
 }

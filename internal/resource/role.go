@@ -46,7 +46,6 @@ func (builder *RoleBuilder) Build() (client.Object, error) {
 	}, nil
 }
 
-
 func (builder *RoleBuilder) UpdateMayRequireStsRecreate() bool {
 	return false
 }
