@@ -286,7 +286,7 @@ CONSOLE_LOG=new`
 	})
 
 	Context("Persistence expansion", func() {
-		var cluster  *rabbitmqv1beta1.RabbitmqCluster
+		var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 		AfterEach(func() {
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())

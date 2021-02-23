@@ -162,7 +162,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 
 		// only StatefulSetBuilder returns true
-		if  builder.UpdateMayRequireStsRecreate() {
+		if builder.UpdateMayRequireStsRecreate() {
 			if err = r.reconcilePVC(ctx, builder, rabbitmqCluster, resource); err != nil {
 				rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
 				if statusErr := r.Status().Update(ctx, rabbitmqCluster); statusErr != nil {
