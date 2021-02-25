@@ -36,3 +36,10 @@ jobs:
           git add ./API_Reference_${{ steps.get_version.outputs.VERSION }}.asciidoc
           git add ./Wiki_Sidebar.md
           git commit -m "Publish version ${{ steps.get_version.outputs.VERSION }} API Reference" && git push
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,action,eventName
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure()
