@@ -28,3 +28,10 @@ jobs:
           cp ../cluster-operator/docs/api/rabbitmq.com.ref.asciidoc ./API_Reference.asciidoc
           git add ./API_Reference.asciidoc
           git diff-index --quiet HEAD || git commit -m "Update Latest API Reference" && git push
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,action,eventName
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure()
