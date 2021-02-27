@@ -5,8 +5,8 @@ metadata:
 spec:
   rabbitmq:
     envConfig: |
-      SERVER_ADDITIONAL_ERL_ARGS="-pa /usr/local/lib/erlang/lib/ssl-10.1/ebin -proto_dist inet_tls -ssl_dist_optfile /etc/rabbitmq/inter-node-tls.config"
-      RABBITMQ_CTL_ERL_ARGS="-pa /usr/local/lib/erlang/lib/ssl-10.1/ebin -proto_dist inet_tls -ssl_dist_optfile /etc/rabbitmq/inter-node-tls.config"
+      SERVER_ADDITIONAL_ERL_ARGS="-proto_dist inet_tls -ssl_dist_optfile /etc/rabbitmq/inter-node-tls.config"
+      RABBITMQ_CTL_ERL_ARGS="-proto_dist inet_tls -ssl_dist_optfile /etc/rabbitmq/inter-node-tls.config"
   replicas: 3
   override:
     statefulSet:
