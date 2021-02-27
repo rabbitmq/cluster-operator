@@ -239,7 +239,7 @@ debug() {
 }
 
 tail() {
-    kubectl ${NAMESPACE} tail --svc "${1}"
+    kubectl tail ${NAMESPACE} --svc "${1}"
 }
 
 enable_all_feature_flags() {
