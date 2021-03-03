@@ -22,7 +22,7 @@ import (
 
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	"github.com/rabbitmq/cluster-operator/internal/status"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -89,7 +89,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
-	} else if errors.IsNotFound(err) {
+	} else if k8serrors.IsNotFound(err) {
 		// No need to requeue if the resource no longer exists
 		return ctrl.Result{}, nil
 	}
@@ -163,12 +163,30 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 		// only StatefulSetBuilder returns true
 		if builder.UpdateMayRequireStsRecreate() {
-			if err = r.reconcilePVC(ctx, builder, rabbitmqCluster, resource); err != nil {
-				rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
-				if statusErr := r.Status().Update(ctx, rabbitmqCluster); statusErr != nil {
-					logger.Error(statusErr, "Failed to update ReconcileSuccess condition state")
-				}
+			sts := resource.(*appsv1.StatefulSet)
+
+			current, err := r.statefulSet(ctx, rabbitmqCluster)
+			if client.IgnoreNotFound(err) != nil {
 				return ctrl.Result{}, err
+			}
+
+			// only checks for PVC expansion and scale down if statefulSet is created
+			// else continue to CreateOrUpdate()
+			if !k8serrors.IsNotFound(err) {
+				if err := builder.Update(sts); err != nil {
+					return ctrl.Result{}, err
+				}
+				if err = r.reconcilePVC(ctx, rabbitmqCluster, current, sts); err != nil {
+					rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
+					if statusErr := r.Status().Update(ctx, rabbitmqCluster); statusErr != nil {
+						logger.Error(statusErr, "Failed to update ReconcileSuccess condition state")
+					}
+					return ctrl.Result{}, err
+				}
+				if r.scaleDown(ctx, rabbitmqCluster, current, sts) {
+					// return when cluster scale down detected; unsupported operation
+					return ctrl.Result{}, nil
+				}
 			}
 		}
 
@@ -269,7 +287,7 @@ func (r *RabbitmqClusterReconciler) updateStatus(ctx context.Context, rmq *rabbi
 
 	if !reflect.DeepEqual(rmq.Status.Conditions, oldConditions) {
 		if err = r.Status().Update(ctx, rmq); err != nil {
-			if errors.IsConflict(err) {
+			if k8serrors.IsConflict(err) {
 				logger.Info("failed to update status because of conflict; requeueing...",
 					"namespace", rmq.Namespace,
 					"name", rmq.Name)
@@ -287,17 +305,17 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *
 
 	if err := r.Client.Get(ctx,
 		types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace},
-		sts); err != nil && !errors.IsNotFound(err) {
+		sts); err != nil && !k8serrors.IsNotFound(err) {
 		return nil, err
-	} else if errors.IsNotFound(err) {
+	} else if k8serrors.IsNotFound(err) {
 		sts = nil
 	}
 
 	if err := r.Client.Get(ctx,
 		types.NamespacedName{Name: rmq.ChildResourceName(resource.ServiceSuffix), Namespace: rmq.Namespace},
-		endPoints); err != nil && !errors.IsNotFound(err) {
+		endPoints); err != nil && !k8serrors.IsNotFound(err) {
 		return nil, err
-	} else if errors.IsNotFound(err) {
+	} else if k8serrors.IsNotFound(err) {
 		endPoints = nil
 	}
 

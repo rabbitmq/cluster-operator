@@ -937,7 +937,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 		It("updates", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				cluster.Spec.Override.StatefulSet.Spec.Replicas = pointer.Int32Ptr(5)
+				cluster.Spec.Override.StatefulSet.Spec.Replicas = pointer.Int32Ptr(15)
 				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.Containers = []corev1.Container{
 					{
 						Name:  "additional-container-2",
@@ -949,7 +949,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Eventually(func() int32 {
 				sts := statefulSet(ctx, cluster)
 				return *sts.Spec.Replicas
-			}, 3).Should(Equal(int32(5)))
+			}, 3).Should(Equal(int32(15)))
 
 			Eventually(func() string {
 				sts := statefulSet(ctx, cluster)

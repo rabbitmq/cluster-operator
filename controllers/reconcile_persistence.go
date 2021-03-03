@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
-	"github.com/rabbitmq/cluster-operator/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,23 +17,7 @@ import (
 	"time"
 )
 
-func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, builder resource.ResourceBuilder, cluster *rabbitmqv1beta1.RabbitmqCluster, resource client.Object) error {
-	logger := ctrl.LoggerFrom(ctx)
-
-	sts := resource.(*appsv1.StatefulSet)
-	current, err := r.statefulSet(ctx, cluster)
-
-	if client.IgnoreNotFound(err) != nil {
-		return err
-	} else if k8serrors.IsNotFound(err) {
-		logger.Info("statefulSet not created yet, skipping checks to expand PersistentVolumeClaims")
-		return nil
-	}
-
-	if err := builder.Update(sts); err != nil {
-		return err
-	}
-
+func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, cluster *rabbitmqv1beta1.RabbitmqCluster, current, sts *appsv1.StatefulSet) error {
 	resize, err := r.needsPVCResize(current, sts)
 	if err != nil {
 		return err

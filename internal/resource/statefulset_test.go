@@ -65,6 +65,7 @@ var _ = Describe("StatefulSet", func() {
 
 			Expect(statefulSet.Spec.ServiceName).To(Equal(instance.ChildResourceName("nodes")))
 		})
+
 		It("adds the correct label selector", func() {
 			obj, err := stsBuilder.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -74,7 +75,15 @@ var _ = Describe("StatefulSet", func() {
 			Expect(labels["app.kubernetes.io/name"]).To(Equal(instance.Name))
 		})
 
-		It("references the storageclassname when specified", func() {
+		It("sets pod management policy to 'Parallel' ", func() {
+			obj, err := stsBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			statefulSet := obj.(*appsv1.StatefulSet)
+
+			Expect(statefulSet.Spec.PodManagementPolicy).To(Equal(appsv1.ParallelPodManagement))
+		})
+
+		It("references the storage class name when specified", func() {
 			storageClassName := "my-storage-class"
 			builder.Instance.Spec.Persistence.StorageClassName = &storageClassName
 
