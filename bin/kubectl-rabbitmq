@@ -138,11 +138,20 @@ perf_test() {
 manage() {
     get_instance_details "$@"
 
+    TLS="$(kubectl $NAMESPACE get service ${service} -o jsonpath='{.spec.ports[?(@.name=="management-tls")]}')"
+    if [[ -n "$TLS" ]]; then
+	    MGMT_PORT=15671
+	    MGMT_URL="https://localhost:$MGMT_PORT/"
+
+    else
+	    MGMT_PORT=15672
+	    MGMT_URL="http://localhost:$MGMT_PORT/"
+    fi
     (
         sleep 2
-        open "http://localhost:15672/"
+        open "$MGMT_URL"
     ) &
-    kubectl ${NAMESPACE} port-forward "service/${service}" 15672
+    kubectl ${NAMESPACE} port-forward "service/${service}" $MGMT_PORT
 }
 
 list_rabbitmq_clusters() {
