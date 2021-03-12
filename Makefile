@@ -135,6 +135,7 @@ cert-manager-rm:
 	helm uninstall $(CERT_MANAGER_HELM_RELEASE) \
 		--namespace $(CERT_MANAGER_NAMESPACE)
 	kubectl delete namespace $(CERT_MANAGER_NAMESPACE)
+	helm repo remove jetstack
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services
 	# Note that created LoadBalancer services will have an unreachable external IP
