@@ -8,6 +8,9 @@ First, please follow [TLS example](../tls) to create a TLS secret. Alternatively
 The certificate expects to have a `ClusterIssuer` named `selfsigned-issuer`. Feel free to adapt this value accordingly to your
 cert-manager installation.
 
+**NOTE** `certificate.yaml` contains the word "examples" multiple times - in the `namespace` and `dnsNames` properties.
+You need to replace all occurrences with your desired namespace. `dnsNames` values need to contain the actual namespace name this cluster will be deployed to, otherwise TLS will fail due to hostname mismatch.
+
 In addition, you have to create a ConfigMap to import the definitions with the topology pre-defined.
 
 ```bash
