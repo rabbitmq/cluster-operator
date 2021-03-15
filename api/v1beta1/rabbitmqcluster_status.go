@@ -20,6 +20,10 @@ type RabbitmqClusterStatus struct {
 	// RabbitmqCluster. It implements the service binding Provisioned Service
 	// duck type. See: https://k8s-service-bindings.github.io/spec/#provisioned-service
 	Binding *corev1.LocalObjectReference `json:"binding,omitempty"`
+
+	// observedGeneration is the most recent successful generation observed for this RabbitmqCluster. It corresponds to the
+	// RabbitmqCluster's generation, which is updated on mutation by the API Server.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // Contains references to resources created with the RabbitmqCluster resource.

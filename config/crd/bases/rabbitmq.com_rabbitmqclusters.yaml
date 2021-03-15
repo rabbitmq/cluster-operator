@@ -3688,6 +3688,10 @@ spec:
                         - namespace
                       type: object
                   type: object
+                observedGeneration:
+                  description: observedGeneration is the most recent successful generation observed for this RabbitmqCluster. It corresponds to the RabbitmqCluster's generation, which is updated on mutation by the API Server.
+                  format: int64
+                  type: integer
               required:
                 - conditions
               type: object

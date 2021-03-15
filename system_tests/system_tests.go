@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strconv"
 	"strings"
@@ -104,6 +105,12 @@ var _ = Describe("Operator", func() {
 					)
 					return string(output), err
 				}, 30, 2).Should(Equal("'True'"))
+			})
+
+			By("setting observedGeneration", func() {
+				fetchedRmq := &rabbitmqv1beta1.RabbitmqCluster{}
+				Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, fetchedRmq)).To(Succeed())
+				Expect(fetchedRmq.Status.ObservedGeneration).To(Equal(fetchedRmq.GetGeneration()))
 			})
 
 			By("having all feature flags enabled", func() {
