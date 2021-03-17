@@ -18,15 +18,15 @@ tail='^<!--- END API REFERENCE LIST -->$'
 unorderedlistfile="$(mktemp)"
 orderedlistfile="$(mktemp)"
 
-apiVersions="$(find $wikiDir/API_Reference_* -printf "%f\n" | sed -r 's/API_Reference_(v[0-9]+.[0-9]+.[0-9]+).asciidoc/\1/' | sort -Vr )"
+apiVersions="$(find "$wikiDir/API_Reference_*" -printf "%f\n" | sed -r 's/API_Reference_(v[0-9]+.[0-9]+.[0-9]+).asciidoc/\1/' | sort -Vr )"
 for version in $apiVersions
 do
-  echo "$(generateVersionedEntry $version)" >> $unorderedlistfile
+  generateVersionedEntry "$version" >> "$unorderedlistfile"
 done
 
 # Latest API version is a special case, that is always top of the list
-generateLatestEntry > $orderedlistfile
-cat $unorderedlistfile >> $orderedlistfile
+generateLatestEntry > "$orderedlistfile"
+cat "$unorderedlistfile" >> "$orderedlistfile"
 
 sed -e "/$lead/,/$tail/{ /$lead/{p; r $orderedlistfile
 }; /$tail/p; d }"  "$wikiDir/Wiki_Sidebar.md"
