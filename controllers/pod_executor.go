@@ -3,7 +3,7 @@ package controllers
 import (
 	"bufio"
 	"bytes"
-	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -48,12 +48,6 @@ func (p *rabbitmqPodExecutor) Exec(clientset *kubernetes.Clientset, clusterConfi
 		Stdin:  nil,
 		Tty:    false,
 	})
-	if err != nil {
-		return stdOut.String(), stdErr.String(), err
-	}
-	if stdErr.Len() > 0 {
-		return stdOut.String(), stdErr.String(), fmt.Errorf("%v", stdErr)
-	}
 
-	return stdOut.String(), "", nil
+	return stdOut.String(), stdErr.String(), err
 }
