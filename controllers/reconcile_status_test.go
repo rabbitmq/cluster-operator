@@ -77,7 +77,7 @@ var _ = Describe("Reconcile status", func() {
 		rmq = &rabbitmqv1beta1.RabbitmqCluster{}
 		binding := &corev1.LocalObjectReference{}
 		Eventually(func() *corev1.LocalObjectReference {
-			client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+			Expect(client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)).To(Succeed())
 			if rmq.Status.Binding != nil {
 				binding = rmq.Status.Binding
 				return binding
