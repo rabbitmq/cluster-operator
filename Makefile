@@ -128,6 +128,7 @@ cert-manager:
 		--install \
 		--namespace $(CERT_MANAGER_NAMESPACE) --create-namespace \
 		--version $(CERT_MANAGER_VERSION) \
+		--set installCRDs=true \
 		--wait
 
 cert-manager-rm:
