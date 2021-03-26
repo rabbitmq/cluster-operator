@@ -28,9 +28,6 @@ spec:
         - jsonPath: .metadata.creationTimestamp
           name: Age
           type: date
-        - jsonPath: .status.clusterStatus
-          name: Status
-          type: string
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -3624,9 +3621,6 @@ spec:
                       description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
                       type: string
                   type: object
-                clusterStatus:
-                  description: Unused.
-                  type: string
                 conditions:
                   description: Set of Conditions describing the current state of the RabbitmqCluster
                   items:

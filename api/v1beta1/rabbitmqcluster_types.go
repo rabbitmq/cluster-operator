@@ -25,7 +25,6 @@ import (
 // corresponds to a single RabbitMQ cluster.
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.clusterStatus"
 // +kubebuilder:resource:shortName={"rmq"}
 type RabbitmqCluster struct {
 	// Embedded metadata identifying a Kind and API Verison of an object.
