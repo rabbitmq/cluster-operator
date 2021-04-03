@@ -41,6 +41,10 @@ func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitm
 func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
 		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+			uid, err := r.statefulSetUID(ctx, rabbitmqCluster);
+			if err != nil {
+				return err
+			}
 			sts := &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      rabbitmqCluster.ChildResourceName("server"),
@@ -54,7 +58,7 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 			// Delete StatefulSet immediately after changing pod labels to minimize risk of them respawning.
 			// There is a window where the StatefulSet could respawn Pods without the deletion label in this order.
 			// But we can't delete it before because the DownwardAPI doesn't update once a Pod enters Terminating.
-			if err := r.Client.Delete(ctx, sts); client.IgnoreNotFound(err) != nil {
+			if err := r.Client.Delete(ctx, sts, &client.DeleteOptions{Preconditions: &metav1.Preconditions{UID: &uid}}); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("cannot delete StatefulSet: %s", err.Error())
 			}
 

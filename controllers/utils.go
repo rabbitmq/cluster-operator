@@ -2,9 +2,12 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
@@ -62,6 +65,18 @@ func (r *RabbitmqClusterReconciler) statefulSet(ctx context.Context, rmq *rabbit
 		return nil, err
 	}
 	return sts, nil
+}
+
+func (r *RabbitmqClusterReconciler) statefulSetUID(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (types.UID, error) {
+	uid := types.UID("")
+	if sts, err := r.statefulSet(ctx, rmq); err == nil {
+		if ref := metav1.GetControllerOf(sts); ref != nil {
+			if string(rmq.GetUID()) == string(ref.UID) {
+				return sts.UID, nil
+			}
+		}
+	}
+	return uid, fmt.Errorf("failed to get the uid of the statefulset owned by the current rabbitmqCluster")
 }
 
 func (r *RabbitmqClusterReconciler) configMap(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, name string) (*corev1.ConfigMap, error) {
