@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/go-logr/logr"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, cluster *rabbitmqv1beta1.RabbitmqCluster, current, sts *appsv1.StatefulSet) error {
@@ -130,10 +131,7 @@ func (r *RabbitmqClusterReconciler) deleteSts(ctx context.Context, rmq *rabbitmq
 
 	if err := retryWithInterval(logger, "delete statefulSet", 10, 3*time.Second, func() bool {
 		_, getErr := r.statefulSet(ctx, rmq)
-		if k8serrors.IsNotFound(getErr) {
-			return true
-		}
-		return false
+		return k8serrors.IsNotFound(getErr)
 	}); err != nil {
 		msg := "statefulSet not deleting after 30 seconds"
 		logger.Error(err, msg, "statefulSet", currentSts.Name)

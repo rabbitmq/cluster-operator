@@ -5,13 +5,16 @@ In the future, the RabbitMQ Cluster Operator may make this easier to configure b
 
 The most important parts of this example are:
 
-* `rabbitmq.yaml` - `RabbitmqCluster` definition with all the necessary configuration
-* `inter_node_tls.config` - Erlang Distribution configuration file that will be mounted as a volume
+- `rabbitmq.yaml` - `RabbitmqCluster` definition with all the necessary configuration
+- `inter_node_tls.config` - Erlang Distribution configuration file that will be mounted as a volume
 
 The other files serve as an example for setting up certificates with [Cert Manager](https://cert-manager.io/docs/).
 
-* `rabbitmq-ca.yaml` - defines an `Issuer` (CA)
-* `rabbitmq-certificate.yaml` - defines a certificate that will be provisioned by Cert Manager and then mounted as a volume
+- `rabbitmq-ca.yaml` - defines an `Issuer` (CA)
+- `rabbitmq-certificate.yaml` - defines a certificate that will be provisioned by Cert Manager and then mounted as a volume
+
+**NOTE** `rabbitmq-certificate.yaml` contains the word "examples" multiple times - in the `namespace` and `dnsNames` properties.
+You need to replace all occurrences with your desired namespace. `dnsNames` values need to contain the actual namespace name this cluster will be deployed to, otherwise TLS will fail due to hostname mismatch.
 
 `setup.sh` should perform all the necessary steps but may need to be adjusted to work on your system.
 

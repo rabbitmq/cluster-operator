@@ -8,8 +8,6 @@ import (
 
 // Status presents the observed state of RabbitmqCluster
 type RabbitmqClusterStatus struct {
-	// Unused.
-	ClusterStatus string `json:"clusterStatus,omitempty"`
 	// Set of Conditions describing the current state of the RabbitmqCluster
 	Conditions []status.RabbitmqClusterCondition `json:"conditions"`
 

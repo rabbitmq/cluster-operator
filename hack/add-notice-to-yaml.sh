@@ -3,7 +3,7 @@
 set -e
 
 TARGET_YAML=$1
-SCRIPT_DIR="$(dirname $0)"
+SCRIPT_DIR="$(dirname "$0")"
 
 if [[ -z $TARGET_YAML ]]
 then

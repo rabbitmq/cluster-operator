@@ -118,6 +118,26 @@ docker-build-dev: check-env-docker-repo  git-commit-sha
 	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 
+CERT_MANAGER_VERSION ?= 1.2.0
+CERT_MANAGER_HELM_RELEASE := cert-manager
+CERT_MANAGER_NAMESPACE := cert-manager
+cert-manager:
+	@echo "Installing Cert Manager"
+	helm repo add jetstack https://charts.jetstack.io
+	helm upgrade $(CERT_MANAGER_HELM_RELEASE) jetstack/$(@) \
+		--install \
+		--namespace $(CERT_MANAGER_NAMESPACE) --create-namespace \
+		--version $(CERT_MANAGER_VERSION) \
+		--set installCRDs=true \
+		--wait
+
+cert-manager-rm:
+	@echo "Deleting Cert Manager"
+	helm uninstall $(CERT_MANAGER_HELM_RELEASE) \
+		--namespace $(CERT_MANAGER_NAMESPACE)
+	kubectl delete namespace $(CERT_MANAGER_NAMESPACE)
+	helm repo remove jetstack
+
 kind-prepare: ## Prepare KIND to support LoadBalancer services
 	# Note that created LoadBalancer services will have an unreachable external IP
 	@kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
