@@ -76,10 +76,10 @@ func (r *RabbitmqClusterReconciler) statefulSetUID(ctx context.Context, rmq *rab
 		return "", fmt.Errorf("failed to get statefulSet: %s", err.Error())
 	}
 	if ref = metav1.GetControllerOf(sts); ref == nil {
-		return "", errors.New("failed to get controller reference for statefulSet")
+		return "", fmt.Errorf("failed to get controller reference for statefulSet %s", sts.GetName())
 	}
 	if string(rmq.GetUID()) != string(ref.UID) {
-		return "", errors.New("statefulSet not owner by current RabbitmqCluster")
+		return "", fmt.Errorf("statefulSet %s not owned by current RabbitmqCluster %s", sts.GetName(), rmq.GetName())
 	}
 	return sts.UID, nil
 }
