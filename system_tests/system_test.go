@@ -109,8 +109,10 @@ var _ = Describe("Operator", func() {
 
 			By("setting observedGeneration", func() {
 				fetchedRmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, fetchedRmq)).To(Succeed())
-				Expect(fetchedRmq.Status.ObservedGeneration).To(Equal(fetchedRmq.GetGeneration()))
+				Eventually(func() bool {
+					Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, fetchedRmq)).To(Succeed())
+					return fetchedRmq.Status.ObservedGeneration == fetchedRmq.Generation
+				}, 30).Should(BeTrue())
 			})
 
 			By("having all feature flags enabled", func() {
