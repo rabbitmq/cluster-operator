@@ -7,9 +7,9 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -67,16 +67,21 @@ func (r *RabbitmqClusterReconciler) statefulSet(ctx context.Context, rmq *rabbit
 	return sts, nil
 }
 
+// statefulSetUID only returns the UID successfully when the controller reference uid matches the rmq uid
 func (r *RabbitmqClusterReconciler) statefulSetUID(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (types.UID, error) {
-	uid := types.UID("")
-	if sts, err := r.statefulSet(ctx, rmq); err == nil {
-		if ref := metav1.GetControllerOf(sts); ref != nil {
-			if string(rmq.GetUID()) == string(ref.UID) {
-				return sts.UID, nil
-			}
-		}
+	var err error
+	var sts *appsv1.StatefulSet
+	var ref *metav1.OwnerReference
+	if sts, err = r.statefulSet(ctx, rmq); err != nil {
+		return "", fmt.Errorf("failed to get statefulSet: %s", err.Error())
 	}
-	return uid, fmt.Errorf("failed to get the uid of the statefulset owned by the current rabbitmqCluster")
+	if ref = metav1.GetControllerOf(sts); ref == nil {
+		return "", errors.New("failed to get controller reference for statefulSet")
+	}
+	if string(rmq.GetUID()) != string(ref.UID) {
+		return "", errors.New("statefulSet not owner by current RabbitmqCluster")
+	}
+	return sts.UID, nil
 }
 
 func (r *RabbitmqClusterReconciler) configMap(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, name string) (*corev1.ConfigMap, error) {
