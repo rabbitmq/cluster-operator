@@ -235,7 +235,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
-	// Set ReconcileSuccess to true after all reconciliation steps have finished with no error
+	// Set ReconcileSuccess to true and update observedGeneration after all reconciliation steps have finished with no error
+	rabbitmqCluster.Status.ObservedGeneration = rabbitmqCluster.GetGeneration()
 	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionTrue, "Success", "Finish reconciling")
 	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
 		logger.Error(writerErr, "Failed to Update Custom Resource status")
