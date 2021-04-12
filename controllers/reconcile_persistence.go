@@ -18,14 +18,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, cluster *rabbitmqv1beta1.RabbitmqCluster, current, sts *appsv1.StatefulSet) error {
-	resize, err := r.needsPVCResize(current, sts)
+func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, current, sts *appsv1.StatefulSet) error {
+	resize, err := r.needsPVCExpand(ctx, rmq, current, sts)
 	if err != nil {
 		return err
 	}
 
 	if resize {
-		if err := r.expandPVC(ctx, cluster, current, sts); err != nil {
+		if err := r.expandPVC(ctx, rmq, current, sts); err != nil {
 			return err
 		}
 	}
@@ -84,7 +84,11 @@ func (r *RabbitmqClusterReconciler) updatePVC(ctx context.Context, rmq *rabbitmq
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) needsPVCResize(current, desired *appsv1.StatefulSet) (bool, error) {
+// returns true if desired storage capacity is larger than the current storage; returns false when current and desired capacity is the same
+// errors when desired capacity is less than current capacity because PVC shrink is not supported by k8s
+func (r *RabbitmqClusterReconciler) needsPVCExpand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, current, desired *appsv1.StatefulSet) (bool, error) {
+	logger := ctrl.LoggerFrom(ctx)
+
 	currentCapacity, err := persistenceStorageCapacity(current.Spec.VolumeClaimTemplates)
 	if err != nil {
 		return false, err
@@ -95,10 +99,20 @@ func (r *RabbitmqClusterReconciler) needsPVCResize(current, desired *appsv1.Stat
 		return false, err
 	}
 
-	if currentCapacity.Cmp(desiredCapacity) != 0 {
+	cmp := currentCapacity.Cmp(desiredCapacity)
+
+	// desired storage capacity is larger than the current capacity; PVC needs expansion
+	if cmp == -1 {
 		return true, nil
 	}
 
+	// desired storage capacity is less than the current capacity; logs and records a warning event
+	if cmp == 1 {
+		msg := "shrinking persistent volumes is not supported"
+		logger.Error(errors.New("unsupported operation"), msg)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", msg)
+		return false, errors.New(msg)
+	}
 	return false, nil
 }
 
