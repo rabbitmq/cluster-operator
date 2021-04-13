@@ -19,13 +19,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:object:root=true
 
-// RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this object
-// corresponds to a single RabbitMQ cluster.
+// +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:resource:shortName={"rmq"}
+// +kubebuilder:resource:shortName={"rmq"},categories=all
+// RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this object
+// corresponds to a single RabbitMQ cluster.
 type RabbitmqCluster struct {
 	// Embedded metadata identifying a Kind and API Verison of an object.
 	// For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
