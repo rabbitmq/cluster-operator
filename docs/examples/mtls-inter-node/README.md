@@ -1,12 +1,20 @@
-# mtls-inter-node Example
+# Mutual TLS Peer Verification (Mutual TLS Authentication, mTLS) for Inter-node Traffic Example
 
-This example shows how to [secure the Erlang Distribution with TLS](https://www.rabbitmq.com/clustering-ssl.html) so that RabbitMQ cluster nodes communicate over secure channels.
+When a clustered RabbitMQ node connects to its cluster peer, both
+can [verify each other's certificate chain](https://www.rabbitmq.com/ssl.html#peer-verification) for trust.
+
+When such verification is performed on both ends, the practice is sometimes
+referred to "mutual TLS authentication" or simply "mTLS". This example
+focuses on enabling mutual peer verifications for inter-node connections (as opposed to [client communication](../mtls)).
+
+This example first makes RabbitMQ cluster nodes [communicate via TLS-enabled cluster links](https://www.rabbitmq.com/clustering-ssl.html)
+for additional security.
 In the future, the RabbitMQ Cluster Operator may make this easier to configure but it is already possible with the [`envConfig`](https://www.rabbitmq.com/kubernetes/operator/using-operator.html#env-config) and [`override`](https://www.rabbitmq.com/kubernetes/operator/using-operator.html#override) properties.
 
 The most important parts of this example are:
 
 - `rabbitmq.yaml` - `RabbitmqCluster` definition with all the necessary configuration
-- `inter_node_tls.config` - Erlang Distribution configuration file that will be mounted as a volume
+- `inter_node_tls.config` - inter-node communication configuration (Erlang distribution) file that will be mounted as a volume
 
 The other files serve as an example for setting up certificates with [Cert Manager](https://cert-manager.io/docs/).
 
