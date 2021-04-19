@@ -1,0 +1,32 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-tcp-sockets-near-limit
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    rules:
+    - alert: TCPSocketsNearLimit
+      expr: |
+        sum by(namespace, rabbitmq_cluster, pod, rabbitmq_node) (max_over_time(rabbitmq_process_open_tcp_sockets[5m]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info)
+        /
+        sum by(namespace, rabbitmq_cluster, pod, rabbitmq_node) (rabbitmq_process_max_tcp_sockets  * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info)
+        > 0.8
+      for: 10m
+      annotations:
+        description: |
+          `{{ $value | humanizePercentage }}` TCP sockets of TCP socket
+          limit are open in RabbitMQ node `{{ $labels.rabbitmq_node }}`, pod `{{ $labels.pod }}`,
+          RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}`, namespace `{{ $labels.namespace }}`.
+        summary: |
+          More than 80% of TCP sockets are open on the RabbitMQ node.
+          When this value reaches 100%, new connections will not be accepted.
+          Client libraries, peer nodes and CLI tools will not be able to connect when the node runs out of available TCP sockets.
+          See https://www.rabbitmq.com/networking.html.
+      labels:
+        rulesgroup: rabbitmq
+        severity: warning

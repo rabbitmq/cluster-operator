@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-quorum-queues-raft-dashboard
+  labels:
+    grafana_dashboard: "true"
+data:
+  # https://grafana.com/grafana/dashboards/11340
+  rabbitmq-quorum-queues-raft-dashboard.json.url: https://grafana.com/api/dashboards/11340/revisions/5/download

@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: erlang-distributions-compare-dashboard
+  labels:
+    grafana_dashboard: "true"
+data:
+  # https://grafana.com/grafana/dashboards/10988
+  erlang-distributions-compare-dashboard.json.url: https://grafana.com/api/dashboards/10988/revisions/11/download

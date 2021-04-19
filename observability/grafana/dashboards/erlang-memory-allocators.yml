@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: erlang-memory-allocators-dashboard
+  labels:
+    grafana_dashboard: "true"
+data:
+  # https://grafana.com/grafana/dashboards/11350
+  erlang-memory-allocators-dashboard.json.url: https://grafana.com/api/dashboards/11350/revisions/5/download

@@ -1,0 +1,29 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-cluster-operator-unavailable-replicas
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq-cluster-operator
+    rules:
+    - alert: RabbitMQClusterOperatorUnavailableReplicas
+      expr: |
+        kube_deployment_status_replicas_unavailable{deployment="rabbitmq-cluster-operator"}
+        >
+        0
+      for: 5m
+      annotations:
+        description: |
+          `{{ $value }}` replicas are unavailable in Deployment `rabbitmq-cluster-operator`
+          in namespace `{{ $labels.namespace }}`.
+        summary: |
+          There are pods that are either running but not yet available or pods that still have not been created.
+          Check the status of the deployment: `kubectl -n {{ $labels.namespace }} describe deployment rabbitmq-cluster-operator`
+          Check the status of the pod: `kubectl -n {{ $labels.namespace }} describe pod -l app.kubernetes.io/component=rabbitmq-cluster-operator`
+      labels:
+        rulesgroup: rabbitmq-operator
+        severity: critical

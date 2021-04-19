@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: erlang-distribution-dashboard
+  labels:
+    grafana_dashboard: "true"
+data:
+  # https://grafana.com/grafana/dashboards/11352
+  erlang-distribution-dashboard.json.url: https://grafana.com/api/dashboards/11352/revisions/7/download

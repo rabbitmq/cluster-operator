@@ -1,0 +1,29 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-recording-rules
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    # The following 3 rules are needed to plot the status map panel in the RabbitMQ-Alerts Grafana dashboard.
+    # To understand why, read https://medium.com/flant-com/statusmap-grafana-plugin-to-visualize-status-over-time-fe6ced391853
+    rules:
+    # The first 2 rules create a metric ALERTS:rabbitmq_alert_state_numeric which has value 1 for alertstate pending and value 2 for alertstate firing
+    - expr: |
+        ALERTS{rulesgroup="rabbitmq", alertstate="pending"} * 0 + 1
+      record: ALERTS:rabbitmq_alert_state_numeric
+    - expr: |
+        ALERTS{rulesgroup="rabbitmq", alertstate="firing"} * 0 + 2
+      record: ALERTS:rabbitmq_alert_state_numeric
+      # The 3rd rule creates a metric ALERTS:rabbitmq_alert_state_discrete with label alert_state_numeric.
+      # The label value is either 1 for pending or 2 for firing.
+      # The metric value is binary: 1 means the alert is active in that state (pending or firing), 0 means there is no such alert in that state.
+    - expr: |
+        count_values
+        by (namespace, rabbitmq_cluster, alertname, severity, instance, endpoint, pod, container, persistentvolumeclaim)
+        ("alert_state_numeric", ALERTS:rabbitmq_alert_state_numeric)
+      record: ALERTS:rabbitmq_alert_state_discrete
