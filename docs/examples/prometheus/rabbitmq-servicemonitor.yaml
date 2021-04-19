@@ -1,0 +1,22 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rabbitmq
+spec:
+  endpoints:
+  - port: prometheus
+    scheme: http
+    interval: 15s
+    scrapeTimeout: 14s
+  - port: prometheus-tls
+    scheme: https
+    interval: 15s
+    scrapeTimeout: 14s
+    tlsConfig:
+      insecureSkipVerify: true
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: rabbitmq
+  namespaceSelector:
+    any: true

@@ -91,7 +91,7 @@ var _ = Context("Services", func() {
 			})
 			It("opens ports for amqps and management-tls on the service", func() {
 				Expect(serviceBuilder.Update(svc)).To(Succeed())
-				Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
+				Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
 					{
 						Name:       "amqps",
 						Protocol:   corev1.ProtocolTCP,
@@ -105,13 +105,20 @@ var _ = Context("Services", func() {
 						TargetPort: intstr.FromInt(15671),
 					},
 				}))
+				Expect(svc.Spec.Ports).ToNot(ContainElement(corev1.ServicePort{
+					Name:       "prometheus-tls",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       15691,
+					TargetPort: intstr.FromInt(15691),
+				},
+				))
 			})
 
 			When("mqtt and stomp are enabled", func() {
 				It("opens ports for those plugins", func() {
 					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"}
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
-					Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
+					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
 						{
 							Name:       "mqtts",
 							Protocol:   corev1.ProtocolTCP,
@@ -133,7 +140,7 @@ var _ = Context("Services", func() {
 					instance.Spec.TLS.CaSecretName = "caname"
 					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
-					Expect(svc.Spec.Ports).Should(ContainElements([]corev1.ServicePort{
+					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
 						{
 							Name:       "web-mqtt-tls",
 							Protocol:   corev1.ProtocolTCP,
@@ -154,7 +161,7 @@ var _ = Context("Services", func() {
 				It("only exposes tls ports in the service", func() {
 					instance.Spec.TLS.DisableNonTLSListeners = true
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
-					Expect(svc.Spec.Ports).Should(ConsistOf([]corev1.ServicePort{
+					Expect(svc.Spec.Ports).To(ConsistOf([]corev1.ServicePort{
 						{
 							Name:       "amqps",
 							Protocol:   corev1.ProtocolTCP,
@@ -166,6 +173,12 @@ var _ = Context("Services", func() {
 							Protocol:   corev1.ProtocolTCP,
 							Port:       15671,
 							TargetPort: intstr.FromInt(15671),
+						},
+						{
+							Name:       "prometheus-tls",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       15691,
+							TargetPort: intstr.FromInt(15691),
 						},
 					}))
 				})
@@ -189,13 +202,20 @@ var _ = Context("Services", func() {
 							Port:       15671,
 							TargetPort: intstr.FromInt(15671),
 						}
+						prometheusTLSPort := corev1.ServicePort{
+
+							Name:       "prometheus-tls",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       15691,
+							TargetPort: intstr.FromInt(15691),
+						}
 						expectedPort := corev1.ServicePort{
 							Name:       servicePortName,
 							Port:       int32(port),
 							TargetPort: intstr.FromInt(port),
 							Protocol:   corev1.ProtocolTCP,
 						}
-						Expect(svc.Spec.Ports).To(ConsistOf(amqpsPort, managementTLSPort, expectedPort))
+						Expect(svc.Spec.Ports).To(ConsistOf(amqpsPort, managementTLSPort, prometheusTLSPort, expectedPort))
 					},
 					Entry("MQTT", "rabbitmq_mqtt", "mqtts", 8883),
 					Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt-tls", 15676),
@@ -406,7 +426,13 @@ var _ = Context("Services", func() {
 					TargetPort: intstr.FromInt(15672),
 					Protocol:   corev1.ProtocolTCP,
 				}
-				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, managementPort))
+				prometheusPort := corev1.ServicePort{
+					Name:       "prometheus",
+					Port:       15692,
+					TargetPort: intstr.FromInt(15692),
+					Protocol:   corev1.ProtocolTCP,
+				}
+				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, managementPort, prometheusPort))
 			})
 
 			DescribeTable("plugins exposing ports",
@@ -624,6 +650,12 @@ var _ = Context("Services", func() {
 						Name:       "management",
 						Port:       15672,
 						TargetPort: intstr.FromInt(15672),
+						Protocol:   corev1.ProtocolTCP,
+					},
+					corev1.ServicePort{
+						Name:       "prometheus",
+						Port:       15692,
+						TargetPort: intstr.FromInt(15692),
 						Protocol:   corev1.ProtocolTCP,
 					},
 					corev1.ServicePort{

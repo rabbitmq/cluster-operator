@@ -1005,6 +1005,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 		It("creates a Service with the override applied", func() {
 			amqpTargetPort := intstr.IntOrString{IntVal: int32(5672)}
 			managementTargetPort := intstr.IntOrString{IntVal: int32(15672)}
+			prometheusTargetPort := intstr.IntOrString{IntVal: int32(15692)}
 			additionalTargetPort := intstr.IntOrString{IntVal: int32(15535)}
 			svc := service(ctx, cluster, "")
 			Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
@@ -1020,6 +1021,12 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Port:       15672,
 					Protocol:   corev1.ProtocolTCP,
 					TargetPort: managementTargetPort,
+				},
+				corev1.ServicePort{
+					Name:       "prometheus",
+					Port:       15692,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: prometheusTargetPort,
 				},
 				corev1.ServicePort{
 					Protocol:   corev1.ProtocolTCP,
