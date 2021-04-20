@@ -89,7 +89,7 @@ var _ = Context("Services", func() {
 					SecretName: "tls-secret",
 				}
 			})
-			It("opens ports for amqps and management-tls on the service", func() {
+			It("opens ports for amqps, management-tls, and prometheus-tls on the service", func() {
 				Expect(serviceBuilder.Update(svc)).To(Succeed())
 				Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
 					{
@@ -104,12 +104,18 @@ var _ = Context("Services", func() {
 						Port:       15671,
 						TargetPort: intstr.FromInt(15671),
 					},
+					{
+						Name:       "prometheus-tls",
+						Protocol:   corev1.ProtocolTCP,
+						Port:       15691,
+						TargetPort: intstr.FromInt(15691),
+					},
 				}))
 				Expect(svc.Spec.Ports).ToNot(ContainElement(corev1.ServicePort{
-					Name:       "prometheus-tls",
+					Name:       "prometheus",
 					Protocol:   corev1.ProtocolTCP,
-					Port:       15691,
-					TargetPort: intstr.FromInt(15691),
+					Port:       15692,
+					TargetPort: intstr.FromInt(15692),
 				},
 				))
 			})
