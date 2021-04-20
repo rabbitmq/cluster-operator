@@ -15,11 +15,12 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
-	k8sresource "k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strconv"
 	"strings"
+
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -491,15 +492,19 @@ CONSOLE_LOG=new`
 						HaveKeyWithValue("stomp.listeners.tcp", "none"),
 						HaveKeyWithValue("mqtt.listeners.tcp", "none"),
 						HaveKeyWithValue("management.ssl.port", "15671"),
-						Not(HaveKey("management.tcp.port"))))
+						Not(HaveKey("management.tcp.port")),
+						HaveKeyWithValue("prometheus.ssl.port", "15691"),
+						Not(HaveKey("prometheus.tcp.port")),
+					))
 
 					// verify that only tls ports are exposed in service
 					service, err := clientSet.CoreV1().Services(cluster.Namespace).Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					ports := service.Spec.Ports
-					Expect(ports).To(HaveLen(4))
+					Expect(ports).To(HaveLen(5))
 					Expect(containsPort(ports, "amqps")).To(BeTrue())
 					Expect(containsPort(ports, "management-tls")).To(BeTrue())
+					Expect(containsPort(ports, "prometheus-tls")).To(BeTrue())
 					Expect(containsPort(ports, "mqtts")).To(BeTrue())
 					Expect(containsPort(ports, "stomps")).To(BeTrue())
 				})

@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -128,6 +129,12 @@ func (builder *ServiceBuilder) generateServicePortsMapOnlyTLSListeners() map[str
 			TargetPort: intstr.FromInt(15671),
 			Name:       "management-tls",
 		},
+		"prometheus-tls": {
+			Protocol:   corev1.ProtocolTCP,
+			Port:       15691,
+			TargetPort: intstr.FromInt(15691),
+			Name:       "prometheus-tls",
+		},
 	}
 
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
@@ -187,6 +194,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Name:       "management",
 		},
 	}
+
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
 		servicePortsMap["mqtt"] = corev1.ServicePort{
 			Protocol:   corev1.ProtocolTCP,
@@ -219,6 +227,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Name:       "web-stomp",
 		}
 	}
+
 	if builder.Instance.TLSEnabled() {
 		servicePortsMap["amqps"] = corev1.ServicePort{
 			Protocol:   corev1.ProtocolTCP,
@@ -248,7 +257,27 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				TargetPort: intstr.FromInt(8883),
 			}
 		}
+
+		// We expose either 15692 or 15691 in the Service, but not both.
+		// If we exposed both ports, a ServiceMonitor selecting all RabbitMQ pods and
+		// 15692 as well as 15691 ports would end up in scraping the same RabbitMQ node twice
+		// doubling the number of nodes showing up in Grafana because the
+		// 'instance' label consists of "<host>:<port>".
+		servicePortsMap["prometheus-tls"] = corev1.ServicePort{
+			Protocol:   corev1.ProtocolTCP,
+			Port:       15691,
+			TargetPort: intstr.FromInt(15691),
+			Name:       "prometheus-tls",
+		}
+	} else {
+		servicePortsMap["prometheus"] = corev1.ServicePort{
+			Protocol:   corev1.ProtocolTCP,
+			Port:       15692,
+			TargetPort: intstr.FromInt(15692),
+			Name:       "prometheus",
+		}
 	}
+
 	if builder.Instance.MutualTLSEnabled() {
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
 			servicePortsMap["stomps"] = corev1.ServicePort{
