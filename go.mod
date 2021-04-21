@@ -8,7 +8,7 @@ require (
 	github.com/elastic/crd-ref-docs v0.0.7
 	github.com/go-delve/delve v1.6.0
 	github.com/go-logr/logr v0.3.0
-	github.com/go-stomp/stomp v2.1.3+incompatible
+	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.8.0
 	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0
