@@ -458,6 +458,7 @@ var _ = Context("Services", func() {
 				Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt", 15675),
 				Entry("STOMP", "rabbitmq_stomp", "stomp", 61613),
 				Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp", 15674),
+				Entry("Stream", "rabbitmq_stream", "stream", 5551),
 			)
 
 			It("updates the service type from ClusterIP to NodePort", func() {
