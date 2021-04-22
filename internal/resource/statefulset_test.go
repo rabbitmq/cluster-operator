@@ -954,6 +954,7 @@ var _ = Describe("StatefulSet", func() {
 			Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt", 15675),
 			Entry("STOMP", "rabbitmq_stomp", "stomp", 61613),
 			Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp", 15674),
+			Entry("Stream", "rabbitmq_stream", "stream", 5551),
 		)
 
 		It("uses required Environment Variables", func() {

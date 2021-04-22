@@ -750,6 +750,13 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 		})
 	}
 
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "stream",
+			ContainerPort: 5551,
+		})
+	}
+
 	if builder.Instance.TLSEnabled() {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "amqps",
