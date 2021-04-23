@@ -523,7 +523,7 @@ CONSOLE_LOG=new`
 		})
 	})
 
-	When("(web) MQTT and STOMP plugins are enabled", func() {
+	When("(web) MQTT, STOMP, and stream plugins are enabled", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
@@ -532,13 +532,14 @@ CONSOLE_LOG=new`
 		)
 
 		BeforeEach(func() {
-			instanceName := "mqtt-stomp-rabbit"
+			instanceName := "mqtt-stomp-stream"
 			cluster = newRabbitmqCluster(namespace, instanceName)
 			cluster.Spec.Service.Type = "NodePort"
 			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
 				"rabbitmq_mqtt",
 				"rabbitmq_web_mqtt",
 				"rabbitmq_stomp",
+				"rabbitmq_stream",
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
@@ -564,6 +565,12 @@ CONSOLE_LOG=new`
 			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password, nil)
 
 			// github.com/go-stomp/stomp does not support STOMP-over-WebSockets
+
+			By("stream")
+			if strings.Contains(cluster.Spec.Image, ":3.8") || strings.Contains(cluster.Spec.Image, "vmware-tanzu-rabbitmq:2020") {
+				Skip("rabbitmq_stream plugin is not supported by RabbitMQ image " + cluster.Spec.Image)
+			}
+			publishAndConsumeStreamMsg(ctx, hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 		})
 	})
 })
