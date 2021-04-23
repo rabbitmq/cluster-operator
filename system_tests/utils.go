@@ -16,7 +16,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/ini.v1"
 	"io"
 	"io/ioutil"
 	"log"
@@ -27,6 +26,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"gopkg.in/ini.v1"
 
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
@@ -41,6 +42,8 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/go-stomp/stomp"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	streamamqp "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
+	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/streaming"
 	"github.com/streadway/amqp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -821,10 +824,10 @@ func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter
 	return caCert, caKey, nil
 }
 
-func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, overWebSocket bool, tlsConfig *tls.Config) {
-	url := fmt.Sprintf("tcp://%s:%s", hostname, nodePort)
+func publishAndConsumeMQTTMsg(hostname, port, username, password string, overWebSocket bool, tlsConfig *tls.Config) {
+	url := fmt.Sprintf("tcp://%s:%s", hostname, port)
 	if overWebSocket {
-		url = fmt.Sprintf("ws://%s:%s/ws", hostname, nodePort)
+		url = fmt.Sprintf("ws://%s:%s/ws", hostname, port)
 	}
 	opts := mqtt.NewClientOptions().
 		AddBroker(url).
@@ -834,7 +837,7 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 		SetProtocolVersion(4) // RabbitMQ MQTT plugin targets MQTT 3.1.1
 
 	if tlsConfig != nil {
-		url = fmt.Sprintf("ssl://%s:%s", hostname, nodePort)
+		url = fmt.Sprintf("ssl://%s:%s", hostname, port)
 		opts = opts.
 			AddBroker(url).
 			SetTLSConfig(tlsConfig)
@@ -885,13 +888,13 @@ func publishAndConsumeMQTTMsg(hostname, nodePort, username, password string, ove
 	c.Disconnect(250)
 }
 
-func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password string, tlsConfig *tls.Config) {
+func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsConfig *tls.Config) {
 	var conn *stomp.Conn
 	var err error
 
 	// Create a secure tls.Conn and pass to stomp.Connect, otherwise use Stomp.Dial
 	if tlsConfig != nil {
-		secureConn, err := tls.Dial("tcp", fmt.Sprintf("%s:%s", hostname, stompNodePort), tlsConfig)
+		secureConn, err := tls.Dial("tcp", fmt.Sprintf("%s:%s", hostname, port), tlsConfig)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		defer secureConn.Close()
 
@@ -913,7 +916,7 @@ func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password strin
 		for retry := 0; retry < 5; retry++ {
 			fmt.Printf("Attempt #%d to connect using STOMP\n", retry)
 			conn, err = stomp.Dial("tcp",
-				fmt.Sprintf("%s:%s", hostname, stompNodePort),
+				fmt.Sprintf("%s:%s", hostname, port),
 				stomp.ConnOpt.Login(username, password),
 				stomp.ConnOpt.AcceptVersion(stomp.V12),
 				stomp.ConnOpt.Host("/"),
@@ -949,6 +952,42 @@ func publishAndConsumeSTOMPMsg(hostname, stompNodePort, username, password strin
 	}, 5*time.Second).Should(BeTrue())
 	ExpectWithOffset(1, sub.Unsubscribe()).To(Succeed())
 	ExpectWithOffset(1, conn.Disconnect()).To(Succeed())
+}
+
+func publishAndConsumeStreamMsg(ctx context.Context, hostname, port, username, password string) {
+	uri := fmt.Sprintf("rabbitmq-streaming://%s:%s@%s:%s/%%2f", username, password, hostname, port)
+	client, err := streaming.NewClientCreator().Uri(uri).Connect()
+	Expect(err).ToNot(HaveOccurred())
+
+	streamName := "system-test-stream"
+	Expect(client.StreamCreator().Stream(streamName).Create()).To(Succeed())
+
+	var msgReceived []byte
+	consumer, err := client.ConsumerCreator().
+		Stream(streamName).
+		Name("system-test-consumer").
+		MessagesHandler(func(context streaming.ConsumerContext, message *streamamqp.Message) {
+			Expect(message.Data).To(HaveLen(1))
+			msgReceived = message.Data[0]
+		}).Build()
+	Expect(err).ToNot(HaveOccurred())
+
+	msgSent := []byte("test message stream")
+	producer, err := client.ProducerCreator().Stream(streamName).Build()
+	Expect(err).ToNot(HaveOccurred())
+	_, err = producer.BatchPublish(ctx, []*streamamqp.Message{
+		streamamqp.NewMessage(msgSent)},
+	)
+	Expect(err).ToNot(HaveOccurred())
+
+	Eventually(func() []byte {
+		return msgReceived
+	}, 5*time.Second).Should(Equal(msgSent), "consumer should receive message sent by producer")
+
+	Expect(producer.Close()).To(Succeed())
+	Expect(consumer.UnSubscribe()).To(Succeed())
+	Expect(client.DeleteStream(streamName)).To(Succeed())
+	Expect(client.Close()).To(Succeed())
 }
 
 func pod(ctx context.Context, clientSet *kubernetes.Clientset, r *rabbitmqv1beta1.RabbitmqCluster, i int) *corev1.Pod {

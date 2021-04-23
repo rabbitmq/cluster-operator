@@ -44,11 +44,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s: [v1.18.15, v1.19.7, v1.20.2]
+        k8s:
+        - v1.18.15
+        - v1.19.7
+        - v1.20.2
         rabbitmq-image:
         - rabbitmq:3.8.8-management
-        - rabbitmq:3.8.9-management
-        - rabbitmq:3.8.10-management
+        - rabbitmq:3.8-management
+        - pivotalrabbitmq/rabbitmq:master
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2

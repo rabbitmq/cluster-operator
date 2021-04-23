@@ -1,14 +1,6 @@
-# runs the target list by default
-.DEFAULT_GOAL = list
-
-.PHONY: list
-
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false, crdVersions=v1"
-
-# Insert a comment starting with '##' after a target, and it will be printed by 'make' and 'make list'
-list:    ## list Makefile targets
-	@echo "The most used targets: \n"
+.DEFAULT_GOAL = help
+.PHONY: help
+help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 unit-tests: install-tools generate fmt vet manifests ## Run unit tests
@@ -16,6 +8,9 @@ unit-tests: install-tools generate fmt vet manifests ## Run unit tests
 
 integration-tests: install-tools generate fmt vet manifests ## Run integration tests
 	ginkgo -r controllers/
+
+# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
+CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false, crdVersions=v1"
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 	controller-gen $(CRD_OPTIONS) rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
@@ -150,14 +145,14 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
 
-system-tests: install-tools ## run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
+system-tests: install-tools ## Run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
 	NAMESPACE="rabbitmq-system" ginkgo -nodes=3 -randomizeAllSpecs -r system_tests/
 
-chart-tests:
+chart-tests: ## Run Helm chart tests
 	echo "running charts tests"
 	cd charts/rabbitmq && ./test.sh
 
-kubectl-plugin-tests:
+kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
 	echo "running kubectl plugin tests"
 	./bin/kubectl-rabbitmq.bats
 
