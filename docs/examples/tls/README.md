@@ -1,7 +1,11 @@
 # TLS Example
 
 This example demonstrates how to [enable TLS in RabbitMQ](https://www.rabbitmq.com/ssl.html) deployed on Kubernetes
-with this Operator. It is recommended to get familiar at least with the basics of [TLS setup in RabbitMQ](https://www.rabbitmq.com/ssl.html).
+with this Operator. It is recommended to get familiar at least with the basics of [TLS setup in RabbitMQ](https://www.rabbitmq.com/ssl.html)
+before going over this example. TLS has multiple moving parts and concepts involved. Successful TLS connections
+require sufficient and compatible configuration on **both server and client sides**, and understanding the terminology
+used would help a lot.
+
 
 ## Specifying Server Certificate and Key
 
