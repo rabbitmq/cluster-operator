@@ -56,3 +56,15 @@ the SANs must include at least the following attributes:
 Note that the last SAN attribute is the client service DNS name.
 Depending on the service type you use (`spec.service.type`), you might need further SAN attributes.
 For example if you use service type `NodePort`, you need to include the external IP address of each K8s node to the SAN.
+
+
+## Troubleshooting
+
+RabbitMQ has a guide that explains a methodology for [troubleshooting TLS](https://www.rabbitmq.com/troubleshooting-ssl.html) using
+OpenSSL command line tools. This methodology helps narrow down connectivity issues quicker.
+
+In the context of Kubernetes, OpenSSL CLI tools can be run on RabbitMQ nodes using `kubectl exec`, e.g.:
+
+``` shell
+kubectl exec -it tls-server-0 -- openssl s_client -connect tls-nodes.examples.svc.cluster.local:5671 </dev/null
+```
