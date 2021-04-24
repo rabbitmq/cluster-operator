@@ -1,13 +1,26 @@
 # Mutual TLS Peer Verification (Mutual TLS Authentication, mTLS) Example
 
+This example is an extension of the [basic TLS example](../tls) and 
+adds mutual peer verification ("mTLS") in addition to enabling TLS for client connections.
+
+It is recommended to get familiar at least with the basics of [TLS setup in RabbitMQ](https://www.rabbitmq.com/ssl.html)
+before going over this example, in particular with [how TLS peer verification works](https://www.rabbitmq.com/ssl.html#peer-verification).
+
+TLS has multiple moving parts and concepts involved. Successful TLS connections
+require sufficient and compatible configuration on **both server and client sides**, and understanding the terminology
+used would help a lot.
+
+
+## Specifying Server Certificate and Key
+
 Both RabbitMQ and clients can [verify each other's certificate chain](https://www.rabbitmq.com/ssl.html#peer-verification) for
 trust. When such verification is performed on both ends, the practice is sometimes
 referred to "mutual TLS authentication" or simply "mTLS". This example
 focuses on enabling mutual peer verifications for client connections (as opposed to [node-to-node communication](../mtls-inter-node)).
 
-For clients to perform peer verification of RabbitMQ nodes, they must be provided the necessary TLS certificates and private keys in Secret objects.
-You must set `.spec.tls.secretName` to the name of a secret containing the RabbitMQ server's TLS certificate and key,
-and set `spec.tls.caSecretName` to the name of a secret containing the certificate of the Certificate Authority which
+For clients to perform peer verification of RabbitMQ nodes, they must be provided the necessary TLS [certificates and private keys](https://www.rabbitmq.com/ssl.html#certificates-and-keys) in Secret objects.
+It is necessary to set `.spec.tls.secretName` to the name of a secret containing the RabbitMQ server's TLS certificate and key,
+In addition, set `spec.tls.caSecretName` to the name of a secret containing the certificate of the [Certificate Authority](https://www.rabbitmq.com/ssl.html#certificates-and-keys) which
 has signed the certificates of your RabbitMQ clients.
 
 First, you need to create the Secret which will contain the public certificate and private key to be used for TLS on the RabbitMQ nodes.
@@ -35,13 +48,13 @@ Once the secrets exist, you can deploy this example as follows:
 kubectl apply -f rabbitmq.yaml
 ```
 
-## Peer verification
+## Enabling Mutual Peer Verification ("mTLS")
 
-With mTLS enabled, any clients that attempt to connect to the RabbitMQ server that present a TLS certificate will have that
+With client peer verification enabled, any clients that attempt to connect to the RabbitMQ server that present a TLS certificate will have that
 certificate verified against the CA certificate provided in `spec.tls.caSecretName`. This is because the RabbitMQ configuration option
 `ssl_options.verify_peer` is enabled with mTLS by default.
 
-If you require RabbitMQ to reject clients that do not present certificates by enabling `ssl.options.fail_if_no_peer_cert`,
+To reject client connections that do not present a certificate, enable `ssl.options.fail_if_no_peer_cert`,
 this can be done by editing the RabbitmqCluster object's spec to include the field in the `additionalConfig`:
 
 ```yaml
