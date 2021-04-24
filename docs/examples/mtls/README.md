@@ -64,3 +64,14 @@ spec:
       ssl_options.fail_if_no_peer_cert = true
 ```
 
+
+## Troubleshooting
+
+RabbitMQ has a guide that explains a methodology for [troubleshooting TLS](https://www.rabbitmq.com/troubleshooting-ssl.html) using
+OpenSSL command line tools. This methodology helps narrow down connectivity issues quicker.
+
+In the context of Kubernetes, OpenSSL CLI tools can be run on RabbitMQ nodes using `kubectl exec`, e.g.:
+
+``` shell
+kubectl exec -it tls-server-0 -- openssl s_client -connect tls-nodes.examples.svc.cluster.local:5671 </dev/null
+```
