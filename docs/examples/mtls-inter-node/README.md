@@ -1,5 +1,18 @@
 # Mutual TLS Peer Verification (Mutual TLS Authentication, mTLS) for Inter-node Traffic Example
 
+This example is an addition to two other TLS-related examples:
+
+ * [basic TLS example](../tls)
+ * [mutual peer verification ("mTLS") for client connections](../mtls)
+
+It is recommended to get familiar at least with the basics of [TLS setup in RabbitMQ](https://www.rabbitmq.com/ssl.html)
+before going over this example, in particular with [how TLS peer verification works](https://www.rabbitmq.com/ssl.html#peer-verification).
+While those guides focus on client connections to RabbitMQ, the general verification process is identical
+when performed by two RabbitMQ nodes that attempt to establish a connection.
+
+
+## Enabling Peer Verification for Inter-node Connections
+
 When a clustered RabbitMQ node connects to its cluster peer, both
 can [verify each other's certificate chain](https://www.rabbitmq.com/ssl.html#peer-verification) for trust.
 
@@ -33,7 +46,7 @@ kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/relea
 ./setup.sh
 ```
 
-To validate that RabbitMQ nodes connect over TLS you can run the following checks:
+To validate that RabbitMQ nodes connect over TLS, run the following checks:
 
 ```shell
 # check that the distribution port has TLS enabled (this command should return `Verification: OK`)
@@ -41,4 +54,16 @@ kubectl exec -it mtls-inter-node-server-0 -- bash -c 'openssl s_client -connect 
 
 # check that distribution uses TLS (this command should return `{ok,[["inet_tls"]]}`)
 kubectl exec -it mtls-inter-node-server-0 -- rabbitmqctl eval 'init:get_argument(proto_dist).'
+```
+
+
+## Troubleshooting
+
+RabbitMQ has a guide that explains a methodology for [troubleshooting TLS](https://www.rabbitmq.com/troubleshooting-ssl.html) using
+OpenSSL command line tools. This methodology helps narrow down connectivity issues quicker.
+
+In the context of Kubernetes, OpenSSL CLI tools can be run on RabbitMQ nodes using `kubectl exec`, e.g.:
+
+``` shell
+kubectl exec -it tls-server-0 -- openssl s_client -connect tls-nodes.examples.svc.cluster.local:25672 </dev/null
 ```
