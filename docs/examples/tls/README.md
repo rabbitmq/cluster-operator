@@ -9,8 +9,8 @@ used would help a lot.
 
 ## Specifying Server Certificate and Key
 
-Setting `.spec.tls.secretName` to the name of a secret containing TLS certificate and key will enable TLS
-for the deployed nodes.
+Setting `.spec.tls.secretName` to the name of a secret containing [server certificate and key](https://www.rabbitmq.com/ssl.html#certificates-and-keys)
+will enable TLS for the deployed nodes.
 
 As a first step, create a Secret which will contain the public certificate and private key to be used for TLS on the RabbitMQ nodes.
 
