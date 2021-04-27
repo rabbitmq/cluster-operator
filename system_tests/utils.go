@@ -103,12 +103,14 @@ func createRestConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-func kubectlExec(namespace, podname string, args ...string) ([]byte, error) {
+func kubectlExec(namespace, podname, containerName string, args ...string) ([]byte, error) {
 	kubectlArgs := append([]string{
 		"-n",
 		namespace,
 		"exec",
 		podname,
+		"-c",
+		containerName,
 		"--",
 	}, args...)
 
@@ -513,6 +515,7 @@ func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) stri
 func getConfigFileFromPod(namespace string, cluster *rabbitmqv1beta1.RabbitmqCluster, path string) map[string]string {
 	output, err := kubectlExec(namespace,
 		statefulSetPodName(cluster, 0),
+		"rabbitmq",
 		"cat",
 		path,
 	)

@@ -74,6 +74,7 @@ var _ = Describe("Operator", func() {
 			By("having required plugins enabled", func() {
 				_, err := kubectlExec(namespace,
 					statefulSetPodName(cluster, 0),
+					"rabbitmq",
 					"rabbitmq-plugins",
 					"is_enabled",
 					"rabbitmq_management",
@@ -120,6 +121,7 @@ var _ = Describe("Operator", func() {
 				Eventually(func() []featureFlag {
 					output, err := kubectlExec(namespace,
 						statefulSetPodName(cluster, 0),
+						"rabbitmq",
 						"rabbitmqctl",
 						"list_feature_flags",
 						"--formatter=json",
@@ -168,6 +170,7 @@ var _ = Describe("Operator", func() {
 
 				_, err := kubectlExec(namespace,
 					statefulSetPodName(cluster, 0),
+					"rabbitmq",
 					"rabbitmq-plugins",
 					"is_enabled",
 					"rabbitmq_management",
@@ -209,6 +212,7 @@ cluster_keepalive_interval = 10000`
 
 				output, err := kubectlExec(namespace,
 					statefulSetPodName(cluster, 0),
+					"rabbitmq",
 					"cat",
 					"/etc/rabbitmq/advanced.config",
 				)
@@ -228,6 +232,7 @@ CONSOLE_LOG=new`
 				// verify that rabbitmq-env.conf contains provided configurations
 				output, err := kubectlExec(namespace,
 					statefulSetPodName(cluster, 0),
+					"rabbitmq",
 					"cat",
 					"/etc/rabbitmq/rabbitmq-env.conf",
 				)
@@ -318,7 +323,7 @@ CONSOLE_LOG=new`
 
 		It("allows volume expansion", func() {
 			podUID := pod(ctx, clientSet, cluster, 0).UID
-			output, err := kubectlExec(namespace, statefulSetPodName(cluster, 0), "df", "/var/lib/rabbitmq/mnesia")
+			output, err := kubectlExec(namespace, statefulSetPodName(cluster, 0), "rabbitmq", "df", "/var/lib/rabbitmq/mnesia")
 			Expect(err).ToNot(HaveOccurred())
 			previousDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
 
@@ -438,14 +443,14 @@ CONSOLE_LOG=new`
 
 				By("supporting tls cert rotation", func() {
 					oldConnectionCertificate := inspectServerCertificate(username, password, hostname, amqpsNodePort, caFilePath)
-					oldServerCert, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "cat", "/etc/rabbitmq-tls/tls.crt")
+					oldServerCert, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "rabbitmq", "cat", "/etc/rabbitmq-tls/tls.crt")
 					Expect(err).NotTo(HaveOccurred())
 
 					updateTLSSecret("rabbitmq-tls-test-secret", namespace, hostname, caCert, caKey)
 
 					// takes time for mounted secret to be updated
 					Eventually(func() []byte {
-						actualCert, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "cat", "/etc/rabbitmq-tls/tls.crt")
+						actualCert, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "rabbitmq", "cat", "/etc/rabbitmq-tls/tls.crt")
 						Expect(err).NotTo(HaveOccurred())
 						return actualCert
 					}, 180, 10).ShouldNot(Equal(oldServerCert))
