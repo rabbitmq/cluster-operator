@@ -342,7 +342,7 @@ CONSOLE_LOG=new`
 
 			// storage capacity reflected in the pod
 			Eventually(func() int {
-				output, err = kubectlExec(namespace, statefulSetPodName(cluster, 0), "df", "/var/lib/rabbitmq/mnesia")
+				output, err = kubectlExec(namespace, statefulSetPodName(cluster, 0), "rabbitmq", "df", "/var/lib/rabbitmq/mnesia")
 				Expect(err).ToNot(HaveOccurred())
 				updatedDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
 				Expect(err).ToNot(HaveOccurred())
