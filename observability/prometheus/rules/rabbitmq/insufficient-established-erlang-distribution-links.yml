@@ -21,7 +21,7 @@ spec:
       for: 10m
       annotations:
         description: |
-          The are only `{{ $value }}` established Erlang distribution links
+          There are only `{{ $value }}` established Erlang distribution links
           in RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}` in namespace `{{ $labels.namespace }}`.
         summary: |
           RabbitMQ clusters have a full mesh topology.
