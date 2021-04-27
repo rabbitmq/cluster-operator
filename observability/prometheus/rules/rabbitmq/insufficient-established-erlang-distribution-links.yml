@@ -1,0 +1,38 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-insufficient-established-erlang-distribution-links
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    rules:
+    - alert: InsufficientEstablishedErlangDistributionLinks
+      # erlang_vm_dist_node_state: 1=pending, 2=up_pending, 3=up
+      expr: |
+        count by (namespace, rabbitmq_cluster) (erlang_vm_dist_node_state * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info == 3)
+        <
+         count by (namespace, rabbitmq_cluster) (rabbitmq_build_info * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info)
+         *
+        (count by (namespace, rabbitmq_cluster) (rabbitmq_build_info * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info) -1 )
+      for: 10m
+      annotations:
+        description: |
+          There are only `{{ $value }}` established Erlang distribution links
+          in RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}` in namespace `{{ $labels.namespace }}`.
+        summary: |
+          RabbitMQ clusters have a full mesh topology.
+          All RabbitMQ nodes connect to all other RabbitMQ nodes in both directions.
+          The expected number of established Erlang distribution links is therefore `n*(n-1)` where `n` is the number of RabbitMQ nodes in the cluster.
+          Therefore, the expected number of distribution links are `0` for a 1-node cluster, `6` for a 3-node cluster, and `20` for a 5-node cluster.
+          This alert reports that the number of established distributions links is less than the expected number.
+          Some reasons for this alert include failed network links, network partitions, failed clustering (i.e. nodes can't join the cluster).
+          Check the panels `All distribution links`, `Established distribution links`, `Connecting distributions links`, `Waiting distribution links`, and `distribution links`
+          of the Grafana dashboard `Erlang-Distribution`.
+          Check the logs of the RabbitMQ nodes: `kubectl -n {{ $labels.namespace }} logs -l app.kubernetes.io/component=rabbitmq,app.kubernetes.io/name={{ $labels.rabbitmq_cluster }}`
+      labels:
+        rulesgroup: rabbitmq
+        severity: critical

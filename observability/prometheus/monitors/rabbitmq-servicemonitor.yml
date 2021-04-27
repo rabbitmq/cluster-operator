@@ -3,6 +3,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: rabbitmq
+  # If labels are defined in spec.serviceMonitorSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
 spec:
   endpoints:
   - port: prometheus

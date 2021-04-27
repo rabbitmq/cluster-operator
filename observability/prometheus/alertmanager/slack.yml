@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  # The name must follow the following format where ((ALERTMANAGER_NAME)) is the name of the Alertmanager CRD object:
+  # (see https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/alerting.md#manually-managed-secret)
+  name: alertmanager-((ALERTMANAGER_NAME))
+type: Opaque
+stringData:
+  alertmanager.yaml: |-
+    route:
+      # This config notifies only on RabbitMQ alerts.
+      receiver: 'null'
+      routes:
+      - match_re:
+          rulesgroup: '^rabbitmq$|^rabbitmq-operator$'
+        receiver: slack
+        group_by:
+        - namespace
+        - rabbitmq_cluster
+    receivers:
+    - name: 'null'
+    - name: slack
+      slack_configs:
+      - channel: '((SLACK_CHANNEL))'
+        api_url: '((SLACK_API_URL))'
+        send_resolved: true
+        title: '{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}'
+        text: |-
+          *Namespace:* `{{ (index .Alerts 0).Labels.namespace }}`
+          {{- if (index .Alerts 0).Labels.rabbitmq_cluster }}
+          *RabbitMQ Cluster:* `{{ (index .Alerts 0).Labels.rabbitmq_cluster }}`
+          {{- end }}
+          {{ range .Alerts }}
+
+           ----------------------------------------------
+           *Alert Name:* `{{ .Labels.alertname }}`
+           *Description:* {{ .Annotations.description }}
+           *Summary:* {{ .Annotations.summary }}
+           *Labels*:
+           {{ range .Labels.SortedPairs }}• {{ .Name }}: `{{ .Value }}`
+           {{ end }}
+          {{ end }}

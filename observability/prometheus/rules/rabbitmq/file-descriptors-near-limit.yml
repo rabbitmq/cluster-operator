@@ -1,0 +1,33 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-file-descriptors-near-limit
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    rules:
+    - alert: FileDescriptorsNearLimit
+      expr: |
+        sum by(namespace, rabbitmq_cluster, pod, rabbitmq_node) (max_over_time(rabbitmq_process_open_fds[5m]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info)
+        /
+        sum by(namespace, rabbitmq_cluster, pod, rabbitmq_node) (rabbitmq_process_max_tcp_sockets  * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info)
+        > 0.8
+      for: 10m
+      annotations:
+        description: |
+          `{{ $value | humanizePercentage }}` file descriptors of file
+          descriptor limit are used in RabbitMQ node `{{ $labels.rabbitmq_node }}`,
+          pod `{{ $labels.pod }}`, RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}`,
+          namespace `{{ $labels.namespace }}`.
+        summary: |
+          More than 80% of file descriptors are used on the RabbitMQ node.
+          When this value reaches 100%, new connections will not be accepted and disk write operations may fail.
+          Client libraries, peer nodes and CLI tools will not be able to connect when the node runs out of available file descriptors.
+          See https://www.rabbitmq.com/production-checklist.html#resource-limits-file-handle-limit.
+      labels:
+        rulesgroup: rabbitmq
+        severity: warning

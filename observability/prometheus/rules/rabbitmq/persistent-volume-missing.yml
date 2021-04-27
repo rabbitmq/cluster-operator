@@ -1,0 +1,32 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-persistent-volume-missing
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    rules:
+    - alert: PersistentVolumeMissing
+      expr: |
+        kube_persistentvolumeclaim_status_phase{phase="Bound"} * on (namespace, persistentvolumeclaim) group_left(label_app_kubernetes_io_name) kube_persistentvolumeclaim_labels{label_app_kubernetes_io_component="rabbitmq"}
+        ==
+        0
+      for: 10m
+      annotations:
+        description: |
+          PersistentVolumeClaim `{{ $labels.persistentvolumeclaim }}` of
+          RabbitMQ cluster `{{ $labels.label_app_kubernetes_io_name }}` in namespace
+          `{{ $labels.namespace }}` is not bound.
+        summary: |
+          RabbitMQ needs a PersistentVolume for its data.
+          However, there is no PersistentVolume bound to the PersistentVolumeClaim.
+          This means the requested storage could not be provisioned.
+          Check the status of the PersistentVolumeClaim: `kubectl -n {{ $labels.namespace }} describe pvc {{ $labels.persistentvolumeclaim }}`.
+      labels:
+        rabbitmq_cluster: '{{ $labels.label_app_kubernetes_io_name }}'
+        rulesgroup: rabbitmq
+        severity: critical

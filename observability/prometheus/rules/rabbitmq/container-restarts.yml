@@ -1,0 +1,32 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-container-restarts
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    rules:
+    - alert: ContainerRestarts
+      expr: |
+        increase(kube_pod_container_status_restarts_total[10m]) * on(namespace, pod, container) group_left(rabbitmq_cluster) rabbitmq_identity_info
+        >=
+        1
+      for: 5m
+      annotations:
+        description: |
+          Over the last 10 minutes, container `{{ $labels.container }}`
+          restarted `{{ $value | printf "%.0f" }}` times in pod `{{ $labels.pod }}` of RabbitMQ cluster
+          `{{ $labels.rabbitmq_cluster }}` in namespace `{{ $labels.namespace }}`.
+        summary: |
+          Investigate why the container got restarted.
+          Check the logs of the current container: `kubectl -n {{ $labels.namespace }} logs {{ $labels.pod }}`
+          Check the logs of the previous container: `kubectl -n {{ $labels.namespace }} logs {{ $labels.pod }} --previous`
+          Check the last state of the container: `kubectl -n {{ $labels.namespace }} get pod {{ $labels.pod }} -o jsonpath='{.status.containerStatuses[].lastState}'`
+      labels:
+        rabbitmq_cluster: '{{ $labels.rabbitmq_cluster }}'
+        rulesgroup: rabbitmq
+        severity: warning

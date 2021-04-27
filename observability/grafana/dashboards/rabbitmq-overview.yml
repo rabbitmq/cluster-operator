@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-overview-dashboard
+  labels:
+    grafana_dashboard: "true"
+data:
+  # https://grafana.com/grafana/dashboards/10991
+  rabbitmq-overview-dashboard.json.url: https://grafana.com/api/dashboards/10991/revisions/11/download

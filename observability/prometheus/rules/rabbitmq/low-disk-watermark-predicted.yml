@@ -1,0 +1,45 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-low-disk-watermark-predicted
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    rules:
+    - alert: LowDiskWatermarkPredicted
+      # The 2nd condition ensures that data points are available until 24 hours ago such that no false positive alerts are triggered for newly created RabbitMQ clusters.
+      expr: |
+        (
+          predict_linear(rabbitmq_disk_space_available_bytes[24h], 60*60*24) * on (instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info
+          <
+          rabbitmq_disk_space_available_limit_bytes * on (instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info
+        )
+        and
+        (
+          count_over_time(rabbitmq_disk_space_available_limit_bytes[2h] offset 22h) * on (instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info
+          >
+          0
+        )
+      for: 60m
+      annotations:
+        description: |
+          The predicted free disk space in 24 hours from now is `{{ $value | humanize1024 }}B`
+          in RabbitMQ node `{{ $labels.rabbitmq_node }}`, pod `{{ $labels.pod }}`,
+          RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}`, namespace `{{ $labels.namespace }}`.
+        summary: |
+          Based on the trend of available disk space over the past 24 hours, it's predicted that, in 24 hours from now, a disk alarm will be triggered since the free disk space will drop below the free disk space limit.
+          This alert is reported for the partition where the RabbitMQ data directory is stored.
+          When the disk alarm will be triggered, all publishing connections across all cluster nodes will be blocked.
+          See
+          https://www.rabbitmq.com/alarms.html,
+          https://www.rabbitmq.com/disk-alarms.html,
+          https://www.rabbitmq.com/production-checklist.html#resource-limits-disk-space,
+          https://www.rabbitmq.com/persistence-conf.html,
+          https://www.rabbitmq.com/connection-blocked.html.
+      labels:
+        rulesgroup: rabbitmq
+        severity: warning

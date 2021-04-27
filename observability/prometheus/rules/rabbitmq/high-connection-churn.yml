@@ -1,0 +1,38 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-high-connection-churn
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    rules:
+    - alert: HighConnectionChurn
+      expr: |
+        (
+          sum(rate(rabbitmq_connections_closed_total[5m]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info) by(namespace, rabbitmq_cluster)
+          +
+          sum(rate(rabbitmq_connections_opened_total[5m]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info) by(namespace, rabbitmq_cluster)
+        )
+        /
+        sum (rabbitmq_connections * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info) by (namespace, rabbitmq_cluster)
+        > 0.1
+        unless
+        sum (rabbitmq_connections * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info) by (namespace, rabbitmq_cluster)
+        < 100
+      for: 10m
+      annotations:
+        description: |
+          Over the last 5 minutes, `{{ $value | humanizePercentage }}`
+          of total connections are closed or opened per second in RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}`
+          in namespace `{{ $labels.namespace }}`.
+        summary: |
+          More than 10% of total connections are churning.
+          This means that client application connections are short-lived instead of long-lived.
+          Read https://www.rabbitmq.com/connections.html#high-connection-churn to understand why this is an anti-pattern.
+      labels:
+        rulesgroup: rabbitmq
+        severity: warning
