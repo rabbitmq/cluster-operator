@@ -30,6 +30,7 @@ helm upgrade "$KUBE_PROMETHEUS_STACK_NAME" prometheus-community/kube-prometheus-
   --set "prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false" \
   --set "prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false" \
   --set "prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false" \
+  --set "prometheus.prometheusSpec.probeSelectorNilUsesHelmValues=false" \
   --set "alertmanager.alertmanagerSpec.useExistingSecret=true" \
   --set "grafana.env.GF_INSTALL_PLUGINS=flant-statusmap-panel" \
   --set "grafana.adminPassword=admin"
