@@ -572,7 +572,7 @@ CONSOLE_LOG=new`
 			// github.com/go-stomp/stomp does not support STOMP-over-WebSockets
 
 			By("stream")
-			if strings.Contains(cluster.Spec.Image, ":3.8") || strings.Contains(cluster.Spec.Image, "vmware-tanzu-rabbitmq:2020") {
+			if strings.Contains(cluster.Spec.Image, ":3.8") || strings.HasSuffix(cluster.Spec.Image, "tanzu-rabbitmq:1") {
 				Skip("rabbitmq_stream plugin is not supported by RabbitMQ image " + cluster.Spec.Image)
 			}
 			publishAndConsumeStreamMsg(ctx, hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
