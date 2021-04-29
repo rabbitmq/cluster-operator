@@ -42,7 +42,7 @@ spec:
     interval: 15s
   selector:
     matchLabels:
-      app.kubernetes.io/component: rabbitmq
+      app.kubernetes.io/component: rabbitmq-operator
   namespaceSelector:
     any: true
 ```

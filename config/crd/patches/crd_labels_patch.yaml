@@ -13,5 +13,5 @@ metadata:
   name: rabbitmqclusters.rabbitmq.com
   labels:
     app.kubernetes.io/name: rabbitmq-cluster-operator
-    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/component: rabbitmq-operator
     app.kubernetes.io/part-of: rabbitmq

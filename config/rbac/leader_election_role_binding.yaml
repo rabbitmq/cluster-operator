@@ -13,7 +13,7 @@ metadata:
   name: leader-election-rolebinding
   labels:
     app.kubernetes.io/name: rabbitmq-cluster-operator
-    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/component: rabbitmq-operator
     app.kubernetes.io/part-of: rabbitmq
 roleRef:
   apiGroup: rbac.authorization.k8s.io
