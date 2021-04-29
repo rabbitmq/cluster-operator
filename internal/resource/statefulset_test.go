@@ -564,6 +564,18 @@ var _ = Describe("StatefulSet", func() {
 				})
 			})
 
+			When("TLS is enabled", func() {
+				It("updates Prometheus port", func() {
+					stsBuilder.Instance.Spec.TLS.SecretName = "tls-secret"
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					expectedPodAnnotations := map[string]string{
+						"prometheus.io/scrape": "true",
+						"prometheus.io/port":   "15691",
+					}
+					Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedPodAnnotations))
+				})
+			})
+
 			Context("annotation inheritance", func() {
 				var (
 					existingAnnotations            map[string]string
@@ -658,21 +670,6 @@ var _ = Describe("StatefulSet", func() {
 					}
 
 					Expect(statefulSet.Spec.VolumeClaimTemplates[0].Annotations).To(Equal(expectedAnnotations))
-				})
-
-				When("non-TLS listeners get disabled", func() {
-					It("updates pod annotations", func() {
-						stsBuilder.Instance.Spec.TLS.DisableNonTLSListeners = true
-						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-						expectedPodAnnotations := map[string]string{
-							"prometheus.io/scrape":           "true",
-							"prometheus.io/port":             "15691",
-							"this-was-the-previous-pod-anno": "should-be-preserved",
-						}
-
-						Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedPodAnnotations))
-					})
 				})
 			})
 		})
