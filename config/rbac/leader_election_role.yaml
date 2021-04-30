@@ -14,7 +14,7 @@ metadata:
   name: leader-election-role
   labels:
     app.kubernetes.io/name: rabbitmq-cluster-operator
-    app.kubernetes.io/component: rabbitmq-cluster-operator
+    app.kubernetes.io/component: rabbitmq-operator
     app.kubernetes.io/part-of: rabbitmq
 rules:
 - apiGroups:
