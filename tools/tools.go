@@ -5,6 +5,7 @@ package tools
 import (
 	_ "github.com/elastic/crd-ref-docs"
 	_ "github.com/go-delve/delve/cmd/dlv"
+	_ "github.com/mikefarah/yq/v4"
 	_ "github.com/onsi/ginkgo/ginkgo"
 	_ "github.com/sclevine/yj"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"

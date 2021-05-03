@@ -1,6 +1,8 @@
 # Observability
 
-This directory contains scrape targets, RabbitMQ alerting rules, Alertmanager configuration, and RabbitMQ dashboards published in a format that is compatible with [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator).
+This directory contains scrape targets, RabbitMQ alerting rules, Alertmanager configuration, and RabbitMQ dashboards.
+
+## Quick Start
 
 If you don't have Prometheus and Grafana installed, the quickest way to try out RabbitMQ observability is as follows:
 
@@ -25,3 +27,4 @@ Learn more on RabbitMQ monitoring in:
 * [RabbitMQ Prometheus documentation](https://www.rabbitmq.com/prometheus.html)
 * [Operator monitoring documentation](https://www.rabbitmq.com/kubernetes/operator/operator-monitoring.html)
 * [TGIR S01E07: How to monitor RabbitMQ?](https://youtu.be/NWISW6AwpOE)
+* [Notify me when RabbitMQ has a problem](https://blog.rabbitmq.com/posts/2021/05/alerting/)

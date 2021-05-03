@@ -31,4 +31,4 @@ spec:
       labels:
         rabbitmq_cluster: '{{ $labels.label_app_kubernetes_io_name }}'
         rulesgroup: rabbitmq
-        severity: critical
+        severity: warning
