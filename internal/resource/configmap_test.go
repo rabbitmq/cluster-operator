@@ -33,8 +33,8 @@ cluster_formation.k8s.address_type       = hostname
 cluster_partition_handling               = pause_minority
 queue_master_locator                     = min-masters
 disk_free_limit.absolute                 = 2GB
-cluster_formation.randomized_startup_delay_range.min = 5
-cluster_formation.randomized_startup_delay_range.max = 30
+cluster_formation.randomized_startup_delay_range.min = 0
+cluster_formation.randomized_startup_delay_range.max = 60
 cluster_name                             = ` + instanceName)
 }
 
