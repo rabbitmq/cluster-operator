@@ -11,7 +11,7 @@ name: rabbitmq
 description: RabbitMQ Cluster
 apiVersion: v2
 version: 0.9.0
-appVersion: 3.8.14
+appVersion: 3.8.15
 keywords:
   - rabbitmq
   - message queue
