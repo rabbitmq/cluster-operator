@@ -3,7 +3,7 @@
 pushd "$(mktemp -d)" || exit 1
 
 set -x
-kubectl exec import-definitions-server-0 -- rabbitmqadmin \
+kubectl exec import-definitions-server-0 -c rabbitmq -- rabbitmqadmin \
   --format=raw_json --vhost=hello-world --username=hello-world \
   --password=hello-world --host=import-definitions.examples.svc \
   list queues &> queues.json
