@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/cloudflare/cfssl v1.5.0
-	github.com/eclipse/paho.mqtt.golang v1.3.3
+	github.com/eclipse/paho.mqtt.golang v1.3.4
 	github.com/elastic/crd-ref-docs v0.0.7
 	github.com/go-delve/delve v1.6.0
 	github.com/go-logr/logr v0.3.0
