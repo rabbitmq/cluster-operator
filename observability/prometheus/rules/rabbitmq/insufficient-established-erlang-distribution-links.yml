@@ -35,4 +35,4 @@ spec:
           Check the logs of the RabbitMQ nodes: `kubectl -n {{ $labels.namespace }} logs -l app.kubernetes.io/component=rabbitmq,app.kubernetes.io/name={{ $labels.rabbitmq_cluster }}`
       labels:
         rulesgroup: rabbitmq
-        severity: critical
+        severity: warning

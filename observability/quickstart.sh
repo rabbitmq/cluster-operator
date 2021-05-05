@@ -59,9 +59,7 @@ kubectl -n "$KUBE_PROMETHEUS_STACK_NAMESPACE" apply --filename "$DIR"/grafana/da
 
 printf "%bInstalling RabbitMQ Cluster Operator...%b\n" "$GREEN" "$NO_COLOR"
 kubectl apply --filename https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
-#TODO ansd remove below line once cluster-operator >v1.6.0 is cut (which will include https://github.com/rabbitmq/cluster-operator/pull/664)
-kubectl -n rabbitmq-system set image deployment/rabbitmq-cluster-operator operator="rabbitmqoperator/cluster-operator-dev:1.6.0-build.10"
 
-printf "\n%bTo open Prometheus UI execute \nkubectl -n $KUBE_PROMETHEUS_STACK_NAMESPACE port-forward svc/${KUBE_PROMETHEUS_STACK_NAME}-kube-prometheus-stack-prometheus 9090\nand open your browser at http://localhost:9090\n\n" "$GREEN"
-printf "To open Alertmanager UI execute \nkubectl -n $KUBE_PROMETHEUS_STACK_NAMESPACE port-forward svc/${KUBE_PROMETHEUS_STACK_NAME}-kube-prometheus-stack-alertmanager 9093\nand open your browser at http://localhost:9093\n\n"
-printf "To open Grafana UI execute \nkubectl -n $KUBE_PROMETHEUS_STACK_NAMESPACE port-forward svc/${KUBE_PROMETHEUS_STACK_NAME}-grafana 3000:80\nand open your browser at http://localhost:3000\nusername: admin, password: admin%b\n" "$NO_COLOR"
+printf "\n%bTo open Prometheus UI execute \nkubectl -n %s port-forward svc/%s-kube-prometheus-stack-prometheus 9090\nand open your browser at http://localhost:9090\n\n" "$GREEN" "$KUBE_PROMETHEUS_STACK_NAMESPACE" "$KUBE_PROMETHEUS_STACK_NAME"
+printf "To open Alertmanager UI execute \nkubectl -n %s port-forward svc/%s-kube-prometheus-stack-alertmanager 9093\nand open your browser at http://localhost:9093\n\n" "$KUBE_PROMETHEUS_STACK_NAMESPACE" "$KUBE_PROMETHEUS_STACK_NAME"
+printf "To open Grafana UI execute \nkubectl -n %s port-forward svc/%s-grafana 3000:80\nand open your browser at http://localhost:3000\nusername: admin, password: admin%b\n" "$KUBE_PROMETHEUS_STACK_NAMESPACE" "$KUBE_PROMETHEUS_STACK_NAME" "$NO_COLOR"

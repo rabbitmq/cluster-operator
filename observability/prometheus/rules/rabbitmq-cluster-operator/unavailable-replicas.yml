@@ -26,4 +26,4 @@ spec:
           Check the status of the pod: `kubectl -n {{ $labels.namespace }} describe pod -l app.kubernetes.io/component=rabbitmq-cluster-operator`
       labels:
         rulesgroup: rabbitmq-operator
-        severity: critical
+        severity: warning

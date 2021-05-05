@@ -12,7 +12,7 @@ metadata:
    ...
 spec:
   ...
-  ruleNamespaceSelector: {}
+  ruleNamespaceSelector: {} # auto discover PrometheusRules accross all namespaces
   ruleSelector:
     matchLabels:
       release: my-prometheus
@@ -21,4 +21,3 @@ spec:
 ```
 
 Given the `matchLabels` field from the Prometheus spec above, you would need to add the label `release: my-prometheus` to the `PrometheusRule` objects.
-Since the `NamespaceSelector` is empty, deploy the objects into the same namespace where Prometheus is running.
