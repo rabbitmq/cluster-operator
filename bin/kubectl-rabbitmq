@@ -233,7 +233,7 @@ delete() {
 }
 
 observe() {
-    kubectl ${NAMESPACE} exec -it "${1}-server-${2}" -- rabbitmq-diagnostics observer
+    kubectl ${NAMESPACE} exec -it "${1}-server-${2}" -c rabbitmq -- rabbitmq-diagnostics observer
 }
 
 get() {
@@ -243,7 +243,7 @@ get() {
 debug() {
     for node in $(kubectl ${NAMESPACE} get pods -l "app.kubernetes.io/name=${1}" -ocustom-columns=name:.metadata.name --no-headers); do
         echo -n "${node}: "
-        kubectl ${NAMESPACE} exec "${node}" -- rabbitmqctl set_log_level debug
+        kubectl ${NAMESPACE} exec "${node}" -c rabbitmq -- rabbitmqctl set_log_level debug
     done
 }
 
@@ -252,7 +252,7 @@ tail() {
 }
 
 enable_all_feature_flags() {
-    kubectl ${NAMESPACE} exec "${1}-server-0" -- bash -c "rabbitmqctl list_feature_flags | grep disabled | cut -f 1 | xargs -r -L1 rabbitmqctl enable_feature_flag"
+    kubectl ${NAMESPACE} exec "${1}-server-0" -c rabbitmq -- rabbitmqctl enable_feature_flag all
 }
 
 pause-reconciliation() {
