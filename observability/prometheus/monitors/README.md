@@ -10,12 +10,12 @@ apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
   ...
-  podMonitorNamespaceSelector: {}
+  podMonitorNamespaceSelector: {} # auto discover pod monitors accross all namespaces
   podMonitorSelector:
     matchLabels:
       release: my-prometheus
   ...
-  serviceMonitorNamespaceSelector: {}
+  serviceMonitorNamespaceSelector: {} # auto discover service monitors accross all namespaces
   serviceMonitorSelector:
     matchLabels:
       release: my-prometheus
@@ -24,7 +24,6 @@ metadata:
 ```
 
 Given the `matchLabels` fields from the Prometheus spec above, you would need to add the label `release: my-prometheus` to the `PodMonitor` and `ServiceMonitor` objects.
-Since the `NamespaceSelector` is empty, deploy the objects into the same namespace where Prometheus is running.
 
 File [rabbitmq-servicemonitor.yml](./rabbitmq-servicemonitor.yml) contains scrape targets for RabbitMQ.
 Metrics listed in [RabbitMQ metrics](https://github.com/rabbitmq/rabbitmq-server/blob/master/deps/rabbitmq_prometheus/metrics.md) will be scraped from all RabbitMQ nodes.
