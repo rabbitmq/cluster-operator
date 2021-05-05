@@ -116,8 +116,7 @@ scrape_configs:
   metrics_path: /metrics
   scheme: https
   tls_config:
-    # Replace <filename> with CA certificate to validate server certificate with.
-    ca_file: <filename>
+    insecure_skip_verify: true
   follow_redirects: true
   relabel_configs:
   - source_labels: [job]
