@@ -11,13 +11,12 @@ package resource
 
 import (
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -27,15 +26,11 @@ const (
 )
 
 type HeadlessServiceBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
+	*RabbitmqResourceBuilder
 }
 
 func (builder *RabbitmqResourceBuilder) HeadlessService() *HeadlessServiceBuilder {
-	return &HeadlessServiceBuilder{
-		Instance: builder.Instance,
-		Scheme:   builder.Scheme,
-	}
+	return &HeadlessServiceBuilder{builder}
 }
 
 func (builder *HeadlessServiceBuilder) UpdateMayRequireStsRecreate() bool {

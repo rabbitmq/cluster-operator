@@ -2,8 +2,9 @@ package resource
 
 import (
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var requiredPlugins = []string{
@@ -23,15 +23,11 @@ var requiredPlugins = []string{
 const PluginsConfigName = "plugins-conf"
 
 type RabbitmqPluginsConfigMapBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
+	*RabbitmqResourceBuilder
 }
 
 func (builder *RabbitmqResourceBuilder) RabbitmqPluginsConfigMap() *RabbitmqPluginsConfigMapBuilder {
-	return &RabbitmqPluginsConfigMapBuilder{
-		Instance: builder.Instance,
-		Scheme:   builder.Scheme,
-	}
+	return &RabbitmqPluginsConfigMapBuilder{builder}
 }
 
 func (builder *RabbitmqPluginsConfigMapBuilder) Build() (client.Object, error) {

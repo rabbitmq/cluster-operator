@@ -38,15 +38,11 @@ const (
 )
 
 type StatefulSetBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
+	*RabbitmqResourceBuilder
 }
 
 func (builder *RabbitmqResourceBuilder) StatefulSet() *StatefulSetBuilder {
-	return &StatefulSetBuilder{
-		Instance: builder.Instance,
-		Scheme:   builder.Scheme,
-	}
+	return &StatefulSetBuilder{builder}
 }
 
 func (builder *StatefulSetBuilder) Build() (client.Object, error) {

@@ -13,14 +13,13 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -28,15 +27,11 @@ const (
 )
 
 type ErlangCookieBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
+	*RabbitmqResourceBuilder
 }
 
 func (builder *RabbitmqResourceBuilder) ErlangCookie() *ErlangCookieBuilder {
-	return &ErlangCookieBuilder{
-		Instance: builder.Instance,
-		Scheme:   builder.Scheme,
-	}
+	return &ErlangCookieBuilder{builder}
 }
 
 func (builder *ErlangCookieBuilder) Build() (client.Object, error) {
