@@ -11,13 +11,12 @@ package resource
 
 import (
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -26,15 +25,11 @@ const (
 )
 
 type RoleBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
+	*RabbitmqResourceBuilder
 }
 
 func (builder *RabbitmqResourceBuilder) Role() *RoleBuilder {
-	return &RoleBuilder{
-		Instance: builder.Instance,
-		Scheme:   builder.Scheme,
-	}
+	return &RoleBuilder{builder}
 }
 
 func (builder *RoleBuilder) Build() (client.Object, error) {

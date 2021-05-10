@@ -19,11 +19,9 @@ import (
 
 	"gopkg.in/ini.v1"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -57,15 +55,11 @@ prometheus.ssl.port      = 15691
 )
 
 type ServerConfigMapBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
+	*RabbitmqResourceBuilder
 }
 
 func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilder {
-	return &ServerConfigMapBuilder{
-		Instance: builder.Instance,
-		Scheme:   builder.Scheme,
-	}
+	return &ServerConfigMapBuilder{builder}
 }
 
 func (builder *ServerConfigMapBuilder) Build() (client.Object, error) {

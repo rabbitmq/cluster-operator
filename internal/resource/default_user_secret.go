@@ -12,16 +12,15 @@ package resource
 import (
 	"bytes"
 	"fmt"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -31,15 +30,11 @@ const (
 )
 
 type DefaultUserSecretBuilder struct {
-	Instance *rabbitmqv1beta1.RabbitmqCluster
-	Scheme   *runtime.Scheme
+	*RabbitmqResourceBuilder
 }
 
 func (builder *RabbitmqResourceBuilder) DefaultUserSecret() *DefaultUserSecretBuilder {
-	return &DefaultUserSecretBuilder{
-		Instance: builder.Instance,
-		Scheme:   builder.Scheme,
-	}
+	return &DefaultUserSecretBuilder{builder}
 }
 
 func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
