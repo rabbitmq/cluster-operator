@@ -148,7 +148,7 @@ RabbitMQ-related configuration.
 [cols="25a,75a", options="header"]
 |===
 | Field | Description
-| *`additionalPlugins`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-plugin[$$Plugin$$] array__ | List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.
+| *`additionalPlugins`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-plugin[$$Plugin$$] array__ | List of plugins to enable in addition to essential plugins: rabbitmq_management, and rabbitmq_prometheus.
 | *`additionalConfig`* __string__ | Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime. For more information on this config, see https://www.rabbitmq.com/configure.html#config-file
 | *`advancedConfig`* __string__ | Specify any rabbitmq advanced.config configurations to apply to the cluster. For more information on advanced config, see https://www.rabbitmq.com/configure.html#advanced-config-file
 | *`envConfig`* __string__ | Modify to add to the rabbitmq-env.conf file. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime. For more information on env config, see https://www.rabbitmq.com/man/rabbitmq-env.conf.5.html
@@ -298,7 +298,7 @@ Spec is the desired state of the RabbitmqCluster Custom Resource.
 | Field | Description
 | *`replicas`* __integer__ | Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5 replicas clusters are tested. This value should be an odd number to ensure the resultant cluster can establish exactly one quorum of nodes in the event of a fragmenting network partition.
 | *`image`* __string__ | Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster. Must be provided together with ImagePullSecrets in order to use an image in a private registry.
-| *`imagePullSecrets`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#localobjectreference-v1-core[$$LocalObjectReference$$] array__ | List of Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
+| *`imagePullSecrets`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | List of Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
 | *`service`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicespec[$$RabbitmqClusterServiceSpec$$]__ | The desired state of the Kubernetes Service to create for the cluster.
 | *`persistence`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterpersistencespec[$$RabbitmqClusterPersistenceSpec$$]__ | The desired persistent storage configuration for each Pod in the cluster.
 | *`resources`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#resourcerequirements-v1-core[$$ResourceRequirements$$]__ | The desired compute resource requirements of Pods in the cluster.

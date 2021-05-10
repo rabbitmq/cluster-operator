@@ -280,7 +280,7 @@ type Plugin string
 
 // RabbitMQ-related configuration.
 type RabbitmqClusterConfigurationSpec struct {
-	// List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.
+	// List of plugins to enable in addition to essential plugins: rabbitmq_management, and rabbitmq_prometheus.
 	// +kubebuilder:validation:MaxItems:=100
 	AdditionalPlugins []Plugin `json:"additionalPlugins,omitempty"`
 	// Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator.

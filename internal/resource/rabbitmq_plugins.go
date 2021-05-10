@@ -15,8 +15,7 @@ import (
 )
 
 var requiredPlugins = []string{
-	"rabbitmq_peer_discovery_k8s", // required for clustering
-	"rabbitmq_prometheus",         // enforce prometheus metrics
+	"rabbitmq_prometheus", // enforce prometheus metrics
 	"rabbitmq_management",
 }
 

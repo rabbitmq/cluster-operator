@@ -78,7 +78,6 @@ var _ = Describe("Operator", func() {
 					"rabbitmq-plugins",
 					"is_enabled",
 					"rabbitmq_management",
-					"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -174,7 +173,6 @@ var _ = Describe("Operator", func() {
 					"rabbitmq-plugins",
 					"is_enabled",
 					"rabbitmq_management",
-					"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",
 					"rabbitmq_top",
 				)

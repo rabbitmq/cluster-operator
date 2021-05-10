@@ -22,17 +22,16 @@ import (
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 const (
 	ServerConfigMapName = "server-conf"
 	defaultRabbitmqConf = `
-cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host = kubernetes.default
-cluster_formation.k8s.address_type = hostname
 cluster_partition_handling = pause_minority
 queue_master_locator = min-masters
 disk_free_limit.absolute = 2GB
+cluster_formation.peer_discovery_backend = classic_config
 cluster_formation.randomized_startup_delay_range.min = 0
 cluster_formation.randomized_startup_delay_range.max = 60`
 
@@ -86,6 +85,15 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		return err
 	}
 	defaultSection := operatorConfiguration.Section("")
+
+	var i int32
+	for i = 0; i < pointer.Int32PtrDerefOr(builder.Instance.Spec.Replicas, 1); i++ {
+		if _, err := defaultSection.NewKey(
+			fmt.Sprintf("cluster_formation.classic_config.nodes.%d", i+1),
+			fmt.Sprintf("rabbit@%s-%d.%s.%s", builder.Instance.ChildResourceName(stsSuffix), i, builder.Instance.ChildResourceName(headlessServiceSuffix), builder.Instance.Namespace)); err != nil {
+			return err
+		}
+	}
 
 	if _, err := defaultSection.NewKey("cluster_name", builder.Instance.Name); err != nil {
 		return err

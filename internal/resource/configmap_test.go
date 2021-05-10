@@ -23,20 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/pointer"
 )
-
-func defaultRabbitmqConf(instanceName string) string {
-	return iniString(`
-cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host               = kubernetes.default
-cluster_formation.k8s.address_type       = hostname
-cluster_partition_handling               = pause_minority
-queue_master_locator                     = min-masters
-disk_free_limit.absolute                 = 2GB
-cluster_formation.randomized_startup_delay_range.min = 0
-cluster_formation.randomized_startup_delay_range.max = 60
-cluster_name                             = ` + instanceName)
-}
 
 var _ = Describe("GenerateServerConfigMap", func() {
 	var (
@@ -139,7 +127,17 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		It("returns the default rabbitmq configuration", func() {
 			builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
 
-			expectedConfiguration := defaultRabbitmqConf(builder.Instance.Name)
+			name := builder.Instance.Name
+			expectedConfiguration := fmt.Sprintf(
+				`cluster_partition_handling                           = pause_minority
+queue_master_locator                                 = min-masters
+disk_free_limit.absolute                             = 2GB
+cluster_formation.peer_discovery_backend             = classic_config
+cluster_formation.randomized_startup_delay_range.min = 0
+cluster_formation.randomized_startup_delay_range.max = 60
+cluster_formation.classic_config.nodes.1             = rabbit@%s-server-0.%s-nodes.%s
+cluster_name                                         = %s
+`, name, name, builder.Instance.Namespace, name)
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			Expect(configMap.Data).To(HaveKeyWithValue("operatorDefaults.conf", expectedConfiguration))
@@ -542,6 +540,32 @@ CONSOLE_LOG=new`
 			}
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			Expect(configMap.Annotations).To(BeEmpty())
+		})
+
+		When("multiple replicas", func() {
+			It("adds nodes for peer discovery", func() {
+				instance.Spec.Replicas = pointer.Int32Ptr(3)
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				n := instance.Name
+				ns := instance.Namespace
+				Expect(configMap.Data).To(HaveKeyWithValue("operatorDefaults.conf", ContainSubstring(
+					`cluster_formation.classic_config.nodes.1             = rabbit@%s-server-0.%s-nodes.%s
+cluster_formation.classic_config.nodes.2             = rabbit@%s-server-1.%s-nodes.%s
+cluster_formation.classic_config.nodes.3             = rabbit@%s-server-2.%s-nodes.%s`,
+					n, n, ns, n, n, ns, n, n, ns,
+				)))
+			})
+		})
+		When("no replicas", func() {
+			It("does not add nodes for peer discovery", func() {
+				instance.Spec.Replicas = pointer.Int32Ptr(0)
+
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("operatorDefaults.conf",
+					Not(ContainSubstring("cluster_formation.classic_config.nodes")),
+				))
+			})
 		})
 	})
 

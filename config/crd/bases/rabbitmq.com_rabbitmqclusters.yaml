@@ -3496,7 +3496,7 @@ spec:
                       maxLength: 2000
                       type: string
                     additionalPlugins:
-                      description: 'List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.'
+                      description: 'List of plugins to enable in addition to essential plugins: rabbitmq_management, and rabbitmq_prometheus.'
                       items:
                         description: A Plugin to enable on the RabbitmqCluster.
                         maxLength: 100

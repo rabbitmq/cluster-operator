@@ -28,7 +28,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 		When("AdditionalPlugins is empty", func() {
 			It("returns list of required plugins", func() {
 				plugins := NewRabbitmqPlugins(nil)
-				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s", "rabbitmq_prometheus", "rabbitmq_management"}))
+				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_prometheus", "rabbitmq_management"}))
 			})
 		})
 
@@ -37,7 +37,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 				morePlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_shovel", "my_great_plugin"}
 				plugins := NewRabbitmqPlugins(morePlugins)
 
-				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s",
+				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{
 					"rabbitmq_prometheus",
 					"rabbitmq_management",
 					"my_great_plugin",
@@ -51,7 +51,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 				morePlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_shovel", "my_great_plugin", "rabbitmq_shovel"}
 				plugins := NewRabbitmqPlugins(morePlugins)
 
-				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s",
+				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{
 					"rabbitmq_prometheus",
 					"rabbitmq_management",
 					"my_great_plugin",
@@ -117,10 +117,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 			})
 
 			It("adds list of default plugins", func() {
-				expectedEnabledPlugins := "[" +
-					"rabbitmq_peer_discovery_k8s," +
-					"rabbitmq_prometheus," +
-					"rabbitmq_management]."
+				expectedEnabledPlugins := "[rabbitmq_prometheus,rabbitmq_management]."
 
 				obj, err := configMapBuilder.Build()
 				Expect(err).NotTo(HaveOccurred())
@@ -184,7 +181,6 @@ var _ = Describe("RabbitMQPlugins", func() {
 						builder.Instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "my_great_plugin"}
 
 						expectedEnabledPlugins := "[" +
-							"rabbitmq_peer_discovery_k8s," +
 							"rabbitmq_prometheus," +
 							"rabbitmq_management," +
 							"rabbitmq_shovel," +
@@ -199,7 +195,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 				When("previous data is present", func() {
 					BeforeEach(func() {
 						configMap.Data = map[string]string{
-							"enabled_plugins": "[rabbitmq_peer_discovery_k8s,rabbitmq_shovel]",
+							"enabled_plugins": "[rabbitmq_prometheus,rabbitmq_shovel]",
 						}
 					})
 
@@ -207,7 +203,6 @@ var _ = Describe("RabbitMQPlugins", func() {
 						builder.Instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "my_great_plugin"}
 
 						expectedEnabledPlugins := "[" +
-							"rabbitmq_peer_discovery_k8s," +
 							"rabbitmq_prometheus," +
 							"rabbitmq_management," +
 							"rabbitmq_shovel," +

@@ -31,6 +31,7 @@ import (
 )
 
 const (
+	stsSuffix           string = "server"
 	initContainerCPU    string = "100m"
 	initContainerMemory string = "500Mi"
 	defaultPVCName      string = "persistence"
@@ -54,7 +55,7 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName("server"),
+			Name:      builder.Instance.ChildResourceName(stsSuffix),
 			Namespace: builder.Instance.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
