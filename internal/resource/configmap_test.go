@@ -542,7 +542,7 @@ CONSOLE_LOG=new`
 			Expect(configMap.Annotations).To(BeEmpty())
 		})
 
-		When("multiple replicas", func() {
+		Context("multiple replicas", func() {
 			It("adds nodes for peer discovery", func() {
 				instance.Spec.Replicas = pointer.Int32Ptr(3)
 
@@ -557,7 +557,7 @@ cluster_formation.classic_config.nodes.3             = rabbit@%s-server-2.%s-nod
 				)))
 			})
 		})
-		When("no replicas", func() {
+		Context("no replicas", func() {
 			It("does not add nodes for peer discovery", func() {
 				instance.Spec.Replicas = pointer.Int32Ptr(0)
 
@@ -565,6 +565,34 @@ cluster_formation.classic_config.nodes.3             = rabbit@%s-server-2.%s-nod
 				Expect(configMap.Data).To(HaveKeyWithValue("operatorDefaults.conf",
 					Not(ContainSubstring("cluster_formation.classic_config.nodes")),
 				))
+			})
+		})
+
+		Describe("UpdateRequiresStsRestart", func() {
+			BeforeEach(func() {
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeTrue())
+			})
+			When("the config does not change", func() {
+				It("does not restart StatefulSet", func() {
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeFalse())
+				})
+			})
+			When("the only config change is cluster formation nodes", func() {
+				It("does not require the StatefulSet to be restarted", func() {
+					instance.Spec.Replicas = pointer.Int32Ptr(3)
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeFalse())
+				})
+			})
+			When("config change includes more than cluster formation nodes", func() {
+				It("requires the StatefulSet to be restarted", func() {
+					instance.Spec.Replicas = pointer.Int32Ptr(3)
+					instance.Spec.Rabbitmq.AdditionalConfig = "foo = bar"
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeTrue())
+				})
 			})
 		})
 	})

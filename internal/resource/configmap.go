@@ -14,19 +14,20 @@ import (
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"gopkg.in/ini.v1"
 
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
 
 const (
 	ServerConfigMapName = "server-conf"
+	operatorDefaults    = "operatorDefaults.conf"
 	defaultRabbitmqConf = `
 cluster_partition_handling = pause_minority
 queue_master_locator = min-masters
@@ -55,10 +56,12 @@ prometheus.ssl.port      = 15691
 
 type ServerConfigMapBuilder struct {
 	*RabbitmqResourceBuilder
+	// Set to true if the config change requires RabbitMQ nodes to be restarted.
+	UpdateRequiresStsRestart bool
 }
 
 func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilder {
-	return &ServerConfigMapBuilder{builder}
+	return &ServerConfigMapBuilder{builder, true}
 }
 
 func (builder *ServerConfigMapBuilder) Build() (client.Object, error) {
@@ -78,6 +81,7 @@ func (builder *ServerConfigMapBuilder) UpdateMayRequireStsRecreate() bool {
 
 func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	configMap := object.(*corev1.ConfigMap)
+	previousConfigMap := configMap.DeepCopy()
 
 	ini.PrettySection = false // Remove trailing new line because rabbitmq.conf has only a default section.
 	operatorConfiguration, err := ini.Load([]byte(defaultRabbitmqConf))
@@ -215,7 +219,7 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		configMap.Data = make(map[string]string)
 	}
 
-	configMap.Data["operatorDefaults.conf"] = rmqConfBuffer.String()
+	configMap.Data[operatorDefaults] = rmqConfBuffer.String()
 
 	rmqConfBuffer.Reset()
 
@@ -237,6 +241,45 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		return fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
+	updatedConfigMap := configMap.DeepCopy()
+	if err := removeConfigNotRequiringNodeRestart(previousConfigMap); err != nil {
+		return err
+	}
+	if err := removeConfigNotRequiringNodeRestart(updatedConfigMap); err != nil {
+		return err
+	}
+	if equality.Semantic.DeepEqual(previousConfigMap, updatedConfigMap) {
+		builder.UpdateRequiresStsRestart = false
+	}
+
+	return nil
+}
+
+// removeConfigNotRequiringNodeRestart removes configuration data that does not require a restart of RabbitMQ nodes.
+// As of now, this data consists of peer discovery nodes:
+// In the case of scale out (i.e. adding more RabbitMQ nodes to the RabbitMQ cluster), new RabbitMQ nodes will
+// be added to the peer discovery configuration. New nodes will receive the configuration containing all peers.
+// However, exisiting nodes do not need to receive the new peer discovery configuration since the cluster is already formed.
+func removeConfigNotRequiringNodeRestart(configMap *corev1.ConfigMap) error {
+	operatorConf := configMap.Data[operatorDefaults]
+	if operatorConf == "" {
+		return nil
+	}
+	conf, err := ini.Load([]byte(operatorConf))
+	if err != nil {
+		return err
+	}
+	defaultSection := conf.Section("")
+	for _, key := range defaultSection.KeyStrings() {
+		if strings.HasPrefix(key, "cluster_formation.classic_config.nodes.") {
+			defaultSection.DeleteKey(key)
+		}
+	}
+	var b strings.Builder
+	if _, err := conf.WriteTo(&b); err != nil {
+		return err
+	}
+	configMap.Data[operatorDefaults] = b.String()
 	return nil
 }
 
