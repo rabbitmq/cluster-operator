@@ -31,9 +31,11 @@ import (
 )
 
 const (
+	stsSuffix           string = "server"
 	initContainerCPU    string = "100m"
 	initContainerMemory string = "500Mi"
 	defaultPVCName      string = "persistence"
+	configsVolume       string = "rabbitmq-configs"
 	DeletionMarker      string = "skipPreStopChecks"
 )
 
@@ -54,7 +56,7 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName("server"),
+			Name:      builder.Instance.ChildResourceName(stsSuffix),
 			Namespace: builder.Instance.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
@@ -280,17 +282,19 @@ func sortEnvVar(envVar []corev1.EnvVar) {
 }
 
 // sortVolumeMounts always returns '/var/lib/rabbitmq/' and '/var/lib/rabbitmq/mnesia/' first in the list.
-// this is to ensure '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to aviod shadowing
+// This is to ensure '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to avoid shadowing
 // popular open-sourced container runtimes like docker and containerD will sort mounts in alphabetical order to
-// avoid this issue, but there's no guarantee that all container runtime would do so
+// avoid this issue, but there's no guarantee that all container runtime would do so.
+// Likewise '/etc/rabbitmq/conf.d/' always mounts before '/etc/rabbitmq/conf.d/<config-file>'
 func sortVolumeMounts(mounts []corev1.VolumeMount) {
 	for i, m := range mounts {
-		if m.Name == "rabbitmq-erlang-cookie" {
+		switch m.Name {
+		case "rabbitmq-erlang-cookie":
 			mounts[0], mounts[i] = mounts[i], mounts[0]
-			continue
-		}
-		if m.Name == defaultPVCName {
+		case defaultPVCName:
 			mounts[1], mounts[i] = mounts[i], mounts[1]
+		case configsVolume:
+			mounts[2], mounts[i] = mounts[i], mounts[2]
 		}
 	}
 }
@@ -405,6 +409,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 				},
 			},
 		},
+		{
+			Name: configsVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
 	}
 
 	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" || builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
@@ -425,6 +435,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		{
 			Name:      "persistence",
 			MountPath: "/var/lib/rabbitmq/mnesia/",
+		},
+		{
+			Name:      configsVolume,
+			MountPath: "/etc/rabbitmq/conf.d/",
 		},
 		{
 			Name:      "rabbitmq-plugins",
@@ -505,6 +519,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		volumes = append(volumes, tlsProjectedVolume)
 	}
 
+	writeRetryLimit := "echo 'cluster_formation.discovery_retry_limit = %d' > /etc/rabbitmq/conf.d/12-cluster_formation.conf"
+
 	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: metadata.ReconcileAnnotations(previousPodAnnotations, defaultPodAnnotations),
@@ -559,7 +575,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 						},
 					},
 					Command: []string{
-						"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
+						"/bin/bash", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
 							"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins " +
@@ -568,7 +584,22 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 							"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 							"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 							"&& chown 999:999 /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-							"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
+							"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf ; " +
+							// All nodes wait (for max 1 day) until pod 0 created the cluster.
+							"if [[ \"$MY_POD_NAME\" == *-server-0 ]]; then " +
+							fmt.Sprintf(writeRetryLimit, 1) + "; else " +
+							fmt.Sprintf(writeRetryLimit, 60*60*24) + "; fi",
+					},
+					Env: []corev1.EnvVar{
+						{
+							Name: "MY_POD_NAME",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath:  "metadata.name",
+									APIVersion: "v1",
+								},
+							},
+						},
 					},
 					Resources: corev1.ResourceRequirements{
 						Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -605,6 +636,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 							Name:      "rabbitmq-confd",
 							MountPath: "/tmp/default_user.conf",
 							SubPath:   "default_user.conf",
+						},
+						{
+							Name:      configsVolume,
+							MountPath: "/etc/rabbitmq/conf.d/",
 						},
 					},
 				},

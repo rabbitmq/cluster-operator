@@ -27,14 +27,13 @@ import (
 const (
 	ServerConfigMapName = "server-conf"
 	defaultRabbitmqConf = `
-cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host = kubernetes.default
-cluster_formation.k8s.address_type = hostname
 cluster_partition_handling = pause_minority
 queue_master_locator = min-masters
 disk_free_limit.absolute = 2GB
+cluster_formation.peer_discovery_backend = classic_config
+cluster_formation.discovery_retry_interval = 1000
 cluster_formation.randomized_startup_delay_range.min = 0
-cluster_formation.randomized_startup_delay_range.max = 60`
+cluster_formation.randomized_startup_delay_range.max = 0`
 
 	defaultTLSConf = `
 ssl_options.certfile = /etc/rabbitmq-tls/tls.crt
@@ -86,6 +85,13 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		return err
 	}
 	defaultSection := operatorConfiguration.Section("")
+
+	// Enforce pod 0 to form the cluster.
+	if _, err := defaultSection.NewKey(
+		"cluster_formation.classic_config.nodes.1",
+		fmt.Sprintf("rabbit@%s-0.%s.%s", builder.Instance.ChildResourceName(stsSuffix), builder.Instance.ChildResourceName(headlessServiceSuffix), builder.Instance.Namespace)); err != nil {
+		return err
+	}
 
 	if _, err := defaultSection.NewKey("cluster_name", builder.Instance.Name); err != nil {
 		return err

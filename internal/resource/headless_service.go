@@ -21,9 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const (
-	headlessServiceSuffix = "nodes"
-)
+const headlessServiceSuffix = "nodes"
 
 type HeadlessServiceBuilder struct {
 	*RabbitmqResourceBuilder

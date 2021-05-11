@@ -512,9 +512,9 @@ func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) stri
 	return nodeIp
 }
 
-func getConfigFileFromPod(namespace string, cluster *rabbitmqv1beta1.RabbitmqCluster, path string) map[string]string {
+func getConfigFileFromPod(namespace string, cluster *rabbitmqv1beta1.RabbitmqCluster, podIndex int, path string) map[string]string {
 	output, err := kubectlExec(namespace,
-		statefulSetPodName(cluster, 0),
+		statefulSetPodName(cluster, podIndex),
 		"rabbitmq",
 		"cat",
 		path,

@@ -25,19 +25,6 @@ import (
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-func defaultRabbitmqConf(instanceName string) string {
-	return iniString(`
-cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host               = kubernetes.default
-cluster_formation.k8s.address_type       = hostname
-cluster_partition_handling               = pause_minority
-queue_master_locator                     = min-masters
-disk_free_limit.absolute                 = 2GB
-cluster_formation.randomized_startup_delay_range.min = 0
-cluster_formation.randomized_startup_delay_range.max = 60
-cluster_name                             = ` + instanceName)
-}
-
 var _ = Describe("GenerateServerConfigMap", func() {
 	var (
 		instance         rabbitmqv1beta1.RabbitmqCluster
@@ -139,7 +126,18 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		It("returns the default rabbitmq configuration", func() {
 			builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
 
-			expectedConfiguration := defaultRabbitmqConf(builder.Instance.Name)
+			name := builder.Instance.Name
+			expectedConfiguration := fmt.Sprintf(
+				`cluster_partition_handling                           = pause_minority
+queue_master_locator                                 = min-masters
+disk_free_limit.absolute                             = 2GB
+cluster_formation.peer_discovery_backend             = classic_config
+cluster_formation.discovery_retry_interval           = 1000
+cluster_formation.randomized_startup_delay_range.min = 0
+cluster_formation.randomized_startup_delay_range.max = 0
+cluster_formation.classic_config.nodes.1             = rabbit@%s-server-0.%s-nodes.%s
+cluster_name                                         = %s
+`, name, name, builder.Instance.Namespace, name)
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			Expect(configMap.Data).To(HaveKeyWithValue("operatorDefaults.conf", expectedConfiguration))

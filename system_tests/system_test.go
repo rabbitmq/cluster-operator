@@ -78,7 +78,6 @@ var _ = Describe("Operator", func() {
 					"rabbitmq-plugins",
 					"is_enabled",
 					"rabbitmq_management",
-					"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -174,7 +173,6 @@ var _ = Describe("Operator", func() {
 					"rabbitmq-plugins",
 					"is_enabled",
 					"rabbitmq_management",
-					"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",
 					"rabbitmq_top",
 				)
@@ -192,7 +190,7 @@ cluster_keepalive_interval = 10000`
 				waitForRabbitmqUpdate(cluster)
 
 				// verify that rabbitmq.conf contains provided configurations
-				cfgMap := getConfigFileFromPod(namespace, cluster, "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf")
+				cfgMap := getConfigFileFromPod(namespace, cluster, 0, "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf")
 				Expect(cfgMap).To(SatisfyAll(
 					HaveKeyWithValue("vm_memory_high_watermark_paging_ratio", "0.5"),
 					HaveKeyWithValue("cluster_keepalive_interval", "10000"),
@@ -380,6 +378,14 @@ CONSOLE_LOG=new`
 				response, err := alivenessTest(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
+
+				By("configuring pod 0 to form the RabbitMQ cluster")
+				cfgMap := getConfigFileFromPod(namespace, cluster, 0, "/etc/rabbitmq/conf.d/12-cluster_formation.conf")
+				Expect(cfgMap).To(ConsistOf(HaveKeyWithValue("cluster_formation.discovery_retry_limit", "1")))
+				for i := 1; i <= 2; i++ {
+					cfgMap = getConfigFileFromPod(namespace, cluster, i, "/etc/rabbitmq/conf.d/12-cluster_formation.conf")
+					Expect(cfgMap).To(ConsistOf(HaveKeyWithValue("cluster_formation.discovery_retry_limit", "86400")))
+				}
 			})
 		})
 	})
@@ -491,7 +497,7 @@ CONSOLE_LOG=new`
 
 				By("disabling non TLS listeners", func() {
 					// verify that rabbitmq.conf contains listeners.tcp = none
-					cfgMap := getConfigFileFromPod(namespace, cluster, "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf")
+					cfgMap := getConfigFileFromPod(namespace, cluster, 0, "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf")
 					Expect(cfgMap).To(SatisfyAll(
 						HaveKeyWithValue("listeners.tcp", "none"),
 						HaveKeyWithValue("stomp.listeners.tcp", "none"),
