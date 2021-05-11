@@ -525,8 +525,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182aff
 github.com/michaelklishin/rabbit-hole/v2 v2.8.0 h1:5tehiLwdVtCeDcrxOlvoveRqU/AJMOcMeQntSf63fdc=
 github.com/michaelklishin/rabbit-hole/v2 v2.8.0/go.mod h1:VZQTDutXFmoyrLvlRjM79MEPb0+xCLLhV5yBTjwMWkM=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
-github.com/mikefarah/yq/v4 v4.7.1 h1:sl381SkedGntGwSPLjkpnUqCMEGGjf3zUyeAvK/Oqtg=
-github.com/mikefarah/yq/v4 v4.7.1/go.mod h1:lhxVpMWdGvoeon5cMtBD3MKRuLKPHgRidR8oDFRNCsw=
+github.com/mikefarah/yq/v4 v4.8.0 h1:vdoV6I5VmvqjtAfJ8Jd39RU8OoSI9USpqIIIEkyTRuQ=
+github.com/mikefarah/yq/v4 v4.8.0/go.mod h1:lhxVpMWdGvoeon5cMtBD3MKRuLKPHgRidR8oDFRNCsw=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=
 github.com/mitchellh/copystructure v1.0.0 h1:Laisrj+bAB6b/yJwB5Bt3ITZhGJdqmxquMKeZ+mmkFQ=
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
