@@ -381,10 +381,10 @@ CONSOLE_LOG=new`
 
 				By("configuring pod 0 to form the RabbitMQ cluster")
 				cfgMap := getConfigFileFromPod(namespace, cluster, 0, "/etc/rabbitmq/conf.d/12-cluster_formation.conf")
-				Expect(cfgMap).To(ConsistOf(HaveKeyWithValue("cluster_formation.discovery_retry_limit", "1")))
+				Expect(cfgMap).To(HaveKeyWithValue("cluster_formation.discovery_retry_limit", "1"))
 				for i := 1; i <= 2; i++ {
 					cfgMap = getConfigFileFromPod(namespace, cluster, i, "/etc/rabbitmq/conf.d/12-cluster_formation.conf")
-					Expect(cfgMap).To(ConsistOf(HaveKeyWithValue("cluster_formation.discovery_retry_limit", "86400")))
+					Expect(cfgMap).To(HaveKeyWithValue("cluster_formation.discovery_retry_limit", "86400"))
 				}
 			})
 		})
