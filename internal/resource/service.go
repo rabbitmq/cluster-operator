@@ -226,8 +226,8 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
 		servicePortsMap["stream"] = corev1.ServicePort{
 			Protocol:   corev1.ProtocolTCP,
-			Port:       5551,
-			TargetPort: intstr.FromInt(5551),
+			Port:       5552,
+			TargetPort: intstr.FromInt(5552),
 			Name:       "stream",
 		}
 	}
