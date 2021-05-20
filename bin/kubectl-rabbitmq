@@ -66,6 +66,7 @@ USAGE:
     kubectl rabbitmq [-n NAMESPACE | -A] list-pause-reconciliation-instances
 
   Run perf-test against an instance - you can pass as many perf test parameters as you want
+  (see https://rabbitmq.github.io/rabbitmq-perf-test/stable/htmlsingle/ for more details)
     kubectl rabbitmq [-n NAMESPACE] perf-test INSTANCE --rate 100
   If you want to monitor perf-test, create the following ServiceMonitor:
     apiVersion: monitoring.coreos.com/v1
@@ -79,6 +80,10 @@ USAGE:
       selector:
         matchLabels:
           app: perf-test
+
+  Run stream-perf-test against an instance - you can pass as many stream perf test parameters as you want
+  (see https://rabbitmq.github.io/rabbitmq-stream-java-client/snapshot/htmlsingle/ for more details)
+    kubectl rabbitmq [-n NAMESPACE] stream-perf-test INSTANCE --rate 100
 
   Print this help
     kubectl rabbitmq help
@@ -133,6 +138,18 @@ perf_test() {
         --image=pivotalrabbitmq/perf-test \
         -- --uri "amqp://${username}:${password}@${service}" \
         --metrics-prometheus ${perftestopts}
+}
+
+stream_perf_test() {
+    get_instance_details "$@"
+    shift 1
+    streamperftestopts=$*
+
+    kubectl ${NAMESPACE} run stream-perf-test \
+        --labels="app=stream-perf-test,run=stream-perf-test" \
+        --image=pivotalrabbitmq/stream-perf-test \
+        -- --uris "rabbitmq-stream://${username}:${password}@${service}" \
+        -- ${streamperftestopts}
 }
 
 manage() {
@@ -312,6 +329,15 @@ main() {
             exit 1
         fi
         perf_test "$@"
+        ;;
+    "stream-perf-test")
+        shift 1
+        if [[ "$#" -eq 0 ]] || [[ "$1" =~ (--[a-z-]) ]]; then
+            echo "Missing instance name"
+            usage
+            exit 1
+        fi
+        stream_perf_test "$@"
         ;;
     "manage")
         shift 1
