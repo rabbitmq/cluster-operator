@@ -149,7 +149,7 @@ stream_perf_test() {
         --labels="app=stream-perf-test,run=stream-perf-test" \
         --image=pivotalrabbitmq/stream-perf-test \
         -- --uris "rabbitmq-stream://${username}:${password}@${service}" \
-        -- ${streamperftestopts}
+        ${streamperftestopts}
 }
 
 manage() {
