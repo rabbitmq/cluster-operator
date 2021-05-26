@@ -134,6 +134,16 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 				}
 			}
 		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
+			if _, err := userConfigurationSection.NewKey("stream.listeners.ssl.default", "5551"); err != nil {
+				return err
+			}
+			if builder.Instance.DisableNonTLSListeners() {
+				if _, err := userConfigurationSection.NewKey("stream.listeners.tcp", "none"); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	if builder.Instance.MutualTLSEnabled() {

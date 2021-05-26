@@ -251,9 +251,9 @@ CONSOLE_LOG=new`
 				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 
-			When("MQTT, STOMP and AMQP 1.0 plugins are enabled", func() {
+			When("MQTT, STOMP, AMQP 1.0 and Stream plugins are enabled", func() {
 				It("adds TLS config for the additional plugins", func() {
-					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_amqp_1_0"}
+					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_amqp_1_0", "rabbitmq_stream"}
 
 					instance.ObjectMeta.Name = "rabbit-tls"
 					instance.Spec.TLS.SecretName = "tls-secret"
@@ -271,7 +271,8 @@ CONSOLE_LOG=new`
 						management.tcp.port     = 15672
 						prometheus.tcp.port       = 15692
 						mqtt.listeners.ssl.default = 8883
-						stomp.listeners.ssl.1 = 61614`)
+						stomp.listeners.ssl.1 = 61614
+						stream.listeners.ssl.default = 5551`)
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
 					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
@@ -403,7 +404,7 @@ CONSOLE_LOG=new`
 				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 
-			It("disables non tls listeners for mqtt and stomp when enabled", func() {
+			It("disables non tls listeners for mqtt, stomp and stream plugins if enabled", func() {
 				instance = rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-tls",
@@ -417,6 +418,7 @@ CONSOLE_LOG=new`
 							AdditionalPlugins: []rabbitmqv1beta1.Plugin{
 								"rabbitmq_mqtt",
 								"rabbitmq_stomp",
+								"rabbitmq_stream",
 							},
 						},
 					},
@@ -440,7 +442,10 @@ CONSOLE_LOG=new`
 					mqtt.listeners.tcp   = none
 
 					stomp.listeners.ssl.1 = 61614
-					stomp.listeners.tcp   = none`)
+					stomp.listeners.tcp   = none
+
+					stream.listeners.ssl.default = 5551
+					stream.listeners.tcp = none`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))

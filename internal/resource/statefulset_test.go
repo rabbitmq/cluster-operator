@@ -728,9 +728,9 @@ var _ = Describe("StatefulSet", func() {
 				}))
 			})
 
-			It("opens tls ports when mqtt and stomp are configured", func() {
+			It("opens tls ports when mqtt, stomp and stream are configured", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"}
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_stream"}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -743,6 +743,10 @@ var _ = Describe("StatefulSet", func() {
 					{
 						Name:          "stomps",
 						ContainerPort: 61614,
+					},
+					{
+						Name:          "streams",
+						ContainerPort: 5551,
 					},
 				}))
 			})
@@ -832,8 +836,8 @@ var _ = Describe("StatefulSet", func() {
 					}))
 				})
 
-				It("disables non tls ports for mqtt and stomp when configured", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"}
+				It("disables non tls ports for mqtt, stomp and stream if enabled", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_stream"}
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -861,6 +865,10 @@ var _ = Describe("StatefulSet", func() {
 						{
 							Name:          "stomps",
 							ContainerPort: 61614,
+						},
+						{
+							Name:          "streams",
+							ContainerPort: 5551,
 						},
 					}))
 				})
