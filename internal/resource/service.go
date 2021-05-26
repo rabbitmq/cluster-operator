@@ -150,7 +150,7 @@ func (builder *ServiceBuilder) generateServicePortsMapOnlyTLSListeners() map[str
 	}
 
 	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
-		servicePortsMap["mqtts"] = corev1.ServicePort{
+		servicePortsMap["streams"] = corev1.ServicePort{
 			Protocol:   corev1.ProtocolTCP,
 			Port:       5551,
 			Name:       "streams",
