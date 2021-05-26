@@ -14,6 +14,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -22,10 +23,10 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 
+	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -380,6 +381,14 @@ CONSOLE_LOG=new`
 				response, err := alivenessTest(hostname, port, username, password)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.Status).To(Equal("ok"))
+
+				// test https://github.com/rabbitmq/cluster-operator/issues/662 is fixed
+				By("clustering correctly")
+				rmqc, err := rabbithole.NewClient(fmt.Sprintf("http://%s:%s", hostname, port), username, password)
+				Expect(err).NotTo(HaveOccurred())
+				nodes, err := rmqc.ListNodes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nodes).To(HaveLen(3))
 			})
 		})
 	})
