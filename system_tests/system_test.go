@@ -67,8 +67,7 @@ var _ = Describe("Operator", func() {
 
 		It("works", func() {
 			By("publishing and consuming a message", func() {
-				response, err := alivenessTest(hostname, port, username, password)
-				Expect(err).NotTo(HaveOccurred())
+				response := alivenessTest(hostname, port, username, password)
 				Expect(response.Status).To(Equal("ok"))
 			})
 
@@ -378,8 +377,7 @@ CONSOLE_LOG=new`
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
-				response, err := alivenessTest(hostname, port, username, password)
-				Expect(err).NotTo(HaveOccurred())
+				response := alivenessTest(hostname, port, username, password)
 				Expect(response.Status).To(Equal("ok"))
 
 				// test https://github.com/rabbitmq/cluster-operator/issues/662 is fixed
@@ -472,8 +470,7 @@ CONSOLE_LOG=new`
 
 				By("connecting to management API over TLS", func() {
 					managementTLSNodePort := rabbitmqNodePort(ctx, clientSet, cluster, "management-tls")
-					err := connectHTTPS(username, password, hostname, managementTLSNodePort, caFilePath)
-					Expect(err).NotTo(HaveOccurred())
+					Expect(connectHTTPS(username, password, hostname, managementTLSNodePort, caFilePath)).To(Succeed())
 				})
 
 				By("talking MQTTS", func() {
