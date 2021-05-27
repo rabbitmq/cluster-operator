@@ -783,6 +783,13 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 			})
 		}
 
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "streams",
+				ContainerPort: 5551,
+			})
+		}
+
 		if builder.Instance.MutualTLSEnabled() {
 			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
 				ports = append(ports, corev1.ContainerPort{
@@ -834,6 +841,13 @@ func (builder *StatefulSetBuilder) updateContainerPortsOnlyTLSListeners() []core
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "stomps",
 			ContainerPort: 61614,
+		})
+	}
+
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "streams",
+			ContainerPort: 5551,
 		})
 	}
 

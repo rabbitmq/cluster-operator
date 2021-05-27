@@ -120,9 +120,9 @@ var _ = Context("Services", func() {
 				))
 			})
 
-			When("mqtt and stomp are enabled", func() {
+			When("mqtt, stomp and stream are enabled", func() {
 				It("opens ports for those plugins", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp"}
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_stream"}
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
 						{
@@ -136,6 +136,12 @@ var _ = Context("Services", func() {
 							Protocol:   corev1.ProtocolTCP,
 							Port:       61614,
 							TargetPort: intstr.FromInt(61614),
+						},
+						{
+							Name:       "streams",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       5551,
+							TargetPort: intstr.FromInt(5551),
 						},
 					}))
 				})
@@ -227,6 +233,7 @@ var _ = Context("Services", func() {
 					Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt-tls", 15676),
 					Entry("STOMP", "rabbitmq_stomp", "stomps", 61614),
 					Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp-tls", 15673),
+					Entry("Stream", "rabbitmq_stream", "streams", 5551),
 				)
 			})
 		})
