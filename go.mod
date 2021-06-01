@@ -11,7 +11,7 @@ require (
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.8.0
 	github.com/mikefarah/yq/v4 v4.9.3
-	github.com/onsi/ginkgo v1.16.2
+	github.com/onsi/ginkgo v1.16.3
 	github.com/onsi/gomega v1.13.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210422170636-520637be5dde
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
