@@ -57,7 +57,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const podCreationTimeout = 600 * time.Second
+const podCreationTimeout = 10 * time.Minute
 
 type featureFlag struct {
 	Name  string
@@ -363,40 +363,26 @@ func getMessageFromQueueAMQPS(username, password, hostname, amqpsPort, caFilePat
 	return "", nil
 }
 
-func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*HealthcheckResponse, error) {
+func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) *HealthcheckResponse {
 	client := &http.Client{Timeout: 10 * time.Second}
 	url := fmt.Sprintf("http://%s:%s/api/aliveness-test/%%2F", rabbitmqHostName, rabbitmqPort)
 
-	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	req.SetBasicAuth(rabbitmqUsername, rabbitmqPassword)
 
 	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("Failed to run cluster aliveness test: %+v \n", err)
-		return nil, fmt.Errorf("failed aliveness check: %v with api endpoint: %s", err, url)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Cluster aliveness test failed. Status: %s \n", resp.Status)
-		errMessage := fmt.Sprintf("Response code '%d' != '%d'", resp.StatusCode, http.StatusOK)
-		return nil, fmt.Errorf("failed aliveness check: %v with api endpoint: %s, error msg: %s", err, url, errMessage)
-	}
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	Expect(resp).To(HaveHTTPStatus(http.StatusOK))
 
 	defer resp.Body.Close()
 	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("Failed to read cluster aliveness test: %s \n", err)
-		return nil, fmt.Errorf("failed aliveness check: %v with api endpoint: %s", err, url)
-	}
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	healthcheckResponse := &HealthcheckResponse{}
-	err = json.Unmarshal(b, healthcheckResponse)
-	if err != nil {
-		fmt.Printf("Failed to umarshal cluster aliveness test result: %s \n", err)
-		return nil, err
-	}
+	ExpectWithOffset(1, json.Unmarshal(b, healthcheckResponse)).To(Succeed())
 
-	return healthcheckResponse, nil
+	return healthcheckResponse
 }
 
 type HealthcheckResponse struct {
