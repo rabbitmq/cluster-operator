@@ -9,13 +9,13 @@ require (
 	github.com/go-delve/delve v1.6.1
 	github.com/go-logr/logr v0.3.0
 	github.com/go-stomp/stomp v2.1.4+incompatible
-	github.com/michaelklishin/rabbit-hole/v2 v2.8.0
+	github.com/michaelklishin/rabbit-hole/v2 v2.9.0
 	github.com/mikefarah/yq/v4 v4.9.3
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210422170636-520637be5dde
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
-	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
+	github.com/streadway/amqp v1.0.0
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	gopkg.in/ini.v1 v1.62.0
 	k8s.io/api v0.20.2
