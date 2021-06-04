@@ -118,12 +118,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	if err := r.reconcileTLS(ctx, rabbitmqCluster); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	if requeueAfter, err := r.updateStatus(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
+	}
+
+	if err := r.reconcileTLS(ctx, rabbitmqCluster); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	sts, err := r.statefulSet(ctx, rabbitmqCluster)
