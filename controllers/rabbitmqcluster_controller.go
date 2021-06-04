@@ -177,10 +177,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 					return ctrl.Result{}, err
 				}
 				if err = r.reconcilePVC(ctx, rabbitmqCluster, current, sts); err != nil {
-					rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
-					if statusErr := r.Status().Update(ctx, rabbitmqCluster); statusErr != nil {
-						logger.Error(statusErr, "Failed to update ReconcileSuccess condition state")
-					}
+					r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
 					return ctrl.Result{}, err
 				}
 				if r.scaleDown(ctx, rabbitmqCluster, current, sts) {
@@ -200,10 +197,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		})
 		r.logAndRecordOperationResult(logger, rabbitmqCluster, resource, operationResult, err)
 		if err != nil {
-			rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "Error", err.Error())
-			if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
-				logger.Error(writerErr, "Failed to update ReconcileSuccess condition state")
-			}
+			r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "Error", err.Error())
 			return ctrl.Result{}, err
 		}
 
@@ -227,24 +221,24 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// post-deploy steps if so, or requeue until the deployment is finished.
 	if requeueAfter, err := r.runRabbitmqCLICommandsIfAnnotated(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
 		if err != nil {
-			rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionFalse, "FailedCLICommand", err.Error())
-			if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
-				logger.Error(writerErr, "Failed to update ReconcileSuccess condition state")
-			}
+			r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "FailedCLICommand", err.Error())
 		}
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
 	// Set ReconcileSuccess to true and update observedGeneration after all reconciliation steps have finished with no error
 	rabbitmqCluster.Status.ObservedGeneration = rabbitmqCluster.GetGeneration()
-	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, corev1.ConditionTrue, "Success", "Finish reconciling")
-	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
-		logger.Error(writerErr, "Failed to Update Custom Resource status")
-	}
+	r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionTrue, "Success", "Finish reconciling")
 
 	logger.Info("Finished reconciling")
 
 	return ctrl.Result{}, nil
+}
+
+func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, namespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
+	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
+	err := r.Get(ctx, namespacedName, rabbitmqClusterInstance)
+	return rabbitmqClusterInstance, err
 }
 
 // logAndRecordOperationResult - helper function to log and record events with message and error
@@ -323,10 +317,13 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *
 	return []runtime.Object{sts, endPoints}, nil
 }
 
-func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, namespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
-	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
-	err := r.Get(ctx, namespacedName, rabbitmqClusterInstance)
-	return rabbitmqClusterInstance, err
+func (r *RabbitmqClusterReconciler) setReconcileSuccess(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, condition corev1.ConditionStatus, reason, msg string) {
+	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, condition, reason, msg)
+	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
+		ctrl.LoggerFrom(ctx).Error(writerErr, "Failed to update Custom Resource status",
+			"namespace", rabbitmqCluster.Namespace,
+			"name", rabbitmqCluster.Name)
+	}
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
