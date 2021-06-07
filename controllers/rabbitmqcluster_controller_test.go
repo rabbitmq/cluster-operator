@@ -829,8 +829,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 				}))
 
 			Expect(sts.Spec.Template.Spec.HostNetwork).To(BeFalse())
-			Expect(sts.Spec.Template.Spec.Volumes).To(ConsistOf(
-				corev1.Volume{
+			Expect(sts.Spec.Template.Spec.Volumes).To(ConsistOf([]corev1.Volume{
+				{
 					Name: "additional-config",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -841,7 +841,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 						},
 					},
 				},
-				corev1.Volume{
+				{
 					Name: "rabbitmq-confd",
 					VolumeSource: corev1.VolumeSource{
 						Projected: &corev1.ProjectedVolumeSource{
@@ -881,7 +881,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 						},
 					},
 				},
-				corev1.Volume{
+				{
 					Name: "plugins-conf",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -893,19 +893,19 @@ var _ = Describe("RabbitmqClusterController", func() {
 					},
 				},
 
-				corev1.Volume{
+				{
 					Name: "rabbitmq-plugins",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
-				corev1.Volume{
+				{
 					Name: "rabbitmq-erlang-cookie",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
-				corev1.Volume{
+				{
 					Name: "erlang-cookie-secret",
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
@@ -914,7 +914,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 						},
 					},
 				},
-				corev1.Volume{
+				{
 					Name: "pod-info",
 					VolumeSource: corev1.VolumeSource{
 						DownwardAPI: &corev1.DownwardAPIVolumeSource{
@@ -930,7 +930,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 							},
 						},
 					},
-				}))
+				}}))
 
 			Expect(extractContainer(sts.Spec.Template.Spec.Containers, "additional-container").Image).To(Equal("my-great-image"))
 		})

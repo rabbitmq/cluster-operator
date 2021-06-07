@@ -1250,33 +1250,33 @@ var _ = Describe("StatefulSet", func() {
 						"&& chown 999:999 /var/lib/rabbitmq/.rabbitmqadmin.conf "+
 						"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
 				),
-				"VolumeMounts": ConsistOf(
-					corev1.VolumeMount{
+				"VolumeMounts": ConsistOf([]corev1.VolumeMount{
+					{
 						Name:      "plugins-conf",
 						MountPath: "/tmp/rabbitmq-plugins/",
 					},
-					corev1.VolumeMount{
+					{
 						Name:      "rabbitmq-erlang-cookie",
 						MountPath: "/var/lib/rabbitmq/",
 					},
-					corev1.VolumeMount{
+					{
 						Name:      "erlang-cookie-secret",
 						MountPath: "/tmp/erlang-cookie-secret/",
 					},
-					corev1.VolumeMount{
+					{
 						Name:      "rabbitmq-plugins",
 						MountPath: "/operator",
 					},
-					corev1.VolumeMount{
+					{
 						Name:      "persistence",
 						MountPath: "/var/lib/rabbitmq/mnesia/",
 					},
-					corev1.VolumeMount{
+					{
 						Name:      "rabbitmq-confd",
 						MountPath: "/tmp/default_user.conf",
 						SubPath:   "default_user.conf",
 					},
-				),
+				}),
 			}))
 		})
 
@@ -1625,90 +1625,92 @@ var _ = Describe("StatefulSet", func() {
 						},
 					))
 
-					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
-						corev1.EnvVar{
-							Name:  "test1",
-							Value: "test1",
-						},
-						corev1.EnvVar{
-							Name: "MY_POD_NAME",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath:  "metadata.name",
-									APIVersion: "v1",
+					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(
+						ConsistOf([]corev1.EnvVar{
+							{
+								Name:  "test1",
+								Value: "test1",
+							},
+							{
+								Name: "MY_POD_NAME",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath:  "metadata.name",
+										APIVersion: "v1",
+									},
 								},
 							},
-						},
-						corev1.EnvVar{
-							Name: "MY_POD_NAMESPACE",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath:  "metadata.namespace",
-									APIVersion: "v1",
+							{
+								Name: "MY_POD_NAMESPACE",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath:  "metadata.namespace",
+										APIVersion: "v1",
+									},
 								},
 							},
-						},
-						corev1.EnvVar{
-							Name:  "K8S_SERVICE_NAME",
-							Value: instance.ChildResourceName("nodes"),
-						},
-						corev1.EnvVar{
-							Name:  "RABBITMQ_USE_LONGNAME",
-							Value: "true",
-						},
-						corev1.EnvVar{
-							Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
-							Value: "/operator/enabled_plugins",
-						},
-						corev1.EnvVar{
-							Name:  "RABBITMQ_NODENAME",
-							Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
-						},
-						corev1.EnvVar{
-							Name:  "K8S_HOSTNAME_SUFFIX",
-							Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
-						}))
+							{
+								Name:  "K8S_SERVICE_NAME",
+								Value: instance.ChildResourceName("nodes"),
+							},
+							{
+								Name:  "RABBITMQ_USE_LONGNAME",
+								Value: "true",
+							},
+							{
+								Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
+								Value: "/operator/enabled_plugins",
+							},
+							{
+								Name:  "RABBITMQ_NODENAME",
+								Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+							},
+							{
+								Name:  "K8S_HOSTNAME_SUFFIX",
+								Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+							}}))
 					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "new-container-0")).To(Equal(
 						corev1.Container{Name: "new-container-0", Image: "my-image-0"}))
 					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "new-container-1")).To(Equal(
 						corev1.Container{Name: "new-container-1", Image: "my-image-1"}))
-					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").VolumeMounts).To(ConsistOf(
-						corev1.VolumeMount{
-							Name:      "test",
-							MountPath: "test-path",
-						},
-						corev1.VolumeMount{
-							Name:      "persistence",
-							MountPath: "/var/lib/rabbitmq/mnesia/",
-						},
-						corev1.VolumeMount{
-							Name:      "rabbitmq-confd",
-							MountPath: "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
-							SubPath:   "operatorDefaults.conf",
-						},
-						corev1.VolumeMount{
-							Name:      "rabbitmq-confd",
-							MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf",
-							SubPath:   "default_user.conf",
-						},
-						corev1.VolumeMount{
-							Name:      "rabbitmq-confd",
-							MountPath: "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
-							SubPath:   "userDefinedConfiguration.conf",
-						},
-						corev1.VolumeMount{
-							Name:      "rabbitmq-erlang-cookie",
-							MountPath: "/var/lib/rabbitmq/",
-						},
-						corev1.VolumeMount{
-							Name:      "pod-info",
-							MountPath: "/etc/pod-info/",
-						},
-						corev1.VolumeMount{
-							Name:      "rabbitmq-plugins",
-							MountPath: "/operator",
-						},
-					))
+					Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").VolumeMounts).To(
+						ConsistOf([]corev1.VolumeMount{
+							{
+								Name:      "test",
+								MountPath: "test-path",
+							},
+							{
+								Name:      "persistence",
+								MountPath: "/var/lib/rabbitmq/mnesia/",
+							},
+							{
+								Name:      "rabbitmq-confd",
+								MountPath: "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
+								SubPath:   "operatorDefaults.conf",
+							},
+							{
+								Name:      "rabbitmq-confd",
+								MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf",
+								SubPath:   "default_user.conf",
+							},
+							{
+								Name:      "rabbitmq-confd",
+								MountPath: "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
+								SubPath:   "userDefinedConfiguration.conf",
+							},
+							{
+								Name:      "rabbitmq-erlang-cookie",
+								MountPath: "/var/lib/rabbitmq/",
+							},
+							{
+								Name:      "pod-info",
+								MountPath: "/etc/pod-info/",
+							},
+							{
+								Name:      "rabbitmq-plugins",
+								MountPath: "/operator",
+							},
+						}))
 				})
 
 				Context("Rabbitmq Container volume mounts", func() {
@@ -1824,8 +1826,8 @@ var _ = Describe("StatefulSet", func() {
 								Name:  "K8S_SERVICE_NAME",
 								Value: "foo-nodes",
 							}))
-						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf(
-							corev1.EnvVar{
+						Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Env).To(ConsistOf([]corev1.EnvVar{
+							{
 								Name: "MY_POD_NAME",
 								ValueFrom: &corev1.EnvVarSource{
 									FieldRef: &corev1.ObjectFieldSelector{
@@ -1834,7 +1836,7 @@ var _ = Describe("StatefulSet", func() {
 									},
 								},
 							},
-							corev1.EnvVar{
+							{
 								Name: "MY_POD_NAMESPACE",
 								ValueFrom: &corev1.EnvVarSource{
 									FieldRef: &corev1.ObjectFieldSelector{
@@ -1843,34 +1845,34 @@ var _ = Describe("StatefulSet", func() {
 									},
 								},
 							},
-							corev1.EnvVar{
+							{
 								Name:  "test1",
 								Value: "test1",
 							},
-							corev1.EnvVar{
+							{
 								Name:  "K8S_SERVICE_NAME",
 								Value: instance.ChildResourceName("nodes"),
 							},
-							corev1.EnvVar{
+							{
 								Name:  "RABBITMQ_USE_LONGNAME",
 								Value: "false",
 							},
-							corev1.EnvVar{
+							{
 								Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
 								Value: "/operator/enabled_plugins",
 							},
-							corev1.EnvVar{
+							{
 								Name:  "RABBITMQ_NODENAME",
 								Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 							},
-							corev1.EnvVar{
+							{
 								Name:  "K8S_HOSTNAME_SUFFIX",
 								Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 							},
-							corev1.EnvVar{
+							{
 								Name:  "RABBITMQ_STREAM_ADVERTISED_HOST",
 								Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
-							}))
+							}}))
 					})
 				})
 			})

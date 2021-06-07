@@ -280,7 +280,7 @@ func sortEnvVar(envVar []corev1.EnvVar) {
 }
 
 // sortVolumeMounts always returns '/var/lib/rabbitmq/' and '/var/lib/rabbitmq/mnesia/' first in the list.
-// this is to ensure '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to aviod shadowing
+// this is to ensure '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to avoid shadowing
 // popular open-sourced container runtimes like docker and containerD will sort mounts in alphabetical order to
 // avoid this issue, but there's no guarantee that all container runtime would do so
 func sortVolumeMounts(mounts []corev1.VolumeMount) {
