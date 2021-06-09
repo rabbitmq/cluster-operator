@@ -1189,12 +1189,11 @@ var _ = Describe("StatefulSet", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			rmqGID, rmqUID := int64(999), int64(999)
+			rmqUID := int64(999)
 
 			expectedPodSecurityContext := &corev1.PodSecurityContext{
-				FSGroup:    &rmqGID,
-				RunAsGroup: &rmqGID,
-				RunAsUser:  &rmqUID,
+				FSGroup:   &rmqUID,
+				RunAsUser: &rmqUID,
 			}
 
 			Expect(statefulSet.Spec.Template.Spec.SecurityContext).To(Equal(expectedPodSecurityContext))
