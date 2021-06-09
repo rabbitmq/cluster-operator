@@ -312,7 +312,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
 
 	automountServiceAccountToken := true
-	rabbitmqGID := int64(999)
 	rabbitmqUID := int64(999)
 
 	readinessProbePort := "amqp"
@@ -525,9 +524,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 				},
 			},
 			SecurityContext: &corev1.PodSecurityContext{
-				FSGroup:    &rabbitmqGID,
-				RunAsGroup: &rabbitmqGID,
-				RunAsUser:  &rabbitmqUID,
+				FSGroup:   &rabbitmqUID,
+				RunAsUser: &rabbitmqUID,
 			},
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
 			TerminationGracePeriodSeconds: builder.Instance.Spec.TerminationGracePeriodSeconds,
