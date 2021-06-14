@@ -540,23 +540,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 					Name:  "setup-container",
 					Image: builder.Instance.Spec.Image,
 					SecurityContext: &corev1.SecurityContext{
-						RunAsUser: pointer.Int64Ptr(0),
-						Capabilities: &corev1.Capabilities{
-							// drop default set from Docker except for CHOWN, FOWNER, and DAC_OVERRIDE
-							Drop: []corev1.Capability{
-								"FSETID",
-								"KILL",
-								"SETGID",
-								"SETUID",
-								"SETPCAP",
-								"NET_BIND_SERVICE",
-								"NET_RAW",
-								"SYS_CHROOT",
-								"MKNOD",
-								"AUDIT_WRITE",
-								"SETFCAP",
-							},
-						},
+						RunAsGroup: &rabbitmqGID,
+						RunAsUser:  &rabbitmqUID,
 					},
 					Command: []string{
 						"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
