@@ -1217,26 +1217,13 @@ var _ = Describe("StatefulSet", func() {
 			initContainers := statefulSet.Spec.Template.Spec.InitContainers
 			Expect(initContainers).To(HaveLen(1))
 
+			rmqGID, rmqUID := int64(999), int64(999)
 			initContainer := extractContainer(initContainers, "setup-container")
 			Expect(initContainer).To(MatchFields(IgnoreExtras, Fields{
 				"Image": Equal("rabbitmq-image-from-cr"),
 				"SecurityContext": PointTo(MatchFields(IgnoreExtras, Fields{
-					"Capabilities": PointTo(MatchAllFields(Fields{
-						"Drop": ConsistOf([]corev1.Capability{
-							"FSETID",
-							"KILL",
-							"SETGID",
-							"SETUID",
-							"SETPCAP",
-							"NET_BIND_SERVICE",
-							"NET_RAW",
-							"SYS_CHROOT",
-							"MKNOD",
-							"AUDIT_WRITE",
-							"SETFCAP",
-						}),
-						"Add": BeEmpty(),
-					})),
+					"RunAsUser":  Equal(&rmqUID),
+					"RunAsGroup": Equal(&rmqGID),
 				})),
 				"Command": ConsistOf(
 					"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
