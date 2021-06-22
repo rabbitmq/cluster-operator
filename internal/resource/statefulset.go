@@ -543,14 +543,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 					},
 					Command: []string{
 						"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
-							"&& chown 999:999 /var/lib/rabbitmq/.erlang.cookie " +
 							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
-							"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins " +
-							"&& chown 999:999 /operator/enabled_plugins ; " +
-							"chown 999:999 /var/lib/rabbitmq/mnesia/ ; " +
+							"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; " +
 							"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 							"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-							"&& chown 999:999 /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 							"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
 					},
 					Resources: corev1.ResourceRequirements{
