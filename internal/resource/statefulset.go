@@ -538,8 +538,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 					Name:  "setup-container",
 					Image: builder.Instance.Spec.Image,
 					SecurityContext: &corev1.SecurityContext{
-						RunAsGroup: &rabbitmqGID,
-						RunAsUser:  &rabbitmqUID,
+						RunAsUser: &rabbitmqUID,
 					},
 					Command: []string{
 						"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
