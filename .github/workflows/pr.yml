@@ -52,7 +52,8 @@ jobs:
         rabbitmq-image:
         - rabbitmq:3.8.8-management
         - rabbitmq:3.8-management
-        - pivotalrabbitmq/rabbitmq:master
+        - pivotalrabbitmq/rabbitmq:master-otp-max
+        - pivotalrabbitmq/rabbitmq:master-otp-max-1
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
