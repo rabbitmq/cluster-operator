@@ -181,6 +181,14 @@ var _ = Describe("StatefulSet", func() {
 
 			It("overrides the PVC list", func() {
 				storageClass := "my-storage-class"
+				pvcSpec := generateOverrideRawExtension(corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+						},
+					},
+					StorageClassName: &storageClass,
+				})
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
@@ -189,28 +197,14 @@ var _ = Describe("StatefulSet", func() {
 									Name:      "pert-1",
 									Namespace: instance.Namespace,
 								},
-								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
-										Requests: corev1.ResourceList{
-											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
-										},
-									},
-									StorageClassName: &storageClass,
-								},
+								Spec: pvcSpec,
 							},
 							{
 								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 									Name:      "pert-2",
 									Namespace: instance.Namespace,
 								},
-								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
-										Requests: corev1.ResourceList{
-											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
-										},
-									},
-									StorageClassName: &storageClass,
-								},
+								Spec: pvcSpec,
 							},
 						},
 					},
@@ -274,6 +268,14 @@ var _ = Describe("StatefulSet", func() {
 
 			It("successfully overrides PVC list even when namespace not specified", func() {
 				storageClass := "my-storage-class"
+				pvcSpec := generateOverrideRawExtension(corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
+						},
+					},
+					StorageClassName: &storageClass,
+				})
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
@@ -281,27 +283,13 @@ var _ = Describe("StatefulSet", func() {
 								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 									Name: "pert-1",
 								},
-								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
-										Requests: corev1.ResourceList{
-											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
-										},
-									},
-									StorageClassName: &storageClass,
-								},
+								Spec: pvcSpec,
 							},
 							{
 								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 									Name: "pert-2",
 								},
-								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
-										Requests: corev1.ResourceList{
-											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
-										},
-									},
-									StorageClassName: &storageClass,
-								},
+								Spec: pvcSpec,
 							},
 						},
 					},
@@ -1530,48 +1518,49 @@ var _ = Describe("StatefulSet", func() {
 				})
 
 				It("Overrides PodSpec", func() {
+					podSpec := generateOverrideRawExtension(corev1.PodSpec{
+						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+							{
+								MaxSkew:           1,
+								TopologyKey:       "my-topology",
+								WhenUnsatisfiable: corev1.DoNotSchedule,
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										"key": "value",
+									},
+								},
+							},
+						},
+						Containers: []corev1.Container{
+							{
+								Name: "rabbitmq",
+								Env: []corev1.EnvVar{
+									{
+										Name:  "test1",
+										Value: "test1",
+									},
+								},
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "test",
+										MountPath: "test-path",
+									},
+								},
+							},
+							{
+								Name:  "new-container-0",
+								Image: "my-image-0",
+							},
+							{
+								Name:  "new-container-1",
+								Image: "my-image-1",
+							},
+						},
+					})
 					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 						Spec: &rabbitmqv1beta1.StatefulSetSpec{
 							Template: &rabbitmqv1beta1.PodTemplateSpec{
-								Spec: &corev1.PodSpec{
-									TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
-										{
-											MaxSkew:           1,
-											TopologyKey:       "my-topology",
-											WhenUnsatisfiable: corev1.DoNotSchedule,
-											LabelSelector: &metav1.LabelSelector{
-												MatchLabels: map[string]string{
-													"key": "value",
-												},
-											},
-										},
-									},
-									Containers: []corev1.Container{
-										{
-											Name: "rabbitmq",
-											Env: []corev1.EnvVar{
-												{
-													Name:  "test1",
-													Value: "test1",
-												},
-											},
-											VolumeMounts: []corev1.VolumeMount{
-												{
-													Name:      "test",
-													MountPath: "test-path",
-												},
-											},
-										},
-										{
-											Name:  "new-container-0",
-											Image: "my-image-0",
-										},
-										{
-											Name:  "new-container-1",
-											Image: "my-image-1",
-										},
-									},
-								},
+								Spec: &podSpec,
 							},
 						},
 					}
@@ -1694,24 +1683,47 @@ var _ = Describe("StatefulSet", func() {
 						}))
 				})
 
+				It("can reset a controller-set field to default", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &runtime.RawExtension{
+									Raw: []byte(`{"securityContext":null}`),
+								},
+							},
+						},
+					}
+
+					builder = &resource.RabbitmqResourceBuilder{
+						Instance: &instance,
+						Scheme:   scheme,
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.Template.Spec.SecurityContext).To(BeNil())
+
+				})
+
 				Context("Rabbitmq Container volume mounts", func() {
 					It("Overrides the volume mounts list while making sure that '/var/lib/rabbitmq/' mounts before '/var/lib/rabbitmq/mnesia/' ", func() {
+						podSpec := generateOverrideRawExtension(corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name: "rabbitmq",
+									VolumeMounts: []corev1.VolumeMount{
+										{
+											Name:      "test",
+											MountPath: "test",
+										},
+									},
+								},
+							},
+						})
 						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 							Spec: &rabbitmqv1beta1.StatefulSetSpec{
 								Template: &rabbitmqv1beta1.PodTemplateSpec{
-									Spec: &corev1.PodSpec{
-										Containers: []corev1.Container{
-											{
-												Name: "rabbitmq",
-												VolumeMounts: []corev1.VolumeMount{
-													{
-														Name:      "test",
-														MountPath: "test",
-													},
-												},
-											},
-										},
-									},
+									Spec: &podSpec,
 								},
 							},
 						}
@@ -1748,30 +1760,31 @@ var _ = Describe("StatefulSet", func() {
 
 				Context("Rabbitmq Container EnvVar", func() {
 					It("Overrides the envVar list while making sure that 'MY_POD_NAME', 'MY_POD_NAMESPACE' and 'K8S_SERVICE_NAME' are always defined first", func() {
+						podSpec := generateOverrideRawExtension(corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name: "rabbitmq",
+									Env: []corev1.EnvVar{
+										{
+											Name:  "test1",
+											Value: "test1",
+										},
+										{
+											Name:  "RABBITMQ_USE_LONGNAME",
+											Value: "false",
+										},
+										{
+											Name:  "RABBITMQ_STREAM_ADVERTISED_HOST",
+											Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+										},
+									},
+								},
+							},
+						})
 						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 							Spec: &rabbitmqv1beta1.StatefulSetSpec{
 								Template: &rabbitmqv1beta1.PodTemplateSpec{
-									Spec: &corev1.PodSpec{
-										Containers: []corev1.Container{
-											{
-												Name: "rabbitmq",
-												Env: []corev1.EnvVar{
-													{
-														Name:  "test1",
-														Value: "test1",
-													},
-													{
-														Name:  "RABBITMQ_USE_LONGNAME",
-														Value: "false",
-													},
-													{
-														Name:  "RABBITMQ_STREAM_ADVERTISED_HOST",
-														Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
-													},
-												},
-											},
-										},
-									},
+									Spec: &podSpec,
 								},
 							},
 						}
@@ -1862,18 +1875,19 @@ var _ = Describe("StatefulSet", func() {
 				instance.Spec.Image = "should-be-replaced-image"
 				instance.Spec.Replicas = pointer.Int32Ptr(2)
 
+				podSpec := generateOverrideRawExtension(corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "rabbitmq",
+							Image: "override-image",
+						},
+					},
+				})
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						Replicas: pointer.Int32Ptr(4),
 						Template: &rabbitmqv1beta1.PodTemplateSpec{
-							Spec: &corev1.PodSpec{
-								Containers: []corev1.Container{
-									{
-										Name:  "rabbitmq",
-										Image: "override-image",
-									},
-								},
-							},
+							Spec: &podSpec,
 						},
 					},
 				}

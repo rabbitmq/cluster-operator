@@ -17,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // +kubebuilder:object:root=true
@@ -101,8 +102,10 @@ type Service struct {
 	*EmbeddedLabelsAnnotations `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Spec defines the behavior of a Service.
 	// https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+	// +kubebuilder:validation:Type=object
+	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
-	Spec *corev1.ServiceSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec *runtime.RawExtension `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
 // Override configuration for the RabbitMQ StatefulSet.
@@ -236,8 +239,10 @@ type PodTemplateSpec struct {
 
 	// Specification of the desired behavior of the pod.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+	// +kubebuilder:validation:Type=object
+	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
-	Spec *corev1.PodSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec *runtime.RawExtension `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
 // PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVolumeClaim.
@@ -252,8 +257,10 @@ type PersistentVolumeClaim struct {
 
 	// Spec defines the desired characteristics of a volume requested by a pod author.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
+	// +kubebuilder:validation:Type=object
+	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
-	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec runtime.RawExtension `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
 // Allows for the configuration of TLS certificates to be used by RabbitMQ. Also allows for non-TLS traffic to be disabled.

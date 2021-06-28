@@ -621,34 +621,35 @@ var _ = Context("Services", func() {
 			It("overrides ServiceSpec", func() {
 				var IPv4 corev1.IPFamily = "IPv4"
 				ten := int32(10)
-				instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
-					Spec: &corev1.ServiceSpec{
-						Ports: []corev1.ServicePort{
-							{
-								Protocol:   corev1.ProtocolUDP,
-								Port:       12345,
-								TargetPort: intstr.FromInt(12345),
-								Name:       "my-new-port",
-							},
+				specOverride := generateOverrideRawExtension(corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Protocol:   corev1.ProtocolUDP,
+							Port:       12345,
+							TargetPort: intstr.FromInt(12345),
+							Name:       "my-new-port",
 						},
-						Selector: map[string]string{
-							"a-selector": "a-label",
-						},
-						Type:                     "NodePort",
-						SessionAffinity:          "ClientIP",
-						LoadBalancerSourceRanges: []string{"1000", "30000"},
-						ExternalName:             "my-external-name",
-						ExternalTrafficPolicy:    corev1.ServiceExternalTrafficPolicyTypeLocal,
-						HealthCheckNodePort:      1234,
-						PublishNotReadyAddresses: false,
-						SessionAffinityConfig: &corev1.SessionAffinityConfig{
-							ClientIP: &corev1.ClientIPConfig{
-								TimeoutSeconds: &ten,
-							},
-						},
-						IPFamilies:   []corev1.IPFamily{IPv4},
-						TopologyKeys: []string{"a-topology-key"},
 					},
+					Selector: map[string]string{
+						"a-selector": "a-label",
+					},
+					Type:                     "NodePort",
+					SessionAffinity:          "ClientIP",
+					LoadBalancerSourceRanges: []string{"1000", "30000"},
+					ExternalName:             "my-external-name",
+					ExternalTrafficPolicy:    corev1.ServiceExternalTrafficPolicyTypeLocal,
+					HealthCheckNodePort:      1234,
+					PublishNotReadyAddresses: false,
+					SessionAffinityConfig: &corev1.SessionAffinityConfig{
+						ClientIP: &corev1.ClientIPConfig{
+							TimeoutSeconds: &ten,
+						},
+					},
+					IPFamilies:   []corev1.IPFamily{IPv4},
+					TopologyKeys: []string{"a-topology-key"},
+				})
+				instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
+					Spec: &specOverride,
 				}
 
 				err := serviceBuilder.Update(svc)
@@ -694,10 +695,11 @@ var _ = Context("Services", func() {
 
 			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {
 				instance.Spec.Service.Type = "LoadBalancer"
+				specOverride := generateOverrideRawExtension(corev1.ServiceSpec{
+					Type: corev1.ServiceTypeNodePort,
+				})
 				instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
-					Spec: &corev1.ServiceSpec{
-						Type: corev1.ServiceTypeNodePort,
-					},
+					Spec: &specOverride,
 				}
 
 				err := serviceBuilder.Update(svc)

@@ -86,7 +86,9 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 			for i := range override {
 				copyObjectMeta(&pvcList[i].ObjectMeta, override[i].EmbeddedObjectMeta)
 				pvcList[i].Namespace = sts.Namespace // PVC should always be in the same namespace as the Stateful Set
-				pvcList[i].Spec = override[i].Spec
+				if err = json.Unmarshal(override[i].Spec.Raw, &pvcList[i].Spec); err != nil {
+					return nil, fmt.Errorf("failed unmarshalling PVC override: %w", err)
+				}
 				if err := controllerutil.SetControllerReference(builder.Instance, &pvcList[i], builder.Scheme); err != nil {
 					return nil, fmt.Errorf("failed setting controller reference: %v", err)
 				}
@@ -224,7 +226,7 @@ func disableBlockOwnerDeletion(pvc corev1.PersistentVolumeClaim) {
 	}
 }
 
-func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, error) {
+func patchPodSpec(podSpec *corev1.PodSpec, podSpecOverride *runtime.RawExtension) (corev1.PodSpec, error) {
 	originalPodSpec, err := json.Marshal(podSpec)
 	if err != nil {
 		return corev1.PodSpec{}, fmt.Errorf("error marshalling statefulSet podSpec: %v", err)
@@ -246,7 +248,7 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 		return corev1.PodSpec{}, fmt.Errorf("error unmarshalling patched Stateful Set: %v", err)
 	}
 
-	rmqContainer := containerRabbitmq(podSpecOverride.Containers)
+	rmqContainer := containerRabbitmq(patchedPodSpec.Containers)
 	// handle the rabbitmq container envVar list as a special case if it's overwritten
 	// we need to ensure that MY_POD_NAME, MY_POD_NAMESPACE and K8S_SERVICE_NAME are defined first so other envVars values can reference them
 	if rmqContainer.Env != nil {

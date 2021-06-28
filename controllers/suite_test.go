@@ -12,9 +12,11 @@ package controllers_test
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/retry"
 
 	. "github.com/onsi/ginkgo"
@@ -120,3 +122,9 @@ func (f *fakePodExecutor) ExecutedCommands() []command { return f.executedComman
 func (f *fakePodExecutor) ResetExecutedCommands() { f.executedCommands = []command{} }
 
 var _ = AfterEach(func() { fakeExecutor.ResetExecutedCommands() })
+
+func generateOverrideRawExtension(spec interface{}) runtime.RawExtension {
+	overrideSpec, err := json.Marshal(spec)
+	Expect(err).NotTo(HaveOccurred())
+	return runtime.RawExtension{Raw: overrideSpec}
+}

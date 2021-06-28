@@ -108,7 +108,7 @@ func (in *PodTemplateSpec) DeepCopyInto(out *PodTemplateSpec) {
 	}
 	if in.Spec != nil {
 		in, out := &in.Spec, &out.Spec
-		*out = new(v1.PodSpec)
+		*out = new(runtime.RawExtension)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -430,7 +430,7 @@ func (in *Service) DeepCopyInto(out *Service) {
 	}
 	if in.Spec != nil {
 		in, out := &in.Spec, &out.Spec
-		*out = new(v1.ServiceSpec)
+		*out = new(runtime.RawExtension)
 		(*in).DeepCopyInto(*out)
 	}
 }

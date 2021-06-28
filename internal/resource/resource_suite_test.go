@@ -10,10 +10,12 @@
 package resource_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestResource(t *testing.T) {
@@ -28,4 +30,10 @@ func testLabels(labels map[string]string) {
 		HaveKeyWithValue("foo/app.kubernetes.io", "edgecase"),
 		Not(HaveKey("app.kubernetes.io/foo")),
 	))
+}
+
+func generateOverrideRawExtension(spec interface{}) runtime.RawExtension {
+	overrideSpec, err := json.Marshal(spec)
+	Expect(err).NotTo(HaveOccurred())
+	return runtime.RawExtension{Raw: overrideSpec}
 }

@@ -77,7 +77,7 @@ PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVol
 | *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#typemeta-v1-meta[$$TypeMeta$$]__ | Embedded metadata identifying a Kind and API Verison of an object. For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
 | *`metadata`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta[$$EmbeddedObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
 
-| *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#persistentvolumeclaimspec-v1-core[$$PersistentVolumeClaimSpec$$]__ | Spec defines the desired characteristics of a volume requested by a pod author. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
+| *`spec`* __xref:{anchor_prefix}-k8s-io-apimachinery-pkg-runtime-rawextension[$$RawExtension$$]__ | Spec defines the desired characteristics of a volume requested by a pod author. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
 |===
 
 
@@ -108,7 +108,7 @@ PodTemplateSpec is an embedded version of k8s.io/api/core/v1.PodTemplateSpec. It
 | Field | Description
 | *`metadata`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta[$$EmbeddedObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
 
-| *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podspec-v1-core[$$PodSpec$$]__ | Specification of the desired behavior of the pod. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+| *`spec`* __RawExtension__ | Specification of the desired behavior of the pod. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 |===
 
 
@@ -347,7 +347,7 @@ Override configuration for the Service created to serve traffic to the cluster. 
 | Field | Description
 | *`metadata`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedlabelsannotations[$$EmbeddedLabelsAnnotations$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
 
-| *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#servicespec-v1-core[$$ServiceSpec$$]__ | Spec defines the behavior of a Service. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+| *`spec`* __xref:{anchor_prefix}-k8s-io-apimachinery-pkg-runtime-rawextension[$$RawExtension$$]__ | Spec defines the behavior of a Service. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 |===
 
 

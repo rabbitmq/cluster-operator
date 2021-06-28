@@ -17,11 +17,13 @@ import (
 
 	"k8s.io/utils/pointer"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	. "github.com/onsi/ginkgo"
 
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
@@ -689,6 +691,43 @@ var _ = Describe("RabbitmqClusterController", func() {
 			storageClassName = "my-storage-class"
 			myStorage = k8sresource.MustParse("100Gi")
 			q, _ = k8sresource.ParseQuantity("10Gi")
+			pvcSpec1 := generateOverrideRawExtension(corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				Resources: corev1.ResourceRequirements{
+					Requests: map[corev1.ResourceName]k8sresource.Quantity{
+						corev1.ResourceStorage: q,
+					},
+				},
+			})
+			pvcSpec2 := generateOverrideRawExtension(corev1.PersistentVolumeClaimSpec{
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: myStorage,
+					},
+				},
+				StorageClassName: &storageClassName,
+			})
+			podSpec := generateOverrideRawExtension(corev1.PodSpec{
+				HostNetwork: false,
+				Volumes: []corev1.Volume{
+					{
+						Name: "additional-config",
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "additional-config-confmap",
+								},
+							},
+						},
+					},
+				},
+				Containers: []corev1.Container{
+					{
+						Name:  "additional-container",
+						Image: "my-great-image",
+					},
+				},
+			})
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-sts-override",
@@ -709,14 +748,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 											},
 											Annotations: map[string]string{},
 										},
-										Spec: corev1.PersistentVolumeClaimSpec{
-											AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-											Resources: corev1.ResourceRequirements{
-												Requests: map[corev1.ResourceName]k8sresource.Quantity{
-													corev1.ResourceStorage: q,
-												},
-											},
-										},
+										Spec: pvcSpec1,
 									},
 									{
 										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
@@ -726,38 +758,11 @@ var _ = Describe("RabbitmqClusterController", func() {
 												"app.kubernetes.io/name": "rabbitmq-sts-override",
 											},
 										},
-										Spec: corev1.PersistentVolumeClaimSpec{
-											Resources: corev1.ResourceRequirements{
-												Requests: corev1.ResourceList{
-													corev1.ResourceStorage: myStorage,
-												},
-											},
-											StorageClassName: &storageClassName,
-										},
+										Spec: pvcSpec2,
 									},
 								},
 								Template: &rabbitmqv1beta1.PodTemplateSpec{
-									Spec: &corev1.PodSpec{
-										HostNetwork: false,
-										Volumes: []corev1.Volume{
-											{
-												Name: "additional-config",
-												VolumeSource: corev1.VolumeSource{
-													ConfigMap: &corev1.ConfigMapVolumeSource{
-														LocalObjectReference: corev1.LocalObjectReference{
-															Name: "additional-config-confmap",
-														},
-													},
-												},
-											},
-										},
-										Containers: []corev1.Container{
-											{
-												Name:  "additional-container",
-												Image: "my-great-image",
-											},
-										},
-									},
+									Spec: &podSpec,
 								},
 							},
 						},
@@ -936,14 +941,15 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 
 		It("updates", func() {
+			podSpec := generateOverrideRawExtension(corev1.PodSpec{Containers: []corev1.Container{
+				{
+					Name:  "additional-container-2",
+					Image: "my-great-image-2",
+				},
+			}})
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
 				cluster.Spec.Override.StatefulSet.Spec.Replicas = pointer.Int32Ptr(15)
-				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.Containers = []corev1.Container{
-					{
-						Name:  "additional-container-2",
-						Image: "my-great-image-2",
-					},
-				}
+				cluster.Spec.Override.StatefulSet.Spec.Template.Spec = &podSpec
 			})).To(Succeed())
 
 			Eventually(func() int32 {
@@ -957,11 +963,39 @@ var _ = Describe("RabbitmqClusterController", func() {
 				return c.Image
 			}, 3).Should(Equal("my-great-image-2"))
 		})
+
+		It("can reset a controller-set field to default", func() {
+			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				cluster.Spec.Override.StatefulSet.Spec.Template.Spec = &runtime.RawExtension{Raw: []byte(`{"securityContext":null}`)}
+			})).To(Succeed())
+
+			Eventually(func() corev1.PodSecurityContext {
+				sts := statefulSet(ctx, cluster)
+				return *sts.Spec.Template.Spec.SecurityContext
+			}, 3).Should(MatchFields(IgnoreExtras, Fields{
+				"RunAsUser": BeNil(),
+				"FSGroup":   BeNil(),
+			}))
+		})
 	})
 
 	Context("Service Override", func() {
-
 		BeforeEach(func() {
+			serviceSpec := generateOverrideRawExtension(corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{
+						Protocol: corev1.ProtocolTCP,
+						Port:     15535,
+						Name:     "additional-port",
+					},
+				},
+				Selector: map[string]string{
+					"a-selector": "a-label",
+				},
+				Type:                     "ClusterIP",
+				SessionAffinity:          "ClientIP",
+				PublishNotReadyAddresses: false,
+			})
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "svc-override",
@@ -973,21 +1007,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					},
 					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
 						Service: &rabbitmqv1beta1.Service{
-							Spec: &corev1.ServiceSpec{
-								Ports: []corev1.ServicePort{
-									{
-										Protocol: corev1.ProtocolTCP,
-										Port:     15535,
-										Name:     "additional-port",
-									},
-								},
-								Selector: map[string]string{
-									"a-selector": "a-label",
-								},
-								Type:                     "ClusterIP",
-								SessionAffinity:          "ClientIP",
-								PublishNotReadyAddresses: false,
-							},
+							Spec: &serviceSpec,
 						},
 					},
 				},
@@ -1041,8 +1061,9 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 
 		It("updates", func() {
+			serviceSpec := generateOverrideRawExtension(corev1.ServiceSpec{Type: corev1.ServiceTypeLoadBalancer})
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				cluster.Spec.Override.Service.Spec.Type = "LoadBalancer"
+				cluster.Spec.Override.Service.Spec = &serviceSpec
 			})).To(Succeed())
 
 			Eventually(func() corev1.ServiceType {
