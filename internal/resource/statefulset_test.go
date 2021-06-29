@@ -1693,6 +1693,34 @@ var _ = Describe("StatefulSet", func() {
 							},
 						}))
 				})
+				It("can reset securityContext to default", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									SecurityContext: &corev1.PodSecurityContext{},
+									InitContainers: []corev1.Container{
+										{
+											Name:            "setup-container",
+											SecurityContext: &corev1.SecurityContext{},
+										},
+									},
+								},
+							},
+						},
+					}
+
+					builder = &resource.RabbitmqResourceBuilder{
+						Instance: &instance,
+						Scheme:   scheme,
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.Template.Spec.SecurityContext).To(BeNil())
+					Expect(statefulSet.Spec.Template.Spec.InitContainers[0].SecurityContext).To(BeNil())
+
+				})
 
 				Context("Rabbitmq Container volume mounts", func() {
 					It("Overrides the volume mounts list while making sure that '/var/lib/rabbitmq/' mounts before '/var/lib/rabbitmq/mnesia/' ", func() {
