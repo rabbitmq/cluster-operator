@@ -959,7 +959,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			}, 3).Should(Equal("my-great-image-2"))
 		})
 
-		It("can reset a controller-set field to default", func() {
+		It("can reset the securityContext of the RabbitMQ container and initContainer to default", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
 				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
 				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.InitContainers = []corev1.Container{
