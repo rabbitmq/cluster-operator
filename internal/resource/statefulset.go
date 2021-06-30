@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -256,6 +257,18 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 	// we need to ensure that '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to avoid shadowing
 	if rmqContainer.VolumeMounts != nil {
 		sortVolumeMounts(patchedPodSpec.Containers[0].VolumeMounts)
+	}
+
+	// A user may wish to override the controller-set securityContext for the RabbitMQ & init containers so that the
+	// container runtime can override them. If the securityContext has been set to an empty struct, `strategicpatch.StrategicMergePatch`
+	// won't pick this up, so manually override it here.
+	if podSpecOverride.SecurityContext != nil && reflect.DeepEqual(*podSpecOverride.SecurityContext, corev1.PodSecurityContext{}) {
+		patchedPodSpec.SecurityContext = nil
+	}
+	for i := range podSpecOverride.InitContainers {
+		if podSpecOverride.InitContainers[i].SecurityContext != nil && reflect.DeepEqual(*podSpecOverride.InitContainers[i].SecurityContext, corev1.SecurityContext{}) {
+			patchedPodSpec.InitContainers[i].SecurityContext = nil
+		}
 	}
 
 	return patchedPodSpec, nil

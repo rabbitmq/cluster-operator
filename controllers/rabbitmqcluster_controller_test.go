@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
@@ -957,6 +958,28 @@ var _ = Describe("RabbitmqClusterController", func() {
 				return c.Image
 			}, 3).Should(Equal("my-great-image-2"))
 		})
+
+		It("can reset the securityContext of the RabbitMQ container and initContainer to default", func() {
+			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
+				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.InitContainers = []corev1.Container{
+					{
+						Name:            "setup-container",
+						SecurityContext: &corev1.SecurityContext{},
+					},
+				}
+			})).To(Succeed())
+
+			Eventually(func() corev1.PodSecurityContext {
+				sts := statefulSet(ctx, cluster)
+				return *sts.Spec.Template.Spec.SecurityContext
+			}, 3).Should(MatchFields(IgnoreExtras, Fields{
+				"RunAsUser": BeNil(),
+				"FSGroup":   BeNil(),
+			}))
+			Expect(statefulSet(ctx, cluster).Spec.Template.Spec.InitContainers[0].SecurityContext).To(BeNil())
+		})
+
 	})
 
 	Context("Service Override", func() {
