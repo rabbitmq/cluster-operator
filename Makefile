@@ -1,16 +1,31 @@
+SHELL := bash
+platform := $(shell uname | tr A-Z a-z)
+
 .DEFAULT_GOAL = help
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-unit-tests: install-tools generate fmt vet manifests ## Run unit tests
+ENVTEST_K8S_VERSION = 1.20.2
+ARCHITECTURE = amd64
+LOCAL_TESTBIN = $(CURDIR)/testbin
+# "Control plane binaries (etcd and kube-apiserver) are loaded by default from /usr/local/kubebuilder/bin.
+# This can be overridden by setting the KUBEBUILDER_ASSETS environment variable"
+# https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest
+export KUBEBUILDER_ASSETS = $(LOCAL_TESTBIN)/k8s/$(ENVTEST_K8S_VERSION)-$(platform)-$(ARCHITECTURE)
+
+$(KUBEBUILDER_ASSETS):
+	setup-envtest --os $(platform) --arch $(ARCHITECTURE) --bin-dir $(LOCAL_TESTBIN) use $(ENVTEST_K8S_VERSION)
+
+.PHONY: unit-tests
+unit-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet manifests ## Run unit tests
 	ginkgo -r --randomizeAllSpecs api/ internal/
 
-integration-tests: install-tools generate fmt vet manifests ## Run integration tests
+.PHONY: integration-tests
+integration-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet manifests ## Run integration tests
 	ginkgo -r controllers/
 
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false, crdVersions=v1"
+CRD_OPTIONS ?= "crd:trivialVersions=true, preserveUnknownFields=false"
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 	controller-gen $(CRD_OPTIONS) rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases

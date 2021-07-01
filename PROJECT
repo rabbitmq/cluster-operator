@@ -1,3 +1,16 @@
-version: "2"
 domain: rabbitmq.com
+layout:
+- go.kubebuilder.io/v3
+projectName: cluster-operator
 repo: github.com/rabbitmq/cluster-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: rabbitmq.com
+  group: rabbitmq.com
+  kind: RabbitmqCluster
+  path: github.com/rabbitmq/cluster-operator/api/v1beta1
+  version: v1beta1
+version: "3"
