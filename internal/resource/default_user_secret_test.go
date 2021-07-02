@@ -11,6 +11,7 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+	"fmt"
 
 	"gopkg.in/ini.v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,6 +56,8 @@ var _ = Describe("DefaultUserSecret", func() {
 		It("creates the necessary default-user secret", func() {
 			var username []byte
 			var password []byte
+			var host []byte
+			var port []byte
 			var ok bool
 
 			obj, err := defaultUserSecretBuilder.Build()
@@ -86,6 +89,19 @@ var _ = Describe("DefaultUserSecret", func() {
 				Expect(len(decodedPassword)).To(Equal(24))
 			})
 
+			By("Setting a host that corresponds to the service address", func() {
+				host, ok = secret.Data["host"]
+				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"host\" in the generated Secret")
+				expectedHost := fmt.Sprintf("%s.%s.svc.cluster.local", builder.Instance.ChildResourceName("client"), builder.Instance.Namespace)
+				Expect(host).To(BeEquivalentTo(expectedHost))
+			})
+
+			By("Setting a port that corresponds to the amqp port", func() {
+				port, ok = secret.Data["port"]
+				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"port\" in the generated Secret")
+				Expect(port).To(BeEquivalentTo("5672"))
+			})
+
 			By("creating a default_user.conf file that contains the correct sysctl config format to be parsed by RabbitMQ", func() {
 				defaultUserConf, ok := secret.Data["default_user.conf"]
 				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"default_user.conf\" in the generated Secret")
@@ -111,6 +127,22 @@ var _ = Describe("DefaultUserSecret", func() {
 				Expect(ok).NotTo(BeFalse(), "Failed to find key 'type' ")
 				Expect(string(t)).To(Equal("rabbitmq"))
 			})
+		})
+	})
+
+	Context("TLS enabled", func() {
+		It("Uses the AMQPS port in the user secret", func() {
+			var port []byte
+
+			instance.Spec.TLS.SecretName = "tls-secret"
+
+			obj, err := defaultUserSecretBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			secret = obj.(*corev1.Secret)
+
+			port, ok := secret.Data["port"]
+			Expect(ok).NotTo(BeFalse(), "Failed to find key \"port\" in the generated Secret")
+			Expect(port).To(BeEquivalentTo("5671"))
 		})
 	})
 
