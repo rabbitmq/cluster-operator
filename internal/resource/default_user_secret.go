@@ -21,6 +21,8 @@ import (
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/rabbitmq/cluster-operator/api/v1beta1"
 )
 
 const (
@@ -29,6 +31,16 @@ const (
 	bindingType           = "rabbitmq"
 	AMQPPort              = "5672"
 	AMQPSPort             = "5671"
+	MQTTPort              = "1883"
+	MQTTSPort             = "8883"
+	STOMPPort             = "61613"
+	STOMPSPort            = "61614"
+	streamPort            = "5552"
+	streamsPort           = "5551"
+	WebMQTTPort           = "15675"
+	WebMQTTSPort          = "15676"
+	WebSTOMPPort          = "15674"
+	WebSTOMPSPort         = "15673"
 )
 
 type DefaultUserSecretBuilder struct {
@@ -57,7 +69,15 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 
 	host := fmt.Sprintf("%s.%s.svc.cluster.local", builder.Instance.ChildResourceName("client"), builder.Instance.Namespace)
 
-	port := builder.port()
+	// Default user secret implements the service binding Provisioned Service
+	// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
+	secretData := builder.buildSecretPorts()
+	secretData["provider"] = []byte(bindingProvider)
+	secretData["type"] = []byte(bindingType)
+	secretData["username"] = []byte(username)
+	secretData["password"] = []byte(password)
+	secretData["host"] = []byte(host)
+	secretData["default_user.conf"] = defaultUserConf
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -65,17 +85,7 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 			Namespace: builder.Instance.Namespace,
 		},
 		Type: corev1.SecretTypeOpaque,
-		// Default user secret implements the service binding Provisioned Service
-		// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
-		Data: map[string][]byte{
-			"provider":          []byte(bindingProvider),
-			"type":              []byte(bindingType),
-			"username":          []byte(username),
-			"password":          []byte(password),
-			"host":              []byte(host),
-			"port":              []byte(port),
-			"default_user.conf": defaultUserConf,
-		},
+		Data: secretData,
 	}, nil
 }
 
@@ -95,11 +105,67 @@ func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	return nil
 }
 
+func (builder *DefaultUserSecretBuilder) buildSecretPorts() map[string][]byte {
+	secretData := map[string][]byte{}
+	secretData["port"] = []byte(builder.port())
+
+	if builder.pluginEnabled("rabbitmq_mqtt") {
+		if builder.Instance.Spec.TLS.SecretName != "" {
+			secretData["mqtt-port"] = []byte(MQTTSPort)
+		} else {
+			secretData["mqtt-port"] = []byte(MQTTPort)
+		}
+	}
+
+	if builder.pluginEnabled("rabbitmq_stomp") {
+		if builder.Instance.Spec.TLS.SecretName != "" {
+			secretData["stomp-port"] = []byte(STOMPSPort)
+		} else {
+			secretData["stomp-port"] = []byte(STOMPPort)
+		}
+	}
+
+	if builder.pluginEnabled("rabbitmq_stream") {
+		if builder.Instance.Spec.TLS.SecretName != "" {
+			secretData["stream-port"] = []byte(streamsPort)
+		} else {
+			secretData["stream-port"] = []byte(streamPort)
+		}
+	}
+
+	if builder.pluginEnabled("rabbitmq_web_mqtt") {
+		if builder.Instance.Spec.TLS.SecretName != "" {
+			secretData["web-mqtt-port"] = []byte(WebMQTTSPort)
+		} else {
+			secretData["web-mqtt-port"] = []byte(WebMQTTPort)
+		}
+	}
+
+	if builder.pluginEnabled("rabbitmq_web_stomp") {
+		if builder.Instance.Spec.TLS.SecretName != "" {
+			secretData["web-stomp-port"] = []byte(WebSTOMPSPort)
+		} else {
+			secretData["web-stomp-port"] = []byte(WebSTOMPPort)
+		}
+	}
+
+	return secretData
+}
+
 func (builder *DefaultUserSecretBuilder) port() string {
 	if builder.Instance.Spec.TLS.SecretName != "" {
 		return AMQPSPort
 	}
 	return AMQPPort
+}
+
+func (builder *DefaultUserSecretBuilder) pluginEnabled(plugin v1beta1.Plugin) bool {
+	for _, value := range builder.Instance.Spec.Rabbitmq.AdditionalPlugins {
+		if value == plugin {
+			return true
+		}
+	}
+	return false
 }
 
 func generateDefaultUserConf(username, password string) ([]byte, error) {

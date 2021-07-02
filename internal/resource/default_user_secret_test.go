@@ -130,7 +130,45 @@ var _ = Describe("DefaultUserSecret", func() {
 		})
 	})
 
-	Context("TLS enabled", func() {
+	Context("when MQTT, STOMP, streams, WebMQTT, and WebSTOMP are enabled", func() {
+		It("adds the MQTT, STOMP, stream, WebMQTT, and WebSTOMP ports to the user secret", func() {
+			var port []byte
+
+			instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+				"rabbitmq_mqtt",
+				"rabbitmq_stomp",
+				"rabbitmq_stream",
+				"rabbitmq_web_mqtt",
+				"rabbitmq_web_stomp",
+			}
+
+			obj, err := defaultUserSecretBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			secret = obj.(*corev1.Secret)
+
+			port, ok := secret.Data["mqtt-port"]
+			Expect(ok).NotTo(BeFalse(), "Failed to find key \"mqtt-port\" in the generated Secret")
+			Expect(port).To(BeEquivalentTo("1883"))
+
+			port, ok = secret.Data["stomp-port"]
+			Expect(ok).NotTo(BeFalse(), "Failed to find key \"stomp-port\" in the generated Secret")
+			Expect(port).To(BeEquivalentTo("61613"))
+
+			port, ok = secret.Data["stream-port"]
+			Expect(ok).NotTo(BeFalse(), "Failed to find key \"stream-port\" in the generated Secret")
+			Expect(port).To(BeEquivalentTo("5552"))
+
+			port, ok = secret.Data["web-mqtt-port"]
+			Expect(ok).NotTo(BeFalse(), "Failed to find key \"web-mqtt-port\" in the generated Secret")
+			Expect(port).To(BeEquivalentTo("15675"))
+
+			port, ok = secret.Data["web-stomp-port"]
+			Expect(ok).NotTo(BeFalse(), "Failed to find key \"web-stomp-port\" in the generated Secret")
+			Expect(port).To(BeEquivalentTo("15674"))
+		})
+	})
+
+	Context("when TLS is enabled", func() {
 		It("Uses the AMQPS port in the user secret", func() {
 			var port []byte
 
@@ -143,6 +181,45 @@ var _ = Describe("DefaultUserSecret", func() {
 			port, ok := secret.Data["port"]
 			Expect(ok).NotTo(BeFalse(), "Failed to find key \"port\" in the generated Secret")
 			Expect(port).To(BeEquivalentTo("5671"))
+		})
+
+		Context("when MQTT, STOMP, streams, WebMQTT, and WebSTOMP are enabled", func() {
+			It("adds the MQTTS, STOMPS, streams, WebMQTTS, and WebSTOMPS ports to the user secret", func() {
+				var port []byte
+
+				instance.Spec.TLS.SecretName = "tls-secret"
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+					"rabbitmq_mqtt",
+					"rabbitmq_stomp",
+					"rabbitmq_stream",
+					"rabbitmq_web_mqtt",
+					"rabbitmq_web_stomp",
+				}
+
+				obj, err := defaultUserSecretBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+				secret = obj.(*corev1.Secret)
+
+				port, ok := secret.Data["mqtt-port"]
+				Expect(ok).NotTo(BeFalse(), "Failed to find key \"mqtt-port\" in the generated Secret")
+				Expect(port).To(BeEquivalentTo("8883"))
+
+				port, ok = secret.Data["stomp-port"]
+				Expect(ok).NotTo(BeFalse(), "Failed to find key \"stomp-port\" in the generated Secret")
+				Expect(port).To(BeEquivalentTo("61614"))
+
+				port, ok = secret.Data["stream-port"]
+				Expect(ok).NotTo(BeFalse(), "Failed to find key \"stream-port\" in the generated Secret")
+				Expect(port).To(BeEquivalentTo("5551"))
+
+				port, ok = secret.Data["web-mqtt-port"]
+				Expect(ok).NotTo(BeFalse(), "Failed to find key \"web-mqtt-port\" in the generated Secret")
+				Expect(port).To(BeEquivalentTo("15676"))
+
+				port, ok = secret.Data["web-stomp-port"]
+				Expect(ok).NotTo(BeFalse(), "Failed to find key \"web-stomp-port\" in the generated Secret")
+				Expect(port).To(BeEquivalentTo("15673"))
+			})
 		})
 	})
 
