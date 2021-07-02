@@ -44,7 +44,7 @@ func init() {
 
 func main() {
 	var metricsAddr string
-	flag.StringVar(&metricsAddr, "metrics-addr", ":9782", "The address the metric endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":9782", "The address the metric endpoint binds to.")
 
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)

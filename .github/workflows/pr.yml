@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  GO_VERSION: 1.16.x
+
 jobs:
 
   unit_integration_tests:
@@ -24,6 +27,10 @@ jobs:
     name: test-all-examples
     runs-on: ubuntu-latest
     steps:
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
     - name: Dry run examples
@@ -55,6 +62,10 @@ jobs:
         - pivotalrabbitmq/rabbitmq:master-otp-max
         - pivotalrabbitmq/rabbitmq:master-otp-max-1
     steps:
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
     - name: System tests
@@ -73,6 +84,10 @@ jobs:
     name: kubectl rabbitmq tests
     runs-on: ubuntu-latest
     steps:
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
     - name: Install Bats
       run: |
         git clone https://github.com/bats-core/bats-core.git "$HOME"/bats-core
@@ -82,7 +97,7 @@ jobs:
       uses: actions/checkout@v2
     - name: kubectl rabbitmq tests
       env:
-        K8S_VERSION: v1.20.7
+        K8S_VERSION: v1.21.1
       run: |
         export GOPATH=$HOME/go
         export PATH=$PATH:$GOPATH/bin
