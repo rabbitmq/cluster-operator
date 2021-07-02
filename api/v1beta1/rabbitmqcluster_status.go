@@ -39,7 +39,7 @@ type RabbitmqClusterSecretReference struct {
 	Name string `json:"name"`
 	// Namespace of the Secret containing the default user credentials
 	Namespace string `json:"namespace"`
-	// Key-value pairs in the Secret corresponding to `username` and `password`
+	// Key-value pairs in the Secret corresponding to `username`, `password`, `host`, and `port`
 	Keys map[string]string `json:"keys"`
 }
 

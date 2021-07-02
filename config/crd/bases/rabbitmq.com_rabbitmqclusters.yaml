@@ -3904,7 +3904,7 @@ spec:
                         keys:
                           additionalProperties:
                             type: string
-                          description: Key-value pairs in the Secret corresponding to `username` and `password`
+                          description: Key-value pairs in the Secret corresponding to `username`, `password`, `host`, and `port`
                           type: object
                         name:
                           description: Name of the Secret containing the default user credentials

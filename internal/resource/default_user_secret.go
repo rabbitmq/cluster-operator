@@ -27,6 +27,8 @@ const (
 	DefaultUserSecretName = "default-user"
 	bindingProvider       = "rabbitmq"
 	bindingType           = "rabbitmq"
+	AMQPPort              = "5672"
+	AMQPSPort             = "5671"
 )
 
 type DefaultUserSecretBuilder struct {
@@ -53,6 +55,10 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 		return nil, err
 	}
 
+	host := fmt.Sprintf("%s.%s.svc.cluster.local", builder.Instance.ChildResourceName("client"), builder.Instance.Namespace)
+
+	port := builder.port()
+
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(DefaultUserSecretName),
@@ -66,6 +72,8 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 			"type":              []byte(bindingType),
 			"username":          []byte(username),
 			"password":          []byte(password),
+			"host":              []byte(host),
+			"port":              []byte(port),
 			"default_user.conf": defaultUserConf,
 		},
 	}, nil
@@ -85,6 +93,13 @@ func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	}
 
 	return nil
+}
+
+func (builder *DefaultUserSecretBuilder) port() string {
+	if builder.Instance.Spec.TLS.SecretName != "" {
+		return AMQPSPort
+	}
+	return AMQPPort
 }
 
 func generateDefaultUserConf(username, password string) ([]byte, error) {
