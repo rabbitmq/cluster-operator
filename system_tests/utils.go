@@ -945,17 +945,13 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 }
 
 func publishAndConsumeStreamMsg(host, port, username, password string) {
+	pport, _ := strconv.Atoi(port)
 	env, err := stream.NewEnvironment(
-		&stream.EnvironmentOptions{
-			ConnectionParameters: []*stream.Broker{
-				&stream.Broker{
-					Host:     host,
-					Port:     port,
-					User:     username,
-					Password: password,
-				},
-			},
-		},
+		stream.NewEnvironmentOptions().
+			SetHost(host).
+			SetPort(pport).
+			SetUser(username).
+			SetPassword(password),
 	)
 	Expect(err).ToNot(HaveOccurred())
 
