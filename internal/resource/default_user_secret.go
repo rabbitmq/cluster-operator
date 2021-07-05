@@ -29,26 +29,15 @@ const (
 	DefaultUserSecretName = "default-user"
 	bindingProvider       = "rabbitmq"
 	bindingType           = "rabbitmq"
-	AMQPPort              = "5672"
-	AMQPSPort             = "5671"
-	MQTTPort              = "1883"
-	MQTTSPort             = "8883"
-	STOMPPort             = "61613"
-	STOMPSPort            = "61614"
-	streamPort            = "5552"
-	streamsPort           = "5551"
-	WebMQTTPort           = "15675"
-	WebMQTTSPort          = "15676"
-	WebSTOMPPort          = "15674"
-	WebSTOMPSPort         = "15673"
 )
 
 type DefaultUserSecretBuilder struct {
 	*RabbitmqResourceBuilder
+	secretData map[string][]byte
 }
 
 func (builder *RabbitmqResourceBuilder) DefaultUserSecret() *DefaultUserSecretBuilder {
-	return &DefaultUserSecretBuilder{builder}
+	return &DefaultUserSecretBuilder{builder, map[string][]byte{}}
 }
 
 func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
@@ -71,13 +60,13 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 
 	// Default user secret implements the service binding Provisioned Service
 	// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
-	secretData := builder.buildSecretPorts()
-	secretData["provider"] = []byte(bindingProvider)
-	secretData["type"] = []byte(bindingType)
-	secretData["username"] = []byte(username)
-	secretData["password"] = []byte(password)
-	secretData["host"] = []byte(host)
-	secretData["default_user.conf"] = defaultUserConf
+	builder.secretData["username"] = []byte(username)
+	builder.secretData["password"] = []byte(password)
+	builder.secretData["default_user.conf"] = defaultUserConf
+	builder.secretData["provider"] = []byte(bindingProvider)
+	builder.secretData["type"] = []byte(bindingType)
+	builder.secretData["host"] = []byte(host)
+	builder.addPortsToSecret()
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -85,7 +74,7 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 			Namespace: builder.Instance.Namespace,
 		},
 		Type: corev1.SecretTypeOpaque,
-		Data: secretData,
+		Data: builder.secretData,
 	}, nil
 }
 
@@ -105,58 +94,50 @@ func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	return nil
 }
 
-func (builder *DefaultUserSecretBuilder) buildSecretPorts() map[string][]byte {
-	secretData := map[string][]byte{}
-	secretData["port"] = []byte(builder.port())
-
-	if builder.pluginEnabled("rabbitmq_mqtt") {
-		if builder.Instance.Spec.TLS.SecretName != "" {
-			secretData["mqtt-port"] = []byte(MQTTSPort)
-		} else {
-			secretData["mqtt-port"] = []byte(MQTTPort)
-		}
+func (builder *DefaultUserSecretBuilder) addPortsToSecret() {
+	const (
+		AMQPPort  = "5672"
+		AMQPSPort = "5671"
+	)
+	portNames := map[v1beta1.Plugin]string{
+		"rabbitmq_mqtt":      "mqtt-port",
+		"rabbitmq_stomp":     "stomp-port",
+		"rabbitmq_stream":    "stream-port",
+		"rabbitmq_web_mqtt":  "web-mqtt-port",
+		"rabbitmq_web_stomp": "web-stomp-port",
+	}
+	TLSPort := map[string]string{
+		"mqtt-port":      "8883",
+		"stomp-port":     "61614",
+		"stream-port":    "5551",
+		"web-mqtt-port":  "15676",
+		"web-stomp-port": "15673",
+	}
+	port := map[string]string{
+		"mqtt-port":      "1883",
+		"stomp-port":     "61613",
+		"stream-port":    "5552",
+		"web-mqtt-port":  "15675",
+		"web-stomp-port": "15674",
 	}
 
-	if builder.pluginEnabled("rabbitmq_stomp") {
-		if builder.Instance.Spec.TLS.SecretName != "" {
-			secretData["stomp-port"] = []byte(STOMPSPort)
-		} else {
-			secretData["stomp-port"] = []byte(STOMPPort)
-		}
-	}
-
-	if builder.pluginEnabled("rabbitmq_stream") {
-		if builder.Instance.Spec.TLS.SecretName != "" {
-			secretData["stream-port"] = []byte(streamsPort)
-		} else {
-			secretData["stream-port"] = []byte(streamPort)
-		}
-	}
-
-	if builder.pluginEnabled("rabbitmq_web_mqtt") {
-		if builder.Instance.Spec.TLS.SecretName != "" {
-			secretData["web-mqtt-port"] = []byte(WebMQTTSPort)
-		} else {
-			secretData["web-mqtt-port"] = []byte(WebMQTTPort)
-		}
-	}
-
-	if builder.pluginEnabled("rabbitmq_web_stomp") {
-		if builder.Instance.Spec.TLS.SecretName != "" {
-			secretData["web-stomp-port"] = []byte(WebSTOMPSPort)
-		} else {
-			secretData["web-stomp-port"] = []byte(WebSTOMPPort)
-		}
-	}
-
-	return secretData
-}
-
-func (builder *DefaultUserSecretBuilder) port() string {
 	if builder.Instance.Spec.TLS.SecretName != "" {
-		return AMQPSPort
+		builder.secretData["port"] = []byte(AMQPSPort)
+
+		for plugin, portName := range portNames {
+			if builder.pluginEnabled(plugin) {
+				builder.secretData[portName] = []byte(TLSPort[portName])
+			}
+		}
+	} else {
+		builder.secretData["port"] = []byte(AMQPPort)
+
+		for plugin, portName := range portNames {
+			if builder.pluginEnabled(plugin) {
+				builder.secretData[portName] = []byte(port[portName])
+			}
+		}
 	}
-	return AMQPPort
 }
 
 func (builder *DefaultUserSecretBuilder) pluginEnabled(plugin v1beta1.Plugin) bool {
