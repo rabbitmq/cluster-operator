@@ -56,7 +56,7 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 		return nil, err
 	}
 
-	host := fmt.Sprintf("%s.%s.svc.cluster.local", builder.Instance.ChildResourceName("client"), builder.Instance.Namespace)
+	host := fmt.Sprintf("%s.%s.svc.cluster.local", builder.Instance.Name, builder.Instance.Namespace)
 
 	// Default user secret implements the service binding Provisioned Service
 	// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
