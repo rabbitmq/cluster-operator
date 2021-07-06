@@ -11,7 +11,6 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
-	"fmt"
 
 	"gopkg.in/ini.v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -92,7 +91,7 @@ var _ = Describe("DefaultUserSecret", func() {
 			By("Setting a host that corresponds to the service address", func() {
 				host, ok = secret.Data["host"]
 				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"host\" in the generated Secret")
-				expectedHost := fmt.Sprintf("%s.%s.svc.cluster.local", builder.Instance.ChildResourceName("client"), builder.Instance.Namespace)
+				expectedHost := "a name.a namespace.svc.cluster.local"
 				Expect(host).To(BeEquivalentTo(expectedHost))
 			})
 
