@@ -20,6 +20,16 @@ spec:
   persistence:
     storageClassName: ssd
     storage: "500Gi"
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+              - production-ready
+        topologyKey: kubernetes.io/hostname
   override:
     statefulSet:
       spec:
