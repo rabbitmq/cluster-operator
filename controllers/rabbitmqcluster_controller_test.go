@@ -452,6 +452,20 @@ var _ = Describe("RabbitmqClusterController", func() {
 			}, 3).Should(HaveKeyWithValue("foo", "bar"))
 		})
 
+		When("the plugin configuration is updated", func() {
+			It("updates the secret port configuration", func() {
+				Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+					r.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_stream"}
+				})).To(Succeed())
+
+				Eventually(func() map[string][]byte {
+					secret, err := clientSet.CoreV1().Secrets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("default-user"), metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return secret.Data
+				}).Should(HaveKeyWithValue("stream-port", []byte("5552")))
+			})
+		})
+
 		When("instance annotations are updated", func() {
 			annotationKey := "anno-key"
 			annotationValue := "anno-value"

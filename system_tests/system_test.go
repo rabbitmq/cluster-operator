@@ -151,10 +151,10 @@ var _ = Describe("Operator", func() {
 		})
 
 		It("keeps rabbitmq server related configurations up-to-date", func() {
-			By("updating enabled plugins when additionalPlugins are modified", func() {
+			By("updating enabled plugins  and the secret ports when additionalPlugins are modified", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
-					cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top"}
+					cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top", "rabbitmq_mqtt"}
 				})).To(Succeed())
 
 				getConfigMapAnnotations := func() map[string]string {
@@ -168,6 +168,12 @@ var _ = Describe("Operator", func() {
 				Eventually(getConfigMapAnnotations, 60, 1).Should(
 					Not(HaveKey("rabbitmq.com/pluginsUpdatedAt")), "plugins ConfigMap annotation should have been removed")
 
+				Eventually(func() map[string][]byte {
+					secret, err := clientSet.CoreV1().Secrets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("default-user"), metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return secret.Data
+				}).Should(HaveKeyWithValue("mqtt-port", []byte("1883")))
+
 				_, err := kubectlExec(namespace,
 					statefulSetPodName(cluster, 0),
 					"rabbitmq",
@@ -177,6 +183,7 @@ var _ = Describe("Operator", func() {
 					"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",
 					"rabbitmq_top",
+					"rabbitmq_mqtt",
 				)
 				Expect(err).ToNot(HaveOccurred())
 			})
