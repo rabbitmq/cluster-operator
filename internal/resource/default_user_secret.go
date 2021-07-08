@@ -33,11 +33,10 @@ const (
 
 type DefaultUserSecretBuilder struct {
 	*RabbitmqResourceBuilder
-	secretData map[string][]byte
 }
 
 func (builder *RabbitmqResourceBuilder) DefaultUserSecret() *DefaultUserSecretBuilder {
-	return &DefaultUserSecretBuilder{builder, map[string][]byte{}}
+	return &DefaultUserSecretBuilder{builder}
 }
 
 func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
@@ -60,22 +59,24 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 
 	// Default user secret implements the service binding Provisioned Service
 	// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
-	builder.secretData["username"] = []byte(username)
-	builder.secretData["password"] = []byte(password)
-	builder.secretData["default_user.conf"] = defaultUserConf
-	builder.secretData["provider"] = []byte(bindingProvider)
-	builder.secretData["type"] = []byte(bindingType)
-	builder.secretData["host"] = []byte(host)
-	builder.addPortsToSecret()
-
-	return &corev1.Secret{
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      builder.Instance.ChildResourceName(DefaultUserSecretName),
 			Namespace: builder.Instance.Namespace,
 		},
 		Type: corev1.SecretTypeOpaque,
-		Data: builder.secretData,
-	}, nil
+		Data: map[string][]byte{
+			"username":          []byte(username),
+			"password":          []byte(password),
+			"default_user.conf": defaultUserConf,
+			"provider":          []byte(bindingProvider),
+			"type":              []byte(bindingType),
+			"host":              []byte(host),
+		},
+	}
+	builder.updatePorts(secret)
+
+	return secret, nil
 }
 
 func (builder *DefaultUserSecretBuilder) UpdateMayRequireStsRecreate() bool {
@@ -86,6 +87,7 @@ func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	secret := object.(*corev1.Secret)
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
+	builder.updatePorts(secret)
 
 	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
 		return fmt.Errorf("failed setting controller reference: %v", err)
@@ -94,7 +96,7 @@ func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	return nil
 }
 
-func (builder *DefaultUserSecretBuilder) addPortsToSecret() {
+func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
 	const (
 		AMQPPort  = "5672"
 		AMQPSPort = "5671"
@@ -122,19 +124,23 @@ func (builder *DefaultUserSecretBuilder) addPortsToSecret() {
 	}
 
 	if builder.Instance.Spec.TLS.SecretName != "" {
-		builder.secretData["port"] = []byte(AMQPSPort)
+		secret.Data["port"] = []byte(AMQPSPort)
 
 		for plugin, portName := range portNames {
 			if builder.pluginEnabled(plugin) {
-				builder.secretData[portName] = []byte(TLSPort[portName])
+				secret.Data[portName] = []byte(TLSPort[portName])
+			} else {
+				delete(secret.Data, portName)
 			}
 		}
 	} else {
-		builder.secretData["port"] = []byte(AMQPPort)
+		secret.Data["port"] = []byte(AMQPPort)
 
 		for plugin, portName := range portNames {
 			if builder.pluginEnabled(plugin) {
-				builder.secretData[portName] = []byte(port[portName])
+				secret.Data[portName] = []byte(port[portName])
+			} else {
+				delete(secret.Data, portName)
 			}
 		}
 	}

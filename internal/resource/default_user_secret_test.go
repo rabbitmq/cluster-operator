@@ -244,6 +244,7 @@ var _ = Describe("DefaultUserSecret", func() {
 						"this-was-the-previous-label": "should-be-deleted",
 					},
 				},
+				Data: map[string][]byte{},
 			}
 			err := defaultUserSecretBuilder.Update(secret)
 			Expect(err).NotTo(HaveOccurred())
@@ -292,6 +293,7 @@ var _ = Describe("DefaultUserSecret", func() {
 						"k8s.io/name":                   "should-stay",
 					},
 				},
+				Data: map[string][]byte{},
 			}
 			err := defaultUserSecretBuilder.Update(secret)
 			Expect(err).NotTo(HaveOccurred())
@@ -311,8 +313,49 @@ var _ = Describe("DefaultUserSecret", func() {
 		})
 	})
 
+	Context("When plugins or TLS are updated", func() {
+		It("updates the secret with the only enabled ports", func() {
+			instance = rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "rabbit-labelled",
+				},
+			}
+			instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+				"rabbitmq_mqtt",
+				"rabbitmq_stream",
+			}
+			instance.Spec.TLS.SecretName = "tls-secret"
+			secret = &corev1.Secret{
+				Data: map[string][]byte{
+					"port":          []byte("5672"),
+					"mqtt-port":     []byte("1883"),
+					"web-mqtt-port": []byte("15675"),
+				},
+			}
+			err := defaultUserSecretBuilder.Update(secret)
+			Expect(err).NotTo(HaveOccurred())
+
+			port, ok := secret.Data["port"]
+			Expect(ok).NotTo(BeFalse())
+			Expect(port).To(BeEquivalentTo("5671"))
+
+			port, ok = secret.Data["mqtt-port"]
+			Expect(ok).NotTo(BeFalse())
+			Expect(port).To(BeEquivalentTo("8883"))
+
+			port, ok = secret.Data["stream-port"]
+			Expect(ok).NotTo(BeFalse())
+			Expect(port).To(BeEquivalentTo("5551"))
+
+			_, ok = secret.Data["web-mqtt-port"]
+			Expect(ok).To(BeFalse())
+		})
+	})
+
 	It("sets owner reference", func() {
-		secret = &corev1.Secret{}
+		secret = &corev1.Secret{
+			Data: map[string][]byte{},
+		}
 		instance = rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "rabbit1",
