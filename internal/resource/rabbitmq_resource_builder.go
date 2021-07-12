@@ -18,6 +18,7 @@ import (
 type RabbitmqResourceBuilder struct {
 	Instance *rabbitmqv1beta1.RabbitmqCluster
 	Scheme   *runtime.Scheme
+	Client   client.Client
 }
 
 type ResourceBuilder interface {
