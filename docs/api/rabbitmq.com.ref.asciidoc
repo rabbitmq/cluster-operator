@@ -243,7 +243,7 @@ Reference to the Kubernetes Secret containing the credentials of the default use
 | Field | Description
 | *`name`* __string__ | Name of the Secret containing the default user credentials
 | *`namespace`* __string__ | Namespace of the Secret containing the default user credentials
-| *`keys`* __object (keys:string, values:string)__ | Key-value pairs in the Secret corresponding to `username` and `password`
+| *`keys`* __object (keys:string, values:string)__ | Key-value pairs in the Secret corresponding to `username`, `password`, `host`, and `port`
 |===
 
 
