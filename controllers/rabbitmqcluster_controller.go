@@ -148,6 +148,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	resourceBuilder := resource.RabbitmqResourceBuilder{
 		Instance: rabbitmqCluster,
 		Scheme:   r.Scheme,
+		Client:   r.Client,
 	}
 
 	builders, err := resourceBuilder.ResourceBuilders()

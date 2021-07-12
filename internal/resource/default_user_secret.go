@@ -11,6 +11,8 @@ package resource
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,6 +23,7 @@ import (
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/rabbitmq/cluster-operator/api/v1beta1"
 )
@@ -55,7 +58,10 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 		return nil, err
 	}
 
-	host := fmt.Sprintf("%s.%s.svc.cluster.local", builder.Instance.Name, builder.Instance.Namespace)
+	host, err := builder.getHost()
+	if err != nil {
+		return nil, err
+	}
 
 	// Default user secret implements the service binding Provisioned Service
 	// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
@@ -89,11 +95,42 @@ func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
 	builder.updatePorts(secret)
 
+	host, err := builder.getHost()
+	if err != nil {
+		return err
+	}
+	secret.Data["host"] = []byte(host)
+
 	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
 		return fmt.Errorf("failed setting controller reference: %v", err)
 	}
 
 	return nil
+}
+
+func (builder *DefaultUserSecretBuilder) getHost() (string, error) {
+	if builder.Instance.Spec.Service.Type != "LoadBalancer" {
+		return fmt.Sprintf("%s.%s.svc.cluster.local", builder.Instance.Name, builder.Instance.Namespace), nil
+	}
+
+	service := &corev1.Service{}
+	err := builder.Client.Get(
+		context.Background(),
+		types.NamespacedName{
+			Name:      builder.Instance.Name,
+			Namespace: builder.Instance.Namespace,
+		},
+		service,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	if len(service.Status.LoadBalancer.Ingress) < 1 {
+		return "", errors.New("waiting for LoadBalancer ingress")
+	}
+
+	return service.Status.LoadBalancer.Ingress[0].IP, nil
 }
 
 func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
