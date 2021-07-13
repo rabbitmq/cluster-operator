@@ -1,0 +1,15 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: sidecar
+spec:
+  replicas: 1
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+            - name: additional-container
+              image: busybox
+              command: ['sh', '-c', 'echo "Hello, Kubernetes!" && sleep 5000']
