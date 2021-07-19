@@ -859,16 +859,16 @@ func publishAndConsumeMQTTMsg(hostname, port, username, password string, overWeb
 	}
 
 	token = c.Subscribe(topic, 0, handler)
-	ExpectWithOffset(1, token.Wait()).To(BeTrue())
-	ExpectWithOffset(1, token.Error()).ToNot(HaveOccurred())
+	ExpectWithOffset(1, token.Wait()).To(BeTrue(), "Subscribe token should return true")
+	ExpectWithOffset(1, token.Error()).ToNot(HaveOccurred(), "Subscribe token received error")
 
 	token = c.Publish(topic, 0, false, "test message MQTT")
-	ExpectWithOffset(1, token.Wait()).To(BeTrue())
-	ExpectWithOffset(1, token.Error()).ToNot(HaveOccurred())
+	ExpectWithOffset(1, token.Wait()).To(BeTrue(), "Publish token should return true")
+	ExpectWithOffset(1, token.Error()).ToNot(HaveOccurred(), "Publish token received error")
 
 	EventuallyWithOffset(1, func() bool {
 		return msgReceived
-	}, 5*time.Second).Should(BeTrue())
+	}, 5*time.Second).Should(BeTrue(), "Expect to receive message")
 
 	token = c.Unsubscribe(topic)
 	ExpectWithOffset(1, token.Wait()).To(BeTrue())

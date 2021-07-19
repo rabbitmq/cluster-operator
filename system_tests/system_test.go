@@ -165,14 +165,14 @@ var _ = Describe("Operator", func() {
 				}
 				Eventually(getConfigMapAnnotations, 30, 1).Should(
 					HaveKey("rabbitmq.com/pluginsUpdatedAt"), "plugins ConfigMap should have been annotated")
-				Eventually(getConfigMapAnnotations, 60, 1).Should(
+				Eventually(getConfigMapAnnotations, 120, 1).Should(
 					Not(HaveKey("rabbitmq.com/pluginsUpdatedAt")), "plugins ConfigMap annotation should have been removed")
 
 				Eventually(func() map[string][]byte {
 					secret, err := clientSet.CoreV1().Secrets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("default-user"), metav1.GetOptions{})
 					Expect(err).NotTo(HaveOccurred())
 					return secret.Data
-				}).Should(HaveKeyWithValue("mqtt-port", []byte("1883")))
+				}, 30).Should(HaveKeyWithValue("mqtt-port", []byte("1883")))
 
 				_, err := kubectlExec(namespace,
 					statefulSetPodName(cluster, 0),
