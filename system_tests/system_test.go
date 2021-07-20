@@ -19,6 +19,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
@@ -165,7 +166,7 @@ var _ = Describe("Operator", func() {
 				}
 				Eventually(getConfigMapAnnotations, 30, 1).Should(
 					HaveKey("rabbitmq.com/pluginsUpdatedAt"), "plugins ConfigMap should have been annotated")
-				Eventually(getConfigMapAnnotations, 120, 1).Should(
+				Eventually(getConfigMapAnnotations, 4 * time.Minute, 1).Should(
 					Not(HaveKey("rabbitmq.com/pluginsUpdatedAt")), "plugins ConfigMap annotation should have been removed")
 
 				Eventually(func() map[string][]byte {
