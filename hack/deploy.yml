@@ -24,9 +24,9 @@ metadata:
   namespace: rabbitmq-system
 rules:
 - apiGroups:
-  - ""
+  - coordination.k8s.io
   resources:
-  - configmaps
+  - leases
   verbs:
   - get
   - list
@@ -38,14 +38,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps/status
-  verbs:
-  - get
-  - update
-  - patch
-- apiGroups:
-  - ""
-  resources:
   - events
   verbs:
   - create
@@ -53,7 +45,6 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   labels:
     app.kubernetes.io/component: rabbitmq-cluster-operator
     app.kubernetes.io/name: rabbitmq-cluster-operator
@@ -86,6 +77,16 @@ rules:
   - create
   - get
   - patch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -253,7 +254,6 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         image: rabbitmqoperator/cluster-operator-dev:lb-binding
-        imagePullPolicy: IfNotPresent
         name: operator
         ports:
         - containerPort: 9782
