@@ -91,7 +91,7 @@ var _ = Describe("DefaultUserSecret", func() {
 			By("Setting a host that corresponds to the service address", func() {
 				host, ok = secret.Data["host"]
 				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"host\" in the generated Secret")
-				expectedHost := "a name.a namespace.svc.cluster.local"
+				expectedHost := "a name.a namespace.svc"
 				Expect(host).To(BeEquivalentTo(expectedHost))
 			})
 
