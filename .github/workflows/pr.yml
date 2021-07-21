@@ -79,6 +79,9 @@ jobs:
         kind create cluster --image kindest/node:"$K8S_VERSION"
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
         SUPPORT_VOLUME_EXPANSION=false make system-tests
+    - name: Setup tmate session
+      if: ${{ failure() }} # start a debugging tmate session when system tests fail
+      uses: mxschmitt/action-tmate@v3
 
   kubectl_tests:
     name: kubectl rabbitmq tests
