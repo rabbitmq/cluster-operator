@@ -52,8 +52,6 @@ jobs:
     strategy:
       matrix:
         k8s:
-        - v1.19.11
-        - v1.20.7
         - v1.21.1
         rabbitmq-image:
         - rabbitmq:3.8.8-management
@@ -79,6 +77,9 @@ jobs:
         kind create cluster --image kindest/node:"$K8S_VERSION"
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
         SUPPORT_VOLUME_EXPANSION=false make system-tests
+    - name: Setup tmate session
+      if: ${{ failure() }} # start a debugging tmate session when system tests fail
+      uses: mxschmitt/action-tmate@v3
 
   kubectl_tests:
     name: kubectl rabbitmq tests
