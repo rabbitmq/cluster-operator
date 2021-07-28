@@ -298,7 +298,7 @@ Spec is the desired state of the RabbitmqCluster Custom Resource.
 | Field | Description
 | *`replicas`* __integer__ | Replicas is the number of nodes in the RabbitMQ cluster. Each node is deployed as a Replica in a StatefulSet. Only 1, 3, 5 replicas clusters are tested. This value should be an odd number to ensure the resultant cluster can establish exactly one quorum of nodes in the event of a fragmenting network partition.
 | *`image`* __string__ | Image is the name of the RabbitMQ docker image to use for RabbitMQ nodes in the RabbitmqCluster. Must be provided together with ImagePullSecrets in order to use an image in a private registry.
-| *`imagePullSecrets`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#localobjectreference-v1-core[$$LocalObjectReference$$] array__ | List of Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
+| *`imagePullSecrets`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | List of Secret resource containing access credentials to the registry for the RabbitMQ image. Required if the docker registry is private.
 | *`service`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterservicespec[$$RabbitmqClusterServiceSpec$$]__ | The desired state of the Kubernetes Service to create for the cluster.
 | *`persistence`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterpersistencespec[$$RabbitmqClusterPersistenceSpec$$]__ | The desired persistent storage configuration for each Pod in the cluster.
 | *`resources`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#resourcerequirements-v1-core[$$ResourceRequirements$$]__ | The desired compute resource requirements of Pods in the cluster.
@@ -309,6 +309,7 @@ Spec is the desired state of the RabbitmqCluster Custom Resource.
 | *`override`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusteroverridespec[$$RabbitmqClusterOverrideSpec$$]__ | Provides the ability to override the generated manifest of several child resources.
 | *`skipPostDeploySteps`* __boolean__ | If unset, or set to false, the cluster will run `rabbitmq-queues rebalance all` whenever the cluster is updated. Set to true to prevent the operator rebalancing queue leaders after a cluster update. Has no effect if the cluster only consists of one node. For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
 | *`terminationGracePeriodSeconds`* __integer__ | TerminationGracePeriodSeconds is the timeout that each rabbitmqcluster pod will have to terminate gracefully. It defaults to 604800 seconds ( a week long) to ensure that the container preStop lifecycle hook can finish running. For more information, see: https://github.com/rabbitmq/cluster-operator/blob/main/docs/design/20200520-graceful-pod-termination.md
+| *`messagingTopologyNamespaces`* __string array__ | The list of namespaces to allow messaging topology resources to be created from. If one is not defined messaging topology resources can only be created in the same namespace as the cluster.
 |===
 
 

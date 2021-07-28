@@ -14,3 +14,5 @@ spec:
   replicas: 1
   service:
     type: LoadBalancer
+  messagingTopologyNamespaces:
+    - topology-allowed

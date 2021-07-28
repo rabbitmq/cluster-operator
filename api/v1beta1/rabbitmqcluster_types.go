@@ -84,6 +84,10 @@ type RabbitmqClusterSpec struct {
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:default:=604800
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
+	// The list of namespaces to allow messaging topology resources to be created from.
+	// If one is not defined messaging topology resources can only be created in the same
+	// namespace as the cluster.
+	MessagingTopologyNamespaces []string `json:"messagingTopologyNamespaces,omitempty"`
 }
 
 // Provides the ability to override the generated manifest of several child resources.
