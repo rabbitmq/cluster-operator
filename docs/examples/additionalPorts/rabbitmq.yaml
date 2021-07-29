@@ -1,4 +1,4 @@
-apiVersion: rabbitmq.com/v1beta1
+apiVersion: rabbitmq.com/v1beta2
 kind: RabbitmqCluster
 metadata:
   name: rabbit
