@@ -12,7 +12,7 @@ package resource_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	. "github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
@@ -34,7 +34,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 
 		When("AdditionalPlugins are provided", func() {
 			It("returns a concatenated list of plugins", func() {
-				morePlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_shovel", "my_great_plugin"}
+				morePlugins := []rabbitmqv1beta2.Plugin{"rabbitmq_shovel", "my_great_plugin"}
 				plugins := NewRabbitmqPlugins(morePlugins)
 
 				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s",
@@ -48,7 +48,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 
 		When("AdditionalPlugins are provided with duplicates", func() {
 			It("returns a unique list of plugins", func() {
-				morePlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_shovel", "my_great_plugin", "rabbitmq_shovel"}
+				morePlugins := []rabbitmqv1beta2.Plugin{"rabbitmq_management", "rabbitmq_shovel", "my_great_plugin", "rabbitmq_shovel"}
 				plugins := NewRabbitmqPlugins(morePlugins)
 
 				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s",
@@ -63,7 +63,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 
 	Context("PluginsConfigMap", func() {
 		var (
-			instance         rabbitmqv1beta1.RabbitmqCluster
+			instance         rabbitmqv1beta2.RabbitmqCluster
 			configMapBuilder *resource.RabbitmqPluginsConfigMapBuilder
 			builder          *resource.RabbitmqResourceBuilder
 			scheme           *runtime.Scheme
@@ -71,9 +71,9 @@ var _ = Describe("RabbitMQPlugins", func() {
 
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "a name",
 					Namespace: "a namespace",
@@ -169,7 +169,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 			})
 
 			It("sets owner reference", func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta2.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit1",
 					},
@@ -181,7 +181,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 			When("additionalPlugins are provided in instance spec", func() {
 				When("no previous data is present", func() {
 					It("creates data and sets enabled_plugins", func() {
-						builder.Instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "my_great_plugin"}
+						builder.Instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "my_great_plugin"}
 
 						expectedEnabledPlugins := "[" +
 							"rabbitmq_peer_discovery_k8s," +
@@ -204,7 +204,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 					})
 
 					It("updates enabled_plugins with unique list of default and additionalPlugins", func() {
-						builder.Instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "my_great_plugin"}
+						builder.Instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{"rabbitmq_management", "rabbitmq_management", "rabbitmq_shovel", "my_great_plugin"}
 
 						expectedEnabledPlugins := "[" +
 							"rabbitmq_peer_discovery_k8s," +

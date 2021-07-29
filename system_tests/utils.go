@@ -41,7 +41,7 @@ import (
 	"github.com/cloudflare/cfssl/signer/local"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/go-stomp/stomp"
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	streamamqp "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/streaming"
 	"github.com/streadway/amqp"
@@ -407,14 +407,14 @@ func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset
 	return string(username), string(password), nil
 }
 
-func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
-	cluster := &rabbitmqv1beta1.RabbitmqCluster{
+func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta2.RabbitmqCluster {
+	cluster := &rabbitmqv1beta2.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instanceName,
 			Namespace: namespace,
 		},
-		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+		Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
+			Service: rabbitmqv1beta2.RabbitmqClusterServiceSpec{
 				Type: "NodePort",
 			},
 			// run system tests with low resources so that they can run on GitHub actions
@@ -444,8 +444,8 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 }
 
 //the updateFn can change properties of the RabbitmqCluster CR
-func updateRabbitmqCluster(ctx context.Context, client client.Client, name, namespace string, updateFn func(*rabbitmqv1beta1.RabbitmqCluster)) error {
-	var result rabbitmqv1beta1.RabbitmqCluster
+func updateRabbitmqCluster(ctx context.Context, client client.Client, name, namespace string, updateFn func(*rabbitmqv1beta2.RabbitmqCluster)) error {
+	var result rabbitmqv1beta2.RabbitmqCluster
 
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		getErr := client.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, &result)
@@ -461,11 +461,11 @@ func updateRabbitmqCluster(ctx context.Context, client client.Client, name, name
 	return retryErr
 }
 
-func createRabbitmqCluster(ctx context.Context, client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
+func createRabbitmqCluster(ctx context.Context, client client.Client, rabbitmqCluster *rabbitmqv1beta2.RabbitmqCluster) error {
 	return client.Create(ctx, rabbitmqCluster)
 }
 
-func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
+func statefulSetPodName(cluster *rabbitmqv1beta2.RabbitmqCluster, index int) string {
 	return cluster.ChildResourceName(strings.Join([]string{"server", strconv.Itoa(index)}, "-"))
 }
 
@@ -498,7 +498,7 @@ func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) stri
 	return nodeIp
 }
 
-func getConfigFileFromPod(namespace string, cluster *rabbitmqv1beta1.RabbitmqCluster, path string) map[string]string {
+func getConfigFileFromPod(namespace string, cluster *rabbitmqv1beta2.RabbitmqCluster, path string) map[string]string {
 	output, err := kubectlExec(namespace,
 		statefulSetPodName(cluster, 0),
 		"rabbitmq",
@@ -520,7 +520,7 @@ func containsPort(ports []corev1.ServicePort, portName string) bool {
 	return false
 }
 
-func rabbitmqNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster, portName string) string {
+func rabbitmqNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta2.RabbitmqCluster, portName string) string {
 	service, err := clientSet.CoreV1().Services(cluster.Namespace).
 		Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
 
@@ -535,16 +535,16 @@ func rabbitmqNodePort(ctx context.Context, clientSet *kubernetes.Clientset, clus
 	return ""
 }
 
-func waitForRabbitmqUpdate(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+func waitForRabbitmqUpdate(cluster *rabbitmqv1beta2.RabbitmqCluster) {
 	waitForRabbitmqNotRunningWithOffset(cluster, 2)
 	waitForRabbitmqRunningWithOffset(cluster, 2)
 }
 
-func waitForRabbitmqRunning(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+func waitForRabbitmqRunning(cluster *rabbitmqv1beta2.RabbitmqCluster) {
 	waitForRabbitmqRunningWithOffset(cluster, 2)
 }
 
-func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
+func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta2.RabbitmqCluster, callStackOffset int) {
 	var err error
 
 	EventuallyWithOffset(callStackOffset, func() string {
@@ -569,7 +569,7 @@ func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluste
 
 // the callStackOffset makes sure that failures point to the caller of the function
 // than the function itself
-func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
+func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta2.RabbitmqCluster, callStackOffset int) {
 	var err error
 
 	EventuallyWithOffset(callStackOffset, func() string {
@@ -593,7 +593,7 @@ func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, 
 }
 
 // asserts an event with reason: "TLSError", occurs for the cluster in it's namespace
-func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+func assertTLSError(cluster *rabbitmqv1beta2.RabbitmqCluster) {
 	var err error
 
 	EventuallyWithOffset(1, func() string {
@@ -979,7 +979,7 @@ func publishAndConsumeStreamMsg(ctx context.Context, hostname, port, username, p
 	Expect(client.Close()).To(Succeed())
 }
 
-func pod(ctx context.Context, clientSet *kubernetes.Clientset, r *rabbitmqv1beta1.RabbitmqCluster, i int) *corev1.Pod {
+func pod(ctx context.Context, clientSet *kubernetes.Clientset, r *rabbitmqv1beta2.RabbitmqCluster, i int) *corev1.Pod {
 	podName := statefulSetPodName(r, i)
 	var pod *corev1.Pod
 	EventuallyWithOffset(1, func() error {

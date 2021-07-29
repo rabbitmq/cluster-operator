@@ -20,7 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -28,7 +28,7 @@ import (
 var _ = Describe("DefaultUserSecret", func() {
 	var (
 		secret                   *corev1.Secret
-		instance                 rabbitmqv1beta1.RabbitmqCluster
+		instance                 rabbitmqv1beta2.RabbitmqCluster
 		builder                  *resource.RabbitmqResourceBuilder
 		defaultUserSecretBuilder *resource.DefaultUserSecretBuilder
 		scheme                   *runtime.Scheme
@@ -36,9 +36,9 @@ var _ = Describe("DefaultUserSecret", func() {
 
 	BeforeEach(func() {
 		scheme = runtime.NewScheme()
-		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
 		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-		instance = rabbitmqv1beta1.RabbitmqCluster{
+		instance = rabbitmqv1beta2.RabbitmqCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
 				Namespace: "a namespace",
@@ -133,7 +133,7 @@ var _ = Describe("DefaultUserSecret", func() {
 		It("adds the MQTT, STOMP, stream, WebMQTT, and WebSTOMP ports to the user secret", func() {
 			var port []byte
 
-			instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+			instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{
 				"rabbitmq_mqtt",
 				"rabbitmq_stomp",
 				"rabbitmq_stream",
@@ -187,7 +187,7 @@ var _ = Describe("DefaultUserSecret", func() {
 				var port []byte
 
 				instance.Spec.TLS.SecretName = "tls-secret"
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{
 					"rabbitmq_mqtt",
 					"rabbitmq_stomp",
 					"rabbitmq_stream",
@@ -224,7 +224,7 @@ var _ = Describe("DefaultUserSecret", func() {
 
 	Context("Update with instance labels", func() {
 		It("Updates the secret", func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -268,7 +268,7 @@ var _ = Describe("DefaultUserSecret", func() {
 
 	Context("Update with instance annotations", func() {
 		It("updates the secret with the annotations", func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -315,12 +315,12 @@ var _ = Describe("DefaultUserSecret", func() {
 
 	Context("When plugins or TLS are updated", func() {
 		It("updates the secret with the only enabled ports", func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
 			}
-			instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+			instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{
 				"rabbitmq_mqtt",
 				"rabbitmq_stream",
 			}
@@ -356,7 +356,7 @@ var _ = Describe("DefaultUserSecret", func() {
 		secret = &corev1.Secret{
 			Data: map[string][]byte{},
 		}
-		instance = rabbitmqv1beta1.RabbitmqCluster{
+		instance = rabbitmqv1beta2.RabbitmqCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "rabbit1",
 			},

@@ -1,7 +1,7 @@
 package controllers_test
 
 import (
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -13,13 +13,13 @@ import (
 
 var _ = Describe("Reconcile rabbitmq Configurations", func() {
 	var (
-		cluster          *rabbitmqv1beta1.RabbitmqCluster
+		cluster          *rabbitmqv1beta2.RabbitmqCluster
 		defaultNamespace = "default"
 	)
 	DescribeTable("Server configurations updates",
 		func(testCase string) {
 			// create rabbitmqcluster
-			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+			cluster = &rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-" + testCase,
 					Namespace: defaultNamespace,
@@ -36,7 +36,7 @@ var _ = Describe("Reconcile rabbitmq Configurations", func() {
 			Expect(sts.Annotations).ShouldNot(HaveKey("rabbitmq.com/lastRestartAt"))
 
 			// update rabbitmq server configurations
-			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta2.RabbitmqCluster) {
 				if testCase == "additional-config" {
 					r.Spec.Rabbitmq.AdditionalConfig = "test_config=0"
 				}

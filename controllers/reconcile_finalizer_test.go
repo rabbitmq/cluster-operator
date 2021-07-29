@@ -1,7 +1,7 @@
 package controllers_test
 
 import (
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -12,12 +12,12 @@ import (
 
 var _ = Describe("Reconcile finalizer", func() {
 	var (
-		cluster          *rabbitmqv1beta1.RabbitmqCluster
+		cluster          *rabbitmqv1beta2.RabbitmqCluster
 		defaultNamespace = "default"
 	)
 
 	BeforeEach(func() {
-		cluster = &rabbitmqv1beta1.RabbitmqCluster{
+		cluster = &rabbitmqv1beta2.RabbitmqCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "rabbitmq-finalizer",
 				Namespace: defaultNamespace,
@@ -29,7 +29,7 @@ var _ = Describe("Reconcile finalizer", func() {
 	})
 
 	It("adds the deletion finalizer", func() {
-		rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+		rmq := &rabbitmqv1beta2.RabbitmqCluster{}
 		Eventually(func() string {
 			err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 			if err != nil {

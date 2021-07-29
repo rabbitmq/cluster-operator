@@ -12,7 +12,7 @@ package resource_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	. "github.com/rabbitmq/cluster-operator/internal/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +23,7 @@ import (
 var _ = Describe("RabbitmqResourceBuilder", func() {
 	Context("ResourceBuilders", func() {
 		var (
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "test",
 					Namespace: "namespace",
@@ -36,7 +36,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+			Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,

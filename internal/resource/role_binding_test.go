@@ -12,7 +12,7 @@ package resource_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +24,7 @@ import (
 var _ = Describe("RoleBinding", func() {
 	var (
 		roleBinding        *rbacv1.RoleBinding
-		instance           rabbitmqv1beta1.RabbitmqCluster
+		instance           rabbitmqv1beta2.RabbitmqCluster
 		roleBindingBuilder *resource.RoleBindingBuilder
 		builder            *resource.RabbitmqResourceBuilder
 		scheme             *runtime.Scheme
@@ -32,9 +32,9 @@ var _ = Describe("RoleBinding", func() {
 
 	BeforeEach(func() {
 		scheme = runtime.NewScheme()
-		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
 		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-		instance = rabbitmqv1beta1.RabbitmqCluster{
+		instance = rabbitmqv1beta2.RabbitmqCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
 				Namespace: "a namespace",
@@ -62,7 +62,7 @@ var _ = Describe("RoleBinding", func() {
 
 	Context("Update", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -109,7 +109,7 @@ var _ = Describe("RoleBinding", func() {
 
 	Context("Update with required rules", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-rolebinding",
 				},
@@ -153,7 +153,7 @@ var _ = Describe("RoleBinding", func() {
 
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta1.RabbitmqCluster{
+			instance = rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},

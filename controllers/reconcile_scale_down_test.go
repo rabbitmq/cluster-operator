@@ -5,7 +5,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +16,7 @@ import (
 
 var _ = Describe("Cluster scale down", func() {
 	var (
-		cluster          *rabbitmqv1beta1.RabbitmqCluster
+		cluster          *rabbitmqv1beta2.RabbitmqCluster
 		defaultNamespace = "default"
 		ctx              = context.Background()
 	)
@@ -24,7 +24,7 @@ var _ = Describe("Cluster scale down", func() {
 	AfterEach(func() {
 		Expect(client.Delete(ctx, cluster)).To(Succeed())
 		Eventually(func() bool {
-			rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+			rmq := &rabbitmqv1beta2.RabbitmqCluster{}
 			err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 			return apierrors.IsNotFound(err)
 		}, 5).Should(BeTrue())
@@ -32,19 +32,19 @@ var _ = Describe("Cluster scale down", func() {
 
 	It("does not allow cluster scale down", func() {
 		By("not updating statefulSet replicas", func() {
-			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+			cluster = &rabbitmqv1beta2.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-shrink",
 					Namespace: defaultNamespace,
 				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+				Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
 					Replicas: pointer.Int32Ptr(5),
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
 
-			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta2.RabbitmqCluster) {
 				r.Spec.Replicas = pointer.Int32Ptr(3)
 			})).To(Succeed())
 			Consistently(func() int32 {
@@ -61,7 +61,7 @@ var _ = Describe("Cluster scale down", func() {
 
 		By("setting ReconcileSuccess to 'false'", func() {
 			Eventually(func() string {
-				rabbit := &rabbitmqv1beta1.RabbitmqCluster{}
+				rabbit := &rabbitmqv1beta2.RabbitmqCluster{}
 				Expect(client.Get(ctx, runtimeClient.ObjectKey{
 					Name:      cluster.Name,
 					Namespace: defaultNamespace,

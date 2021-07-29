@@ -19,7 +19,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"github.com/rabbitmq/cluster-operator/controllers"
 
 	"k8s.io/client-go/kubernetes"
@@ -41,7 +41,7 @@ var (
 	clientSet       *kubernetes.Clientset
 	fakeExecutor    *fakePodExecutor
 	ctx             = context.Background()
-	updateWithRetry = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
+	updateWithRetry = func(cr *rabbitmqv1beta2.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta2.RabbitmqCluster)) error {
 		return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			if err := client.Get(ctx, runtimeClient.ObjectKeyFromObject(cr), cr); err != nil {
 				return err
@@ -70,7 +70,7 @@ var _ = BeforeSuite(func() {
 	Expect(cfg).ToNot(BeNil())
 
 	Expect(scheme.AddToScheme(scheme.Scheme)).To(Succeed())
-	Expect(rabbitmqv1beta1.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(rabbitmqv1beta2.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	clientSet, err = kubernetes.NewForConfig(cfg)
 	Expect(err).NotTo(HaveOccurred())

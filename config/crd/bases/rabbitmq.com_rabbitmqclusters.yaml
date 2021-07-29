@@ -36,7 +36,7 @@ spec:
         - jsonPath: .metadata.creationTimestamp
           name: Age
           type: date
-      name: v1beta1
+      name: v1beta2
       schema:
         openAPIV3Schema:
           description: RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this object corresponds to a single RabbitMQ cluster.

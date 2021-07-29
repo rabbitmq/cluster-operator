@@ -6,10 +6,10 @@
 //
 // This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
 
-// Package v1beta1 contains API Schema definitions for the rabbitmq v1beta1 API group
+// Package v1beta2 contains API Schema definitions for the rabbitmq v1beta2 API group
 // +kubebuilder:object:generate=true
 // +groupName=rabbitmq.com
-package v1beta1
+package v1beta2
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,7 +18,7 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects
-	GroupVersion = schema.GroupVersion{Group: "rabbitmq.com", Version: "v1beta1"}
+	GroupVersion = schema.GroupVersion{Group: "rabbitmq.com", Version: "v1beta2"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}

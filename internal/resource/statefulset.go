@@ -18,7 +18,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -156,7 +156,7 @@ func updatePersistenceStorageCapacity(templates *[]corev1.PersistentVolumeClaim,
 	}
 }
 
-func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.StatefulSet) error {
+func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta2.StatefulSet) error {
 	if stsOverride.EmbeddedLabelsAnnotations != nil {
 		copyLabelsAnnotations(&sts.ObjectMeta, *stsOverride.EmbeddedLabelsAnnotations)
 	}
@@ -190,7 +190,7 @@ func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.Stat
 	return nil
 }
 
-func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
+func persistentVolumeClaim(instance *rabbitmqv1beta2.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        defaultPVCName,
@@ -860,7 +860,7 @@ func (builder *StatefulSetBuilder) updateContainerPortsOnlyTLSListeners() []core
 	return ports
 }
 
-func copyLabelsAnnotations(base *metav1.ObjectMeta, override rabbitmqv1beta1.EmbeddedLabelsAnnotations) {
+func copyLabelsAnnotations(base *metav1.ObjectMeta, override rabbitmqv1beta2.EmbeddedLabelsAnnotations) {
 	if override.Labels != nil {
 		base.Labels = mergeMap(base.Labels, override.Labels)
 	}
@@ -872,7 +872,7 @@ func copyLabelsAnnotations(base *metav1.ObjectMeta, override rabbitmqv1beta1.Emb
 
 // copyObjectMeta copies name, labels, and annotations from a given EmbeddedObjectMeta to a metav1.ObjectMeta
 // there is no need to copy the namespace because both PVCs and Pod have to be in the same namespace as its StatefulSet
-func copyObjectMeta(base *metav1.ObjectMeta, override rabbitmqv1beta1.EmbeddedObjectMeta) {
+func copyObjectMeta(base *metav1.ObjectMeta, override rabbitmqv1beta2.EmbeddedObjectMeta) {
 	if override.Name != "" {
 		base.Name = override.Name
 	}

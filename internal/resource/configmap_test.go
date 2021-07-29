@@ -15,7 +15,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +40,7 @@ cluster_name                             = ` + instanceName)
 
 var _ = Describe("GenerateServerConfigMap", func() {
 	var (
-		instance         rabbitmqv1beta1.RabbitmqCluster
+		instance         rabbitmqv1beta2.RabbitmqCluster
 		configMapBuilder *resource.ServerConfigMapBuilder
 		builder          *resource.RabbitmqResourceBuilder
 		scheme           *runtime.Scheme
@@ -51,7 +51,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		instance.Spec.Resources.Limits = corev1.ResourceList{}
 
 		scheme = runtime.NewScheme()
-		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
 		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
@@ -253,7 +253,7 @@ CONSOLE_LOG=new`
 
 			When("MQTT, STOMP, AMQP 1.0 and Stream plugins are enabled", func() {
 				It("adds TLS config for the additional plugins", func() {
-					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_amqp_1_0", "rabbitmq_stream"}
+					additionalPlugins := []rabbitmqv1beta2.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_amqp_1_0", "rabbitmq_stream"}
 
 					instance.ObjectMeta.Name = "rabbit-tls"
 					instance.Spec.TLS.SecretName = "tls-secret"
@@ -329,7 +329,7 @@ CONSOLE_LOG=new`
 
 			When("Web MQTT and Web STOMP are enabled", func() {
 				It("adds TLS config for the additional plugins", func() {
-					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
+					additionalPlugins := []rabbitmqv1beta2.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
 
 					instance.ObjectMeta.Name = "rabbit-tls"
 					instance.Spec.TLS.SecretName = "tls-secret"
@@ -374,12 +374,12 @@ CONSOLE_LOG=new`
 
 		When("DisableNonTLSListeners is set to true", func() {
 			It("disables non tls listeners for rabbitmq and management plugin", func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta2.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-tls",
 					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						TLS: rabbitmqv1beta1.TLSSpec{
+					Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
+						TLS: rabbitmqv1beta2.TLSSpec{
 							SecretName:             "some-secret",
 							DisableNonTLSListeners: true,
 						},
@@ -405,17 +405,17 @@ CONSOLE_LOG=new`
 			})
 
 			It("disables non tls listeners for mqtt, stomp and stream plugins if enabled", func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta2.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-tls",
 					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						TLS: rabbitmqv1beta1.TLSSpec{
+					Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
+						TLS: rabbitmqv1beta2.TLSSpec{
 							SecretName:             "some-secret",
 							DisableNonTLSListeners: true,
 						},
-						Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
-							AdditionalPlugins: []rabbitmqv1beta1.Plugin{
+						Rabbitmq: rabbitmqv1beta2.RabbitmqClusterConfigurationSpec{
+							AdditionalPlugins: []rabbitmqv1beta2.Plugin{
 								"rabbitmq_mqtt",
 								"rabbitmq_stomp",
 								"rabbitmq_stream",
@@ -452,18 +452,18 @@ CONSOLE_LOG=new`
 			})
 
 			It("disables non tls listeners for web mqtt and web stomp when enabled", func() {
-				instance = rabbitmqv1beta1.RabbitmqCluster{
+				instance = rabbitmqv1beta2.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-tls",
 					},
-					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						TLS: rabbitmqv1beta1.TLSSpec{
+					Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
+						TLS: rabbitmqv1beta2.TLSSpec{
 							SecretName:             "some-secret",
 							CaSecretName:           "some-mutual-secret",
 							DisableNonTLSListeners: true,
 						},
-						Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
-							AdditionalPlugins: []rabbitmqv1beta1.Plugin{
+						Rabbitmq: rabbitmqv1beta2.RabbitmqClusterConfigurationSpec{
+							AdditionalPlugins: []rabbitmqv1beta2.Plugin{
 								"rabbitmq_web_mqtt",
 								"rabbitmq_web_stomp",
 							},

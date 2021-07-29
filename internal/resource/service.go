@@ -18,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,7 +78,7 @@ func (builder *ServiceBuilder) Update(object client.Object) error {
 	return nil
 }
 
-func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.Service) error {
+func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta2.Service) error {
 	if override.EmbeddedLabelsAnnotations != nil {
 		copyLabelsAnnotations(&svc.ObjectMeta, *override.EmbeddedLabelsAnnotations)
 	}
