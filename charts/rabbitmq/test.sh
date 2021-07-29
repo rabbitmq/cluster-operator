@@ -15,7 +15,7 @@ chart=$(helm package . | awk '{print $NF}')
 
 helm template $chart -f example-configurations.yaml > template-output
 
-# it should be updated if we add any new configurations and when we modify plans/example-configurations.yaml
+# it should be updated if we add any new configurations
 diff -u template-output expected-template-output && echo "Successfully rendered the template"
 
 
