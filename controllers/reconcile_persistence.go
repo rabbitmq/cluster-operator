@@ -35,14 +35,16 @@ func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, rmq *rabbi
 func (r *RabbitmqClusterReconciler) expandPVC(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, current, desired *appsv1.StatefulSet) error {
 	logger := ctrl.LoggerFrom(ctx)
 
-	currentCapacity, err := persistenceStorageCapacity(current.Spec.VolumeClaimTemplates)
-	if err != nil {
-		return err
-	}
+	currentCapacity := persistenceStorageCapacity(current.Spec.VolumeClaimTemplates)
 
-	desiredCapacity, err := persistenceStorageCapacity(desired.Spec.VolumeClaimTemplates)
-	if err != nil {
-		return err
+	desiredCapacity := persistenceStorageCapacity(desired.Spec.VolumeClaimTemplates)
+
+	// don't allow going from 0 (no PVC) to anything else
+	if (currentCapacity.Cmp(k8sresource.MustParse("0Gi")) == 0) && (desiredCapacity.Cmp(k8sresource.MustParse("0Gi")) != 0) {
+		msg := "changing from ephemeral to persistent storage is not supported"
+		logger.Error(errors.New("unsupported operation"), msg)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", msg)
+		return errors.New(msg)
 	}
 
 	logger.Info(fmt.Sprintf("updating storage capacity from %s to %s", currentCapacity.String(), desiredCapacity.String()))
@@ -89,15 +91,9 @@ func (r *RabbitmqClusterReconciler) updatePVC(ctx context.Context, rmq *rabbitmq
 func (r *RabbitmqClusterReconciler) needsPVCExpand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, current, desired *appsv1.StatefulSet) (bool, error) {
 	logger := ctrl.LoggerFrom(ctx)
 
-	currentCapacity, err := persistenceStorageCapacity(current.Spec.VolumeClaimTemplates)
-	if err != nil {
-		return false, err
-	}
+	currentCapacity := persistenceStorageCapacity(current.Spec.VolumeClaimTemplates)
 
-	desiredCapacity, err := persistenceStorageCapacity(desired.Spec.VolumeClaimTemplates)
-	if err != nil {
-		return false, err
-	}
+	desiredCapacity := persistenceStorageCapacity(desired.Spec.VolumeClaimTemplates)
 
 	cmp := currentCapacity.Cmp(desiredCapacity)
 
@@ -116,13 +112,13 @@ func (r *RabbitmqClusterReconciler) needsPVCExpand(ctx context.Context, rmq *rab
 	return false, nil
 }
 
-func persistenceStorageCapacity(templates []corev1.PersistentVolumeClaim) (k8sresource.Quantity, error) {
+func persistenceStorageCapacity(templates []corev1.PersistentVolumeClaim) k8sresource.Quantity {
 	for _, t := range templates {
 		if t.Name == "persistence" {
-			return t.Spec.Resources.Requests[corev1.ResourceStorage], nil
+			return t.Spec.Resources.Requests[corev1.ResourceStorage]
 		}
 	}
-	return k8sresource.Quantity{}, errors.New("cannot find PersistentVolumeClaim 'persistence'")
+	return k8sresource.MustParse("0")
 }
 
 // deleteSts deletes a sts without deleting pods and PVCs

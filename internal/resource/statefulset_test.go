@@ -147,6 +147,17 @@ var _ = Describe("StatefulSet", func() {
 				actualPersistentVolumeClaim := statefulSet.Spec.VolumeClaimTemplates[0]
 				Expect(actualPersistentVolumeClaim).To(Equal(expectedPersistentVolumeClaim))
 			})
+
+			It("doesn't create the default PersistentVolumeClaim when storage == 0", func() {
+				zero := k8sresource.MustParse("0Gi")
+
+				builder.Instance.Spec.Persistence.Storage = &zero
+				obj, err := stsBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+				statefulSet := obj.(*appsv1.StatefulSet)
+
+				Expect(statefulSet.Spec.VolumeClaimTemplates).To(BeEmpty())
+			})
 		})
 		Context("Override", func() {
 			It("overrides statefulSet.spec.selector", func() {
@@ -985,6 +996,23 @@ var _ = Describe("StatefulSet", func() {
 				Entry("Only advanced config is set", "", "advanced-config-is-set"),
 				Entry("No configs are set", "", ""),
 			)
+
+			It("defines an emptyDir volume when storage == 0", func() {
+				zero, _ := k8sresource.ParseQuantity("0")
+
+				stsBuilder := builder.StatefulSet()
+				stsBuilder.Instance.Spec.Persistence.Storage = &zero
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				expectedVolume := corev1.Volume{
+					Name: "persistence",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				}
+
+				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(expectedVolume))
+			})
 		})
 
 		It("uses the correct service account", func() {

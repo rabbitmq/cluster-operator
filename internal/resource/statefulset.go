@@ -192,6 +192,11 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 }
 
 func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
+	zero := k8sresource.MustParse("0Gi")
+	if instance.Spec.Persistence.Storage.Cmp(zero) == 0 {
+		return []corev1.PersistentVolumeClaim{}, nil
+	}
+
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        defaultPVCName,
@@ -428,6 +433,16 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: builder.Instance.ChildResourceName(ServerConfigMapName),
 					}}}})
+	}
+
+	zero := k8sresource.MustParse("0Gi")
+	if builder.Instance.Spec.Persistence.Storage.Cmp(zero) == 0 {
+		volumes = append(volumes, corev1.Volume{
+			Name: "persistence",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
 	}
 
 	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{
