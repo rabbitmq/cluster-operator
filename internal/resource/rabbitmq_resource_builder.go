@@ -10,13 +10,13 @@
 package resource
 
 import (
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type RabbitmqResourceBuilder struct {
-	Instance *rabbitmqv1beta2.RabbitmqCluster
+	Instance *rabbitmqv1beta1.RabbitmqCluster
 	Scheme   *runtime.Scheme
 }
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,7 +19,7 @@ import (
 const deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
 
 // addFinalizerIfNeeded adds a deletion finalizer if the RabbitmqCluster does not have one yet and is not marked for deletion
-func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta2.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
 		controllerutil.AddFinalizer(rabbitmqCluster, deletionFinalizer)
 		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
@@ -29,7 +29,7 @@ func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, ra
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta2.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	controllerutil.RemoveFinalizer(rabbitmqCluster, deletionFinalizer)
 	if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
 		return err
@@ -38,7 +38,7 @@ func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitm
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta2.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
 		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			uid, err := r.statefulSetUID(ctx, rabbitmqCluster)
@@ -77,7 +77,7 @@ func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabb
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context, rabbitmqCluster *rabbitmqv1beta2.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	pods := &corev1.PodList{}
 	selector, err := labels.Parse(fmt.Sprintf("app.kubernetes.io/name=%s", rabbitmqCluster.Name))
 	if err != nil {

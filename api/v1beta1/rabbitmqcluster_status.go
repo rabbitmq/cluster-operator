@@ -1,4 +1,4 @@
-package v1beta2
+package v1beta1
 
 import (
 	"github.com/rabbitmq/cluster-operator/internal/status"

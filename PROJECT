@@ -11,6 +11,6 @@ resources:
   domain: rabbitmq.com
   group: rabbitmq.com
   kind: RabbitmqCluster
-  path: github.com/rabbitmq/cluster-operator/api/v1beta2
-  version: v1beta2
+  path: github.com/rabbitmq/cluster-operator/api/v1beta1
+  version: v1beta1
 version: "3"

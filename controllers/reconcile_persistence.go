@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster, current, sts *appsv1.StatefulSet) error {
+func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, current, sts *appsv1.StatefulSet) error {
 	resize, err := r.needsPVCExpand(ctx, rmq, current, sts)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, rmq *rabbi
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) expandPVC(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster, current, desired *appsv1.StatefulSet) error {
+func (r *RabbitmqClusterReconciler) expandPVC(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, current, desired *appsv1.StatefulSet) error {
 	logger := ctrl.LoggerFrom(ctx)
 
 	currentCapacity, err := persistenceStorageCapacity(current.Spec.VolumeClaimTemplates)
@@ -58,7 +58,7 @@ func (r *RabbitmqClusterReconciler) expandPVC(ctx context.Context, rmq *rabbitmq
 	return nil
 }
 
-func (r *RabbitmqClusterReconciler) updatePVC(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster, replicas int32, desiredCapacity k8sresource.Quantity) error {
+func (r *RabbitmqClusterReconciler) updatePVC(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, replicas int32, desiredCapacity k8sresource.Quantity) error {
 	logger := ctrl.LoggerFrom(ctx)
 	logger.Info("expanding PersistentVolumeClaims")
 
@@ -86,7 +86,7 @@ func (r *RabbitmqClusterReconciler) updatePVC(ctx context.Context, rmq *rabbitmq
 
 // returns true if desired storage capacity is larger than the current storage; returns false when current and desired capacity is the same
 // errors when desired capacity is less than current capacity because PVC shrink is not supported by k8s
-func (r *RabbitmqClusterReconciler) needsPVCExpand(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster, current, desired *appsv1.StatefulSet) (bool, error) {
+func (r *RabbitmqClusterReconciler) needsPVCExpand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, current, desired *appsv1.StatefulSet) (bool, error) {
 	logger := ctrl.LoggerFrom(ctx)
 
 	currentCapacity, err := persistenceStorageCapacity(current.Spec.VolumeClaimTemplates)
@@ -127,7 +127,7 @@ func persistenceStorageCapacity(templates []corev1.PersistentVolumeClaim) (k8sre
 
 // deleteSts deletes a sts without deleting pods and PVCs
 // using DeletePropagationPolicy set to 'Orphan'
-func (r *RabbitmqClusterReconciler) deleteSts(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) deleteSts(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 	logger := ctrl.LoggerFrom(ctx)
 	logger.Info("deleting statefulSet (pods won't be deleted)", "statefulSet", rmq.ChildResourceName("server"))
 	deletePropagationPolicy := metav1.DeletePropagationOrphan

@@ -22,7 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/rabbitmq/cluster-operator/api/v1beta2"
+	"github.com/rabbitmq/cluster-operator/api/v1beta1"
 )
 
 const (
@@ -101,7 +101,7 @@ func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
 		AMQPPort  = "5672"
 		AMQPSPort = "5671"
 	)
-	portNames := map[v1beta2.Plugin]string{
+	portNames := map[v1beta1.Plugin]string{
 		"rabbitmq_mqtt":      "mqtt-port",
 		"rabbitmq_stomp":     "stomp-port",
 		"rabbitmq_stream":    "stream-port",
@@ -146,7 +146,7 @@ func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
 	}
 }
 
-func (builder *DefaultUserSecretBuilder) pluginEnabled(plugin v1beta2.Plugin) bool {
+func (builder *DefaultUserSecretBuilder) pluginEnabled(plugin v1beta1.Plugin) bool {
 	for _, value := range builder.Instance.Spec.Rabbitmq.AdditionalPlugins {
 		if value == plugin {
 			return true

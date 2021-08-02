@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +25,7 @@ import (
 
 var _ = Context("Services", func() {
 	var (
-		instance rabbitmqv1beta2.RabbitmqCluster
+		instance rabbitmqv1beta1.RabbitmqCluster
 		builder  resource.RabbitmqResourceBuilder
 		scheme   *runtime.Scheme
 	)
@@ -33,7 +33,7 @@ var _ = Context("Services", func() {
 	Describe("Build", func() {
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			instance = generateRabbitmqCluster()
 			builder = resource.RabbitmqResourceBuilder{
@@ -62,7 +62,7 @@ var _ = Context("Services", func() {
 	Describe("Update", func() {
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			instance = generateRabbitmqCluster()
 			builder = resource.RabbitmqResourceBuilder{
@@ -85,7 +85,7 @@ var _ = Context("Services", func() {
 				}
 				serviceBuilder = builder.Service()
 				instance = generateRabbitmqCluster()
-				instance.Spec.TLS = rabbitmqv1beta2.TLSSpec{
+				instance.Spec.TLS = rabbitmqv1beta1.TLSSpec{
 					SecretName: "tls-secret",
 				}
 			})
@@ -122,7 +122,7 @@ var _ = Context("Services", func() {
 
 			When("mqtt, stomp and stream are enabled", func() {
 				It("opens ports for those plugins", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_stream"}
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_stream"}
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
 						{
@@ -150,7 +150,7 @@ var _ = Context("Services", func() {
 			When("rabbitmq_web_mqtt and rabbitmq_web_stomp are enabled", func() {
 				It("opens ports for those plugins", func() {
 					instance.Spec.TLS.CaSecretName = "caname"
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
 						{
@@ -196,7 +196,7 @@ var _ = Context("Services", func() {
 				})
 				DescribeTable("only exposes tls ports in the service for enabled plugins",
 					func(plugin, servicePortName string, port int) {
-						instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{rabbitmqv1beta2.Plugin(plugin)}
+						instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin(plugin)}
 						instance.Spec.TLS.DisableNonTLSListeners = true
 						instance.Spec.TLS.CaSecretName = "somecacertname"
 						Expect(serviceBuilder.Update(svc)).To(Succeed())
@@ -342,7 +342,7 @@ var _ = Context("Services", func() {
 			)
 			BeforeEach(func() {
 				serviceBuilder = builder.Service()
-				instance = rabbitmqv1beta2.RabbitmqCluster{
+				instance = rabbitmqv1beta1.RabbitmqCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "rabbit-labelled",
 					},
@@ -450,7 +450,7 @@ var _ = Context("Services", func() {
 
 			DescribeTable("plugins exposing ports",
 				func(plugin, servicePortName string, port int) {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{rabbitmqv1beta2.Plugin(plugin)}
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin(plugin)}
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 
 					expectedPort := corev1.ServicePort{
@@ -596,8 +596,8 @@ var _ = Context("Services", func() {
 			})
 
 			It("overrides Service.ObjectMeta", func() {
-				instance.Spec.Override.Service = &rabbitmqv1beta2.Service{
-					EmbeddedLabelsAnnotations: &rabbitmqv1beta2.EmbeddedLabelsAnnotations{
+				instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
+					EmbeddedLabelsAnnotations: &rabbitmqv1beta1.EmbeddedLabelsAnnotations{
 						Labels: map[string]string{
 							"new-label-key": "new-label-value",
 						},
@@ -621,7 +621,7 @@ var _ = Context("Services", func() {
 			It("overrides ServiceSpec", func() {
 				var IPv4 corev1.IPFamily = "IPv4"
 				ten := int32(10)
-				instance.Spec.Override.Service = &rabbitmqv1beta2.Service{
+				instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
 					Spec: &corev1.ServiceSpec{
 						Ports: []corev1.ServicePort{
 							{
@@ -694,7 +694,7 @@ var _ = Context("Services", func() {
 
 			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {
 				instance.Spec.Service.Type = "LoadBalancer"
-				instance.Spec.Override.Service = &rabbitmqv1beta2.Service{
+				instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
 					Spec: &corev1.ServiceSpec{
 						Type: corev1.ServiceTypeNodePort,
 					},
@@ -711,7 +711,7 @@ var _ = Context("Services", func() {
 		BeforeEach(func() {
 			BeforeEach(func() {
 				scheme = runtime.NewScheme()
-				Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
+				Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 				Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 				instance = generateRabbitmqCluster()
 				builder = resource.RabbitmqResourceBuilder{
@@ -729,14 +729,14 @@ var _ = Context("Services", func() {
 })
 
 func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnnotations, serviceAnnotations map[string]string) *corev1.Service {
-	instance := &rabbitmqv1beta2.RabbitmqCluster{
+	instance := &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:        "foo",
 			Namespace:   "foo-namespace",
 			Annotations: instanceAnnotations,
 		},
-		Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
-			Service: rabbitmqv1beta2.RabbitmqClusterServiceSpec{
+		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Annotations: serviceAnnotations,
 			},
 		},

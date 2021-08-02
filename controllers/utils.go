@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -59,7 +59,7 @@ func errorIsConflictOrNotFound(err error) bool {
 	return errors.IsConflict(err) || errors.IsNotFound(err)
 }
 
-func (r *RabbitmqClusterReconciler) statefulSet(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster) (*appsv1.StatefulSet, error) {
+func (r *RabbitmqClusterReconciler) statefulSet(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (*appsv1.StatefulSet, error) {
 	sts := &appsv1.StatefulSet{}
 	if err := r.Get(ctx, types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}, sts); err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func (r *RabbitmqClusterReconciler) statefulSet(ctx context.Context, rmq *rabbit
 }
 
 // statefulSetUID only returns the UID successfully when the controller reference uid matches the rmq uid
-func (r *RabbitmqClusterReconciler) statefulSetUID(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster) (types.UID, error) {
+func (r *RabbitmqClusterReconciler) statefulSetUID(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (types.UID, error) {
 	var err error
 	var sts *appsv1.StatefulSet
 	var ref *metav1.OwnerReference
@@ -84,7 +84,7 @@ func (r *RabbitmqClusterReconciler) statefulSetUID(ctx context.Context, rmq *rab
 	return sts.UID, nil
 }
 
-func (r *RabbitmqClusterReconciler) configMap(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster, name string) (*corev1.ConfigMap, error) {
+func (r *RabbitmqClusterReconciler) configMap(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, name string) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: rmq.Namespace, Name: name}, configMap); err != nil {
 		return nil, err

@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
@@ -41,7 +41,7 @@ var _ = Describe("Operator", func() {
 
 	Context("single node cluster", func() {
 		var (
-			cluster  *rabbitmqv1beta2.RabbitmqCluster
+			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
 			port     string
 			username string
@@ -111,7 +111,7 @@ var _ = Describe("Operator", func() {
 			})
 
 			By("setting observedGeneration", func() {
-				fetchedRmq := &rabbitmqv1beta2.RabbitmqCluster{}
+				fetchedRmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				Eventually(func() bool {
 					Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, fetchedRmq)).To(Succeed())
 					return fetchedRmq.Status.ObservedGeneration == fetchedRmq.Generation
@@ -139,7 +139,7 @@ var _ = Describe("Operator", func() {
 	})
 
 	Context("RabbitMQ configurations", func() {
-		var cluster *rabbitmqv1beta2.RabbitmqCluster
+		var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 		BeforeEach(func() {
 			cluster = newRabbitmqCluster(namespace, "config-rabbit")
@@ -154,8 +154,8 @@ var _ = Describe("Operator", func() {
 		It("keeps rabbitmq server related configurations up-to-date", func() {
 			By("updating enabled plugins  and the secret ports when additionalPlugins are modified", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
-				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta2.RabbitmqCluster) {
-					cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{"rabbitmq_top", "rabbitmq_mqtt"}
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+					cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_top", "rabbitmq_mqtt"}
 				})).To(Succeed())
 
 				getConfigMapAnnotations := func() map[string]string {
@@ -190,7 +190,7 @@ var _ = Describe("Operator", func() {
 			})
 
 			By("updating the userDefinedConfiguration.conf file when additionalConfig are modified", func() {
-				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta2.RabbitmqCluster) {
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.AdditionalConfig = `vm_memory_high_watermark_paging_ratio = 0.5
 cluster_partition_handling = ignore
 cluster_keepalive_interval = 10000`
@@ -209,7 +209,7 @@ cluster_keepalive_interval = 10000`
 			})
 
 			By("updating the advanced.config file when advancedConfig are modified", func() {
-				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta2.RabbitmqCluster) {
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.AdvancedConfig = `[
   {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
 ].`
@@ -229,7 +229,7 @@ cluster_keepalive_interval = 10000`
 			})
 
 			By("updating the rabbitmq-env.conf file when additionalConfig are modified", func() {
-				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta2.RabbitmqCluster) {
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.EnvConfig = `USE_LONGNAME=true
 CONSOLE_LOG=new`
 				})).To(Succeed())
@@ -253,7 +253,7 @@ CONSOLE_LOG=new`
 
 	Context("Persistence", func() {
 		var (
-			cluster  *rabbitmqv1beta2.RabbitmqCluster
+			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
 			port     string
 			username string
@@ -309,7 +309,7 @@ CONSOLE_LOG=new`
 	})
 
 	Context("Persistence expansion", func() {
-		var cluster *rabbitmqv1beta2.RabbitmqCluster
+		var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 		AfterEach(func() {
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
@@ -322,7 +322,7 @@ CONSOLE_LOG=new`
 			}
 
 			cluster = newRabbitmqCluster(namespace, "resize-rabbit")
-			cluster.Spec.Persistence = rabbitmqv1beta2.RabbitmqClusterPersistenceSpec{
+			cluster.Spec.Persistence = rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
 				StorageClassName: pointer.StringPtr(storageClassName),
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
@@ -336,7 +336,7 @@ CONSOLE_LOG=new`
 			previousDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
 
 			newCapacity, _ := k8sresource.ParseQuantity("12Gi")
-			Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta2.RabbitmqCluster) {
+			Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 				cluster.Spec.Persistence.Storage = &newCapacity
 			})).To(Succeed())
 
@@ -364,7 +364,7 @@ CONSOLE_LOG=new`
 
 	Context("Clustering", func() {
 		When("RabbitmqCluster is deployed with 3 nodes", func() {
-			var cluster *rabbitmqv1beta2.RabbitmqCluster
+			var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 			BeforeEach(func() {
 				cluster = newRabbitmqCluster(namespace, "ha-rabbit")
@@ -402,7 +402,7 @@ CONSOLE_LOG=new`
 	Context("TLS", func() {
 		When("TLS is correctly configured and enforced", func() {
 			var (
-				cluster       *rabbitmqv1beta2.RabbitmqCluster
+				cluster       *rabbitmqv1beta1.RabbitmqCluster
 				hostname      string
 				amqpsNodePort string
 				username      string
@@ -415,7 +415,7 @@ CONSOLE_LOG=new`
 			BeforeEach(func() {
 				cluster = newRabbitmqCluster(namespace, "tls-test-rabbit")
 				// Enable additional plugins that can share TLS config.
-				cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{
+				cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
 					"rabbitmq_mqtt",
 					"rabbitmq_stomp",
 				}
@@ -428,7 +428,7 @@ CONSOLE_LOG=new`
 				caFilePath, caCert, caKey = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
 
 				// Update RabbitmqCluster with TLS secret name
-				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta2.RabbitmqCluster) {
+				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.TLS.SecretName = "rabbitmq-tls-test-secret"
 					cluster.Spec.TLS.DisableNonTLSListeners = true
 				})).To(Succeed())
@@ -532,7 +532,7 @@ CONSOLE_LOG=new`
 
 		When("the TLS secret does not exist", func() {
 			cluster := newRabbitmqCluster(namespace, "tls-test-rabbit-faulty")
-			cluster.Spec.TLS = rabbitmqv1beta2.TLSSpec{SecretName: "tls-secret-does-not-exist"}
+			cluster.Spec.TLS = rabbitmqv1beta1.TLSSpec{SecretName: "tls-secret-does-not-exist"}
 
 			It("reports a TLSError event with the reason", func() {
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
@@ -544,7 +544,7 @@ CONSOLE_LOG=new`
 
 	When("(web) MQTT, STOMP, and stream plugins are enabled", func() {
 		var (
-			cluster  *rabbitmqv1beta2.RabbitmqCluster
+			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
 			username string
 			password string
@@ -554,7 +554,7 @@ CONSOLE_LOG=new`
 			instanceName := "mqtt-stomp-stream"
 			cluster = newRabbitmqCluster(namespace, instanceName)
 			cluster.Spec.Service.Type = "NodePort"
-			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{
+			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
 				"rabbitmq_mqtt",
 				"rabbitmq_web_mqtt",
 				"rabbitmq_stomp",

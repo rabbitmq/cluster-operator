@@ -8,7 +8,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +39,7 @@ func (builder *RabbitmqPluginsConfigMapBuilder) Build() (client.Object, error) {
 			Annotations: metadata.ReconcileAndFilterAnnotations(nil, builder.Instance.Annotations),
 		},
 		Data: map[string]string{
-			"enabled_plugins": desiredPluginsAsString([]rabbitmqv1beta2.Plugin{}),
+			"enabled_plugins": desiredPluginsAsString([]rabbitmqv1beta1.Plugin{}),
 		},
 	}, nil
 }
@@ -67,7 +67,7 @@ type RabbitmqPlugins struct {
 	additionalPlugins []string
 }
 
-func NewRabbitmqPlugins(plugins []rabbitmqv1beta2.Plugin) RabbitmqPlugins {
+func NewRabbitmqPlugins(plugins []rabbitmqv1beta1.Plugin) RabbitmqPlugins {
 	additionalPlugins := make([]string, len(plugins))
 	for i := range additionalPlugins {
 		additionalPlugins[i] = string(plugins[i])
@@ -97,7 +97,7 @@ func (r *RabbitmqPlugins) AsString(sep string) string {
 	return strings.Join(r.DesiredPlugins(), sep)
 }
 
-func desiredPluginsAsString(additionalPlugins []rabbitmqv1beta2.Plugin) string {
+func desiredPluginsAsString(additionalPlugins []rabbitmqv1beta1.Plugin) string {
 	plugins := NewRabbitmqPlugins(additionalPlugins)
 	return "[" + plugins.AsString(",") + "]."
 }

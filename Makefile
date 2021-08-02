@@ -35,7 +35,7 @@ manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 
 api-reference: install-tools ## Generate API reference documentation
 	crd-ref-docs \
-		--source-path ./api/v1beta2 \
+		--source-path ./api/v1beta1 \
 		--config ./docs/api/autogen/config.yaml \
 		--templates-dir ./docs/api/autogen/templates \
 		--output-path ./docs/api/rabbitmq.com.ref.asciidoc \

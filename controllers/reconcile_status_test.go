@@ -1,7 +1,7 @@
 package controllers_test
 
 import (
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -14,12 +14,12 @@ import (
 
 var _ = Describe("Reconcile status", func() {
 	var (
-		cluster          *rabbitmqv1beta2.RabbitmqCluster
+		cluster          *rabbitmqv1beta1.RabbitmqCluster
 		defaultNamespace = "default"
 	)
 
 	BeforeEach(func() {
-		cluster = &rabbitmqv1beta2.RabbitmqCluster{
+		cluster = &rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "rabbitmq-status",
 				Namespace: defaultNamespace,
@@ -32,9 +32,9 @@ var _ = Describe("Reconcile status", func() {
 
 	It("reconciles the custom resource status", func() {
 		By("setting the default-user secret details")
-		rmq := &rabbitmqv1beta2.RabbitmqCluster{}
-		secretRef := &rabbitmqv1beta2.RabbitmqClusterSecretReference{}
-		Eventually(func() *rabbitmqv1beta2.RabbitmqClusterSecretReference {
+		rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+		secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{}
+		Eventually(func() *rabbitmqv1beta1.RabbitmqClusterSecretReference {
 			err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 			if err != nil {
 				return nil
@@ -54,9 +54,9 @@ var _ = Describe("Reconcile status", func() {
 		Expect(secretRef.Keys).To(HaveKeyWithValue("password", "password"))
 
 		By("setting the service details")
-		rmq = &rabbitmqv1beta2.RabbitmqCluster{}
-		serviceRef := &rabbitmqv1beta2.RabbitmqClusterServiceReference{}
-		Eventually(func() *rabbitmqv1beta2.RabbitmqClusterServiceReference {
+		rmq = &rabbitmqv1beta1.RabbitmqCluster{}
+		serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{}
+		Eventually(func() *rabbitmqv1beta1.RabbitmqClusterServiceReference {
 			err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 			if err != nil {
 				return nil
@@ -74,7 +74,7 @@ var _ = Describe("Reconcile status", func() {
 		Expect(serviceRef.Namespace).To(Equal(rmq.Namespace))
 
 		By("setting Status.Binding")
-		rmq = &rabbitmqv1beta2.RabbitmqCluster{}
+		rmq = &rabbitmqv1beta1.RabbitmqCluster{}
 		binding := &corev1.LocalObjectReference{}
 		Eventually(func() *corev1.LocalObjectReference {
 			Expect(client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)).To(Succeed())

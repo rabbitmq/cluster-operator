@@ -180,7 +180,7 @@ create() {
     set -u
     cd "$(mktemp -d)" || exit 1
     {
-        echo "apiVersion: rabbitmq.com/v1beta2"
+        echo "apiVersion: rabbitmq.com/v1beta1"
         echo "kind: RabbitmqCluster"
         echo "metadata:"
         echo "  name: $1"

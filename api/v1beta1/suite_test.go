@@ -6,7 +6,7 @@
 //
 // This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
 
-package v1beta2
+package v1beta1
 
 import (
 	"path/filepath"
@@ -32,7 +32,7 @@ var testEnv *envtest.Environment
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "v1beta2 Suite")
+	RunSpecs(t, "v1beta1 Suite")
 }
 
 var _ = BeforeSuite(func() {

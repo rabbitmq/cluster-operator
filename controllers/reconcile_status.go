@@ -2,23 +2,23 @@ package controllers
 
 import (
 	"context"
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	"reflect"
 )
 
-func (r *RabbitmqClusterReconciler) setDefaultUserStatus(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) setDefaultUserStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 
-	defaultUserStatus := &rabbitmqv1beta2.RabbitmqClusterDefaultUser{}
+	defaultUserStatus := &rabbitmqv1beta1.RabbitmqClusterDefaultUser{}
 
-	serviceRef := &rabbitmqv1beta2.RabbitmqClusterServiceReference{
+	serviceRef := &rabbitmqv1beta1.RabbitmqClusterServiceReference{
 		Name:      rmq.ChildResourceName(""),
 		Namespace: rmq.Namespace,
 	}
 	defaultUserStatus.ServiceReference = serviceRef
 
-	secretRef := &rabbitmqv1beta2.RabbitmqClusterSecretReference{
+	secretRef := &rabbitmqv1beta1.RabbitmqClusterSecretReference{
 		Name:      rmq.ChildResourceName(resource.DefaultUserSecretName),
 		Namespace: rmq.Namespace,
 		Keys: map[string]string{
@@ -42,7 +42,7 @@ func (r *RabbitmqClusterReconciler) setDefaultUserStatus(ctx context.Context, rm
 // information for this RabbitmqCluster.
 // Default user secret implements the service binding Provisioned Service
 // See: https://k8s-service-bindings.github.io/spec/#provisioned-service
-func (r *RabbitmqClusterReconciler) setBinding(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) setBinding(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 	binding := &corev1.LocalObjectReference{
 		Name: rmq.ChildResourceName(resource.DefaultUserSecretName),
 	}

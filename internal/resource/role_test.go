@@ -12,7 +12,7 @@ package resource_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +24,7 @@ import (
 var _ = Describe("Role", func() {
 	var (
 		role        *rbacv1.Role
-		instance    rabbitmqv1beta2.RabbitmqCluster
+		instance    rabbitmqv1beta1.RabbitmqCluster
 		roleBuilder *resource.RoleBuilder
 		builder     *resource.RabbitmqResourceBuilder
 		scheme      *runtime.Scheme
@@ -32,9 +32,9 @@ var _ = Describe("Role", func() {
 
 	BeforeEach(func() {
 		scheme = runtime.NewScheme()
-		Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
+		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-		instance = rabbitmqv1beta2.RabbitmqCluster{
+		instance = rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "a name",
 				Namespace: "a namespace",
@@ -62,7 +62,7 @@ var _ = Describe("Role", func() {
 
 	Context("Update with instance labels", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta2.RabbitmqCluster{
+			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -109,7 +109,7 @@ var _ = Describe("Role", func() {
 
 	Context("Update Rules", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta2.RabbitmqCluster{
+			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},
@@ -148,7 +148,7 @@ var _ = Describe("Role", func() {
 
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
-			instance = rabbitmqv1beta2.RabbitmqCluster{
+			instance = rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rabbit-labelled",
 				},

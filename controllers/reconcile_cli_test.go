@@ -11,12 +11,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 )
 
 var _ = Describe("Reconcile CLI", func() {
 	var (
-		cluster          *rabbitmqv1beta2.RabbitmqCluster
+		cluster          *rabbitmqv1beta1.RabbitmqCluster
 		annotations      map[string]string
 		defaultNamespace = "default"
 	)
@@ -33,7 +33,7 @@ var _ = Describe("Reconcile CLI", func() {
 	When("cluster is created", func() {
 		var sts *appsv1.StatefulSet
 		BeforeEach(func() {
-			cluster = &rabbitmqv1beta2.RabbitmqCluster{
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-feature-flags",
 					Namespace: defaultNamespace,
@@ -67,12 +67,12 @@ var _ = Describe("Reconcile CLI", func() {
 
 	When("the cluster is configured to run post-deploy steps", func() {
 		BeforeEach(func() {
-			cluster = &rabbitmqv1beta2.RabbitmqCluster{
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-three",
 					Namespace: defaultNamespace,
 				},
-				Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: pointer.Int32Ptr(3),
 				},
 			}
@@ -96,7 +96,7 @@ var _ = Describe("Reconcile CLI", func() {
 			It("triggers the controller to run rabbitmq-queues rebalance all", func() {
 				By("setting an annotation on the CR", func() {
 					Eventually(func() map[string]string {
-						rmq := &rabbitmqv1beta2.RabbitmqCluster{}
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						Expect(client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)).To(Succeed())
 						annotations = rmq.ObjectMeta.Annotations
 						return annotations
@@ -113,7 +113,7 @@ var _ = Describe("Reconcile CLI", func() {
 					sts.Status.ReadyReplicas = 2
 					Expect(client.Status().Update(ctx, sts)).To(Succeed())
 					Eventually(func() map[string]string {
-						rmq := &rabbitmqv1beta2.RabbitmqCluster{}
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 						Expect(err).To(BeNil())
 						annotations = rmq.ObjectMeta.Annotations
@@ -128,7 +128,7 @@ var _ = Describe("Reconcile CLI", func() {
 					sts.Status.ReadyReplicas = 3
 					Expect(client.Status().Update(ctx, sts)).To(Succeed())
 					Eventually(func() map[string]string {
-						rmq := &rabbitmqv1beta2.RabbitmqCluster{}
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 						Expect(err).To(BeNil())
 						return rmq.ObjectMeta.Annotations
@@ -141,12 +141,12 @@ var _ = Describe("Reconcile CLI", func() {
 
 	When("the cluster is not configured to run post-deploy steps", func() {
 		BeforeEach(func() {
-			cluster = &rabbitmqv1beta2.RabbitmqCluster{
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-three-no-post-deploy",
 					Namespace: defaultNamespace,
 				},
-				Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:            pointer.Int32Ptr(3),
 					SkipPostDeploySteps: true,
 				},
@@ -171,7 +171,7 @@ var _ = Describe("Reconcile CLI", func() {
 			It("does not trigger the controller to run rabbitmq-queues rebalance all", func() {
 				By("never setting the annotation on the CR", func() {
 					Consistently(func() map[string]string {
-						rmq := &rabbitmqv1beta2.RabbitmqCluster{}
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 						Expect(err).To(BeNil())
 						return rmq.ObjectMeta.Annotations
@@ -186,7 +186,7 @@ var _ = Describe("Reconcile CLI", func() {
 					sts.Status.ReadyReplicas = 3
 					Expect(client.Status().Update(ctx, sts)).To(Succeed())
 					Consistently(func() map[string]string {
-						rmq := &rabbitmqv1beta2.RabbitmqCluster{}
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 						Expect(err).To(BeNil())
 						return rmq.ObjectMeta.Annotations
@@ -199,12 +199,12 @@ var _ = Describe("Reconcile CLI", func() {
 
 	When("the cluster is a single node cluster", func() {
 		BeforeEach(func() {
-			cluster = &rabbitmqv1beta2.RabbitmqCluster{
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rabbitmq-one-rebalance",
 					Namespace: defaultNamespace,
 				},
-				Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:            pointer.Int32Ptr(1),
 					SkipPostDeploySteps: false,
 				},
@@ -230,7 +230,7 @@ var _ = Describe("Reconcile CLI", func() {
 			It("does not trigger the controller to run rabbitmq-queues rebalance all", func() {
 				By("never setting the annotation on the CR", func() {
 					Consistently(func() map[string]string {
-						rmq := &rabbitmqv1beta2.RabbitmqCluster{}
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 						Expect(err).To(BeNil())
 						return rmq.ObjectMeta.Annotations
@@ -245,7 +245,7 @@ var _ = Describe("Reconcile CLI", func() {
 					sts.Status.ReadyReplicas = 1
 					Expect(client.Status().Update(ctx, sts)).To(Succeed())
 					Consistently(func() map[string]string {
-						rmq := &rabbitmqv1beta2.RabbitmqCluster{}
+						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 						Expect(err).To(BeNil())
 						return rmq.ObjectMeta.Annotations

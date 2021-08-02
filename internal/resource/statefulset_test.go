@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -29,7 +29,7 @@ import (
 
 var _ = Describe("StatefulSet", func() {
 	var (
-		instance   rabbitmqv1beta2.RabbitmqCluster
+		instance   rabbitmqv1beta1.RabbitmqCluster
 		scheme     *runtime.Scheme
 		builder    *resource.RabbitmqResourceBuilder
 		stsBuilder *resource.StatefulSetBuilder
@@ -40,7 +40,7 @@ var _ = Describe("StatefulSet", func() {
 			instance = generateRabbitmqCluster()
 
 			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
@@ -124,7 +124,7 @@ var _ = Describe("StatefulSet", func() {
 						},
 						OwnerReferences: []v1.OwnerReference{
 							{
-								APIVersion:         "rabbitmq.com/v1beta2",
+								APIVersion:         "rabbitmq.com/v1beta1",
 								Kind:               "RabbitmqCluster",
 								Name:               instance.Name,
 								UID:                "",
@@ -150,8 +150,8 @@ var _ = Describe("StatefulSet", func() {
 		})
 		Context("Override", func() {
 			It("overrides statefulSet.spec.selector", func() {
-				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					Spec: &rabbitmqv1beta2.StatefulSetSpec{
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						Selector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
 								"my-label": "my-label",
@@ -167,8 +167,8 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.spec.serviceName", func() {
-				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					Spec: &rabbitmqv1beta2.StatefulSetSpec{
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						ServiceName: "mysevice",
 					},
 				}
@@ -181,11 +181,11 @@ var _ = Describe("StatefulSet", func() {
 
 			It("overrides the PVC list", func() {
 				storageClass := "my-storage-class"
-				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					Spec: &rabbitmqv1beta2.StatefulSetSpec{
-						VolumeClaimTemplates: []rabbitmqv1beta2.PersistentVolumeClaim{
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta2.EmbeddedObjectMeta{
+								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 									Name:      "pert-1",
 									Namespace: instance.Namespace,
 								},
@@ -199,7 +199,7 @@ var _ = Describe("StatefulSet", func() {
 								},
 							},
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta2.EmbeddedObjectMeta{
+								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 									Name:      "pert-2",
 									Namespace: instance.Namespace,
 								},
@@ -227,7 +227,7 @@ var _ = Describe("StatefulSet", func() {
 							Namespace: "foo-namespace",
 							OwnerReferences: []v1.OwnerReference{
 								{
-									APIVersion:         "rabbitmq.com/v1beta2",
+									APIVersion:         "rabbitmq.com/v1beta1",
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
@@ -251,7 +251,7 @@ var _ = Describe("StatefulSet", func() {
 							Namespace: "foo-namespace",
 							OwnerReferences: []v1.OwnerReference{
 								{
-									APIVersion:         "rabbitmq.com/v1beta2",
+									APIVersion:         "rabbitmq.com/v1beta1",
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
@@ -274,11 +274,11 @@ var _ = Describe("StatefulSet", func() {
 
 			It("successfully overrides PVC list even when namespace not specified", func() {
 				storageClass := "my-storage-class"
-				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					Spec: &rabbitmqv1beta2.StatefulSetSpec{
-						VolumeClaimTemplates: []rabbitmqv1beta2.PersistentVolumeClaim{
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta2.EmbeddedObjectMeta{
+								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 									Name: "pert-1",
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
@@ -291,7 +291,7 @@ var _ = Describe("StatefulSet", func() {
 								},
 							},
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta2.EmbeddedObjectMeta{
+								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
 									Name: "pert-2",
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
@@ -318,7 +318,7 @@ var _ = Describe("StatefulSet", func() {
 							Namespace: "foo-namespace",
 							OwnerReferences: []v1.OwnerReference{
 								{
-									APIVersion:         "rabbitmq.com/v1beta2",
+									APIVersion:         "rabbitmq.com/v1beta1",
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
@@ -342,7 +342,7 @@ var _ = Describe("StatefulSet", func() {
 							Namespace: "foo-namespace",
 							OwnerReferences: []v1.OwnerReference{
 								{
-									APIVersion:         "rabbitmq.com/v1beta2",
+									APIVersion:         "rabbitmq.com/v1beta1",
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
@@ -374,7 +374,7 @@ var _ = Describe("StatefulSet", func() {
 		BeforeEach(func() {
 			instance = generateRabbitmqCluster()
 			scheme = runtime.NewScheme()
-			Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
 			builder = &resource.RabbitmqResourceBuilder{
@@ -464,7 +464,7 @@ var _ = Describe("StatefulSet", func() {
 				}
 
 				scheme = runtime.NewScheme()
-				Expect(rabbitmqv1beta2.AddToScheme(scheme)).To(Succeed())
+				Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 				Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
 				builder = &resource.RabbitmqResourceBuilder{
@@ -730,7 +730,7 @@ var _ = Describe("StatefulSet", func() {
 
 			It("opens tls ports when mqtt, stomp and stream are configured", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_stream"}
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_stream"}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -755,7 +755,7 @@ var _ = Describe("StatefulSet", func() {
 				It("opens tls ports when rabbitmq_web_mqtt and rabbitmq_web_stomp are configured", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "tls-secret"
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -837,7 +837,7 @@ var _ = Describe("StatefulSet", func() {
 				})
 
 				It("disables non tls ports for mqtt, stomp and stream if enabled", func() {
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_stream"}
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_stream"}
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -945,7 +945,7 @@ var _ = Describe("StatefulSet", func() {
 
 		DescribeTable("plugins exposing ports",
 			func(plugin, containerPortName string, port int) {
-				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta2.Plugin{rabbitmqv1beta2.Plugin(plugin)}
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{rabbitmqv1beta1.Plugin(plugin)}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				expectedPort := corev1.ContainerPort{
@@ -1400,8 +1400,8 @@ var _ = Describe("StatefulSet", func() {
 					"key1":    "value1",
 					"keep-me": "keep-me",
 				}
-				instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					EmbeddedLabelsAnnotations: &rabbitmqv1beta2.EmbeddedLabelsAnnotations{
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					EmbeddedLabelsAnnotations: &rabbitmqv1beta1.EmbeddedLabelsAnnotations{
 						Annotations: map[string]string{
 							"new-key": "new-value",
 							"key1":    "new-value",
@@ -1431,8 +1431,8 @@ var _ = Describe("StatefulSet", func() {
 					"key1":    "value1",
 					"keep-me": "keep-me",
 				}
-				instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					EmbeddedLabelsAnnotations: &rabbitmqv1beta2.EmbeddedLabelsAnnotations{
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					EmbeddedLabelsAnnotations: &rabbitmqv1beta1.EmbeddedLabelsAnnotations{
 						Labels: map[string]string{
 							"new-label-key": "new-label-value",
 							"key1":          "new-value",
@@ -1455,8 +1455,8 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.spec.replicas", func() {
-				instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					Spec: &rabbitmqv1beta2.StatefulSetSpec{
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						Replicas: pointer.Int32Ptr(10),
 					},
 				}
@@ -1467,8 +1467,8 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.spec.podManagementPolicy", func() {
-				instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					Spec: &rabbitmqv1beta2.StatefulSetSpec{
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						PodManagementPolicy: "my-policy",
 					},
 				}
@@ -1479,8 +1479,8 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("overrides statefulSet.spec.UpdateStrategy", func() {
-				instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					Spec: &rabbitmqv1beta2.StatefulSetSpec{
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						UpdateStrategy: &appsv1.StatefulSetUpdateStrategy{
 							Type: "OnDelete",
 							RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
@@ -1498,10 +1498,10 @@ var _ = Describe("StatefulSet", func() {
 
 			Context("PodTemplateSpec", func() {
 				It("Overrides PodTemplateSpec objectMeta", func() {
-					instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-						Spec: &rabbitmqv1beta2.StatefulSetSpec{
-							Template: &rabbitmqv1beta2.PodTemplateSpec{
-								EmbeddedObjectMeta: &rabbitmqv1beta2.EmbeddedObjectMeta{
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
 									Name: "my-name",
 									Labels: map[string]string{
 										"my-label": "my-label",
@@ -1530,9 +1530,9 @@ var _ = Describe("StatefulSet", func() {
 				})
 
 				It("Overrides PodSpec", func() {
-					instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-						Spec: &rabbitmqv1beta2.StatefulSetSpec{
-							Template: &rabbitmqv1beta2.PodTemplateSpec{
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
 								Spec: &corev1.PodSpec{
 									TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
 										{
@@ -1694,9 +1694,9 @@ var _ = Describe("StatefulSet", func() {
 						}))
 				})
 				It("can reset securityContext to default", func() {
-					instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-						Spec: &rabbitmqv1beta2.StatefulSetSpec{
-							Template: &rabbitmqv1beta2.PodTemplateSpec{
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
 								Spec: &corev1.PodSpec{
 									SecurityContext: &corev1.PodSecurityContext{},
 									InitContainers: []corev1.Container{
@@ -1724,9 +1724,9 @@ var _ = Describe("StatefulSet", func() {
 
 				Context("Rabbitmq Container volume mounts", func() {
 					It("Overrides the volume mounts list while making sure that '/var/lib/rabbitmq/' mounts before '/var/lib/rabbitmq/mnesia/' ", func() {
-						instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-							Spec: &rabbitmqv1beta2.StatefulSetSpec{
-								Template: &rabbitmqv1beta2.PodTemplateSpec{
+						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+							Spec: &rabbitmqv1beta1.StatefulSetSpec{
+								Template: &rabbitmqv1beta1.PodTemplateSpec{
 									Spec: &corev1.PodSpec{
 										Containers: []corev1.Container{
 											{
@@ -1776,9 +1776,9 @@ var _ = Describe("StatefulSet", func() {
 
 				Context("Rabbitmq Container EnvVar", func() {
 					It("Overrides the envVar list while making sure that 'MY_POD_NAME', 'MY_POD_NAMESPACE' and 'K8S_SERVICE_NAME' are always defined first", func() {
-						instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-							Spec: &rabbitmqv1beta2.StatefulSetSpec{
-								Template: &rabbitmqv1beta2.PodTemplateSpec{
+						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+							Spec: &rabbitmqv1beta1.StatefulSetSpec{
+								Template: &rabbitmqv1beta1.PodTemplateSpec{
 									Spec: &corev1.PodSpec{
 										Containers: []corev1.Container{
 											{
@@ -1890,10 +1890,10 @@ var _ = Describe("StatefulSet", func() {
 				instance.Spec.Image = "should-be-replaced-image"
 				instance.Spec.Replicas = pointer.Int32Ptr(2)
 
-				instance.Spec.Override.StatefulSet = &rabbitmqv1beta2.StatefulSet{
-					Spec: &rabbitmqv1beta2.StatefulSetSpec{
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						Replicas: pointer.Int32Ptr(4),
-						Template: &rabbitmqv1beta2.PodTemplateSpec{
+						Template: &rabbitmqv1beta1.PodTemplateSpec{
 							Spec: &corev1.PodSpec{
 								Containers: []corev1.Container{
 									{
@@ -1936,23 +1936,23 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 	return corev1.Container{}
 }
 
-func generateRabbitmqCluster() rabbitmqv1beta2.RabbitmqCluster {
+func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
-	return rabbitmqv1beta2.RabbitmqCluster{
+	return rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "foo-namespace",
 		},
-		Spec: rabbitmqv1beta2.RabbitmqClusterSpec{
+		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 			Replicas:                      pointer.Int32Ptr(1),
 			Image:                         "rabbitmq-image-from-cr",
 			ImagePullSecrets:              []corev1.LocalObjectReference{{Name: "my-super-secret"}},
 			TerminationGracePeriodSeconds: pointer.Int64Ptr(604800),
-			Service: rabbitmqv1beta2.RabbitmqClusterServiceSpec{
+			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Type:        "this-is-a-service",
 				Annotations: map[string]string{},
 			},
-			Persistence: rabbitmqv1beta2.RabbitmqClusterPersistenceSpec{
+			Persistence: rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
 				StorageClassName: nil,
 				Storage:          &storage,
 			},

@@ -37,7 +37,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	rabbitmqv1beta2 "github.com/rabbitmq/cluster-operator/api/v1beta2"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -45,7 +45,7 @@ import (
 )
 
 var (
-	apiGVStr = rabbitmqv1beta2.GroupVersion.String()
+	apiGVStr = rabbitmqv1beta1.GroupVersion.String()
 )
 
 const (
@@ -235,8 +235,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return ctrl.Result{}, nil
 }
 
-func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, namespacedName types.NamespacedName) (*rabbitmqv1beta2.RabbitmqCluster, error) {
-	rabbitmqClusterInstance := &rabbitmqv1beta2.RabbitmqCluster{}
+func (r *RabbitmqClusterReconciler) getRabbitmqCluster(ctx context.Context, namespacedName types.NamespacedName) (*rabbitmqv1beta1.RabbitmqCluster, error) {
+	rabbitmqClusterInstance := &rabbitmqv1beta1.RabbitmqCluster{}
 	err := r.Get(ctx, namespacedName, rabbitmqClusterInstance)
 	return rabbitmqClusterInstance, err
 }
@@ -269,7 +269,7 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(logger logr.Logg
 	}
 }
 
-func (r *RabbitmqClusterReconciler) updateStatus(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster) (time.Duration, error) {
+func (r *RabbitmqClusterReconciler) updateStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (time.Duration, error) {
 	logger := ctrl.LoggerFrom(ctx)
 	childResources, err := r.getChildResources(ctx, rmq)
 	if err != nil {
@@ -294,7 +294,7 @@ func (r *RabbitmqClusterReconciler) updateStatus(ctx context.Context, rmq *rabbi
 	return 0, nil
 }
 
-func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster) ([]runtime.Object, error) {
+func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
 	sts := &appsv1.StatefulSet{}
 	endPoints := &corev1.Endpoints{}
 
@@ -317,7 +317,7 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *
 	return []runtime.Object{sts, endPoints}, nil
 }
 
-func (r *RabbitmqClusterReconciler) setReconcileSuccess(ctx context.Context, rabbitmqCluster *rabbitmqv1beta2.RabbitmqCluster, condition corev1.ConditionStatus, reason, msg string) {
+func (r *RabbitmqClusterReconciler) setReconcileSuccess(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, condition corev1.ConditionStatus, reason, msg string) {
 	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, condition, reason, msg)
 	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
 		ctrl.LoggerFrom(ctx).Error(writerErr, "Failed to update Custom Resource status",
@@ -334,7 +334,7 @@ func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&rabbitmqv1beta2.RabbitmqCluster{}).
+		For(&rabbitmqv1beta1.RabbitmqCluster{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
@@ -383,7 +383,7 @@ func validateAndGetOwner(owner *metav1.OwnerReference) []string {
 	return []string{owner.Name}
 }
 
-func (r *RabbitmqClusterReconciler) markForQueueRebalance(ctx context.Context, rmq *rabbitmqv1beta2.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) markForQueueRebalance(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
 	if rmq.ObjectMeta.Annotations == nil {
 		rmq.ObjectMeta.Annotations = make(map[string]string)
 	}

@@ -43,7 +43,7 @@ jobs:
         # Create CRD PodMonitor without running Prometheus operator
         curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/master/bundle.yaml | sed "s/replicas: 1$/replicas: 0/" | kubectl apply -f -
         make install
-        sleep 3 # otherwise we sporadically observe 'no matches for kind "RabbitmqCluster" in version "rabbitmq.com/v1beta2'
+        sleep 3 # otherwise we sporadically observe 'no matches for kind "RabbitmqCluster" in version "rabbitmq.com/v1beta1'
         find docs/examples/ -name "*.y*ml" -exec kubectl apply --dry-run=server -f {} \;
 
   system_tests:
