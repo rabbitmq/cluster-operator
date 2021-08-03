@@ -1,0 +1,20 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: json
+spec:
+  # JSON logging is supported from RabbitMQ 3.9 onwards
+  image: rabbitmq:3.9-management
+  rabbitmq:
+    # Disable RABBITMQ_LOGS=- which is set in
+    # https://github.com/docker-library/rabbitmq/blob/ece63d4534cc44abd6b1ec35bbd9aa0d21e87e1d/3.9/ubuntu/Dockerfile#L211
+    # Otherwise, this environment variable will override all log configurations in additionalConfig.
+    envConfig: |
+      RABBITMQ_LOGS=""
+    # More log configuration options can be found in https://github.com/rabbitmq/rabbitmq-server/pull/2927
+    additionalConfig: |
+      log.console = true
+      log.console.level = debug
+      log.console.formatter = json
+      log.console.formatter.json.field_map = level time msg domain file line pid
+      log.console.formatter.time_format = rfc3339_T
