@@ -87,6 +87,8 @@ type RabbitmqClusterSpec struct {
 	// The list of namespaces to allow messaging topology resources to be created from.
 	// If one is not defined messaging topology resources can only be created in the same
 	// namespace as the cluster.
+	// If `*` is included, messaging topology resources from all namespaces are permitted.
+	// +kubebuilder:validation:Optional
 	MessagingTopologyNamespaces []string `json:"messagingTopologyNamespaces,omitempty"`
 }
 
