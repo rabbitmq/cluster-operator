@@ -56,7 +56,7 @@ jobs:
         rabbitmq-image:
         - rabbitmq:3.8.8-management
         - rabbitmq:3.8-management
-        - rabbitmq:3.9-rc-management #TODO replace with 3.9-management once 3.9 becomes GA
+        - rabbitmq:3.9-management
         - pivotalrabbitmq/rabbitmq:master-otp-min
         - pivotalrabbitmq/rabbitmq:master-otp-max
     steps:
