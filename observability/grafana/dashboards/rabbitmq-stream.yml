@@ -7,4 +7,4 @@ metadata:
     grafana_dashboard: "true"
 data:
   # https://grafana.com/grafana/dashboards/14798
-  rabbitmq-stream-dashboard.json.url: https://grafana.com/api/dashboards/14798/revisions/7/download
+  rabbitmq-stream-dashboard.json.url: https://grafana.com/api/dashboards/14798/revisions/8/download
