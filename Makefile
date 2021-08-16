@@ -163,15 +163,11 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services
 system-tests: install-tools ## Run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
 	NAMESPACE="rabbitmq-system" ginkgo -nodes=3 -randomizeAllSpecs -r system_tests/
 
-chart-tests: ## Run Helm chart tests
-	echo "running charts tests"
-	cd charts/rabbitmq && ./test.sh
-
 kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
 	echo "running kubectl plugin tests"
 	./bin/kubectl-rabbitmq.bats
 
-tests: unit-tests integration-tests system-tests chart-tests kubectl-plugin-tests
+tests: unit-tests integration-tests system-tests kubectl-plugin-tests
 
 docker-registry-secret: check-env-docker-credentials operator-namespace
 	echo "creating registry secret and patching default service account"

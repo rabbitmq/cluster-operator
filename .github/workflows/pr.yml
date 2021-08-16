@@ -20,8 +20,6 @@ jobs:
       run: make unit-tests
     - name: Integration tests
       run: make integration-tests
-    - name: Helm chart tests
-      run: make chart-tests
 
   test-all-examples:
     name: test-all-examples
