@@ -10,6 +10,7 @@
 
 set -euo pipefail
 
+PLATFORM="$(uname)"
 NAMESPACE=""
 
 instance=""
@@ -164,9 +165,16 @@ manage() {
 	    MGMT_PORT=15672
 	    MGMT_URL="http://localhost:$MGMT_PORT/"
     fi
+
+    if [[ "${PLATFORM}" == "Darwin" ]]; then
+      OPEN="open"
+    else
+      OPEN="xdg-open"
+    fi
+
     (
         sleep 2
-        open "$MGMT_URL"
+        $OPEN "$MGMT_URL"
     ) &
     kubectl ${NAMESPACE} port-forward "service/${service}" $MGMT_PORT
 }
