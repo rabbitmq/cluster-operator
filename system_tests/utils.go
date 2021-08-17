@@ -868,7 +868,7 @@ func publishAndConsumeMQTTMsg(hostname, port, username, password string, overWeb
 
 	EventuallyWithOffset(1, func() bool {
 		return msgReceived
-	}, 10 * time.Second).Should(BeTrue(), "Expect to receive message")
+	}, 10*time.Second).Should(BeTrue(), "Expect to receive message")
 
 	token = c.Unsubscribe(topic)
 	ExpectWithOffset(1, token.Wait()).To(BeTrue(), "Unsubscribe token should return true")

@@ -166,7 +166,7 @@ var _ = Describe("Operator", func() {
 				}
 				Eventually(getConfigMapAnnotations, 30, 1).Should(
 					HaveKey("rabbitmq.com/pluginsUpdatedAt"), "plugins ConfigMap should have been annotated")
-				Eventually(getConfigMapAnnotations, 4 * time.Minute, 1).Should(
+				Eventually(getConfigMapAnnotations, 4*time.Minute, 1).Should(
 					Not(HaveKey("rabbitmq.com/pluginsUpdatedAt")), "plugins ConfigMap annotation should have been removed")
 
 				Eventually(func() map[string][]byte {
