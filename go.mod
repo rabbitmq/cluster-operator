@@ -6,7 +6,7 @@ require (
 	github.com/cloudflare/cfssl v1.6.0
 	github.com/eclipse/paho.mqtt.golang v1.3.5
 	github.com/elastic/crd-ref-docs v0.0.7
-	github.com/go-delve/delve v1.7.0
+	github.com/go-delve/delve v1.7.1
 	github.com/go-logr/logr v0.4.0
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.10.0
@@ -44,6 +44,7 @@ require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
+	github.com/aquasecurity/libbpfgo v0.1.2-0.20210708203834-4928d36fafac // indirect
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
@@ -51,6 +52,7 @@ require (
 	github.com/cosiner/argv v0.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/derekparker/trie v0.0.0-20200317170641-1fdf38b7b0e9 // indirect
 	github.com/elliotchance/orderedmap v1.4.0 // indirect
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.2.0 // indirect
