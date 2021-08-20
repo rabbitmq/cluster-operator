@@ -12,7 +12,7 @@ require (
 	github.com/michaelklishin/rabbit-hole/v2 v2.10.0
 	github.com/mikefarah/yq/v4 v4.11.2
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.15.0
+	github.com/onsi/gomega v1.16.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210422170636-520637be5dde
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	github.com/streadway/amqp v1.0.0
