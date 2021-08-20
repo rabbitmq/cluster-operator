@@ -58,7 +58,6 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 		return nil, err
 	}
 
-
 	host, err := builder.getHost()
 	if err != nil {
 		return nil, err
