@@ -152,6 +152,27 @@ var _ = Describe("StatefulSet", func() {
 				zero := k8sresource.MustParse("0Gi")
 
 				builder.Instance.Spec.Persistence.Storage = &zero
+				// we shouldn't create the `persistence` PVC if storage==0, even if overrides are used
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+							{
+								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+									Name:      "persistence",
+									Namespace: instance.Namespace,
+								},
+								Spec: corev1.PersistentVolumeClaimSpec{
+									Resources: corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											corev1.ResourceStorage: k8sresource.MustParse("10Gi"),
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+
 				obj, err := stsBuilder.Build()
 				Expect(err).NotTo(HaveOccurred())
 				statefulSet := obj.(*appsv1.StatefulSet)
