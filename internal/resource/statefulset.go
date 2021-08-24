@@ -80,21 +80,6 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 		if overrideSts.Spec.ServiceName != "" {
 			sts.Spec.ServiceName = overrideSts.Spec.ServiceName
 		}
-
-		if len(overrideSts.Spec.VolumeClaimTemplates) != 0 {
-			override := overrideSts.Spec.VolumeClaimTemplates
-			pvcList := make([]corev1.PersistentVolumeClaim, len(override))
-			for i := range override {
-				copyObjectMeta(&pvcList[i].ObjectMeta, override[i].EmbeddedObjectMeta)
-				pvcList[i].Namespace = sts.Namespace // PVC should always be in the same namespace as the Stateful Set
-				pvcList[i].Spec = override[i].Spec
-				if err := controllerutil.SetControllerReference(builder.Instance, &pvcList[i], builder.Scheme); err != nil {
-					return nil, fmt.Errorf("failed setting controller reference: %v", err)
-				}
-				disableBlockOwnerDeletion(pvcList[i])
-			}
-			sts.Spec.VolumeClaimTemplates = pvcList
-		}
 	}
 
 	return sts, nil
@@ -137,7 +122,7 @@ func (builder *StatefulSetBuilder) Update(object client.Object) error {
 	}
 
 	if builder.Instance.Spec.Override.StatefulSet != nil {
-		if err := applyStsOverride(sts, builder.Instance.Spec.Override.StatefulSet); err != nil {
+		if err := applyStsOverride(builder.Instance, builder.Scheme, sts, builder.Instance.Spec.Override.StatefulSet); err != nil {
 			return fmt.Errorf("failed applying StatefulSet override: %v", err)
 		}
 	}
@@ -156,7 +141,7 @@ func updatePersistenceStorageCapacity(templates *[]corev1.PersistentVolumeClaim,
 	}
 }
 
-func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.StatefulSet) error {
+func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme, sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.StatefulSet) error {
 	if stsOverride.EmbeddedLabelsAnnotations != nil {
 		copyLabelsAnnotations(&sts.ObjectMeta, *stsOverride.EmbeddedLabelsAnnotations)
 	}
@@ -174,6 +159,21 @@ func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.Stat
 		sts.Spec.PodManagementPolicy = stsOverride.Spec.PodManagementPolicy
 	}
 
+	if len(stsOverride.Spec.VolumeClaimTemplates) != 0 {
+		volumeClaimTemplatesOverride := stsOverride.Spec.VolumeClaimTemplates
+		pvcOverride := make([]corev1.PersistentVolumeClaim, len(volumeClaimTemplatesOverride))
+		for i := range volumeClaimTemplatesOverride {
+			copyObjectMeta(&pvcOverride[i].ObjectMeta, volumeClaimTemplatesOverride[i].EmbeddedObjectMeta)
+			pvcOverride[i].Namespace = sts.Namespace // PVC should always be in the same namespace as the Stateful Set
+			pvcOverride[i].Spec = volumeClaimTemplatesOverride[i].Spec
+			if err := controllerutil.SetControllerReference(instance, &pvcOverride[i], scheme); err != nil {
+				return fmt.Errorf("failed setting controller reference: %v", err)
+			}
+			disableBlockOwnerDeletion(pvcOverride[i])
+		}
+		sts.Spec.VolumeClaimTemplates = pvcOverride
+	}
+
 	if stsOverride.Spec.Template == nil {
 		return nil
 	}
@@ -187,6 +187,7 @@ func applyStsOverride(sts *appsv1.StatefulSet, stsOverride *rabbitmqv1beta1.Stat
 		}
 		sts.Spec.Template.Spec = patchedPodSpec
 	}
+
 	return nil
 }
 
