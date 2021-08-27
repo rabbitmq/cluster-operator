@@ -84,6 +84,16 @@ type RabbitmqClusterSpec struct {
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:default:=604800
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
+	// Vault related configuration for the RabbitMQ cluster.
+	// When vault integration is set, operator gets default user credential from vault rather than generating username/password.
+	Vault VaultSpec `json:"vault,omitempty"`
+}
+
+type VaultSpec struct {
+	// Role required to access default user credentials in vault.
+	Role string `json:"role,omitempty"`
+	// Path to access default user credentials in vault.
+	DefaultUserSecretPath string `json:"defaultUserSecretPath,omitempty"`
 }
 
 // Provides the ability to override the generated manifest of several child resources.

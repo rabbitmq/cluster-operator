@@ -121,6 +121,23 @@ var _ = Describe("RabbitmqCluster", func() {
 			Expect(created.MemoryLimited()).To(BeFalse())
 		})
 
+		It("can set vault configuration correctly", func() {
+			created := generateRabbitmqClusterObject("rabbit-vault")
+			created.Spec.Vault = VaultSpec{
+				Role:                  "test-role",
+				DefaultUserSecretPath: "test-path",
+			}
+			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+			fetchedRabbit := &RabbitmqCluster{}
+			Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
+				Name:      "rabbit-vault",
+				Namespace: "default",
+			}, fetchedRabbit)).To(Succeed())
+
+			Expect(fetchedRabbit.Spec.Vault.Role).To(Equal("test-role"))
+			Expect(fetchedRabbit.Spec.Vault.DefaultUserSecretPath).To(Equal("test-path"))
+		})
+
 		It("is validated", func() {
 			By("checking the replica count", func() {
 				invalidReplica := generateRabbitmqClusterObject("rabbit4")
@@ -237,6 +254,11 @@ var _ = Describe("RabbitmqCluster", func() {
 								AdditionalPlugins: []Plugin{
 									"my_plugins",
 								},
+							},
+
+							Vault: VaultSpec{
+								Role:                  "test-vault-role",
+								DefaultUserSecretPath: "a-path",
 							},
 						},
 					}
