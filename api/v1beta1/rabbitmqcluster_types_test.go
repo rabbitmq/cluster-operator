@@ -255,11 +255,6 @@ var _ = Describe("RabbitmqCluster", func() {
 									"my_plugins",
 								},
 							},
-
-							Vault: VaultSpec{
-								Role:                  "test-vault-role",
-								DefaultUserSecretPath: "a-path",
-							},
 						},
 					}
 

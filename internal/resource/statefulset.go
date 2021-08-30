@@ -542,7 +542,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		volumes = append(volumes, tlsProjectedVolume)
 	}
 
-	return corev1.PodTemplateSpec{
+	podTemplateSpec := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: metadata.ReconcileAnnotations(previousPodAnnotations, defaultPodAnnotations),
 			Labels:      metadata.Label(builder.Instance.Name),
@@ -711,6 +711,30 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		},
 	}
+	if builder.Instance.VaultEnabled() {
+		podTemplateSpec = configureVault(podTemplateSpec, builder.Instance)
+	}
+
+	return podTemplateSpec
+}
+
+func configureVault(spec corev1.PodTemplateSpec, instance *rabbitmqv1beta1.RabbitmqCluster) corev1.PodTemplateSpec {
+
+	// Add annotation
+	vaultPodAnnotations := map[string]string{
+		"vault.hashicorp.com/agent-inject":                             "true",
+		"vault.hashicorp.com/role":                                     instance.Spec.Vault.Role,
+		"vault.hashicorp.com/secret-volume-path-12-default_user.conf":  "/etc/rabbitmq/conf.d",
+		"vault.hashicorp.com/agent-inject-secret-12-default_user.conf": instance.Spec.Vault.DefaultUserSecretPath,
+		"vault.hashicorp.com/agent-inject-template-12-default_user.conf": `
+{{- with secret "secret/rabbitmq/config" -}}
+default_user = {{ .Data.data.username }}
+default_pass = {{ .Data.data.password }}
+{{- end }}`,
+	}
+	spec.Annotations = metadata.ReconcileAnnotations(spec.Annotations, vaultPodAnnotations)
+
+	return spec
 }
 
 func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort {

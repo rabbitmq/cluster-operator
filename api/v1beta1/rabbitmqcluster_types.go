@@ -366,6 +366,10 @@ func (cluster *RabbitmqCluster) StreamNeeded() bool {
 	return cluster.AdditionalPluginEnabled("rabbitmq_stream") || cluster.AdditionalPluginEnabled("rabbitmq_multi_dc_replication")
 }
 
+func (cluster *RabbitmqCluster) VaultEnabled() bool {
+	return cluster.Spec.Vault.Role != "" && cluster.Spec.Vault.DefaultUserSecretPath != ""
+}
+
 // +kubebuilder:object:root=true
 
 // RabbitmqClusterList contains a list of RabbitmqClusters.

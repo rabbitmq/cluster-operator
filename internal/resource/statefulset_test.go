@@ -875,6 +875,26 @@ var _ = Describe("StatefulSet", func() {
 			Expect(container.Env).To(ConsistOf(requiredEnvVariables))
 		})
 
+		Context("Vault", func() {
+			FIt("adds annotations for default-user", func() {
+				instance.Spec.Vault.Role = "rabbitmq"
+				instance.Spec.Vault.DefaultUserSecretPath = "secret/data/rabbitmq/config"
+
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.Vault.Role))
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-12-default_user.conf", instance.Spec.Vault.DefaultUserSecretPath))
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKey("vault.hashicorp.com/agent-inject-template-12-default_user.conf"))
+
+			})
+
+		})
+
 		Context("Rabbitmq container volume mounts", func() {
 			DescribeTable("Volume mounts depending on spec configuration and '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' ",
 				func(rabbitmqEnv, advancedConfig string) {
