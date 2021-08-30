@@ -427,7 +427,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	}
 
 	if !builder.Instance.VaultEnabled() {
-		appendDefaultUserSecret(volumes, builder.Instance)
+		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance)
 	}
 
 	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" || builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
@@ -470,11 +470,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 		{
 			Name:      "rabbitmq-confd",
-			MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf",
-			SubPath:   "default_user.conf",
-		},
-		{
-			Name:      "rabbitmq-confd",
 			MountPath: "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
 			SubPath:   "userDefinedConfiguration.conf",
 		},
@@ -483,6 +478,11 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			MountPath: "/etc/pod-info/",
 		},
 	}
+
+	if !builder.Instance.VaultEnabled() {
+		appendDefaultUserToRabbitMQContainer(rabbitmqContainerVolumeMounts, builder.Instance)
+	}
+
 
 	if builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
 		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
@@ -711,7 +711,15 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	return podTemplateSpec
 }
 
-func appendDefaultUserSecret(volumes []corev1.Volume, instance *rabbitmqv1beta1.RabbitmqCluster) {
+func appendDefaultUserToRabbitMQContainer(mounts []corev1.VolumeMount, instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.VolumeMount {
+	return append(mounts, corev1.VolumeMount{
+		Name:      "rabbitmq-confd",
+		MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf",
+		SubPath:   "default_user.conf",
+		})
+}
+
+func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *rabbitmqv1beta1.RabbitmqCluster)  {
 	for _, value := range volumes {
 		if value.Name == "rabbitmq-confd" {
 			value.VolumeSource.Projected.Sources = append(value.VolumeSource.Projected.Sources,
@@ -730,6 +738,7 @@ func appendDefaultUserSecret(volumes []corev1.Volume, instance *rabbitmqv1beta1.
 				})
 		}
 	}
+
 }
 
 func appendVaultAnnotations(current map[string]string, instance *rabbitmqv1beta1.RabbitmqCluster) map[string]string {
@@ -745,6 +754,7 @@ func appendVaultAnnotations(current map[string]string, instance *rabbitmqv1beta1
 default_user = {{ .Data.data.username }}
 default_pass = {{ .Data.data.password }}
 {{- end }}`,
+
 	}
 	return metadata.ReconcileAnnotations(current, vaultPodAnnotations)
 
