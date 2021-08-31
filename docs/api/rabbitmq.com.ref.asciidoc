@@ -427,7 +427,9 @@ Allows for the configuration of TLS certificates to be used by RabbitMQ. Also al
 |===
 | Field | Description
 | *`role`* __string__ | Role required to access default user credentials in vault.
-| *`defaultUserSecretPath`* __string__ | Path to access default user credentials in vault.
+| *`defaultUserSecretPath`* __string__ | Path to access a KV secret with the fields username and password for the default user
+| *`tlsSecretPath`* __string__ | Path to access a KV secret with the fields tlskey and tlscrt to enable TLS
+| *`caSecretPath`* __string__ | Path to access a KV secret with the fields cacrt to enable mutual TLS
 |===
 
 

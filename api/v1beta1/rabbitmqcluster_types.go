@@ -92,8 +92,19 @@ type RabbitmqClusterSpec struct {
 type VaultSpec struct {
 	// Role required to access default user credentials in vault.
 	Role string `json:"role,omitempty"`
-	// Path to access default user credentials in vault.
+	// Path to access a KV secret with the fields username and password for the default user
 	DefaultUserSecretPath string `json:"defaultUserSecretPath,omitempty"`
+	// Path to access a KV secret with the fields tlskey and tlscrt to enable TLS
+	TLSSecretPath string `json:"tlsSecretPath,omitempty"`
+	// Path to access a KV secret with the fields cacrt to enable mutual TLS
+	CaSecretPath string `json:"caSecretPath,omitempty"`
+}
+
+func (spec *VaultSpec) TLSEnabled() bool {
+	return spec.TLSSecretPath != ""
+}
+func (spec *VaultSpec) MutualTLSEnabled() bool {
+	return spec.TLSEnabled() && spec.CaSecretPath != ""
 }
 
 // Provides the ability to override the generated manifest of several child resources.
@@ -367,7 +378,7 @@ func (cluster *RabbitmqCluster) StreamNeeded() bool {
 }
 
 func (cluster *RabbitmqCluster) VaultEnabled() bool {
-	return cluster.Spec.Vault.Role != "" && cluster.Spec.Vault.DefaultUserSecretPath != ""
+	return cluster.Spec.Vault.Role != ""
 }
 
 // +kubebuilder:object:root=true

@@ -49,9 +49,13 @@ prometheus.ssl.certfile  = /etc/rabbitmq-tls/tls.crt
 prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
 prometheus.ssl.port      = 15691
 `
-	caCertPath  = "/etc/rabbitmq-tls/ca.crt"
-	tlsCertPath = "/etc/rabbitmq-tls/tls.crt"
-	tlsKeyPath  = "/etc/rabbitmq-tls/tls.key"
+	TlsCertDir      = "/etc/rabbitmq-tls/"
+	CaCertFilename  = "ca.crt"
+	CaCertPath      = TlsCertDir + CaCertFilename
+	TlsCertFilename = "tls.crt"
+	TlsCertPath     = TlsCertDir + "tls.crt"
+	TlsKeyFilename  = "tls.key"
+	TlsKeyPath      = TlsCertDir + "tls.key"
 )
 
 type ServerConfigMapBuilder struct {
@@ -147,18 +151,18 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	}
 
 	if builder.Instance.MutualTLSEnabled() {
-		if _, err := userConfigurationSection.NewKey("ssl_options.cacertfile", caCertPath); err != nil {
+		if _, err := userConfigurationSection.NewKey("ssl_options.cacertfile", CaCertPath); err != nil {
 			return err
 		}
 		if _, err := userConfigurationSection.NewKey("ssl_options.verify", "verify_peer"); err != nil {
 			return err
 		}
 
-		if _, err := userConfigurationSection.NewKey("management.ssl.cacertfile", caCertPath); err != nil {
+		if _, err := userConfigurationSection.NewKey("management.ssl.cacertfile", CaCertPath); err != nil {
 			return err
 		}
 
-		if _, err := userConfigurationSection.NewKey("prometheus.ssl.cacertfile", caCertPath); err != nil {
+		if _, err := userConfigurationSection.NewKey("prometheus.ssl.cacertfile", CaCertPath); err != nil {
 			return err
 		}
 
@@ -166,13 +170,13 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.port", "15676"); err != nil {
 				return err
 			}
-			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.cacertfile", caCertPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.cacertfile", CaCertPath); err != nil {
 				return err
 			}
-			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.certfile", tlsCertPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.certfile", TlsCertPath); err != nil {
 				return err
 			}
-			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.keyfile", tlsKeyPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.keyfile", TlsKeyPath); err != nil {
 				return err
 			}
 			if builder.Instance.DisableNonTLSListeners() {
@@ -185,13 +189,13 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.port", "15673"); err != nil {
 				return err
 			}
-			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.cacertfile", caCertPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.cacertfile", CaCertPath); err != nil {
 				return err
 			}
-			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.certfile", tlsCertPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.certfile", TlsCertPath); err != nil {
 				return err
 			}
-			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.keyfile", tlsKeyPath); err != nil {
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.keyfile", TlsKeyPath); err != nil {
 				return err
 			}
 			if builder.Instance.DisableNonTLSListeners() {

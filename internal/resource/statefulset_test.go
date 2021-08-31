@@ -10,6 +10,7 @@
 package resource_test
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -876,9 +877,10 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		Context("Vault", func() {
-			FIt("adds annotations for default-user", func() {
+
+			It("adds annotations for default-user", func() {
 				instance.Spec.Vault.Role = "rabbitmq"
-				instance.Spec.Vault.DefaultUserSecretPath = "secret/data/rabbitmq/config"
+				instance.Spec.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
@@ -891,6 +893,45 @@ var _ = Describe("StatefulSet", func() {
 				Expect(statefulSet.Spec.Template.Annotations).To(
 					HaveKey("vault.hashicorp.com/agent-inject-template-12-default_user.conf"))
 
+			})
+
+			It("adds annotations for tls", func() {
+				instance.Spec.Vault.Role = "rabbitmq"
+				instance.Spec.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+				instance.Spec.Vault.TLSSecretPath = "secret/rabbitmq/config"
+
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.Vault.Role))
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-12-default_user.conf", instance.Spec.Vault.DefaultUserSecretPath))
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKey("vault.hashicorp.com/agent-inject-template-12-default_user.conf"))
+
+				//TlsKeyFilename := "tls.key"
+				//TlsCertDir := "/etc/rabbitmq-tls/"
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKeyWithValue(fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", resource.TlsKeyFilename), resource.TlsCertDir))
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKeyWithValue(fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", resource.TlsCertFilename), resource.TlsCertDir))
+
+				// TODO add the other annodations
+			})
+
+			It("adds annotations for mutual tls", func() {
+				instance.Spec.Vault.Role = "rabbitmq"
+				instance.Spec.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+				instance.Spec.Vault.TLSSecretPath = "secret/rabbitmq/config"
+				instance.Spec.Vault.CaSecretPath = "secret/rabbitmq/config"
+
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				Expect(statefulSet.Spec.Template.Annotations).To(
+					HaveKeyWithValue(fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", resource.CaCertFilename), resource.TlsCertDir))
+				// TODO add the other annodations
 			})
 
 		})
@@ -920,7 +961,7 @@ var _ = Describe("StatefulSet", func() {
 
 					if advancedConfig != "" {
 						expectedVolumeMounts = append(expectedVolumeMounts, corev1.VolumeMount{
-							Name: "server-conf", MountPath: "/etc/rabbitmq/advanced.config", SubPath: "advanced.config"})
+							Name: "server-conf", MountPath: "/etc/rabbitmq/advanced.config", SubPath: "avanced.config"})
 					}
 
 					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -934,7 +975,7 @@ var _ = Describe("StatefulSet", func() {
 						MountPath: "/var/lib/rabbitmq/mnesia/",
 					}))
 				},
-				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
+				FEntry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
 				Entry("Only env config is set", "rabbitmq-env-is-set", ""),
 				Entry("Only advanced config is set", "", "advanced-config-is-set"),
 				Entry("No configs are set", "", ""),
@@ -1048,7 +1089,7 @@ var _ = Describe("StatefulSet", func() {
 				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolumes))
 
 			},
-				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
+				FEntry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
 				Entry("Only env config is set", "rabbitmq-env-is-set", ""),
 				Entry("Only advanced config is set", "", "advanced-config-is-set"),
 				Entry("No configs are set", "", ""),

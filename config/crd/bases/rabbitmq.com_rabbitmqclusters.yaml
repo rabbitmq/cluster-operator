@@ -3862,11 +3862,17 @@ spec:
                 vault:
                   description: Vault related configuration for the RabbitMQ cluster. When vault integration is set, operator gets default user credential from vault rather than generating username/password.
                   properties:
+                    caSecretPath:
+                      description: Path to access a KV secret with the fields cacrt to enable mutual TLS
+                      type: string
                     defaultUserSecretPath:
-                      description: Path to access default user credentials in vault.
+                      description: Path to access a KV secret with the fields username and password for the default user
                       type: string
                     role:
                       description: Role required to access default user credentials in vault.
+                      type: string
+                    tlsSecretPath:
+                      description: Path to access a KV secret with the fields tlskey and tlscrt to enable TLS
                       type: string
                   type: object
               type: object
