@@ -961,7 +961,7 @@ var _ = Describe("StatefulSet", func() {
 
 					if advancedConfig != "" {
 						expectedVolumeMounts = append(expectedVolumeMounts, corev1.VolumeMount{
-							Name: "server-conf", MountPath: "/etc/rabbitmq/advanced.config", SubPath: "avanced.config"})
+							Name: "server-conf", MountPath: "/etc/rabbitmq/advanced.config", SubPath: "advanced.config"})
 					}
 
 					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
@@ -1089,7 +1089,7 @@ var _ = Describe("StatefulSet", func() {
 				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolumes))
 
 			},
-				FEntry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
+				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
 				Entry("Only env config is set", "rabbitmq-env-is-set", ""),
 				Entry("Only advanced config is set", "", "advanced-config-is-set"),
 				Entry("No configs are set", "", ""),

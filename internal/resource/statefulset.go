@@ -713,6 +713,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	return podTemplateSpec
 }
 
+func appendConfigMapServerConfig(volumes []corev1.Volume, instance *rabbitmqv1beta1.RabbitmqCluster) {
+
+}
+
 func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *rabbitmqv1beta1.RabbitmqCluster) {
 	for _, value := range volumes {
 		if value.Name == "rabbitmq-confd" {
