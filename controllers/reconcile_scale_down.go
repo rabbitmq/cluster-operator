@@ -3,6 +3,8 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
+
 	"github.com/go-logr/logr"
 	"github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/status"
@@ -18,7 +20,7 @@ func (r *RabbitmqClusterReconciler) scaleDown(ctx context.Context, cluster *v1be
 	currentReplicas := *current.Spec.Replicas
 	desiredReplicas := *sts.Spec.Replicas
 	if currentReplicas > desiredReplicas {
-		msg := "Cluster Scale down not supported"
+		msg := fmt.Sprintf("Cluster Scale down not supported; tried to scale cluster from %d nodes to %d nodes", currentReplicas, desiredReplicas)
 		reason := "UnsupportedOperation"
 		logger.Error(errors.New(reason), msg)
 		r.Recorder.Event(cluster, corev1.EventTypeWarning, reason, msg)
