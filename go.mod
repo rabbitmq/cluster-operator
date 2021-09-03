@@ -26,7 +26,7 @@ require (
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20210623192810-985e819db7af
 	sigs.k8s.io/controller-tools v0.6.2
 	sigs.k8s.io/kind v0.11.1
-	sigs.k8s.io/kustomize/kustomize/v3 v3.10.0
+	sigs.k8s.io/kustomize/kustomize/v4 v4.3.0
 )
 
 require (
@@ -47,7 +47,6 @@ require (
 	github.com/aquasecurity/libbpfgo v0.1.2-0.20210708203834-4928d36fafac // indirect
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cosiner/argv v0.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
@@ -61,17 +60,9 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/go-logr/zapr v0.4.0 // indirect
-	github.com/go-openapi/analysis v0.19.5 // indirect
-	github.com/go-openapi/errors v0.19.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.3 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
-	github.com/go-openapi/loads v0.19.4 // indirect
-	github.com/go-openapi/runtime v0.19.4 // indirect
-	github.com/go-openapi/spec v0.19.5 // indirect
-	github.com/go-openapi/strfmt v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
-	github.com/go-openapi/validate v0.19.8 // indirect
-	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/flect v0.2.3 // indirect
 	github.com/goccy/go-yaml v1.8.9 // indirect
@@ -86,11 +77,6 @@ require (
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
-	github.com/hashicorp/errwrap v1.0.0 // indirect
-	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
-	github.com/hashicorp/go-multierror v1.1.0 // indirect
-	github.com/hashicorp/go-safetemp v1.0.0 // indirect
-	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.2.1 // indirect
@@ -106,8 +92,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
-	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
@@ -124,7 +108,6 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
-	github.com/qri-io/starlib v0.4.2-0.20200213133954-ff2e8cd5ef8d // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.7.0 // indirect
@@ -134,13 +117,10 @@ require (
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/timtadh/data-structures v0.5.3 // indirect
 	github.com/timtadh/lexmachine v0.2.2 // indirect
-	github.com/ulikunitz/xz v0.5.8 // indirect
 	github.com/weppos/publicsuffix-go v0.13.0 // indirect
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca // indirect
-	github.com/yujunz/go-getter v1.5.1-lite.0.20201201013212-6d9c071adddf // indirect
 	github.com/zmap/zcrypto v0.0.0-20201128221613-3719af1573cf // indirect
 	github.com/zmap/zlint/v3 v3.0.0 // indirect
-	go.mongodb.org/mongo-driver v1.1.2 // indirect
 	go.starlark.net v0.0.0-20200821142938-949cc6f4b097 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
@@ -166,10 +146,10 @@ require (
 	k8s.io/apiextensions-apiserver v0.21.3 // indirect
 	k8s.io/component-base v0.21.3 // indirect
 	k8s.io/klog/v2 v2.8.0 // indirect
-	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7 // indirect
-	sigs.k8s.io/kustomize/api v0.8.0 // indirect
-	sigs.k8s.io/kustomize/cmd/config v0.9.1 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.10.9 // indirect
+	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
+	sigs.k8s.io/kustomize/api v0.9.0 // indirect
+	sigs.k8s.io/kustomize/cmd/config v0.10.0 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.11.1 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
