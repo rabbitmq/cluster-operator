@@ -945,30 +945,30 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 }
 
 func publishAndConsumeStreamMsg(host, port, username, password string) {
-	pport, _ := strconv.Atoi(port)
-	env, err := stream.NewEnvironment(
-		stream.NewEnvironmentOptions().
-			SetHost(host).
-			SetPort(pport).
-			SetUser(username).
-			SetPassword(password),
-	)
+	direct, err := stream.NewDirectClient(&stream.Broker{
+		Host:     host,
+		Port:     port,
+		User:     username,
+		Vhost:    "/",
+		Password: password,
+		Scheme:   "rabbitmq-stream",
+	})
+
 	Expect(err).ToNot(HaveOccurred())
 
 	streamName := "system-test-stream"
-	Expect(env.DeclareStream(
+	Expect(direct.DeclareStream(
 		streamName,
 		&stream.StreamOptions{
 			MaxLengthBytes: stream.ByteCapacity{}.KB(1),
 		},
 	)).To(Succeed())
 
-	producer, err := env.NewProducer(streamName, nil)
+	producer, err := direct.DeclarePublisher(streamName, nil)
 	Expect(err).ToNot(HaveOccurred())
 	chPublishConfirm := producer.NotifyPublishConfirmation()
 	msgSent := "test message"
-	_, err = producer.BatchPublish([]message.StreamMessage{streamamqp.NewMessage(
-		[]byte(msgSent),
+	err = producer.BatchSend([]message.StreamMessage{streamamqp.NewMessage([]byte(msgSent),
 	)})
 	Expect(err).ToNot(HaveOccurred())
 	Eventually(chPublishConfirm).Should(Receive())
@@ -979,7 +979,7 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 		Expect(message.Data).To(HaveLen(1))
 		msgReceived = message.Data[0]
 	}
-	consumer, err := env.NewConsumer(
+	consumer, err := direct.DeclareSubscriber(
 		streamName,
 		handleMessages,
 		stream.NewConsumerOptions().
@@ -989,8 +989,8 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 		return msgReceived
 	}).Should(Equal(msgSent), "consumer should receive message")
 	Expect(consumer.Close()).To(Succeed())
-	Expect(env.DeleteStream(streamName)).To(Succeed())
-	Expect(env.Close()).To(Succeed())
+	Expect(direct.DeleteStream(streamName)).To(Succeed())
+	Expect(direct.Close()).To(Succeed())
 }
 
 func pod(ctx context.Context, clientSet *kubernetes.Clientset, r *rabbitmqv1beta1.RabbitmqCluster, i int) *corev1.Pod {
