@@ -3,6 +3,7 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -79,7 +80,7 @@ var _ = Describe("Cluster scale down", func() {
 				return "ReconcileSuccess status: condition not present"
 			}, 5).Should(Equal("ReconcileSuccess status: False, " +
 				"with reason: UnsupportedOperation " +
-				"and message: Cluster Scale down not supported"))
+				"and message: Cluster Scale down not supported; tried to scale cluster from 5 nodes to 3 nodes"))
 		})
 	})
 })
