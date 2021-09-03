@@ -160,18 +160,27 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 	}
 
 	if len(stsOverride.Spec.VolumeClaimTemplates) != 0 {
-		volumeClaimTemplatesOverride := stsOverride.Spec.VolumeClaimTemplates
-		pvcOverride := make([]corev1.PersistentVolumeClaim, len(volumeClaimTemplatesOverride))
-		for i := range volumeClaimTemplatesOverride {
-			copyObjectMeta(&pvcOverride[i].ObjectMeta, volumeClaimTemplatesOverride[i].EmbeddedObjectMeta)
-			pvcOverride[i].Namespace = sts.Namespace // PVC should always be in the same namespace as the Stateful Set
-			pvcOverride[i].Spec = volumeClaimTemplatesOverride[i].Spec
-			if err := controllerutil.SetControllerReference(instance, &pvcOverride[i], scheme); err != nil {
-				return fmt.Errorf("failed setting controller reference: %v", err)
+		// If spec.persistence.storage == 0, ignore PVC overrides.
+		// Main reason for that is that there is no default PVC in such case (emptyDir is used instead)
+		// other PVCs could technically be still overridden/added but we would be entering a very confusing territory
+		// where storage is set to 0 and yet there are PVCs with data
+		if instance.Spec.Persistence.Storage.Cmp(k8sresource.MustParse("0Gi")) == 0 {
+			logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
+			logger.Info(fmt.Sprintf("Warning: persistentVolumeClaim overrides are ignored for cluster \"%s\", becasue spec.persistence.storage is set to zero.", sts.GetName()))
+		} else {
+			volumeClaimTemplatesOverride := stsOverride.Spec.VolumeClaimTemplates
+			pvcOverride := make([]corev1.PersistentVolumeClaim, len(volumeClaimTemplatesOverride))
+			for i := range volumeClaimTemplatesOverride {
+				copyObjectMeta(&pvcOverride[i].ObjectMeta, volumeClaimTemplatesOverride[i].EmbeddedObjectMeta)
+				pvcOverride[i].Namespace = sts.Namespace // PVC should always be in the same namespace as the Stateful Set
+				pvcOverride[i].Spec = volumeClaimTemplatesOverride[i].Spec
+				if err := controllerutil.SetControllerReference(instance, &pvcOverride[i], scheme); err != nil {
+					return fmt.Errorf("failed setting controller reference: %v", err)
+				}
+				disableBlockOwnerDeletion(pvcOverride[i])
 			}
-			disableBlockOwnerDeletion(pvcOverride[i])
+			sts.Spec.VolumeClaimTemplates = pvcOverride
 		}
-		sts.Spec.VolumeClaimTemplates = pvcOverride
 	}
 
 	if stsOverride.Spec.Template == nil {
@@ -192,6 +201,11 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 }
 
 func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {
+	zero := k8sresource.MustParse("0Gi")
+	if instance.Spec.Persistence.Storage.Cmp(zero) == 0 {
+		return []corev1.PersistentVolumeClaim{}, nil
+	}
+
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        defaultPVCName,
@@ -428,6 +442,16 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: builder.Instance.ChildResourceName(ServerConfigMapName),
 					}}}})
+	}
+
+	zero := k8sresource.MustParse("0Gi")
+	if builder.Instance.Spec.Persistence.Storage.Cmp(zero) == 0 {
+		volumes = append(volumes, corev1.Volume{
+			Name: "persistence",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
 	}
 
 	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{
