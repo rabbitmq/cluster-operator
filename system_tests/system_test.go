@@ -589,7 +589,7 @@ CONSOLE_LOG=new`
 			if strings.Contains(cluster.Spec.Image, ":3.8") || strings.HasSuffix(cluster.Spec.Image, "tanzu-rabbitmq:1") {
 				Skip("rabbitmq_stream plugin is not supported by RabbitMQ image " + cluster.Spec.Image)
 			}
-			publishAndConsumeStreamMsg(ctx, hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
+			publishAndConsumeStreamMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 		})
 	})
 })

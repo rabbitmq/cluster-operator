@@ -43,7 +43,8 @@ import (
 	"github.com/go-stomp/stomp"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	streamamqp "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
-	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/streaming"
+	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/message"
+	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 	"github.com/streadway/amqp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -943,40 +944,55 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 	ExpectWithOffset(1, conn.Disconnect()).To(Succeed())
 }
 
-func publishAndConsumeStreamMsg(ctx context.Context, hostname, port, username, password string) {
-	uri := fmt.Sprintf("rabbitmq-streaming://%s:%s@%s:%s/%%2f", username, password, hostname, port)
-	client, err := streaming.NewClientCreator().Uri(uri).Connect()
+func publishAndConsumeStreamMsg(host, port, username, password string) {
+	portInt, err := strconv.Atoi(port)
 	Expect(err).ToNot(HaveOccurred())
 
-	streamName := "system-test-stream"
-	Expect(client.StreamCreator().Stream(streamName).Create()).To(Succeed())
-
-	var msgReceived []byte
-	consumer, err := client.ConsumerCreator().
-		Stream(streamName).
-		Name("system-test-consumer").
-		MessagesHandler(func(context streaming.ConsumerContext, message *streamamqp.Message) {
-			Expect(message.Data).To(HaveLen(1))
-			msgReceived = message.Data[0]
-		}).Build()
+	env, err := stream.NewEnvironment(stream.NewEnvironmentOptions().
+		SetHost(host).
+		SetPort(portInt).
+		SetPassword(password).
+		SetUser(username).
+		SetAddressResolver(stream.AddressResolver{
+			Host: host,
+			Port: portInt,
+		}))
 	Expect(err).ToNot(HaveOccurred())
 
-	msgSent := []byte("test message stream")
-	producer, err := client.ProducerCreator().Stream(streamName).Build()
-	Expect(err).ToNot(HaveOccurred())
-	_, err = producer.BatchPublish(ctx, []*streamamqp.Message{
-		streamamqp.NewMessage(msgSent)},
-	)
-	Expect(err).ToNot(HaveOccurred())
+	const streamName = "system-test-stream"
+	Expect(env.DeclareStream(
+		streamName,
+		&stream.StreamOptions{
+			MaxLengthBytes: stream.ByteCapacity{}.KB(1),
+		},
+	)).To(Succeed())
 
-	Eventually(func() []byte {
-		return msgReceived
-	}, 5*time.Second).Should(Equal(msgSent), "consumer should receive message sent by producer")
-
+	producer, err := env.NewProducer(streamName, nil)
+	Expect(err).ToNot(HaveOccurred())
+	chPublishConfirm := producer.NotifyPublishConfirmation()
+	const msgSent = "test message"
+	Expect(producer.BatchSend(
+		[]message.StreamMessage{streamamqp.NewMessage([]byte(msgSent))})).To(Succeed())
+	Eventually(chPublishConfirm).Should(Receive())
 	Expect(producer.Close()).To(Succeed())
-	Expect(consumer.UnSubscribe()).To(Succeed())
-	Expect(client.DeleteStream(streamName)).To(Succeed())
-	Expect(client.Close()).To(Succeed())
+
+	var msgReceived string
+	handleMessages := func(consumerContext stream.ConsumerContext, message *streamamqp.Message) {
+		Expect(message.Data).To(HaveLen(1))
+		msgReceived = string(message.Data[0][:])
+	}
+	consumer, err := env.NewConsumer(
+		streamName,
+		handleMessages,
+		stream.NewConsumerOptions().
+			SetOffset(stream.OffsetSpecification{}.First()))
+	Expect(err).ToNot(HaveOccurred())
+	Eventually(func() string {
+		return msgReceived
+	}).Should(Equal(msgSent), "consumer should receive message")
+	Expect(consumer.Close()).To(Succeed())
+	Expect(env.DeleteStream(streamName)).To(Succeed())
+	Expect(env.Close()).To(Succeed())
 }
 
 func pod(ctx context.Context, clientSet *kubernetes.Clientset, r *rabbitmqv1beta1.RabbitmqCluster, i int) *corev1.Pod {
