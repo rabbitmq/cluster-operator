@@ -945,52 +945,52 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 }
 
 func publishAndConsumeStreamMsg(host, port, username, password string) {
-	direct, err := stream.NewDirectClient(&stream.Broker{
-		Host:     host,
-		Port:     port,
-		User:     username,
-		Vhost:    "/",
-		Password: password,
-		Scheme:   "rabbitmq-stream",
-	})
+	portInt, _ := strconv.Atoi(port)
+	env, err := stream.NewEnvironment(stream.NewEnvironmentOptions().
+		SetHost(host).
+		SetPort(portInt).
+		SetPassword(password).
+		SetUser(username).SetAddressResolver(stream.AddressResolver{
+		Host: host,
+		Port: portInt,
+	}))
 
 	Expect(err).ToNot(HaveOccurred())
 
 	streamName := "system-test-stream"
-	Expect(direct.DeclareStream(
+	Expect(env.DeclareStream(
 		streamName,
 		&stream.StreamOptions{
 			MaxLengthBytes: stream.ByteCapacity{}.KB(1),
 		},
 	)).To(Succeed())
 
-	producer, err := direct.DeclarePublisher(streamName, nil)
+	producer, err := env.NewProducer(streamName, nil)
 	Expect(err).ToNot(HaveOccurred())
 	chPublishConfirm := producer.NotifyPublishConfirmation()
 	msgSent := "test message"
-	err = producer.BatchSend([]message.StreamMessage{streamamqp.NewMessage([]byte(msgSent),
-	)})
+	err = producer.BatchSend([]message.StreamMessage{streamamqp.NewMessage([]byte(msgSent))})
 	Expect(err).ToNot(HaveOccurred())
 	Eventually(chPublishConfirm).Should(Receive())
 	Expect(producer.Close()).To(Succeed())
 
-	var msgReceived []byte
+	var msgReceived string
 	handleMessages := func(consumerContext stream.ConsumerContext, message *streamamqp.Message) {
 		Expect(message.Data).To(HaveLen(1))
-		msgReceived = message.Data[0]
+		msgReceived = string(message.Data[0][:])
 	}
-	consumer, err := direct.DeclareSubscriber(
+	consumer, err := env.NewConsumer(
 		streamName,
 		handleMessages,
 		stream.NewConsumerOptions().
 			SetOffset(stream.OffsetSpecification{}.First()))
 	Expect(err).ToNot(HaveOccurred())
-	Eventually(func() []byte {
+	Eventually(func() string {
 		return msgReceived
 	}).Should(Equal(msgSent), "consumer should receive message")
 	Expect(consumer.Close()).To(Succeed())
-	Expect(direct.DeleteStream(streamName)).To(Succeed())
-	Expect(direct.Close()).To(Succeed())
+	Expect(env.DeleteStream(streamName)).To(Succeed())
+	Expect(env.Close()).To(Succeed())
 }
 
 func pod(ctx context.Context, clientSet *kubernetes.Clientset, r *rabbitmqv1beta1.RabbitmqCluster, i int) *corev1.Pod {

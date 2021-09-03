@@ -13,7 +13,7 @@ require (
 	github.com/mikefarah/yq/v4 v4.12.1
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
-	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210705074332-033ffd89e010
+	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210811090309-627299932bac
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	github.com/streadway/amqp v1.0.0
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
