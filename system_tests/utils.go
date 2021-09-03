@@ -945,19 +945,21 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 }
 
 func publishAndConsumeStreamMsg(host, port, username, password string) {
-	portInt, _ := strconv.Atoi(port)
+	portInt, err := strconv.Atoi(port)
+	Expect(err).ToNot(HaveOccurred())
+
 	env, err := stream.NewEnvironment(stream.NewEnvironmentOptions().
 		SetHost(host).
 		SetPort(portInt).
 		SetPassword(password).
-		SetUser(username).SetAddressResolver(stream.AddressResolver{
-		Host: host,
-		Port: portInt,
-	}))
-
+		SetUser(username).
+		SetAddressResolver(stream.AddressResolver{
+			Host: host,
+			Port: portInt,
+		}))
 	Expect(err).ToNot(HaveOccurred())
 
-	streamName := "system-test-stream"
+	const streamName = "system-test-stream"
 	Expect(env.DeclareStream(
 		streamName,
 		&stream.StreamOptions{
@@ -968,9 +970,9 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 	producer, err := env.NewProducer(streamName, nil)
 	Expect(err).ToNot(HaveOccurred())
 	chPublishConfirm := producer.NotifyPublishConfirmation()
-	msgSent := "test message"
-	err = producer.BatchSend([]message.StreamMessage{streamamqp.NewMessage([]byte(msgSent))})
-	Expect(err).ToNot(HaveOccurred())
+	const msgSent = "test message"
+	Expect(producer.BatchSend(
+		[]message.StreamMessage{streamamqp.NewMessage([]byte(msgSent))})).To(Succeed())
 	Eventually(chPublishConfirm).Should(Receive())
 	Expect(producer.Close()).To(Succeed())
 
