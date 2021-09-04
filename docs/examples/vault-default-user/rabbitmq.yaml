@@ -1,0 +1,11 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: vault-default-user
+spec:
+  replicas: 1
+  secretBackend:
+    vault:
+      role: rabbitmq
+      defaultUserSecretPath: secret/data/rabbitmq/config
+

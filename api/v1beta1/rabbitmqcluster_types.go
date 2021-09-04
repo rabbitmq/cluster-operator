@@ -84,11 +84,20 @@ type RabbitmqClusterSpec struct {
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:default:=604800
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
-	// Vault related configuration for the RabbitMQ cluster.
-	// When vault integration is set, operator gets default user credential from vault rather than generating username/password.
+	// Secret auth backend configuration for the RabbitMQ cluster.
+	SecretBackend SecretBackend `json:"secretBackend,omitempty"`
+}
+
+// SecretBackend configures a single secret backend from a list of available backends. Today only Vault exists
+// as supported Secret backend. And k8s secret is the other implicit SecretBackend which will be used when
+// we do not specify any Secret Backend
+// Future backends could be SecretStoreCSIDriver
+type SecretBackend struct {
 	Vault VaultSpec `json:"vault,omitempty"`
 }
 
+// VaultSpec uses Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations) which relies
+// on an injected Vault Agent sidecar to retrieve secrets
 type VaultSpec struct {
 	// Role required to access default user credentials in vault.
 	Role string `json:"role,omitempty"`
@@ -378,7 +387,7 @@ func (cluster *RabbitmqCluster) StreamNeeded() bool {
 }
 
 func (cluster *RabbitmqCluster) VaultEnabled() bool {
-	return cluster.Spec.Vault.Role != ""
+	return cluster.Spec.SecretBackend.Vault.Role != ""
 }
 
 // +kubebuilder:object:root=true

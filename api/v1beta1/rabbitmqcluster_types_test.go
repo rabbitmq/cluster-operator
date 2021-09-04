@@ -123,7 +123,7 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("can set vault configuration correctly", func() {
 			created := generateRabbitmqClusterObject("rabbit-vault")
-			created.Spec.Vault = VaultSpec{
+			created.Spec.SecretBackend.Vault = VaultSpec{
 				Role:                  "test-role",
 				DefaultUserSecretPath: "test-path",
 			}
@@ -134,8 +134,8 @@ var _ = Describe("RabbitmqCluster", func() {
 				Namespace: "default",
 			}, fetchedRabbit)).To(Succeed())
 
-			Expect(fetchedRabbit.Spec.Vault.Role).To(Equal("test-role"))
-			Expect(fetchedRabbit.Spec.Vault.DefaultUserSecretPath).To(Equal("test-path"))
+			Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
+			Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretPath).To(Equal("test-path"))
 		})
 
 		It("is validated", func() {

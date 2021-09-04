@@ -879,37 +879,44 @@ var _ = Describe("StatefulSet", func() {
 		Context("Vault", func() {
 
 			It("adds annotations for default-user", func() {
-				instance.Spec.Vault.Role = "rabbitmq"
-				instance.Spec.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
+				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				Expect(statefulSet.Spec.Template.Annotations).To(
 					HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
 				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.Vault.Role))
+					HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.SecretBackend.Vault.Role))
 				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-12-default_user.conf", instance.Spec.Vault.DefaultUserSecretPath))
+					HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-11-default_user.conf", instance.Spec.SecretBackend.Vault.DefaultUserSecretPath))
 				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKey("vault.hashicorp.com/agent-inject-template-12-default_user.conf"))
+					HaveKey("vault.hashicorp.com/agent-inject-template-11-default_user.conf"))
+
+			})
+
+			It("generates adminconfig credentials from vault mounted file", func() {
+				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
+				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Command[2]).To(
+					ContainSubstring("/etc/rabbitmq/conf.d/11-default_user.conf"))
 
 			})
 
 			It("adds annotations for tls", func() {
-				instance.Spec.Vault.Role = "rabbitmq"
-				instance.Spec.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
-				instance.Spec.Vault.TLSSecretPath = "secret/rabbitmq/config"
+				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
+				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+				instance.Spec.SecretBackend.Vault.TLSSecretPath = "secret/rabbitmq/config"
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				Expect(statefulSet.Spec.Template.Annotations).To(
 					HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
 				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.Vault.Role))
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-12-default_user.conf", instance.Spec.Vault.DefaultUserSecretPath))
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKey("vault.hashicorp.com/agent-inject-template-12-default_user.conf"))
+					HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.SecretBackend.Vault.Role))
 
 				//TlsKeyFilename := "tls.key"
 				//TlsCertDir := "/etc/rabbitmq-tls/"
@@ -922,10 +929,10 @@ var _ = Describe("StatefulSet", func() {
 			})
 
 			It("adds annotations for mutual tls", func() {
-				instance.Spec.Vault.Role = "rabbitmq"
-				instance.Spec.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
-				instance.Spec.Vault.TLSSecretPath = "secret/rabbitmq/config"
-				instance.Spec.Vault.CaSecretPath = "secret/rabbitmq/config"
+				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
+				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+				instance.Spec.SecretBackend.Vault.TLSSecretPath = "secret/rabbitmq/config"
+				instance.Spec.SecretBackend.Vault.CaSecretPath = "secret/rabbitmq/config"
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
@@ -975,7 +982,7 @@ var _ = Describe("StatefulSet", func() {
 						MountPath: "/var/lib/rabbitmq/mnesia/",
 					}))
 				},
-				FEntry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
+				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
 				Entry("Only env config is set", "rabbitmq-env-is-set", ""),
 				Entry("Only advanced config is set", "", "advanced-config-is-set"),
 				Entry("No configs are set", "", ""),
@@ -1005,19 +1012,7 @@ var _ = Describe("StatefulSet", func() {
 						VolumeSource: corev1.VolumeSource{
 							Projected: &corev1.ProjectedVolumeSource{
 								Sources: []corev1.VolumeProjection{
-									{
-										Secret: &corev1.SecretProjection{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: builder.Instance.ChildResourceName("default-user"),
-											},
-											Items: []corev1.KeyToPath{
-												{
-													Key:  "default_user.conf",
-													Path: "default_user.conf",
-												},
-											},
-										},
-									},
+
 									{
 										ConfigMap: &corev1.ConfigMapProjection{
 											LocalObjectReference: corev1.LocalObjectReference{
@@ -1031,6 +1026,19 @@ var _ = Describe("StatefulSet", func() {
 												{
 													Key:  "userDefinedConfiguration.conf",
 													Path: "userDefinedConfiguration.conf",
+												},
+											},
+										},
+									},
+									{
+										Secret: &corev1.SecretProjection{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: builder.Instance.ChildResourceName("default-user"),
+											},
+											Items: []corev1.KeyToPath{
+												{
+													Key:  "default_user.conf",
+													Path: "default_user.conf",
 												},
 											},
 										},
