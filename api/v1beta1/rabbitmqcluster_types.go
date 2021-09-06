@@ -84,28 +84,32 @@ type RabbitmqClusterSpec struct {
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:default:=604800
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
-	// Secret auth backend configuration for the RabbitMQ cluster.
+	// Secret backend configuration for the RabbitmqCluster.
+	// If configured, the cluster-operator will not create a default user K8s Secret.
+	// Instead, default user credentials will be fetched from an external secret backend.
 	SecretBackend SecretBackend `json:"secretBackend,omitempty"`
 }
 
-// SecretBackend configures a single secret backend from a list of available backends. Today only Vault exists
-// as supported Secret backend. And k8s secret is the other implicit SecretBackend which will be used when
-// we do not specify any Secret Backend
-// Future backends could be SecretStoreCSIDriver
+// SecretBackend configures a single secret backend from a list of available backends.
+// Today, only Vault exists as supported secret backend.
+// Future secret backends could be Secrets Store CSI Driver.
+// If not configured, K8s Secrets will be used.
 type SecretBackend struct {
 	Vault VaultSpec `json:"vault,omitempty"`
 }
 
-// VaultSpec uses Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations) which relies
-// on an injected Vault Agent sidecar to retrieve secrets
+// VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations)
+// to RabbitMQ Pods. It requires a Vault Agent Sidecar Injector (https://www.vaultproject.io/docs/platform/k8s/injector)
+// to be installed in the K8s cluster. The injector is a K8s Mutation Webhook Controller that alters RabbitMQ Pod specifications
+// (based on the added Vault annotations) to include Vault Agent containers that render Vault secrets to the volume.
 type VaultSpec struct {
-	// Role required to access default user credentials in vault.
+	// Role required to access default user credentials in Vault.
 	Role string `json:"role,omitempty"`
-	// Path to access a KV secret with the fields username and password for the default user
+	// Path to access a KV secret with the fields username and password for the default user.
 	DefaultUserSecretPath string `json:"defaultUserSecretPath,omitempty"`
-	// Path to access a KV secret with the fields tlskey and tlscrt to enable TLS
+	// Path to access a KV secret with the fields tlskey and tlscrt to enable TLS.
 	TLSSecretPath string `json:"tlsSecretPath,omitempty"`
-	// Path to access a KV secret with the fields cacrt to enable mutual TLS
+	// Path to access a KV secret with the fields cacrt to enable mutual TLS.
 	CaSecretPath string `json:"caSecretPath,omitempty"`
 }
 
