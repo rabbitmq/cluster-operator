@@ -709,7 +709,13 @@ func declareSetupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.Rabbitmq
 		},
 	}
 
-	if !instance.VaultEnabled() {
+	if instance.VaultEnabled() {
+		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf  " +
+			//"&& echo \"test\" > /var/lib/rabbitmq/test ; ls /etc/rabbitmq/conf.d/11-default_user.conf  >  /var/lib/rabbitmq/test2  "
+			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
+			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf"
+	} else {
+		// Vault annotation automatically mounts the volume
 		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf"
@@ -718,12 +724,6 @@ func declareSetupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.Rabbitmq
 			MountPath: "/tmp/default_user.conf",
 			SubPath:   "default_user.conf",
 		})
-	} else {
-		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf  " +
-			//"&& echo \"test\" > /var/lib/rabbitmq/test ; ls /etc/rabbitmq/conf.d/11-default_user.conf  >  /var/lib/rabbitmq/test2  "
-			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf"
-		// Vault annotation automatically mounts the volume
 	}
 	return setupContainer
 
