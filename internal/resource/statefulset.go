@@ -719,10 +719,10 @@ func declareSetupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.Rabbitmq
 			SubPath:   "default_user.conf",
 		})
 	} else {
-		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf ; "
-			// "&& ls /etc/rabbitmq/conf.d/ ; "
-			//"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-			//"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf"
+		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf  " +
+			//"&& echo \"test\" > /var/lib/rabbitmq/test ; ls /etc/rabbitmq/conf.d/11-default_user.conf  >  /var/lib/rabbitmq/test2  "
+			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
+			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf"
 		// Vault annotation automatically mounts the volume
 	}
 	return setupContainer
@@ -754,6 +754,7 @@ func appendVaultAnnotations(current map[string]string, instance *rabbitmqv1beta1
 	// Add Vault annotations
 	vaultPodAnnotations := map[string]string{
 		"vault.hashicorp.com/agent-inject":                             "true",
+		"vault.hashicorp.com/agent-init-first":                         "true",
 		"vault.hashicorp.com/log-level": 								"debug",
 		"vault.hashicorp.com/role":                                     instance.Spec.SecretBackend.Vault.Role,
 		"vault.hashicorp.com/secret-volume-path-11-default_user.conf":  "/etc/rabbitmq/conf.d",
