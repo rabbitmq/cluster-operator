@@ -149,7 +149,7 @@ func (builder *ServiceBuilder) generateServicePortsMapOnlyTLSListeners() map[str
 		}
 	}
 
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
+	if builder.Instance.StreamNeeded() {
 		servicePortsMap["streams"] = corev1.ServicePort{
 			Protocol:   corev1.ProtocolTCP,
 			Port:       5551,
@@ -232,7 +232,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 		}
 	}
 
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
+	if builder.Instance.StreamNeeded() {
 		servicePortsMap["stream"] = corev1.ServicePort{
 			Protocol:   corev1.ProtocolTCP,
 			Port:       5552,
@@ -270,7 +270,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				TargetPort: intstr.FromInt(8883),
 			}
 		}
-		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
+		if builder.Instance.StreamNeeded() {
 			servicePortsMap["streams"] = corev1.ServicePort{
 				Protocol:   corev1.ProtocolTCP,
 				Port:       5551,

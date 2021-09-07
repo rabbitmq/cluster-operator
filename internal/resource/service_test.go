@@ -169,6 +169,21 @@ var _ = Context("Services", func() {
 				})
 			})
 
+			When("rabbitmq_multi_dc_replication is enabled", func() {
+				It("opens port for streams", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_multi_dc_replication"}
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
+						{
+							Name:       "streams",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       5551,
+							TargetPort: intstr.FromInt(5551),
+						},
+					}))
+				})
+			})
+
 			When("DisableNonTLSListeners is set to true", func() {
 				It("only exposes tls ports in the service", func() {
 					instance.Spec.TLS.DisableNonTLSListeners = true
@@ -234,6 +249,7 @@ var _ = Context("Services", func() {
 					Entry("STOMP", "rabbitmq_stomp", "stomps", 61614),
 					Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp-tls", 15673),
 					Entry("Stream", "rabbitmq_stream", "streams", 5551),
+					Entry("OSR", "rabbitmq_multi_dc_replication", "streams", 5551),
 				)
 			})
 		})
@@ -466,6 +482,7 @@ var _ = Context("Services", func() {
 				Entry("STOMP", "rabbitmq_stomp", "stomp", 61613),
 				Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp", 15674),
 				Entry("Stream", "rabbitmq_stream", "stream", 5552),
+				Entry("OSR", "rabbitmq_multi_dc_replication", "stream", 5552),
 			)
 
 			It("updates the service type from ClusterIP to NodePort", func() {

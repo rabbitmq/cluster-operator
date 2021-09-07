@@ -351,6 +351,11 @@ func (cluster *RabbitmqCluster) AdditionalPluginEnabled(plugin Plugin) bool {
 	return false
 }
 
+// the OSR plugin `rabbitmq_multi_dc_replication` enables `rabbitmq_stream` as a dependency
+func (cluster *RabbitmqCluster) StreamNeeded() bool {
+	return cluster.AdditionalPluginEnabled("rabbitmq_stream") || cluster.AdditionalPluginEnabled("rabbitmq_multi_dc_replication")
+}
+
 // +kubebuilder:object:root=true
 
 // RabbitmqClusterList contains a list of RabbitmqClusters.
