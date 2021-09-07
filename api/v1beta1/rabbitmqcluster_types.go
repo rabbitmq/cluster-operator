@@ -107,18 +107,32 @@ type VaultSpec struct {
 	Role string `json:"role,omitempty"`
 	// Path to access a KV secret with the fields username and password for the default user.
 	DefaultUserSecretPath string `json:"defaultUserSecretPath,omitempty"`
-	// Path to access a KV secret with the fields tlskey and tlscrt to enable TLS.
-	TLSSecretPath string `json:"tlsSecretPath,omitempty"`
-	// Path to access a KV secret with the fields cacrt to enable mutual TLS.
-	CaSecretPath string `json:"caSecretPath,omitempty"`
+	TLS VaultTLSSpec `json:"tls,omitempty"`
+}
+
+type VaultTLSSpec struct {
+	// Path to access PKI issuing path, e.g. "pki/issue/hashicorp-com"
+	// Required
+	PKIRolePath string `json:"pkiRolePath,omitempty"`
+
+	// Specifies the requested CN for the certificate.
+	// Defaults to <serviceName>.<namespace>.svc if not provided
+	CommonName string `json:"commonName,omitempty"`
+
+	// Specifies the requested Subject Alternative Names, in a comma-delimited list. These can be host names or email
+	// addresses; they will be parsed into their respective fields.
+	AltNames string `json:"altNames,omitempty"`
+	// Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
+	IpSans string `json:"ipSans,omitempty"`
 }
 
 func (spec *VaultSpec) TLSEnabled() bool {
-	return spec.TLSSecretPath != ""
+	return spec.TLS.PKIRolePath != ""
 }
-func (spec *VaultSpec) MutualTLSEnabled() bool {
-	return spec.TLSEnabled() && spec.CaSecretPath != ""
+func (spec *VaultSpec) DefaultUserSecretEnabled() bool {
+	return spec.DefaultUserSecretPath != ""
 }
+
 
 // Provides the ability to override the generated manifest of several child resources.
 type RabbitmqClusterOverrideSpec struct {
@@ -357,11 +371,14 @@ type RabbitmqClusterServiceSpec struct {
 }
 
 func (cluster *RabbitmqCluster) TLSEnabled() bool {
+	return cluster.SecretTLSEnabled()|| cluster.VaultTLSEnabled()
+}
+func (cluster *RabbitmqCluster) SecretTLSEnabled() bool {
 	return cluster.Spec.TLS.SecretName != ""
 }
 
 func (cluster *RabbitmqCluster) MutualTLSEnabled() bool {
-	return cluster.TLSEnabled() && cluster.Spec.TLS.CaSecretName != ""
+	return  (cluster.Spec.TLS.CaSecretName != "" && cluster.Spec.TLS.SecretName != "" ) || cluster.VaultTLSEnabled()
 }
 
 func (cluster *RabbitmqCluster) MemoryLimited() bool {
@@ -392,6 +409,12 @@ func (cluster *RabbitmqCluster) StreamNeeded() bool {
 
 func (cluster *RabbitmqCluster) VaultEnabled() bool {
 	return cluster.Spec.SecretBackend.Vault.Role != ""
+}
+func (cluster *RabbitmqCluster) VaultDefaultUserSecretEnabled() bool {
+	return cluster.VaultEnabled() && cluster.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()
+}
+func (cluster *RabbitmqCluster) VaultTLSEnabled() bool {
+	return cluster.VaultEnabled() && cluster.Spec.SecretBackend.Vault.TLSEnabled()
 }
 
 // +kubebuilder:object:root=true

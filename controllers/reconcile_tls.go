@@ -21,7 +21,7 @@ func (r *RabbitmqClusterReconciler) reconcileTLS(ctx context.Context, rabbitmqCl
 		return err
 	}
 
-	if rabbitmqCluster.TLSEnabled() {
+	if rabbitmqCluster.SecretTLSEnabled() {
 		if err := r.checkTLSSecrets(ctx, rabbitmqCluster); err != nil {
 			r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "TLSError", err.Error())
 			return err

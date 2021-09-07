@@ -309,7 +309,7 @@ Spec is the desired state of the RabbitmqCluster Custom Resource.
 | *`override`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusteroverridespec[$$RabbitmqClusterOverrideSpec$$]__ | Provides the ability to override the generated manifest of several child resources.
 | *`skipPostDeploySteps`* __boolean__ | If unset, or set to false, the cluster will run `rabbitmq-queues rebalance all` whenever the cluster is updated. Set to true to prevent the operator rebalancing queue leaders after a cluster update. Has no effect if the cluster only consists of one node. For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
 | *`terminationGracePeriodSeconds`* __integer__ | TerminationGracePeriodSeconds is the timeout that each rabbitmqcluster pod will have to terminate gracefully. It defaults to 604800 seconds ( a week long) to ensure that the container preStop lifecycle hook can finish running. For more information, see: https://github.com/rabbitmq/cluster-operator/blob/main/docs/design/20200520-graceful-pod-termination.md
-| *`secretBackend`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-secretbackend[$$SecretBackend$$]__ | Secret auth backend configuration for the RabbitMQ cluster.
+| *`secretBackend`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-secretbackend[$$SecretBackend$$]__ | Secret backend configuration for the RabbitmqCluster. If configured, the cluster-operator will not create a default user K8s Secret. Instead, default user credentials will be fetched from an external secret backend.
 |===
 
 
@@ -336,7 +336,7 @@ Status presents the observed state of RabbitmqCluster
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-secretbackend"]
 ==== SecretBackend 
 
-SecretBackend configures a single secret backend from a list of available backends. Today only Vault exists as supported Secret backend. And k8s secret is the other implicit SecretBackend which will be used when we do not specify any Secret Backend Future backends could be SecretStoreCSIDriver
+SecretBackend configures a single secret backend from a list of available backends. Today, only Vault exists as supported secret backend. Future secret backends could be Secrets Store CSI Driver. If not configured, K8s Secrets will be used.
 
 .Appears In:
 ****
@@ -433,7 +433,7 @@ Allows for the configuration of TLS certificates to be used by RabbitMQ. Also al
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaultspec"]
 ==== VaultSpec 
 
-VaultSpec uses Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations) which relies on an injected Vault Agent sidecar to retrieve secrets
+VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations) to RabbitMQ Pods. It requires a Vault Agent Sidecar Injector (https://www.vaultproject.io/docs/platform/k8s/injector) to be installed in the K8s cluster. The injector is a K8s Mutation Webhook Controller that alters RabbitMQ Pod specifications (based on the added Vault annotations) to include Vault Agent containers that render Vault secrets to the volume.
 
 .Appears In:
 ****
@@ -443,10 +443,29 @@ VaultSpec uses Vault annotations (see https://www.vaultproject.io/docs/platform/
 [cols="25a,75a", options="header"]
 |===
 | Field | Description
-| *`role`* __string__ | Role required to access default user credentials in vault.
-| *`defaultUserSecretPath`* __string__ | Path to access a KV secret with the fields username and password for the default user
-| *`tlsSecretPath`* __string__ | Path to access a KV secret with the fields tlskey and tlscrt to enable TLS
-| *`caSecretPath`* __string__ | Path to access a KV secret with the fields cacrt to enable mutual TLS
+| *`role`* __string__ | Role required to access default user credentials in Vault.
+| *`defaultUserSecretPath`* __string__ | Path to access a KV secret with the fields username and password for the default user.
+| *`tls`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaulttlsspec[$$VaultTLSSpec$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaulttlsspec"]
+==== VaultTLSSpec 
+
+
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaultspec[$$VaultSpec$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`pkiRolePath`* __string__ | Path to access PKI issuing path, e.g. "pki/issue/hashicorp-com" Required
+| *`commonName`* __string__ | Specifies the requested CN for the certificate. Defaults to <serviceName>.<namespace>.svc if not provided
+| *`altNames`* __string__ | Specifies the requested Subject Alternative Names, in a comma-delimited list. These can be host names or email addresses; they will be parsed into their respective fields.
+| *`ipSans`* __string__ | Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
 |===
 
 

@@ -1,0 +1,13 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: vault-tls
+spec:
+  replicas: 1
+  secretBackend:
+    vault:
+      role: rabbitmq
+      tls:
+        pkiRolePath: pki/issue/concourse
+
+

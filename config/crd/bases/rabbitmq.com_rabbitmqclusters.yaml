@@ -3801,18 +3801,27 @@ spec:
                     vault:
                       description: VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations) to RabbitMQ Pods. It requires a Vault Agent Sidecar Injector (https://www.vaultproject.io/docs/platform/k8s/injector) to be installed in the K8s cluster. The injector is a K8s Mutation Webhook Controller that alters RabbitMQ Pod specifications (based on the added Vault annotations) to include Vault Agent containers that render Vault secrets to the volume.
                       properties:
-                        caSecretPath:
-                          description: Path to access a KV secret with the fields cacrt to enable mutual TLS.
-                          type: string
                         defaultUserSecretPath:
                           description: Path to access a KV secret with the fields username and password for the default user.
                           type: string
                         role:
                           description: Role required to access default user credentials in Vault.
                           type: string
-                        tlsSecretPath:
-                          description: Path to access a KV secret with the fields tlskey and tlscrt to enable TLS.
-                          type: string
+                        tls:
+                          properties:
+                            altNames:
+                              description: Specifies the requested Subject Alternative Names, in a comma-delimited list. These can be host names or email addresses; they will be parsed into their respective fields.
+                              type: string
+                            commonName:
+                              description: Specifies the requested CN for the certificate. Defaults to <serviceName>.<namespace>.svc if not provided
+                              type: string
+                            ipSans:
+                              description: Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
+                              type: string
+                            pkiRolePath:
+                              description: Path to access PKI issuing path, e.g. "pki/issue/hashicorp-com" Required
+                              type: string
+                          type: object
                       type: object
                   type: object
                 service:

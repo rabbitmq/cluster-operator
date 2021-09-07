@@ -13,8 +13,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -423,7 +421,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 	}
 
-	if !builder.Instance.VaultEnabled() {
+	if !builder.Instance.VaultDefaultUserSecretEnabled() {
 		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance)
 	}
 
@@ -476,7 +474,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 	}
 
-	if !builder.Instance.VaultEnabled() {
+	if !builder.Instance.VaultDefaultUserSecretEnabled() {
 		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 			Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf", SubPath: "default_user.conf",
 		})
@@ -495,7 +493,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	}
 
 	tlsSpec := builder.Instance.Spec.TLS
-	if builder.Instance.TLSEnabled() && (!builder.Instance.VaultEnabled()) {
+	if builder.Instance.SecretTLSEnabled() {
 		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 			Name:      "rabbitmq-tls",
 			MountPath: "/etc/rabbitmq-tls/",
@@ -709,9 +707,8 @@ func declareSetupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.Rabbitmq
 		},
 	}
 
-	if instance.VaultEnabled() {
+	if instance.VaultDefaultUserSecretEnabled() {
 		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf  " +
-			//"&& echo \"test\" > /var/lib/rabbitmq/test ; ls /etc/rabbitmq/conf.d/11-default_user.conf  >  /var/lib/rabbitmq/test2  "
 			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf"
 	} else {
@@ -751,51 +748,56 @@ func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *
 
 func appendVaultAnnotations(current map[string]string, instance *rabbitmqv1beta1.RabbitmqCluster) map[string]string {
 
-	// Add Vault annotations
+	vault := instance.Spec.SecretBackend.Vault
+
 	vaultPodAnnotations := map[string]string{
 		"vault.hashicorp.com/agent-inject":                             "true",
 		"vault.hashicorp.com/agent-init-first":                         "true",
-		"vault.hashicorp.com/log-level": 								"debug",
-		"vault.hashicorp.com/role":                                     instance.Spec.SecretBackend.Vault.Role,
-		"vault.hashicorp.com/secret-volume-path-11-default_user.conf":  "/etc/rabbitmq/conf.d",
-		"vault.hashicorp.com/agent-inject-secret-11-default_user.conf": instance.Spec.SecretBackend.Vault.DefaultUserSecretPath,
-		"vault.hashicorp.com/agent-inject-template-11-default_user.conf": `
-{{- with secret "secret/rabbitmq/config" -}}
+		"vault.hashicorp.com/log-level":                                "debug",
+		"vault.hashicorp.com/role":                                     vault.Role,
+	}
+
+	if vault.DefaultUserSecretEnabled() {
+		// Add Vault annotations
+		vaultPodAnnotations["vault.hashicorp.com/secret-volume-path-11-default_user.conf"] = "/etc/rabbitmq/conf.d"
+		vaultPodAnnotations["vault.hashicorp.com/agent-inject-secret-11-default_user.conf"] = vault.DefaultUserSecretPath
+		vaultPodAnnotations["vault.hashicorp.com/agent-inject-template-11-default_user.conf"] = fmt.Sprintf(`
+{{- with secret "%s" -}}
 default_user = {{ .Data.data.username }}
 default_pass = {{ .Data.data.password }}
-{{- end }}`,
+{{- end }}`, vault.DefaultUserSecretPath)
 	}
-	if instance.Spec.SecretBackend.Vault.TLSEnabled() {
+
+	if vault.TLSEnabled() {
+
+		pkiRolePath := vault.TLS.PKIRolePath
+		commonName := fmt.Sprintf("%s.%s.svc", instance.Name, instance.Namespace) // TODO refactor commonName function builder
+		if vault.TLS.CommonName != "" {
+			commonName = vault.TLS.CommonName
+		}
+
 		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsCertFilename)] = TlsCertDir
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsCertFilename)] = instance.Spec.SecretBackend.Vault.DefaultUserSecretPath
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsCertFilename)] = `
-{{- with secret "SECRET_PATH" -}}
-{{ .Data.data.tlscrt }}
-{{- end }}`
-		strings.Replace(vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsCertFilename)],
-			"SECRET_PATH", instance.Spec.SecretBackend.Vault.DefaultUserSecretPath, -1)
+		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsCertFilename)] = pkiRolePath
+		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsCertFilename)] = generateVaultTLSTemplate(commonName, vault, "certificate")
 
 		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsKeyFilename)] = TlsCertDir
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsKeyFilename)] = instance.Spec.SecretBackend.Vault.TLSSecretPath
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsKeyFilename)] = `
-{{- with secret "SECRET_PATH" -}}
-{{ .Data.data.tlskey }}
-{{- end }}`
-		strings.Replace(vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsKeyFilename)],
-			"SECRET_PATH", instance.Spec.SecretBackend.Vault.DefaultUserSecretPath, -1)
+		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsKeyFilename)] = pkiRolePath
+		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsKeyFilename)] = generateVaultTLSTemplate(commonName, vault, "private_key")
 
-		if instance.Spec.SecretBackend.Vault.MutualTLSEnabled() {
-			vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", CaCertFilename)] = TlsCertDir
-			vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", CaCertFilename)] = instance.Spec.SecretBackend.Vault.CaSecretPath
-			vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", CaCertFilename)] = `
-{{- with secret "SECRET_PATH" -}}
-{{ .Data.data.cacrt }}
-{{- end }}`
-			strings.Replace(vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", CaCertFilename)],
-				"SECRET_PATH", instance.Spec.SecretBackend.Vault.DefaultUserSecretPath, -1)
-		}
+		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", CaCertFilename)] = TlsCertDir
+		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", CaCertFilename)] = pkiRolePath
+		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", CaCertFilename)] = generateVaultTLSTemplate(commonName, vault, "issuing_ca")
+
 	}
 	return metadata.ReconcileAnnotations(current, vaultPodAnnotations)
+}
+func generateVaultTLSTemplate(commonName string, vault rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
+
+	pkiRolePath := vault.TLS.PKIRolePath
+	return fmt.Sprintf(`
+{{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}  
+{{ .Data.%s }}
+{{- end }}`, pkiRolePath, commonName, vault.TLS.AltNames, vault.TLS.IpSans, tlsAttribute)
 
 }
 
@@ -855,7 +857,7 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 		})
 	}
 
-	if builder.Instance.TLSEnabled() {
+	if builder.Instance.TLSEnabled()  {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "amqps",
 			ContainerPort: 5671,

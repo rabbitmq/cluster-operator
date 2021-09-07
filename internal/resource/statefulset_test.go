@@ -909,7 +909,7 @@ var _ = Describe("StatefulSet", func() {
 			It("adds annotations for tls", func() {
 				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
 				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
-				instance.Spec.SecretBackend.Vault.TLSSecretPath = "secret/rabbitmq/config"
+				instance.Spec.SecretBackend.Vault.PKIRolePath = "secret/rabbitmq/config"
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
@@ -931,7 +931,7 @@ var _ = Describe("StatefulSet", func() {
 			It("adds annotations for mutual tls", func() {
 				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
 				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
-				instance.Spec.SecretBackend.Vault.TLSSecretPath = "secret/rabbitmq/config"
+				instance.Spec.SecretBackend.Vault.PKIRolePath = "secret/rabbitmq/config"
 				instance.Spec.SecretBackend.Vault.CaSecretPath = "secret/rabbitmq/config"
 
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
