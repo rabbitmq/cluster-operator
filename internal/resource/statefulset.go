@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -33,6 +34,7 @@ import (
 )
 
 const (
+	stsSuffix           string = "server"
 	initContainerCPU    string = "100m"
 	initContainerMemory string = "500Mi"
 	defaultPVCName      string = "persistence"
@@ -56,7 +58,7 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName("server"),
+			Name:      builder.Instance.ChildResourceName(stsSuffix),
 			Namespace: builder.Instance.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
@@ -781,30 +783,42 @@ default_pass = {{ .Data.data.password }}
 			commonName = vault.TLS.CommonName
 		}
 
+		altNames := podHostNames(instance)
+		if vault.TLS.AltNames != "" {
+			altNames = fmt.Sprintf("%s,%s", altNames, vault.TLS.AltNames)
+		}
+
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsCertFilename)] = TlsCertDir
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsCertFilename)] = pkiRolePath
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsCertFilename)] = generateVaultTLSTemplate(commonName, vault, "certificate")
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "certificate")
 
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsKeyFilename)] = TlsCertDir
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsKeyFilename)] = pkiRolePath
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsKeyFilename)] = generateVaultTLSTemplate(commonName, vault, "private_key")
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsKeyFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "private_key")
 
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", CaCertFilename)] = TlsCertDir
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", CaCertFilename)] = pkiRolePath
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", CaCertFilename)] = generateVaultTLSTemplate(commonName, vault, "issuing_ca")
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", CaCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "issuing_ca")
 	}
 
 	return metadata.ReconcileAnnotations(currentAnnotations, vaultAnnotations)
 }
 
-func generateVaultTLSTemplate(commonName string, vault rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
+func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
+	altNames := ""
+	var i int32
+	for i = 0; i < pointer.Int32PtrDerefOr(instance.Spec.Replicas, 1); i++ {
+		altNames += fmt.Sprintf(",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace))
+	}
+	return strings.TrimLeft(altNames, ",")
+}
 
+func generateVaultTLSTemplate(commonName, altNames string, vault rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
 	pkiRolePath := vault.TLS.PKIRolePath
 	return fmt.Sprintf(`
 {{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}  
 {{ .Data.%s }}
-{{- end }}`, pkiRolePath, commonName, vault.TLS.AltNames, vault.TLS.IpSans, tlsAttribute)
-
+{{- end }}`, pkiRolePath, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
 }
 
 func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort {

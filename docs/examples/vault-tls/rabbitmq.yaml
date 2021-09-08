@@ -9,5 +9,3 @@ spec:
       role: rabbitmq
       tls:
         pkiRolePath: pki/issue/concourse
-
-

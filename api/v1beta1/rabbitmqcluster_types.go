@@ -120,8 +120,9 @@ type VaultTLSSpec struct {
 	// Defaults to <serviceName>.<namespace>.svc if not provided
 	CommonName string `json:"commonName,omitempty"`
 
-	// Specifies the requested Subject Alternative Names, in a comma-delimited list. These can be host names or email
-	// addresses; they will be parsed into their respective fields.
+	// Specifies the requested Subject Alternative Names (SANs), in a comma-delimited list.
+	// These will be appended to the SANs created by the cluster-operator:
+	// "<instance>-server-<index>.<instance>-nodes.<namespace>" for each Pod
 	AltNames string `json:"altNames,omitempty"`
 	// Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
 	IpSans string `json:"ipSans,omitempty"`

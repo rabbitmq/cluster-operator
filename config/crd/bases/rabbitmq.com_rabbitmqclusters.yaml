@@ -3810,7 +3810,7 @@ spec:
                         tls:
                           properties:
                             altNames:
-                              description: Specifies the requested Subject Alternative Names, in a comma-delimited list. These can be host names or email addresses; they will be parsed into their respective fields.
+                              description: Specifies the requested Subject Alternative Names, in a comma-delimited list. These can be host names or email addresses; they will be parsed into their respective fields. By default, this will include only the pod host name, for example "<instance>-server-0.<instance>-nodes.<namespace>"
                               type: string
                             commonName:
                               description: Specifies the requested CN for the certificate. Defaults to <serviceName>.<namespace>.svc if not provided
