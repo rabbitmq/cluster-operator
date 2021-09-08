@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -334,12 +336,11 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		"prometheus.io/port":   prometheusPort,
 	}
 
-	if builder.Instance.VaultEnabled() {
-		defaultPodAnnotations = appendVaultAnnotations(defaultPodAnnotations, builder.Instance)
-	}
-
-	automountServiceAccountToken := true
 	rabbitmqUID := int64(999)
+
+	if builder.Instance.VaultEnabled() {
+		defaultPodAnnotations = appendVaultAnnotations(defaultPodAnnotations, builder.Instance, rabbitmqUID)
+	}
 
 	readinessProbePort := "amqp"
 	if builder.Instance.DisableNonTLSListeners() {
@@ -560,7 +561,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
 			TerminationGracePeriodSeconds: builder.Instance.Spec.TerminationGracePeriodSeconds,
 			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
-			AutomountServiceAccountToken:  &automountServiceAccountToken,
+			AutomountServiceAccountToken:  pointer.Bool(true),
 			Affinity:                      builder.Instance.Spec.Affinity,
 			Tolerations:                   builder.Instance.Spec.Tolerations,
 			InitContainers:                declareSetupContainer(rabbitmqUID, builder.Instance),
@@ -746,22 +747,24 @@ func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *
 	}
 }
 
-func appendVaultAnnotations(current map[string]string, instance *rabbitmqv1beta1.RabbitmqCluster) map[string]string {
+func appendVaultAnnotations(currentAnnotations map[string]string, instance *rabbitmqv1beta1.RabbitmqCluster, rabbitmqUID int64) map[string]string {
 
 	vault := instance.Spec.SecretBackend.Vault
 
-	vaultPodAnnotations := map[string]string{
-		"vault.hashicorp.com/agent-inject":                             "true",
-		"vault.hashicorp.com/agent-init-first":                         "true",
-		"vault.hashicorp.com/log-level":                                "debug",
-		"vault.hashicorp.com/role":                                     vault.Role,
+	vaultAnnotations := map[string]string{
+		"vault.hashicorp.com/agent-inject":      "true",
+		"vault.hashicorp.com/agent-init-first":  "true",
+		"vault.hashicorp.com/log-level":         "debug",
+		"vault.hashicorp.com/role":              vault.Role,
+		"vault.hashicorp.com/agent-run-as-user": strconv.FormatInt(rabbitmqUID, 10),
 	}
 
 	if vault.DefaultUserSecretEnabled() {
-		// Add Vault annotations
-		vaultPodAnnotations["vault.hashicorp.com/secret-volume-path-11-default_user.conf"] = "/etc/rabbitmq/conf.d"
-		vaultPodAnnotations["vault.hashicorp.com/agent-inject-secret-11-default_user.conf"] = vault.DefaultUserSecretPath
-		vaultPodAnnotations["vault.hashicorp.com/agent-inject-template-11-default_user.conf"] = fmt.Sprintf(`
+		secretName := "11-default_user.conf"
+		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+secretName] = "/etc/rabbitmq/conf.d"
+		vaultAnnotations["vault.hashicorp.com/agent-inject-perms-"+secretName] = "0640"
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+secretName] = vault.DefaultUserSecretPath
+		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+secretName] = fmt.Sprintf(`
 {{- with secret "%s" -}}
 default_user = {{ .Data.data.username }}
 default_pass = {{ .Data.data.password }}
@@ -769,28 +772,28 @@ default_pass = {{ .Data.data.password }}
 	}
 
 	if vault.TLSEnabled() {
-
 		pkiRolePath := vault.TLS.PKIRolePath
 		commonName := fmt.Sprintf("%s.%s.svc", instance.Name, instance.Namespace) // TODO refactor commonName function builder
 		if vault.TLS.CommonName != "" {
 			commonName = vault.TLS.CommonName
 		}
 
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsCertFilename)] = TlsCertDir
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsCertFilename)] = pkiRolePath
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsCertFilename)] = generateVaultTLSTemplate(commonName, vault, "certificate")
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsCertFilename)] = TlsCertDir
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsCertFilename)] = pkiRolePath
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsCertFilename)] = generateVaultTLSTemplate(commonName, vault, "certificate")
 
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsKeyFilename)] = TlsCertDir
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsKeyFilename)] = pkiRolePath
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsKeyFilename)] = generateVaultTLSTemplate(commonName, vault, "private_key")
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsKeyFilename)] = TlsCertDir
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsKeyFilename)] = pkiRolePath
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsKeyFilename)] = generateVaultTLSTemplate(commonName, vault, "private_key")
 
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", CaCertFilename)] = TlsCertDir
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", CaCertFilename)] = pkiRolePath
-		vaultPodAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", CaCertFilename)] = generateVaultTLSTemplate(commonName, vault, "issuing_ca")
-
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", CaCertFilename)] = TlsCertDir
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", CaCertFilename)] = pkiRolePath
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", CaCertFilename)] = generateVaultTLSTemplate(commonName, vault, "issuing_ca")
 	}
-	return metadata.ReconcileAnnotations(current, vaultPodAnnotations)
+
+	return metadata.ReconcileAnnotations(currentAnnotations, vaultAnnotations)
 }
+
 func generateVaultTLSTemplate(commonName string, vault rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
 
 	pkiRolePath := vault.TLS.PKIRolePath
@@ -857,7 +860,7 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 		})
 	}
 
-	if builder.Instance.TLSEnabled()  {
+	if builder.Instance.TLSEnabled() {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          "amqps",
 			ContainerPort: 5671,

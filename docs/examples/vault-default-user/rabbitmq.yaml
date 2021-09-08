@@ -8,4 +8,3 @@ spec:
     vault:
       role: rabbitmq
       defaultUserSecretPath: secret/data/rabbitmq/config
-
