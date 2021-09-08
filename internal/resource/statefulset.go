@@ -747,7 +747,10 @@ func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *
 	}
 }
 
-func appendVaultAnnotations(currentAnnotations map[string]string, instance *rabbitmqv1beta1.RabbitmqCluster, rabbitmqUID int64) map[string]string {
+func appendVaultAnnotations(
+	currentAnnotations map[string]string,
+	instance *rabbitmqv1beta1.RabbitmqCluster,
+	rabbitmqUID int64) map[string]string {
 
 	vault := instance.Spec.SecretBackend.Vault
 
@@ -773,7 +776,7 @@ default_pass = {{ .Data.data.password }}
 
 	if vault.TLSEnabled() {
 		pkiRolePath := vault.TLS.PKIRolePath
-		commonName := fmt.Sprintf("%s.%s.svc", instance.Name, instance.Namespace) // TODO refactor commonName function builder
+		commonName := instance.ServiceSubDomain()
 		if vault.TLS.CommonName != "" {
 			commonName = vault.TLS.CommonName
 		}

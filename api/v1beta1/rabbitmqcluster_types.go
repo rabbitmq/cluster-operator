@@ -9,6 +9,7 @@
 package v1beta1
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -106,8 +107,8 @@ type VaultSpec struct {
 	// Role required to access default user credentials in Vault.
 	Role string `json:"role,omitempty"`
 	// Path to access a KV secret with the fields username and password for the default user.
-	DefaultUserSecretPath string `json:"defaultUserSecretPath,omitempty"`
-	TLS VaultTLSSpec `json:"tls,omitempty"`
+	DefaultUserSecretPath string       `json:"defaultUserSecretPath,omitempty"`
+	TLS                   VaultTLSSpec `json:"tls,omitempty"`
 }
 
 type VaultTLSSpec struct {
@@ -132,7 +133,6 @@ func (spec *VaultSpec) TLSEnabled() bool {
 func (spec *VaultSpec) DefaultUserSecretEnabled() bool {
 	return spec.DefaultUserSecretPath != ""
 }
-
 
 // Provides the ability to override the generated manifest of several child resources.
 type RabbitmqClusterOverrideSpec struct {
@@ -371,14 +371,14 @@ type RabbitmqClusterServiceSpec struct {
 }
 
 func (cluster *RabbitmqCluster) TLSEnabled() bool {
-	return cluster.SecretTLSEnabled()|| cluster.VaultTLSEnabled()
+	return cluster.SecretTLSEnabled() || cluster.VaultTLSEnabled()
 }
 func (cluster *RabbitmqCluster) SecretTLSEnabled() bool {
 	return cluster.Spec.TLS.SecretName != ""
 }
 
 func (cluster *RabbitmqCluster) MutualTLSEnabled() bool {
-	return  (cluster.Spec.TLS.CaSecretName != "" && cluster.Spec.TLS.SecretName != "" ) || cluster.VaultTLSEnabled()
+	return (cluster.Spec.TLS.CaSecretName != "" && cluster.Spec.TLS.SecretName != "") || cluster.VaultTLSEnabled()
 }
 
 func (cluster *RabbitmqCluster) MemoryLimited() bool {
@@ -410,11 +410,17 @@ func (cluster *RabbitmqCluster) StreamNeeded() bool {
 func (cluster *RabbitmqCluster) VaultEnabled() bool {
 	return cluster.Spec.SecretBackend.Vault.Role != ""
 }
+
 func (cluster *RabbitmqCluster) VaultDefaultUserSecretEnabled() bool {
 	return cluster.VaultEnabled() && cluster.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()
 }
+
 func (cluster *RabbitmqCluster) VaultTLSEnabled() bool {
 	return cluster.VaultEnabled() && cluster.Spec.SecretBackend.Vault.TLSEnabled()
+}
+
+func (cluster *RabbitmqCluster) ServiceSubDomain() string {
+	return fmt.Sprintf("%s.%s.svc", cluster.Name, cluster.Namespace)
 }
 
 // +kubebuilder:object:root=true
