@@ -10,7 +10,6 @@
 package resource_test
 
 import (
-	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -877,70 +876,105 @@ var _ = Describe("StatefulSet", func() {
 		})
 
 		Context("Vault", func() {
+			BeforeEach(func() {
+				instance.Spec.SecretBackend.Vault.Role = "myrole"
+			})
+			When("secretBackend.vault.defaulUserSecretPath is set", func() {
+				BeforeEach(func() {
+					instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/myrabbit/config"
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				})
 
-			It("adds annotations for default-user", func() {
-				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
-				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+				It("adds general Vault annnotations", func() {
+					a := statefulSet.Spec.Template.Annotations
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-init-first", "true"))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.SecretBackend.Vault.Role))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-run-as-user", "999"))
+				})
 
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.SecretBackend.Vault.Role))
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-11-default_user.conf", instance.Spec.SecretBackend.Vault.DefaultUserSecretPath))
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKey("vault.hashicorp.com/agent-inject-template-11-default_user.conf"))
-
+				It("adds Vault annnotations to fetch the default user", func() {
+					a := statefulSet.Spec.Template.Annotations
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-11-default_user.conf", "/etc/rabbitmq/conf.d"))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-perms-11-default_user.conf", "0640"))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-11-default_user.conf", instance.Spec.SecretBackend.Vault.DefaultUserSecretPath))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-11-default_user.conf", `
+{{- with secret "secret/myrabbit/config" -}}
+default_user = {{ .Data.data.username }}
+default_pass = {{ .Data.data.password }}
+{{- end }}`))
+				})
 			})
 
-			It("generates adminconfig credentials from vault mounted file", func() {
-				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
-				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+			When("secretBackend.vault.tls is set", func() {
+				BeforeEach(func() {
+					instance.Spec.SecretBackend.Vault.TLS.PKIRolePath = "pki/issue/vmware-com"
+					instance.Name = "myrabbit"
+				})
+				Context("with only required config", func() {
+					BeforeEach(func() {
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					})
 
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					It("adds Vault annnotations requesting new leaf certs", func() {
+						a := statefulSet.Spec.Template.Annotations
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.crt", "/etc/rabbitmq-tls/"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.key", "/etc/rabbitmq-tls/"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-ca.crt", "/etc/rabbitmq-tls/"))
 
-				Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Command[2]).To(
-					ContainSubstring("/etc/rabbitmq/conf.d/11-default_user.conf"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.crt", instance.Spec.SecretBackend.Vault.TLS.PKIRolePath))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.key", instance.Spec.SecretBackend.Vault.TLS.PKIRolePath))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-ca.crt", instance.Spec.SecretBackend.Vault.TLS.PKIRolePath))
 
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.crt", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
+{{ .Data.certificate }}
+{{- end }}`))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.key", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
+{{ .Data.private_key }}
+{{- end }}`))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-ca.crt", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
+{{ .Data.issuing_ca }}
+{{- end }}`))
+					})
+				})
+				Context("with all optional config", func() {
+					BeforeEach(func() {
+						instance.Spec.SecretBackend.Vault.TLS.CommonName = "myrabbit.com"
+						instance.Spec.SecretBackend.Vault.TLS.AltNames = "alt1,alt2"
+						instance.Spec.SecretBackend.Vault.TLS.IpSans = "9.9.9.9"
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					})
+
+					It("adds Vault annnotations requesting new leaf certs", func() {
+						a := statefulSet.Spec.Template.Annotations
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.crt", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
+{{ .Data.certificate }}
+{{- end }}`))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.key", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
+{{ .Data.private_key }}
+{{- end }}`))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-ca.crt", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
+{{ .Data.issuing_ca }}
+{{- end }}`))
+					})
+				})
 			})
-
-			It("adds annotations for tls", func() {
-				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
-				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
-				instance.Spec.SecretBackend.Vault.PKIRolePath = "secret/rabbitmq/config"
-
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.SecretBackend.Vault.Role))
-
-				//TlsKeyFilename := "tls.key"
-				//TlsCertDir := "/etc/rabbitmq-tls/"
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue(fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", resource.TlsKeyFilename), resource.TlsCertDir))
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue(fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", resource.TlsCertFilename), resource.TlsCertDir))
-
-				// TODO add the other annodations
-			})
-
-			It("adds annotations for mutual tls", func() {
-				instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
-				instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
-				instance.Spec.SecretBackend.Vault.PKIRolePath = "secret/rabbitmq/config"
-				instance.Spec.SecretBackend.Vault.CaSecretPath = "secret/rabbitmq/config"
-
-				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-				Expect(statefulSet.Spec.Template.Annotations).To(
-					HaveKeyWithValue(fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", resource.CaCertFilename), resource.TlsCertDir))
-				// TODO add the other annodations
-			})
-
+			// It("generates adminconfig credentials from vault mounted file", func() {
+			// instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
+			// instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+			//
+			// Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+			//
+			// Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Command[2]).To(
+			// ContainSubstring("/etc/rabbitmq/conf.d/11-default_user.conf"))
+			//
+			// })
 		})
 
 		Context("Rabbitmq container volume mounts", func() {

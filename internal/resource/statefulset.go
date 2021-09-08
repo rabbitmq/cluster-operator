@@ -759,7 +759,6 @@ func appendVaultAnnotations(
 	vaultAnnotations := map[string]string{
 		"vault.hashicorp.com/agent-inject":      "true",
 		"vault.hashicorp.com/agent-init-first":  "true",
-		"vault.hashicorp.com/log-level":         "debug",
 		"vault.hashicorp.com/role":              vault.Role,
 		"vault.hashicorp.com/agent-run-as-user": strconv.FormatInt(rabbitmqUID, 10),
 	}
@@ -788,17 +787,17 @@ default_pass = {{ .Data.data.password }}
 			altNames = fmt.Sprintf("%s,%s", altNames, vault.TLS.AltNames)
 		}
 
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsCertFilename)] = TlsCertDir
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsCertFilename)] = pkiRolePath
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "certificate")
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsCertFilename)] = tlsCertDir
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsCertFilename)] = pkiRolePath
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", tlsCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "certificate")
 
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", TlsKeyFilename)] = TlsCertDir
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", TlsKeyFilename)] = pkiRolePath
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", TlsKeyFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "private_key")
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsKeyFilename)] = tlsCertDir
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsKeyFilename)] = pkiRolePath
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", tlsKeyFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "private_key")
 
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", CaCertFilename)] = TlsCertDir
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", CaCertFilename)] = pkiRolePath
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", CaCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "issuing_ca")
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", caCertFilename)] = tlsCertDir
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", caCertFilename)] = pkiRolePath
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", caCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "issuing_ca")
 	}
 
 	return metadata.ReconcileAnnotations(currentAnnotations, vaultAnnotations)
@@ -816,7 +815,7 @@ func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 func generateVaultTLSTemplate(commonName, altNames string, vault rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
 	pkiRolePath := vault.TLS.PKIRolePath
 	return fmt.Sprintf(`
-{{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}  
+{{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}
 {{ .Data.%s }}
 {{- end }}`, pkiRolePath, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
 }

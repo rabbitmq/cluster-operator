@@ -443,7 +443,7 @@ VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platf
 [cols="25a,75a", options="header"]
 |===
 | Field | Description
-| *`role`* __string__ | Role required to access default user credentials in Vault.
+| *`role`* __string__ | Role in Vault. If vault.defaultUserSecretPath is set, this role must have capability to read the pre-created default user credentail in Vault. If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains "<namespace>" and "<namespace>.svc".
 | *`defaultUserSecretPath`* __string__ | Path to access a KV secret with the fields username and password for the default user.
 | *`tls`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaulttlsspec[$$VaultTLSSpec$$]__ | 
 |===
@@ -462,9 +462,9 @@ VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platf
 [cols="25a,75a", options="header"]
 |===
 | Field | Description
-| *`pkiRolePath`* __string__ | Path to access PKI issuing path, e.g. "pki/issue/hashicorp-com" Required
-| *`commonName`* __string__ | Specifies the requested CN for the certificate. Defaults to <serviceName>.<namespace>.svc if not provided
-| *`altNames`* __string__ | Specifies the requested Subject Alternative Names, in a comma-delimited list. These can be host names or email addresses; they will be parsed into their respective fields.
+| *`pkiRolePath`* __string__ | Path in PKI engine, e.g. "pki/issue/hashicorp-com" required
+| *`commonName`* __string__ | Specifies the requested certificate Common Name (CN). Defaults to <serviceName>.<namespace>.svc if not provided.
+| *`altNames`* __string__ | Specifies the requested Subject Alternative Names (SANs), in a comma-delimited list. These will be appended to the SANs added by the cluster-operator. The cluster-operator will add SANS: "<RabbitmqCluster name>-server-<index>.<RabbitmqCluster name>-nodes.<namespace>" for each pod, e.g. "myrabbit-server-0.myrabbit-nodes.default".
 | *`ipSans`* __string__ | Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
 |===
 

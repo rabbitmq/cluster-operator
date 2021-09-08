@@ -104,7 +104,10 @@ type SecretBackend struct {
 // to be installed in the K8s cluster. The injector is a K8s Mutation Webhook Controller that alters RabbitMQ Pod specifications
 // (based on the added Vault annotations) to include Vault Agent containers that render Vault secrets to the volume.
 type VaultSpec struct {
-	// Role required to access default user credentials in Vault.
+	// Role in Vault.
+	// If vault.defaultUserSecretPath is set, this role must have capability to read the pre-created default user credentail in Vault.
+	// If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains
+	// "<namespace>" and "<namespace>.svc".
 	Role string `json:"role,omitempty"`
 	// Path to access a KV secret with the fields username and password for the default user.
 	DefaultUserSecretPath string       `json:"defaultUserSecretPath,omitempty"`
@@ -112,19 +115,22 @@ type VaultSpec struct {
 }
 
 type VaultTLSSpec struct {
-	// Path to access PKI issuing path, e.g. "pki/issue/hashicorp-com"
-	// Required
+	// Path in PKI engine, e.g. "pki/issue/hashicorp-com"
+	// required
 	PKIRolePath string `json:"pkiRolePath,omitempty"`
-
-	// Specifies the requested CN for the certificate.
-	// Defaults to <serviceName>.<namespace>.svc if not provided
+	// Specifies the requested certificate Common Name (CN).
+	// Defaults to <serviceName>.<namespace>.svc if not provided.
+	// +optional
 	CommonName string `json:"commonName,omitempty"`
-
 	// Specifies the requested Subject Alternative Names (SANs), in a comma-delimited list.
-	// These will be appended to the SANs created by the cluster-operator:
-	// "<instance>-server-<index>.<instance>-nodes.<namespace>" for each Pod
+	// These will be appended to the SANs added by the cluster-operator.
+	// The cluster-operator will add SANS:
+	// "<RabbitmqCluster name>-server-<index>.<RabbitmqCluster name>-nodes.<namespace>" for each pod,
+	// e.g. "myrabbit-server-0.myrabbit-nodes.default".
+	// +optional
 	AltNames string `json:"altNames,omitempty"`
 	// Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
+	// +optional
 	IpSans string `json:"ipSans,omitempty"`
 }
 

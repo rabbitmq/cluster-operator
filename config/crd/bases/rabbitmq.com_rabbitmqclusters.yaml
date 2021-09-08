@@ -3805,21 +3805,21 @@ spec:
                           description: Path to access a KV secret with the fields username and password for the default user.
                           type: string
                         role:
-                          description: Role required to access default user credentials in Vault.
+                          description: Role in Vault. If vault.defaultUserSecretPath is set, this role must have capability to read the pre-created default user credentail in Vault. If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains "<namespace>" and "<namespace>.svc".
                           type: string
                         tls:
                           properties:
                             altNames:
-                              description: Specifies the requested Subject Alternative Names, in a comma-delimited list. These can be host names or email addresses; they will be parsed into their respective fields. By default, this will include only the pod host name, for example "<instance>-server-0.<instance>-nodes.<namespace>"
+                              description: 'Specifies the requested Subject Alternative Names (SANs), in a comma-delimited list. These will be appended to the SANs added by the cluster-operator. The cluster-operator will add SANS: "<RabbitmqCluster name>-server-<index>.<RabbitmqCluster name>-nodes.<namespace>" for each pod, e.g. "myrabbit-server-0.myrabbit-nodes.default".'
                               type: string
                             commonName:
-                              description: Specifies the requested CN for the certificate. Defaults to <serviceName>.<namespace>.svc if not provided
+                              description: Specifies the requested certificate Common Name (CN). Defaults to <serviceName>.<namespace>.svc if not provided.
                               type: string
                             ipSans:
                               description: Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
                               type: string
                             pkiRolePath:
-                              description: Path to access PKI issuing path, e.g. "pki/issue/hashicorp-com" Required
+                              description: Path in PKI engine, e.g. "pki/issue/hashicorp-com" required
                               type: string
                           type: object
                       type: object
