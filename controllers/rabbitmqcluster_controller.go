@@ -150,10 +150,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Scheme:   r.Scheme,
 	}
 
-	builders, err := resourceBuilder.ResourceBuilders()
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	builders := resourceBuilder.ResourceBuilders()
 
 	for _, builder := range builders {
 		resource, err := builder.Build()

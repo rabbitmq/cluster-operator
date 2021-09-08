@@ -711,7 +711,7 @@ func declareSetupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.Rabbitmq
 	}
 
 	if instance.VaultDefaultUserSecretEnabled() {
-		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf  " +
+		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf"
 	} else {

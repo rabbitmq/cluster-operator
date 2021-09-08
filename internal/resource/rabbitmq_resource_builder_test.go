@@ -45,11 +45,9 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 		})
 
 		It("returns the required resource builders in the expected order", func() {
-			resourceBuilders, err := builder.ResourceBuilders()
-			Expect(err).NotTo(HaveOccurred())
+			resourceBuilders := builder.ResourceBuilders()
 
-			expectedLen := 10
-			Expect(len(resourceBuilders)).To(Equal(expectedLen))
+			Expect(resourceBuilders).To(HaveLen(10))
 
 			expectedBuildersInOrder := []ResourceBuilder{
 				&HeadlessServiceBuilder{},
@@ -64,9 +62,22 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				&StatefulSetBuilder{},
 			}
 
-			for i := 0; i < expectedLen; i++ {
-				Expect(resourceBuilders[i]).To(BeAssignableToTypeOf(expectedBuildersInOrder[i]))
+			for i, resourceBuilder := range resourceBuilders {
+				Expect(resourceBuilder).To(BeAssignableToTypeOf(expectedBuildersInOrder[i]))
 			}
 		})
+
+		When("vault is enabled", func() {
+			BeforeEach(func() {
+				builder.Instance.Spec.SecretBackend.Vault.Role = "myrole"
+				builder.Instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "somepath"
+
+			})
+			It("returns all resource builders except defaultUser when vault is enabled", func() {
+				resourceBuilders := builder.ResourceBuilders()
+				Expect(resourceBuilders).NotTo(ContainElement(BeAssignableToTypeOf(&DefaultUserSecretBuilder{})))
+			})
+		})
+
 	})
 })

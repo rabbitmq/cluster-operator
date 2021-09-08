@@ -26,8 +26,9 @@ type ResourceBuilder interface {
 	UpdateMayRequireStsRecreate() bool
 }
 
-func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, error) {
-	return []ResourceBuilder{
+func (builder *RabbitmqResourceBuilder) ResourceBuilders() []ResourceBuilder {
+
+	builders := []ResourceBuilder{
 		builder.HeadlessService(),
 		builder.Service(),
 		builder.ErlangCookie(),
@@ -38,5 +39,9 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() ([]ResourceBuilder, e
 		builder.Role(),
 		builder.RoleBinding(),
 		builder.StatefulSet(),
-	}, nil
+	}
+	if builder.Instance.VaultDefaultUserSecretEnabled() {
+		builders = append(builders[:3], builders[3+1:]...) // delete DefaultUserSecret()
+	}
+	return builders
 }

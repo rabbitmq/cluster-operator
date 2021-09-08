@@ -885,7 +885,7 @@ var _ = Describe("StatefulSet", func() {
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				})
 
-				It("adds general Vault annnotations", func() {
+				It("adds general Vault annotations", func() {
 					a := statefulSet.Spec.Template.Annotations
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-init-first", "true"))
@@ -893,7 +893,7 @@ var _ = Describe("StatefulSet", func() {
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-run-as-user", "999"))
 				})
 
-				It("adds Vault annnotations to fetch the default user", func() {
+				It("adds Vault annotations to fetch the default user", func() {
 					a := statefulSet.Spec.Template.Annotations
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-11-default_user.conf", "/etc/rabbitmq/conf.d"))
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-perms-11-default_user.conf", "0640"))
@@ -904,6 +904,34 @@ default_user = {{ .Data.data.username }}
 default_pass = {{ .Data.data.password }}
 {{- end }}`))
 				})
+
+				It("does not project default user secret to rabbitmq-confd volume", func() {
+					rabbitmqConfdVolume := extractVolume(statefulSet.Spec.Template.Spec.Volumes, "rabbitmq-confd")
+					defaultUserSecret := extractProjectedSecret(rabbitmqConfdVolume, "foo-default-user")
+					Expect(defaultUserSecret.Secret).To(BeNil())
+				})
+
+				It("setup-container renders rabbitmqadmin.conf from vault mounted 11-default-user.conf file", func() {
+					setupContainer := extractContainer(statefulSet.Spec.Template.Spec.InitContainers, "setup-container")
+					Expect(setupContainer).To(MatchFields(IgnoreExtras, Fields{
+						"Command": ConsistOf(
+							"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
+								"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; "+
+								"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; "+
+								"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf "+
+								"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf "+
+								"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
+						),
+						"VolumeMounts": Not(ContainElement([]corev1.VolumeMount{
+							{
+								Name:      "rabbitmq-confd",
+								MountPath: "/tmp/default_user.conf",
+								SubPath:   "default_user.conf",
+							},
+						})),
+					}))
+				})
+
 			})
 
 			When("secretBackend.vault.tls is set", func() {
@@ -2133,10 +2161,24 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 			return container
 		}
 	}
-
 	return corev1.Container{}
 }
-
+func extractVolume(volumes []corev1.Volume, name string) corev1.Volume {
+	for _, volume := range volumes {
+		if volume.Name == name {
+			return volume
+		}
+	}
+	return corev1.Volume{}
+}
+func extractProjectedSecret(volume corev1.Volume, secretName string) corev1.VolumeProjection {
+	for _, volumeProjection := range volume.Projected.Sources {
+		if volumeProjection.Secret != nil && volumeProjection.Secret.Name == secretName {
+			return volumeProjection
+		}
+	}
+	return corev1.VolumeProjection{}
+}
 func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
 	return rabbitmqv1beta1.RabbitmqCluster{
