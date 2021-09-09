@@ -1,0 +1,9 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: myrabbitmq
+spec:
+  rabbitmq:
+    additionalConfig: |
+      default_user=guest
+      default_pass=guest
