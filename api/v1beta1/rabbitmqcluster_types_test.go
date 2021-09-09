@@ -121,23 +121,6 @@ var _ = Describe("RabbitmqCluster", func() {
 			Expect(created.MemoryLimited()).To(BeFalse())
 		})
 
-		It("can set vault configuration correctly", func() {
-			created := generateRabbitmqClusterObject("rabbit-vault")
-			created.Spec.SecretBackend.Vault = VaultSpec{
-				Role:                  "test-role",
-				DefaultUserSecretPath: "test-path",
-			}
-			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
-			fetchedRabbit := &RabbitmqCluster{}
-			Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
-				Name:      "rabbit-vault",
-				Namespace: "default",
-			}, fetchedRabbit)).To(Succeed())
-
-			Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
-			Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretPath).To(Equal("test-path"))
-		})
-
 		It("is validated", func() {
 			By("checking the replica count", func() {
 				invalidReplica := generateRabbitmqClusterObject("rabbit4")
@@ -396,6 +379,56 @@ var _ = Describe("RabbitmqCluster", func() {
 						Namespace: "default",
 					}, fetchedRabbit)).To(Succeed())
 					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
+				})
+			})
+		})
+		Context("vault", func() {
+			When("only default user is configured", func() {
+				It("sets vault configuration correctly", func() {
+					rabbit := generateRabbitmqClusterObject("rabbit-vault-default-user")
+					rabbit.Spec.SecretBackend.Vault = VaultSpec{
+						Role:                  "test-role",
+						DefaultUserSecretPath: "test-path",
+					}
+					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.Background(), types.NamespacedName{
+						Name:      "rabbit-vault-default-user",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretPath).To(Equal("test-path"))
+					Expect(fetchedRabbit.VaultEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeFalse())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeFalse())
+				})
+			})
+			When("only TLS is configured", func() {
+				It("sets vault configuration correctly", func() {
+					rabbit := generateRabbitmqClusterObject("rabbit-vault-tls")
+					rabbit.Spec.SecretBackend.Vault = VaultSpec{
+						Role: "test-role",
+						TLS: VaultTLSSpec{
+							PKIRolePath: "pki/issue/hashicorp-com",
+						},
+					}
+					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.Background(), types.NamespacedName{
+						Name:      "rabbit-vault-tls",
+						Namespace: "default",
+					}, fetchedRabbit)).To(Succeed())
+
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLS.PKIRolePath).To(Equal("pki/issue/hashicorp-com"))
+					Expect(fetchedRabbit.VaultEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeFalse())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeFalse())
+					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeTrue())
 				})
 			})
 		})
