@@ -1,8 +1,11 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 assertTLS() {
-  kubectl exec vault-tls-server-0 -c rabbitmq -- openssl s_client -connect "$1" -CAfile /etc/rabbitmq-tls/ca.crt -verify_return_error
+  kubectl exec vault-tls-server-0 -c rabbitmq -- openssl s_client \
+      -connect "$1" \
+      -CAfile /etc/rabbitmq-tls/ca.crt \
+      -verify_return_error
 }
 
 # Test TLS succeeds via client Service from server-0 to server-[0|1|2]
