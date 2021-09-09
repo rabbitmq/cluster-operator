@@ -31,7 +31,7 @@ var (
 	initialAPIObjects []runtime.Object
 	fakeClientset     *fake.Clientset
 	persistenceScaler scaling.PersistenceScaler
-	existingCluster   rabbitmqv1beta1.RabbitmqCluster
+	rmq               rabbitmqv1beta1.RabbitmqCluster
 	existingSts       appsv1.StatefulSet
 	existingPVC       corev1.PersistentVolumeClaim
 	one               = int32(1)
@@ -43,7 +43,7 @@ var (
 )
 
 var _ = BeforeEach(func() {
-	existingCluster = rabbitmqv1beta1.RabbitmqCluster{
+	rmq = rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rabbit",
 			Namespace: namespace,
@@ -52,14 +52,14 @@ var _ = BeforeEach(func() {
 			Replicas: &one,
 		},
 	}
-	existingPVC = generatePVC(existingCluster, 0, tenG)
+	existingPVC = generatePVC(rmq, 0, tenG)
 	existingSts = appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rabbit-server",
 			Namespace: namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{existingPVC},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{generatePVCTemplate(rmq, tenG)},
 		},
 	}
 })
@@ -68,8 +68,24 @@ var _ = JustBeforeEach(func() {
 	persistenceScaler = scaling.NewPersistenceScaler(fakeClientset)
 })
 
-func generatePVC(existingCluster rabbitmqv1beta1.RabbitmqCluster, index int, size k8sresource.Quantity) corev1.PersistentVolumeClaim {
-	name := existingCluster.PVCName(index)
+func generatePVCTemplate(rmq rabbitmqv1beta1.RabbitmqCluster, size k8sresource.Quantity) corev1.PersistentVolumeClaim {
+	return corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "persistence",
+			Namespace: namespace,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: size,
+				},
+			},
+		},
+	}
+}
+
+func generatePVC(rmq rabbitmqv1beta1.RabbitmqCluster, index int, size k8sresource.Quantity) corev1.PersistentVolumeClaim {
+	name := rmq.PVCName(index)
 	return corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

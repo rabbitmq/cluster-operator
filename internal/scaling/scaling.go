@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
@@ -27,43 +28,58 @@ func NewPersistenceScaler(client kubernetes.Interface) PersistenceScaler {
 	}
 }
 
-func (p PersistenceScaler) Scale(ctx context.Context, existingCluster rabbitmqv1beta1.RabbitmqCluster, desiredCapacity k8sresource.Quantity) error {
+func (p PersistenceScaler) Scale(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster, desiredCapacity k8sresource.Quantity) error {
 	logger := ctrl.LoggerFrom(ctx)
 
-	existingPVCs, err := p.getClusterPVCs(ctx, existingCluster)
+	existingCapacity, err := p.existingCapacity(ctx, rmq)
+	if client.IgnoreNotFound(err) != nil {
+		logErr := fmt.Errorf("Failed to determine existing STS capactiy: %w", err)
+		logger.Error(logErr, "Could not read sts")
+		return logErr
+	}
+
+	// don't allow going from 0 (no PVC) to anything else
+	if err == nil && (existingCapacity.Cmp(k8sresource.MustParse("0Gi")) == 0) && (desiredCapacity.Cmp(k8sresource.MustParse("0Gi")) != 0) {
+		msg := "changing from ephemeral to persistent storage is not supported"
+		logger.Error(errors.New("unsupported operation"), msg)
+		return errors.New(msg)
+	}
+
+	// desired storage capacity is smaller than the current capacity; we can't proceed lest we lose data
+	if err == nil && existingCapacity.Cmp(desiredCapacity) == 1 {
+		msg := "shrinking persistent volumes is not supported"
+		logger.Error(errors.New("unsupported operation"), msg)
+		return errors.New(msg)
+	}
+
+	existingPVCs, err := p.getClusterPVCs(ctx, rmq)
 	if err != nil {
 		logger.Error(err, "failed to retrieve the existing cluster PVCs")
 		return err
 	}
-	pvcsToBeScaled, err := p.pvcsNeedingScaling(ctx, existingPVCs, desiredCapacity)
-	if err != nil {
-		logger.Error(err, "did not complete scaling actions")
-		return err
-	}
-
+	pvcsToBeScaled := p.pvcsNeedingScaling(existingPVCs, desiredCapacity)
 	if len(pvcsToBeScaled) == 0 {
-		logger.Info("No PVC for this RabbitmqCluster requires scaling", "RabbitmqCluster", existingCluster.Name)
 		return nil
 	}
-	logger.Info("Scaling up PVCs for a RabbitmqCluster", "RabbitmqCluster", existingCluster.Name, "pvcsToBeScaled", pvcsToBeScaled)
+	logger.Info("Scaling up PVCs for a RabbitmqCluster", "RabbitmqCluster", rmq.Name, "pvcsToBeScaled", pvcsToBeScaled)
 
-	err = p.deleteSts(ctx, existingCluster)
+	err = p.deleteSts(ctx, rmq)
 	if err != nil {
 		logErr := fmt.Errorf("Failed to delete Statefulset from Kubernetes API: %w", err)
 		logger.Error(logErr, "Could not delete existing sts")
 		return logErr
 	}
 
-	return p.scaleUpPVCs(ctx, existingCluster, pvcsToBeScaled, desiredCapacity)
+	return p.scaleUpPVCs(ctx, rmq, pvcsToBeScaled, desiredCapacity)
 }
 
-func (p PersistenceScaler) getClusterPVCs(ctx context.Context, existingCluster rabbitmqv1beta1.RabbitmqCluster) ([]*corev1.PersistentVolumeClaim, error) {
+func (p PersistenceScaler) getClusterPVCs(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) ([]*corev1.PersistentVolumeClaim, error) {
 	logger := ctrl.LoggerFrom(ctx)
 
 	var pvcs []*corev1.PersistentVolumeClaim
 
-	for i := 0; i < int(*existingCluster.Spec.Replicas); i++ {
-		pvc, err := p.Client.CoreV1().PersistentVolumeClaims(existingCluster.Namespace).Get(ctx, existingCluster.PVCName(i), metav1.GetOptions{})
+	for i := 0; i < int(*rmq.Spec.Replicas); i++ {
+		pvc, err := p.Client.CoreV1().PersistentVolumeClaims(rmq.Namespace).Get(ctx, rmq.PVCName(i), metav1.GetOptions{})
 		if client.IgnoreNotFound(err) != nil {
 			logErr := fmt.Errorf("Failed to get PVC from Kubernetes API: %w", err)
 			logger.Error(logErr, "Could not read existing PVC")
@@ -74,48 +90,51 @@ func (p PersistenceScaler) getClusterPVCs(ctx context.Context, existingCluster r
 			pvcs = append(pvcs, pvc)
 		}
 	}
-	return pvcs, nil
-}
-
-func (p PersistenceScaler) pvcsNeedingScaling(ctx context.Context, existingPVCs []*corev1.PersistentVolumeClaim, desiredCapacity k8sresource.Quantity) ([]*corev1.PersistentVolumeClaim, error) {
-	logger := ctrl.LoggerFrom(ctx)
-
-	var pvcs []*corev1.PersistentVolumeClaim
-
-	for _, pvc := range existingPVCs {
-		existingCapacity := pvc.Spec.Resources.Requests[corev1.ResourceStorage]
-		cmp := existingCapacity.Cmp(desiredCapacity)
-
-		// desired storage capacity is larger than the current capacity; PVC needs expansion
-		if cmp == -1 {
-			pvcs = append(pvcs, pvc)
-		}
-
-		// desired storage capacity is smaller than the current capacity; we can't proceed lest we lose data
-		if cmp == 1 {
-			msg := "shrinking persistent volumes is not supported"
-			logger.Error(errors.New("unsupported operation"), msg)
-			return pvcs, errors.New(msg)
-		}
-
-		// don't allow going from 0 (no PVC) to anything else
-		if (existingCapacity.Cmp(k8sresource.MustParse("0Gi")) == 0) && (desiredCapacity.Cmp(k8sresource.MustParse("0Gi")) != 0) {
-			msg := "changing from ephemeral to persistent storage is not supported"
-			logger.Error(errors.New("unsupported operation"), msg)
-			return pvcs, errors.New(msg)
-		}
-
+	if len(pvcs) > 0 {
+		logger.Info("Found existing PVCs", "pvcList", pvcs)
 	}
 	return pvcs, nil
 }
 
+func (p PersistenceScaler) pvcsNeedingScaling(existingPVCs []*corev1.PersistentVolumeClaim, desiredCapacity k8sresource.Quantity) []*corev1.PersistentVolumeClaim {
+	var pvcs []*corev1.PersistentVolumeClaim
+
+	for _, pvc := range existingPVCs {
+		existingCapacity := pvc.Spec.Resources.Requests[corev1.ResourceStorage]
+
+		// desired storage capacity is larger than the current capacity; PVC needs expansion
+		if existingCapacity.Cmp(desiredCapacity) == -1 {
+			pvcs = append(pvcs, pvc)
+		}
+	}
+	return pvcs
+}
+
+func (p PersistenceScaler) getSts(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) (*appsv1.StatefulSet, error) {
+	return p.Client.AppsV1().StatefulSets(rmq.Namespace).Get(ctx, rmq.ChildResourceName("server"), metav1.GetOptions{})
+}
+
+func (p PersistenceScaler) existingCapacity(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) (k8sresource.Quantity, error) {
+	sts, err := p.getSts(ctx, rmq)
+	if err != nil {
+		return k8sresource.MustParse("0"), err
+	}
+
+	for _, t := range sts.Spec.VolumeClaimTemplates {
+		if t.Name == "persistence" {
+			return t.Spec.Resources.Requests[corev1.ResourceStorage], nil
+		}
+	}
+	return k8sresource.MustParse("0"), nil
+}
+
 // deleteSts deletes a sts without deleting pods and PVCs
 // using DeletePropagationPolicy set to 'Orphan'
-func (p PersistenceScaler) deleteSts(ctx context.Context, existingCluster rabbitmqv1beta1.RabbitmqCluster) error {
+func (p PersistenceScaler) deleteSts(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster) error {
 	logger := ctrl.LoggerFrom(ctx)
-	logger.Info("deleting statefulSet (pods won't be deleted)", "statefulSet", existingCluster.ChildResourceName("server"))
+	logger.Info("deleting statefulSet (pods won't be deleted)", "statefulSet", rmq.ChildResourceName("server"))
 
-	sts, err := p.Client.AppsV1().StatefulSets(existingCluster.Namespace).Get(ctx, existingCluster.ChildResourceName("server"), metav1.GetOptions{})
+	sts, err := p.getSts(ctx, rmq)
 	if client.IgnoreNotFound(err) != nil {
 		logErr := fmt.Errorf("Failed to get statefulset from Kubernetes API: %w", err)
 		logger.Error(logErr, "Could not read existing statefulset")
@@ -124,7 +143,7 @@ func (p PersistenceScaler) deleteSts(ctx context.Context, existingCluster rabbit
 
 	// The StatefulSet may have already been deleted. If so, there is no need to delete it again.
 	if k8serrors.IsNotFound(err) {
-		logger.Info("statefulset has already been deleted", "StatefulSet", existingCluster.Name, "RabbitmqCluster", existingCluster.Name)
+		logger.Info("statefulset has already been deleted", "StatefulSet", rmq.Name, "RabbitmqCluster", rmq.Name)
 		return nil
 	}
 
@@ -136,7 +155,7 @@ func (p PersistenceScaler) deleteSts(ctx context.Context, existingCluster rabbit
 	}
 
 	if err := retryWithInterval(logger, "delete statefulSet", 10, 3*time.Second, func() bool {
-		_, getErr := p.Client.AppsV1().StatefulSets(existingCluster.Namespace).Get(ctx, existingCluster.ChildResourceName("server"), metav1.GetOptions{})
+		_, getErr := p.Client.AppsV1().StatefulSets(rmq.Namespace).Get(ctx, rmq.ChildResourceName("server"), metav1.GetOptions{})
 		return k8serrors.IsNotFound(getErr)
 	}); err != nil {
 		msg := "statefulSet not deleting after 30 seconds"
@@ -147,7 +166,7 @@ func (p PersistenceScaler) deleteSts(ctx context.Context, existingCluster rabbit
 	return nil
 }
 
-func (p PersistenceScaler) scaleUpPVCs(ctx context.Context, existingCluster rabbitmqv1beta1.RabbitmqCluster, pvcs []*corev1.PersistentVolumeClaim, desiredCapacity k8sresource.Quantity) error {
+func (p PersistenceScaler) scaleUpPVCs(ctx context.Context, rmq rabbitmqv1beta1.RabbitmqCluster, pvcs []*corev1.PersistentVolumeClaim, desiredCapacity k8sresource.Quantity) error {
 	logger := ctrl.LoggerFrom(ctx)
 
 	for _, pvc := range pvcs {
@@ -160,7 +179,7 @@ func (p PersistenceScaler) scaleUpPVCs(ctx context.Context, existingCluster rabb
 		}
 
 		pvc.Spec.Resources.Requests[corev1.ResourceStorage] = desiredCapacity
-		_, err = p.Client.CoreV1().PersistentVolumeClaims(existingCluster.Namespace).Update(ctx, pvc, metav1.UpdateOptions{})
+		_, err = p.Client.CoreV1().PersistentVolumeClaims(rmq.Namespace).Update(ctx, pvc, metav1.UpdateOptions{})
 		if err != nil {
 			msg := "failed to update PersistentVolumeClaim"
 			logger.Error(err, msg, "PersistentVolumeClaim", pvc.Name)
