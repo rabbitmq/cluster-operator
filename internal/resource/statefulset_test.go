@@ -946,9 +946,9 @@ default_pass = {{ .Data.data.password }}
 
 					It("adds Vault annnotations requesting new leaf certs", func() {
 						a := statefulSet.Spec.Template.Annotations
-						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.crt", "/etc/rabbitmq-tls/"))
-						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.key", "/etc/rabbitmq-tls/"))
-						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-ca.crt", "/etc/rabbitmq-tls/"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.crt", "/etc/rabbitmq-tls"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.key", "/etc/rabbitmq-tls"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-ca.crt", "/etc/rabbitmq-tls"))
 
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.crt", instance.Spec.SecretBackend.Vault.TLS.PKIRolePath))
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.key", instance.Spec.SecretBackend.Vault.TLS.PKIRolePath))

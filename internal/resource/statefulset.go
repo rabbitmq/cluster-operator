@@ -787,15 +787,16 @@ default_pass = {{ .Data.data.password }}
 			altNames = fmt.Sprintf("%s,%s", altNames, vault.TLS.AltNames)
 		}
 
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsCertFilename)] = tlsCertDir
+		certDir := strings.TrimSuffix(tlsCertDir, "/")
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsCertFilename)] = certDir
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsCertFilename)] = pkiRolePath
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", tlsCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "certificate")
 
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsKeyFilename)] = tlsCertDir
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsKeyFilename)] = certDir
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsKeyFilename)] = pkiRolePath
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", tlsKeyFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "private_key")
 
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", caCertFilename)] = tlsCertDir
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", caCertFilename)] = certDir
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", caCertFilename)] = pkiRolePath
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", caCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "issuing_ca")
 	}
