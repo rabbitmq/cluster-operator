@@ -653,11 +653,45 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		},
 	}
-
 	if builder.Instance.VaultDefaultUserSecretEnabled() {
-		podTemplateSpec.Spec.Containers = appendDefaultUserCredentialsRotation(rabbitmqUID, podTemplateSpec.Spec.Containers, builder.Instance)
+		podTemplateSpec.Spec.Containers = append(podTemplateSpec.Spec.Containers,
+			rabbitMQAdminPasswordUpdater(builder.Instance, rabbitmqUID))
 	}
 	return podTemplateSpec
+}
+
+func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster, rabbitmqUID int64) corev1.Container {
+	managementURI := "http://127.0.0.1:15672"
+	if instance.TLSEnabled() {
+		managementURI = "https://127.0.0.1:15671"
+	}
+	return corev1.Container{
+		Name: "rabbitmq-admin-password-updater",
+		Resources: corev1.ResourceRequirements{
+			//TODO refine
+			Limits: corev1.ResourceList{
+				"cpu":    k8sresource.MustParse("100m"),
+				"memory": k8sresource.MustParse("100Mi"),
+			},
+			Requests: corev1.ResourceList{
+				"cpu":    k8sresource.MustParse("10m"),
+				"memory": k8sresource.MustParse("500Ki"),
+			},
+		},
+		Image: "900900/rabbitmq-admin-password-updater:dev",
+		//TODO remove (used for dev)
+		ImagePullPolicy: "Always",
+		Args:            []string{"--management-uri", managementURI},
+		SecurityContext: &corev1.SecurityContext{
+			RunAsUser: &rabbitmqUID,
+		},
+		VolumeMounts: []corev1.VolumeMount{{
+			Name:      "rabbitmq-erlang-cookie",
+			MountPath: "/var/lib/rabbitmq/.rabbitmqadmin.conf",
+			SubPath:   ".rabbitmqadmin.conf",
+		}},
+		// VolumeMount /etc/rabbitmq/conf.d/11-default-user will be added by Vault injector.
+	}
 }
 
 func declareSetupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.Container {
@@ -679,11 +713,11 @@ func declareSetupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.Rabbitmq
 					"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; ",
 			},
 			Resources: corev1.ResourceRequirements{
-				Limits: map[corev1.ResourceName]k8sresource.Quantity{
+				Limits: corev1.ResourceList{
 					"cpu":    cpuRequest,
 					"memory": memoryRequest,
 				},
-				Requests: map[corev1.ResourceName]k8sresource.Quantity{
+				Requests: corev1.ResourceList{
 					"cpu":    cpuRequest,
 					"memory": memoryRequest,
 				},
@@ -731,83 +765,7 @@ func declareSetupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.Rabbitmq
 	return setupContainer
 
 }
-func appendDefaultUserCredentialsRotation(rabbitmqUID int64, containers []corev1.Container, instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.Container {
 
-	protocol, managementPort := findManagementPort(instance)
-
-	return append(containers, corev1.Container{
-		Name:      "watcher",
-		Resources: *instance.Spec.Resources,
-		Image:     "dwdraju/alpine-curl-jq",
-		Command: []string{
-		"sh", "-c", `
-set -eo pipefail
-default_user_conf="/etc/rabbitmq/conf.d/11-default_user.conf"
-rabbitmqadmin_conf="/var/lib/rabbitmq/.rabbitmqadmin.conf"
-
-LTIME=$(stat -c %Z $default_user_conf)
-while true; do
-   ATIME=$(stat -c %Z $default_user_conf)
-   if [ \"$ATIME\" != \"$LTIME\" ]; then 
-      username=$(head -1 "$default_user_conf" | grep default_user) 
-      username=${username#"default_user ="}
-
-      newPassword=$(tail -1 "$default_user_conf" | grep default_pass)
-      newPassword=${newPassword#"default_pass ="}
-
-      curPassword=$(tail -1 "$rabbitmqadmin_conf" | grep password)
-      curPassword=${curPassword#"password ="}
-
-      curUsername=$(tail -2 "$rabbitmqadmin_conf" | grep username)
-      curUsername=${curUsername#"username ="}
-
-	  if [ "$curUsername" = "$username" ]; then 
-		  curTag=$(curl -s -u $username:$curPassword $RABBITMQ_MANAGEMENT_PROTOCOL://$MY_POD_NAME:$RABBITMQ_MANAGEMENT_PORT/api/users/${username} | jq -r .tags)
-		  if curl -s -u $username:$curPassword -XPUT $RABBITMQ_MANAGEMENT_PROTOCOL://$MY_POD_NAME:$RABBITMQ_MANAGEMENT_PORT/api/users/${username} -d "{\"password\" : \"$newPassword\", \"tags\": \"$curTag\"}" ; then
-			 echo "[default]" > /var/lib/rabbitmq/.rabbitmqadmin.conf
-			 echo "username = ${username}" >>/var/lib/rabbitmq/.rabbitmqadmin.conf
-			 echo "password = ${newPassword}" >>/var/lib/rabbitmq/.rabbitmqadmin.conf
-		  fi
-      else
-          echo "Warning: Username cannot be rotate"
-      fi
-   fi
-   sleep 5 
-done
-	    `,
-		},
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &rabbitmqUID,
-		},
-		Env: []corev1.EnvVar{
-			{
-				Name: "MY_POD_NAME",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath:  "metadata.name",
-						APIVersion: "v1",
-					},
-				},
-			},
-			{
-				Name: "RABBITMQ_MANAGEMENT_PROTOCOL",
-				Value: protocol,
-			},
-			{
-				Name: "RABBITMQ_MANAGEMENT_PORT",
-				Value: managementPort,
-			},
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "rabbitmq-erlang-cookie",
-				MountPath: "/var/lib/rabbitmq/.rabbitmqadmin.conf",
-				SubPath:   ".rabbitmqadmin.conf",
-			},
-		},
-	})
-
-}
 func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *rabbitmqv1beta1.RabbitmqCluster) {
 	for _, value := range volumes {
 		if value.Name == "rabbitmq-confd" {
@@ -845,6 +803,8 @@ func appendVaultAnnotations(
 
 	if vault.DefaultUserSecretEnabled() {
 		secretName := "11-default_user.conf"
+		//TODO remove (used for dev)
+		vaultAnnotations["vault.hashicorp.com/template-static-secret-render-interval"] = "15s"
 		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+secretName] = "/etc/rabbitmq/conf.d"
 		vaultAnnotations["vault.hashicorp.com/agent-inject-perms-"+secretName] = "0640"
 		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+secretName] = vault.DefaultUserSecretPath
@@ -899,14 +859,6 @@ func generateVaultTLSTemplate(commonName, altNames string, vault rabbitmqv1beta1
 {{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}
 {{ .Data.%s }}
 {{- end }}`, pkiRolePath, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
-}
-
-func findManagementPort( instance *rabbitmqv1beta1.RabbitmqCluster) (string, string) {
-	if instance.TLSEnabled() {
-		return "https", "15671"
-	}else {
-		return "http", "15672"
-	}
 }
 
 func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort {
