@@ -566,53 +566,31 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			AutomountServiceAccountToken:  pointer.Bool(true),
 			Affinity:                      builder.Instance.Spec.Affinity,
 			Tolerations:                   builder.Instance.Spec.Tolerations,
-			InitContainers:                declareSetupContainer(rabbitmqUID, builder.Instance),
+			InitContainers:                setupContainer(rabbitmqUID, builder.Instance),
 			Volumes:                       volumes,
 			Containers: []corev1.Container{
 				{
 					Name:      "rabbitmq",
 					Resources: *builder.Instance.Spec.Resources,
 					Image:     builder.Instance.Spec.Image,
-					Env: []corev1.EnvVar{
-						{
-							Name: "MY_POD_NAME",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath:  "metadata.name",
-									APIVersion: "v1",
-								},
-							},
-						},
-						{
-							Name: "MY_POD_NAMESPACE",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath:  "metadata.namespace",
-									APIVersion: "v1",
-								},
-							},
-						},
-						{
+					Env: append(envVarsK8sObjects(builder.Instance),
+						corev1.EnvVar{
 							Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
 							Value: "/operator/enabled_plugins",
 						},
-						{
-							Name:  "K8S_SERVICE_NAME",
-							Value: builder.Instance.ChildResourceName(headlessServiceSuffix),
-						},
-						{
+						corev1.EnvVar{
 							Name:  "RABBITMQ_USE_LONGNAME",
 							Value: "true",
 						},
-						{
+						corev1.EnvVar{
 							Name:  "RABBITMQ_NODENAME",
 							Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 						},
-						{
+						corev1.EnvVar{
 							Name:  "K8S_HOSTNAME_SUFFIX",
 							Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 						},
-					},
+					),
 					Ports:        builder.updateContainerPorts(),
 					VolumeMounts: rabbitmqContainerVolumeMounts,
 					// Why using a tcp readiness probe instead of running `rabbitmq-diagnostics check_port_connectivity`?
@@ -663,9 +641,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster, rabbitmqUID int64) corev1.Container {
 	managementURI := "http://127.0.0.1:15672"
 	if instance.TLSEnabled() {
-		managementURI = "https://127.0.0.1:15671"
+		// RabbitMQ certificate SAN must include this host name.
+		// (Alternatively, we could have put 127.0.0.1 in the management URI and put 127.0.0.1 into certificate IP SAN.
+		// However, that approach seems to be less common.)
+		managementURI = "https://$(HOSTNAME_DOMAIN):15671"
 	}
-	return corev1.Container{
+	container := corev1.Container{
 		Name: "rabbitmq-admin-password-updater",
 		Resources: corev1.ResourceRequirements{
 			//TODO refine
@@ -685,16 +666,61 @@ func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster, rab
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &rabbitmqUID,
 		},
-		VolumeMounts: []corev1.VolumeMount{{
-			Name:      "rabbitmq-erlang-cookie",
-			MountPath: "/var/lib/rabbitmq/.rabbitmqadmin.conf",
-			SubPath:   ".rabbitmqadmin.conf",
-		}},
-		// VolumeMount /etc/rabbitmq/conf.d/11-default-user will be added by Vault injector.
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "rabbitmq-erlang-cookie",
+				MountPath: "/var/lib/rabbitmq/.rabbitmqadmin.conf",
+				SubPath:   ".rabbitmqadmin.conf",
+			},
+			// VolumeMount /etc/rabbitmq/conf.d/11-default-user will be added by Vault injector.
+		},
+		Env: append(envVarsK8sObjects(instance),
+			corev1.EnvVar{
+				Name:  "HOSTNAME_DOMAIN",
+				Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+			}),
+	}
+
+	if instance.SecretTLSEnabled() {
+		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+			Name:      "rabbitmq-tls",
+			MountPath: "/etc/rabbitmq-tls/",
+			ReadOnly:  true,
+		})
+	}
+	// If instance.VaultTLSEnabled() volume mount /etc/rabbitmq-tls/ will be added by Vault injector.
+
+	return container
+}
+
+func envVarsK8sObjects(instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.EnvVar {
+	return []corev1.EnvVar{
+		{
+			Name: "MY_POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath:  "metadata.name",
+					APIVersion: "v1",
+				},
+			},
+		},
+		{
+			Name: "MY_POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath:  "metadata.namespace",
+					APIVersion: "v1",
+				},
+			},
+		},
+		{
+			Name:  "K8S_SERVICE_NAME",
+			Value: instance.ChildResourceName(headlessServiceSuffix),
+		},
 	}
 }
 
-func declareSetupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.Container {
+func setupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.Container {
 	//Init Container resources
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
