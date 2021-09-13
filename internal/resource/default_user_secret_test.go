@@ -72,9 +72,8 @@ var _ = Describe("DefaultUserSecret", func() {
 
 			By("creating a rabbitmq username that has a prefix 'default_user_', base64 encoded, and 24 characters in length when decoded", func() {
 				username, ok = secret.Data["username"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"username\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find a key \"username\" in the generated Secret")
 				Expect(string(username)).To(HavePrefix("default_user_"))
-				//strList := strings.SplitAfter(string(username), "default_user_")
 				decoded, err := b64.URLEncoding.DecodeString(string(username))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(decoded)).To(Equal(24))
@@ -82,7 +81,7 @@ var _ = Describe("DefaultUserSecret", func() {
 
 			By("creating a rabbitmq password that is base64 encoded and 24 characters in length when decoded", func() {
 				password, ok = secret.Data["password"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"password\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find a key \"password\" in the generated Secret")
 				decodedPassword, err := b64.URLEncoding.DecodeString(string(password))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(decodedPassword)).To(Equal(24))
@@ -90,20 +89,20 @@ var _ = Describe("DefaultUserSecret", func() {
 
 			By("Setting a host that corresponds to the service address", func() {
 				host, ok = secret.Data["host"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"host\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find a key \"host\" in the generated Secret")
 				expectedHost := "a name.a namespace.svc"
 				Expect(host).To(BeEquivalentTo(expectedHost))
 			})
 
 			By("Setting a port that corresponds to the amqp port", func() {
 				port, ok = secret.Data["port"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"port\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find a key \"port\" in the generated Secret")
 				Expect(port).To(BeEquivalentTo("5672"))
 			})
 
 			By("creating a default_user.conf file that contains the correct sysctl config format to be parsed by RabbitMQ", func() {
 				defaultUserConf, ok := secret.Data["default_user.conf"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"default_user.conf\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find a key \"default_user.conf\" in the generated Secret")
 
 				cfg, err := ini.Load(defaultUserConf)
 				Expect(err).NotTo(HaveOccurred())
@@ -117,13 +116,13 @@ var _ = Describe("DefaultUserSecret", func() {
 
 			By("setting 'data.provider' to 'rabbitmq' ", func() {
 				provider, ok := secret.Data["provider"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find key 'provider' ")
+				Expect(ok).To(BeTrue(), "Failed to find key 'provider' ")
 				Expect(string(provider)).To(Equal("rabbitmq"))
 			})
 
 			By("setting 'data.type' to 'rabbitmq' ", func() {
 				t, ok := secret.Data["type"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find key 'type' ")
+				Expect(ok).To(BeTrue(), "Failed to find key 'type' ")
 				Expect(string(t)).To(Equal("rabbitmq"))
 			})
 		})
@@ -146,23 +145,23 @@ var _ = Describe("DefaultUserSecret", func() {
 			secret = obj.(*corev1.Secret)
 
 			port, ok := secret.Data["mqtt-port"]
-			Expect(ok).NotTo(BeFalse(), "Failed to find key \"mqtt-port\" in the generated Secret")
+			Expect(ok).To(BeTrue(), "Failed to find key \"mqtt-port\" in the generated Secret")
 			Expect(port).To(BeEquivalentTo("1883"))
 
 			port, ok = secret.Data["stomp-port"]
-			Expect(ok).NotTo(BeFalse(), "Failed to find key \"stomp-port\" in the generated Secret")
+			Expect(ok).To(BeTrue(), "Failed to find key \"stomp-port\" in the generated Secret")
 			Expect(port).To(BeEquivalentTo("61613"))
 
 			port, ok = secret.Data["stream-port"]
-			Expect(ok).NotTo(BeFalse(), "Failed to find key \"stream-port\" in the generated Secret")
+			Expect(ok).To(BeTrue(), "Failed to find key \"stream-port\" in the generated Secret")
 			Expect(port).To(BeEquivalentTo("5552"))
 
 			port, ok = secret.Data["web-mqtt-port"]
-			Expect(ok).NotTo(BeFalse(), "Failed to find key \"web-mqtt-port\" in the generated Secret")
+			Expect(ok).To(BeTrue(), "Failed to find key \"web-mqtt-port\" in the generated Secret")
 			Expect(port).To(BeEquivalentTo("15675"))
 
 			port, ok = secret.Data["web-stomp-port"]
-			Expect(ok).NotTo(BeFalse(), "Failed to find key \"web-stomp-port\" in the generated Secret")
+			Expect(ok).To(BeTrue(), "Failed to find key \"web-stomp-port\" in the generated Secret")
 			Expect(port).To(BeEquivalentTo("15674"))
 		})
 	})
@@ -178,7 +177,7 @@ var _ = Describe("DefaultUserSecret", func() {
 			secret = obj.(*corev1.Secret)
 
 			port, ok := secret.Data["port"]
-			Expect(ok).NotTo(BeFalse(), "Failed to find key \"port\" in the generated Secret")
+			Expect(ok).To(BeTrue(), "Failed to find key \"port\" in the generated Secret")
 			Expect(port).To(BeEquivalentTo("5671"))
 		})
 
@@ -200,23 +199,23 @@ var _ = Describe("DefaultUserSecret", func() {
 				secret = obj.(*corev1.Secret)
 
 				port, ok := secret.Data["mqtt-port"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find key \"mqtt-port\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find key \"mqtt-port\" in the generated Secret")
 				Expect(port).To(BeEquivalentTo("8883"))
 
 				port, ok = secret.Data["stomp-port"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find key \"stomp-port\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find key \"stomp-port\" in the generated Secret")
 				Expect(port).To(BeEquivalentTo("61614"))
 
 				port, ok = secret.Data["stream-port"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find key \"stream-port\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find key \"stream-port\" in the generated Secret")
 				Expect(port).To(BeEquivalentTo("5551"))
 
 				port, ok = secret.Data["web-mqtt-port"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find key \"web-mqtt-port\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find key \"web-mqtt-port\" in the generated Secret")
 				Expect(port).To(BeEquivalentTo("15676"))
 
 				port, ok = secret.Data["web-stomp-port"]
-				Expect(ok).NotTo(BeFalse(), "Failed to find key \"web-stomp-port\" in the generated Secret")
+				Expect(ok).To(BeTrue(), "Failed to find key \"web-stomp-port\" in the generated Secret")
 				Expect(port).To(BeEquivalentTo("15673"))
 			})
 		})
@@ -336,15 +335,15 @@ var _ = Describe("DefaultUserSecret", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			port, ok := secret.Data["port"]
-			Expect(ok).NotTo(BeFalse())
+			Expect(ok).To(BeTrue())
 			Expect(port).To(BeEquivalentTo("5671"))
 
 			port, ok = secret.Data["mqtt-port"]
-			Expect(ok).NotTo(BeFalse())
+			Expect(ok).To(BeTrue())
 			Expect(port).To(BeEquivalentTo("8883"))
 
 			port, ok = secret.Data["stream-port"]
-			Expect(ok).NotTo(BeFalse())
+			Expect(ok).To(BeTrue())
 			Expect(port).To(BeEquivalentTo("5551"))
 
 			_, ok = secret.Data["web-mqtt-port"]
