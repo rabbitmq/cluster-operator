@@ -11,18 +11,16 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
-
-	"gopkg.in/ini.v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	defaultscheme "k8s.io/client-go/kubernetes/scheme"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/resource"
+	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var _ = Describe("DefaultUserSecret", func() {
@@ -72,15 +70,17 @@ var _ = Describe("DefaultUserSecret", func() {
 				Expect(secret.Type).To(Equal(corev1.SecretTypeOpaque))
 			})
 
-			By("creating a rabbitmq username that is base64 encoded and 24 characters in length", func() {
+			By("creating a rabbitmq username that has a prefix 'default_user_', base64 encoded, and 24 characters in length when decoded", func() {
 				username, ok = secret.Data["username"]
 				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"username\" in the generated Secret")
-				decodedUsername, err := b64.URLEncoding.DecodeString(string(username))
+				Expect(string(username)).To(HavePrefix("default_user_"))
+				//strList := strings.SplitAfter(string(username), "default_user_")
+				decoded, err := b64.URLEncoding.DecodeString(string(username))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(decodedUsername)).To(Equal(24))
+				Expect(len(decoded)).To(Equal(24))
 			})
 
-			By("creating a rabbitmq password that is base64 encoded and 24 characters in length", func() {
+			By("creating a rabbitmq password that is base64 encoded and 24 characters in length when decoded", func() {
 				password, ok = secret.Data["password"]
 				Expect(ok).NotTo(BeFalse(), "Failed to find a key \"password\" in the generated Secret")
 				decodedPassword, err := b64.URLEncoding.DecodeString(string(password))
