@@ -76,7 +76,7 @@ var _ = Describe("DefaultUserSecret", func() {
 				Expect(string(username)).To(HavePrefix("default_user_"))
 				decoded, err := b64.URLEncoding.DecodeString(string(username))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(decoded)).To(Equal(24))
+				Expect(decoded).To(HaveLen(24))
 			})
 
 			By("creating a rabbitmq password that is base64 encoded and 24 characters in length when decoded", func() {
@@ -84,7 +84,7 @@ var _ = Describe("DefaultUserSecret", func() {
 				Expect(ok).To(BeTrue(), "Failed to find a key \"password\" in the generated Secret")
 				decodedPassword, err := b64.URLEncoding.DecodeString(string(password))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(decodedPassword)).To(Equal(24))
+				Expect(decodedPassword).To(HaveLen(24))
 			})
 
 			By("Setting a host that corresponds to the service address", func() {
