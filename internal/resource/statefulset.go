@@ -662,15 +662,16 @@ func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster, rab
 		Image: "900900/rabbitmq-admin-password-updater:dev",
 		//TODO remove (used for dev)
 		ImagePullPolicy: "Always",
-		Args:            []string{"--management-uri", managementURI},
+		Args: []string{
+			"--management-uri", managementURI,
+			"-v", "4"},
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &rabbitmqUID,
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "rabbitmq-erlang-cookie",
-				MountPath: "/var/lib/rabbitmq/.rabbitmqadmin.conf",
-				SubPath:   ".rabbitmqadmin.conf",
+				MountPath: "/var/lib/rabbitmq/",
 			},
 			// VolumeMount /etc/rabbitmq/conf.d/11-default-user will be added by Vault injector.
 		},
