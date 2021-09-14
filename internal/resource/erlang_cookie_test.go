@@ -72,7 +72,7 @@ var _ = Describe("ErlangCookie", func() {
 			Expect(ok).NotTo(BeFalse())
 			decodedCookie, err := b64.URLEncoding.DecodeString(string(cookie))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(decodedCookie)).To(Equal(24))
+			Expect(decodedCookie).To(HaveLen(24))
 		})
 	})
 

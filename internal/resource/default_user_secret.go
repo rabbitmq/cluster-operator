@@ -29,6 +29,7 @@ const (
 	DefaultUserSecretName = "default-user"
 	bindingProvider       = "rabbitmq"
 	bindingType           = "rabbitmq"
+	usernamePrefix        = "default_user_"
 )
 
 type DefaultUserSecretBuilder struct {
@@ -40,7 +41,7 @@ func (builder *RabbitmqResourceBuilder) DefaultUserSecret() *DefaultUserSecretBu
 }
 
 func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
-	username, err := randomEncodedString(24)
+	username, err := generateUsername(24)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +145,18 @@ func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
 			}
 		}
 	}
+}
+
+// generateUsername returns a base64 string that has "default_user_" as prefix
+// returned string has length 'l' when base64 decoded
+func generateUsername(l int) (string, error) {
+	encoded, err := randomEncodedString(l)
+	if err != nil {
+		return "", err
+	}
+
+	encodedSlice := []byte(encoded)
+	return string(append([]byte(usernamePrefix), encodedSlice[0:len(encodedSlice)-len(usernamePrefix)]...)), nil
 }
 
 func (builder *DefaultUserSecretBuilder) pluginEnabled(plugin v1beta1.Plugin) bool {
