@@ -8,4 +8,4 @@ spec:
     vault:
       role: rabbitmq
       tls:
-        pkiRolePath: pki/issue/concourse
+        pathCertificate: pki/issue/cert-issuer

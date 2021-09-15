@@ -881,7 +881,7 @@ var _ = Describe("StatefulSet", func() {
 			})
 			When("secretBackend.vault.defaulUserSecretPath is set", func() {
 				BeforeEach(func() {
-					instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/myrabbit/config"
+					instance.Spec.SecretBackend.Vault.PathDefaultUser = "secret/myrabbit/config"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				})
 
@@ -897,7 +897,7 @@ var _ = Describe("StatefulSet", func() {
 					a := statefulSet.Spec.Template.Annotations
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-11-default_user.conf", "/etc/rabbitmq/conf.d"))
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-perms-11-default_user.conf", "0640"))
-					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-11-default_user.conf", instance.Spec.SecretBackend.Vault.DefaultUserSecretPath))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-11-default_user.conf", instance.Spec.SecretBackend.Vault.PathDefaultUser))
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-11-default_user.conf", `
 {{- with secret "secret/myrabbit/config" -}}
 default_user = {{ .Data.data.username }}
@@ -936,7 +936,7 @@ default_pass = {{ .Data.data.password }}
 
 			When("secretBackend.vault.tls is set", func() {
 				BeforeEach(func() {
-					instance.Spec.SecretBackend.Vault.TLS.PKIRolePath = "pki/issue/vmware-com"
+					instance.Spec.SecretBackend.Vault.TLS.PathCertificate = "pki/issue/vmware-com"
 					instance.Name = "myrabbit"
 				})
 				Context("with only required config", func() {
@@ -950,9 +950,9 @@ default_pass = {{ .Data.data.password }}
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.key", "/etc/rabbitmq-tls"))
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-ca.crt", "/etc/rabbitmq-tls"))
 
-						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.crt", instance.Spec.SecretBackend.Vault.TLS.PKIRolePath))
-						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.key", instance.Spec.SecretBackend.Vault.TLS.PKIRolePath))
-						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-ca.crt", instance.Spec.SecretBackend.Vault.TLS.PKIRolePath))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.crt", instance.Spec.SecretBackend.Vault.TLS.PathCertificate))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.key", instance.Spec.SecretBackend.Vault.TLS.PathCertificate))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-ca.crt", instance.Spec.SecretBackend.Vault.TLS.PathCertificate))
 
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.crt", `
 {{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
@@ -995,7 +995,7 @@ default_pass = {{ .Data.data.password }}
 			})
 			// It("generates adminconfig credentials from vault mounted file", func() {
 			// instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
-			// instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "secret/rabbitmq/config"
+			// instance.Spec.SecretBackend.Vault.PathDefaultUser = "secret/rabbitmq/config"
 			//
 			// Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			//

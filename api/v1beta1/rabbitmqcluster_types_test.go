@@ -387,8 +387,8 @@ var _ = Describe("RabbitmqCluster", func() {
 				It("sets vault configuration correctly", func() {
 					rabbit := generateRabbitmqClusterObject("rabbit-vault-default-user")
 					rabbit.Spec.SecretBackend.Vault = VaultSpec{
-						Role:                  "test-role",
-						DefaultUserSecretPath: "test-path",
+						Role:            "test-role",
+						PathDefaultUser: "test-path",
 					}
 					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
 					fetchedRabbit := &RabbitmqCluster{}
@@ -398,7 +398,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					}, fetchedRabbit)).To(Succeed())
 
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
-					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretPath).To(Equal("test-path"))
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.PathDefaultUser).To(Equal("test-path"))
 					Expect(fetchedRabbit.VaultEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeTrue())
@@ -412,7 +412,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					rabbit.Spec.SecretBackend.Vault = VaultSpec{
 						Role: "test-role",
 						TLS: VaultTLSSpec{
-							PKIRolePath: "pki/issue/hashicorp-com",
+							PathCertificate: "pki/issue/hashicorp-com",
 						},
 					}
 					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
@@ -423,7 +423,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					}, fetchedRabbit)).To(Succeed())
 
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
-					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLS.PKIRolePath).To(Equal("pki/issue/hashicorp-com"))
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLS.PathCertificate).To(Equal("pki/issue/hashicorp-com"))
 					Expect(fetchedRabbit.VaultEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeFalse())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeFalse())

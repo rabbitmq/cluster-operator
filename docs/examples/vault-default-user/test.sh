@@ -26,7 +26,7 @@ kubectl exec vault-default-user-server-0 -c rabbitmq -- \
     rabbitmqadmin show overview
 
 echo "Rotating password in Vault..."
-kubectl -n default exec vault-0 -c vault -- vault kv put secret/rabbitmq/config username='rabbitmq' password='pwd2'
+kubectl exec vault-0 -c vault -- vault kv put secret/rabbitmq/config username='rabbitmq' password='pwd2'
 
 echo "Checking authentication with new password..."
 retries=15
@@ -38,10 +38,12 @@ do
         echo "Timed out. Password did not update."
         exit 1
     fi
-    echo "Password not yet updated"
+    echo "Password not yet updated..."
     sleep 20
 done
 
 echo "Checking rabbitmqadmin CLI can authenticate with new password..."
 kubectl exec vault-default-user-server-0 -c rabbitmq -- \
     rabbitmqadmin show overview
+
+helm uninstall vault

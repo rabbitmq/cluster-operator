@@ -7,4 +7,4 @@ spec:
   secretBackend:
     vault:
       role: rabbitmq
-      defaultUserSecretPath: secret/data/rabbitmq/config
+      pathDefaultUser: secret/data/rabbitmq/config

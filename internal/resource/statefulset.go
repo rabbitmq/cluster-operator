@@ -834,16 +834,16 @@ func appendVaultAnnotations(
 		vaultAnnotations["vault.hashicorp.com/template-static-secret-render-interval"] = "15s"
 		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+secretName] = "/etc/rabbitmq/conf.d"
 		vaultAnnotations["vault.hashicorp.com/agent-inject-perms-"+secretName] = "0640"
-		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+secretName] = vault.DefaultUserSecretPath
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+secretName] = vault.PathDefaultUser
 		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+secretName] = fmt.Sprintf(`
 {{- with secret "%s" -}}
 default_user = {{ .Data.data.username }}
 default_pass = {{ .Data.data.password }}
-{{- end }}`, vault.DefaultUserSecretPath)
+{{- end }}`, vault.PathDefaultUser)
 	}
 
 	if vault.TLSEnabled() {
-		pkiRolePath := vault.TLS.PKIRolePath
+		pathCert := vault.TLS.PathCertificate
 		commonName := instance.ServiceSubDomain()
 		if vault.TLS.CommonName != "" {
 			commonName = vault.TLS.CommonName
@@ -856,15 +856,15 @@ default_pass = {{ .Data.data.password }}
 
 		certDir := strings.TrimSuffix(tlsCertDir, "/")
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsCertFilename)] = certDir
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsCertFilename)] = pkiRolePath
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsCertFilename)] = pathCert
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", tlsCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "certificate")
 
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsKeyFilename)] = certDir
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsKeyFilename)] = pkiRolePath
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsKeyFilename)] = pathCert
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", tlsKeyFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "private_key")
 
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", caCertFilename)] = certDir
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", caCertFilename)] = pkiRolePath
+		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", caCertFilename)] = pathCert
 		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", caCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "issuing_ca")
 	}
 
@@ -881,11 +881,11 @@ func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 }
 
 func generateVaultTLSTemplate(commonName, altNames string, vault rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
-	pkiRolePath := vault.TLS.PKIRolePath
+	pathCert := vault.TLS.PathCertificate
 	return fmt.Sprintf(`
 {{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}
 {{ .Data.%s }}
-{{- end }}`, pkiRolePath, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
+{{- end }}`, pathCert, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
 }
 
 func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort {

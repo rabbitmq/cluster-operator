@@ -105,19 +105,19 @@ type SecretBackend struct {
 // (based on the added Vault annotations) to include Vault Agent containers that render Vault secrets to the volume.
 type VaultSpec struct {
 	// Role in Vault.
-	// If vault.defaultUserSecretPath is set, this role must have capability to read the pre-created default user credentail in Vault.
+	// If vault.pathDefaultUser is set, this role must have capability to read the pre-created default user credentail in Vault.
 	// If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains
 	// "<namespace>" and "<namespace>.svc".
 	Role string `json:"role,omitempty"`
 	// Path to access a KV secret with the fields username and password for the default user.
-	DefaultUserSecretPath string       `json:"defaultUserSecretPath,omitempty"`
-	TLS                   VaultTLSSpec `json:"tls,omitempty"`
+	PathDefaultUser string       `json:"pathDefaultUser,omitempty"`
+	TLS             VaultTLSSpec `json:"tls,omitempty"`
 }
 
 type VaultTLSSpec struct {
 	// Path in PKI engine, e.g. "pki/issue/hashicorp-com"
 	// required
-	PKIRolePath string `json:"pkiRolePath,omitempty"`
+	PathCertificate string `json:"pathCertificate,omitempty"`
 	// Specifies the requested certificate Common Name (CN).
 	// Defaults to <serviceName>.<namespace>.svc if not provided.
 	// +optional
@@ -135,10 +135,10 @@ type VaultTLSSpec struct {
 }
 
 func (spec *VaultSpec) TLSEnabled() bool {
-	return spec.TLS.PKIRolePath != ""
+	return spec.TLS.PathCertificate != ""
 }
 func (spec *VaultSpec) DefaultUserSecretEnabled() bool {
-	return spec.DefaultUserSecretPath != ""
+	return spec.PathDefaultUser != ""
 }
 
 // Provides the ability to override the generated manifest of several child resources.

@@ -70,7 +70,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 		When("vault is enabled", func() {
 			BeforeEach(func() {
 				builder.Instance.Spec.SecretBackend.Vault.Role = "myrole"
-				builder.Instance.Spec.SecretBackend.Vault.DefaultUserSecretPath = "somepath"
+				builder.Instance.Spec.SecretBackend.Vault.PathDefaultUser = "somepath"
 
 			})
 			It("returns all resource builders except defaultUser when vault is enabled", func() {
