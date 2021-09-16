@@ -15,7 +15,8 @@ helm install vault hashicorp/vault \
     --version 0.15.0 \
     --set='server.dev.enabled=true' \
     --set='server.logLevel=debug' \
-    --set='injector.logLevel=debug'
+    --set='injector.logLevel=debug' \
+    --wait
 kubectl wait --for=condition=Ready pod/vault-0
 
 echo "Configuring K8s authentication..."
