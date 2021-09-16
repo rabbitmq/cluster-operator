@@ -17,11 +17,17 @@ helm install vault hashicorp/vault \
     --set='server.logLevel=debug' \
     --set='injector.logLevel=debug' \
     --wait
+sleep 5
 kubectl wait --for=condition=Ready pod/vault-0
 
 echo "Configuring K8s authentication..."
 # Required so that Vault init container and sidecar of RabbitmqCluster can authenticate with Vault.
 vault_exec "vault auth enable kubernetes"
+
+# In some K8s clusters (e.g. kind), issuer may need to be configured as described in https://www.vaultproject.io/docs/auth/kubernetes#discovering-the-service-account-issuer
+# Otherwise, vault-agent-init container will output "error authenticating".
+# issuer=$(kubectl get --raw=http://127.0.0.1:8001/.well-known/openid-configuration | jq -r .issuer)
+# vault_exec "vault write auth/kubernetes/config issuer=\"$issuer\" token_reviewer_jwt=\"\$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)\" kubernetes_host=https://\${KUBERNETES_PORT_443_TCP_ADDR}:443 kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 vault_exec "vault write auth/kubernetes/config token_reviewer_jwt=\"\$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)\" kubernetes_host=https://\${KUBERNETES_PORT_443_TCP_ADDR}:443 kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 
 echo "Creating credentials for rabbitmq default user..."
