@@ -22,7 +22,7 @@ kubectl wait --for=condition=Ready pod/vault-0
 echo "Configuring K8s authentication..."
 # Required so that Vault init container and sidecar of RabbitmqCluster can authenticate with Vault.
 vault_exec "vault auth enable kubernetes"
-vault_exec "vault write auth/kubernetes/config token_reviewer_jwt=\"\$(cat /var/un/secrets/kubernetes.io/serviceaccount/token)\" kubernetes_host=https://\${KUBERNETES_PORT_443_TCP_ADDR}:443 kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+vault_exec "vault write auth/kubernetes/config token_reviewer_jwt=\"\$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)\" kubernetes_host=https://\${KUBERNETES_PORT_443_TCP_ADDR}:443 kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 
 echo "Creating credentials for rabbitmq default user..."
 # Each RabbitMQ cluster may have its own secret path. Here we have a generic path secret/rabbitmq/config
