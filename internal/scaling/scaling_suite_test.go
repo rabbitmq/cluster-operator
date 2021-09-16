@@ -42,32 +42,6 @@ var (
 	ephemeralStorage  = k8sresource.MustParse("0")
 )
 
-var _ = BeforeEach(func() {
-	rmq = rabbitmqv1beta1.RabbitmqCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rabbit",
-			Namespace: namespace,
-		},
-		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas: &one,
-		},
-	}
-	existingPVC = generatePVC(rmq, 0, tenG)
-	existingSts = appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rabbit-server",
-			Namespace: namespace,
-		},
-		Spec: appsv1.StatefulSetSpec{
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{generatePVCTemplate(rmq, tenG)},
-		},
-	}
-})
-var _ = JustBeforeEach(func() {
-	fakeClientset = fake.NewSimpleClientset(initialAPIObjects...)
-	persistenceScaler = scaling.NewPersistenceScaler(fakeClientset)
-})
-
 func generatePVCTemplate(rmq rabbitmqv1beta1.RabbitmqCluster, size k8sresource.Quantity) corev1.PersistentVolumeClaim {
 	return corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{

@@ -6,11 +6,42 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	"github.com/rabbitmq/cluster-operator/internal/scaling"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 var _ = Describe("Scaling", func() {
+	BeforeEach(func() {
+		rmq = rabbitmqv1beta1.RabbitmqCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "rabbit",
+				Namespace: namespace,
+			},
+			Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+				Replicas: &one,
+			},
+		}
+		existingPVC = generatePVC(rmq, 0, tenG)
+		existingSts = appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "rabbit-server",
+				Namespace: namespace,
+			},
+			Spec: appsv1.StatefulSetSpec{
+				VolumeClaimTemplates: []corev1.PersistentVolumeClaim{generatePVCTemplate(rmq, tenG)},
+			},
+		}
+	})
+	JustBeforeEach(func() {
+		fakeClientset = fake.NewSimpleClientset(initialAPIObjects...)
+		persistenceScaler = scaling.NewPersistenceScaler(fakeClientset)
+	})
+
 	When("the PVC and StatefulSet already exist", func() {
 		BeforeEach(func() {
 			initialAPIObjects = []runtime.Object{&existingSts, &existingPVC}
