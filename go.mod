@@ -9,7 +9,7 @@ require (
 	github.com/go-delve/delve v1.7.1
 	github.com/go-logr/logr v0.4.0
 	github.com/go-stomp/stomp v2.1.4+incompatible
-	github.com/michaelklishin/rabbit-hole/v2 v2.10.0
+	github.com/michaelklishin/rabbit-hole/v2 v2.11.0
 	github.com/mikefarah/yq/v4 v4.13.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
