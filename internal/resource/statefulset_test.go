@@ -911,7 +911,7 @@ default_pass = {{ .Data.data.password }}
 					Expect(defaultUserSecret.Secret).To(BeNil())
 				})
 
-				It("setup-container renders rabbitmqadmin.conf from vault mounted 11-default-user.conf file", func() {
+				It("configures setup-container to render rabbitmqadmin.conf from Vault mounted 11-default-user.conf file", func() {
 					setupContainer := extractContainer(statefulSet.Spec.Template.Spec.InitContainers, "setup-container")
 					Expect(setupContainer).To(MatchFields(IgnoreExtras, Fields{
 						"Command": ConsistOf(
@@ -931,7 +931,94 @@ default_pass = {{ .Data.data.password }}
 						})),
 					}))
 				})
-
+				When("secretBackend.credentialUpdaterImage is set", func() {
+					BeforeEach(func() {
+						instance.Spec.SecretBackend.CredentialUpdaterImage = "updater-img"
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					})
+					It("configures credential updater sidecar container", func() {
+						sidecar := extractContainer(
+							statefulSet.Spec.Template.Spec.Containers,
+							"rabbitmq-admin-password-updater")
+						expectedContainer := corev1.Container{
+							Name: "rabbitmq-admin-password-updater",
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									"cpu":    k8sresource.MustParse("500m"),
+									"memory": k8sresource.MustParse("128Mi"),
+								},
+								Requests: corev1.ResourceList{
+									"cpu":    k8sresource.MustParse("10m"),
+									"memory": k8sresource.MustParse("512Ki"),
+								},
+							},
+							Image: instance.Spec.SecretBackend.CredentialUpdaterImage,
+							Args: []string{
+								"--management-uri", "http://127.0.0.1:15672",
+								"-v", "4"},
+							SecurityContext: &corev1.SecurityContext{
+								RunAsUser: pointer.Int64Ptr(999),
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "rabbitmq-erlang-cookie",
+									MountPath: "/var/lib/rabbitmq/",
+								},
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "MY_POD_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath:  "metadata.name",
+											APIVersion: "v1",
+										},
+									},
+								},
+								{
+									Name: "MY_POD_NAMESPACE",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath:  "metadata.namespace",
+											APIVersion: "v1",
+										},
+									},
+								},
+								{
+									Name:  "K8S_SERVICE_NAME",
+									Value: "foo-nodes",
+								},
+								{
+									Name:  "HOSTNAME_DOMAIN",
+									Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+								},
+							},
+						}
+						Expect(sidecar).To(Equal(expectedContainer))
+					})
+					When("TLS is enabled with certs from K8s secret", func() {
+						BeforeEach(func() {
+							instance.Spec.TLS.SecretName = "my-certs"
+							Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+						})
+						It("mounts rabbitmq-tls volume", func() {
+							sidecar := extractContainer(
+								statefulSet.Spec.Template.Spec.Containers,
+								"rabbitmq-admin-password-updater")
+							Expect(sidecar.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+								Name:      "rabbitmq-tls",
+								MountPath: "/etc/rabbitmq-tls/",
+								ReadOnly:  true,
+							}))
+						})
+						It("configures sidecar to talk to RabbitMQ Management API via TLS", func() {
+							sidecar := extractContainer(
+								statefulSet.Spec.Template.Spec.Containers,
+								"rabbitmq-admin-password-updater")
+							Expect(sidecar.Args).To(ContainElement(Equal("https://$(HOSTNAME_DOMAIN):15671")))
+						})
+					})
+				})
 			})
 
 			When("secretBackend.vault.tls is set", func() {
@@ -993,16 +1080,6 @@ default_pass = {{ .Data.data.password }}
 					})
 				})
 			})
-			// It("generates adminconfig credentials from vault mounted file", func() {
-			// instance.Spec.SecretBackend.Vault.Role = "rabbitmq"
-			// instance.Spec.SecretBackend.Vault.PathDefaultUser = "secret/rabbitmq/config"
-			//
-			// Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-			//
-			// Expect(statefulSet.Spec.Template.Spec.InitContainers[0].Command[2]).To(
-			// ContainSubstring("/etc/rabbitmq/conf.d/11-default_user.conf"))
-			//
-			// })
 		})
 
 		Context("Rabbitmq container volume mounts", func() {
