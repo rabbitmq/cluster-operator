@@ -29,7 +29,7 @@ echo "Rotating password in Vault..."
 kubectl exec vault-0 -c vault -- vault kv put secret/rabbitmq/config username='rabbitmq' password='pwd2'
 
 with_retry() {
-    retries=15
+    retries=30
     while ! eval "$1"
     do
         ((retries=retries-1))
@@ -38,7 +38,7 @@ with_retry() {
             echo "Timed out."
             exit 1
         fi
-        echo "Retrying $retries more time(s)..."
+        echo "Retrying in 20 seconds for $retries more time(s)..."
         sleep 20
     done
 }
