@@ -862,19 +862,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 						Projected: &corev1.ProjectedVolumeSource{
 							Sources: []corev1.VolumeProjection{
 								{
-									Secret: &corev1.SecretProjection{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "rabbitmq-sts-override-default-user",
-										},
-										Items: []corev1.KeyToPath{
-											{
-												Key:  "default_user.conf",
-												Path: "default_user.conf",
-											},
-										},
-									},
-								},
-								{
 									ConfigMap: &corev1.ConfigMapProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: "rabbitmq-sts-override-server-conf",
@@ -887,6 +874,19 @@ var _ = Describe("RabbitmqClusterController", func() {
 											{
 												Key:  "userDefinedConfiguration.conf",
 												Path: "userDefinedConfiguration.conf",
+											},
+										},
+									},
+								},
+								{
+									Secret: &corev1.SecretProjection{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "rabbitmq-sts-override-default-user",
+										},
+										Items: []corev1.KeyToPath{
+											{
+												Key:  "default_user.conf",
+												Path: "default_user.conf",
 											},
 										},
 									},
