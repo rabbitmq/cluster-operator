@@ -631,7 +631,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		},
 	}
-	if builder.Instance.VaultDefaultUserSecretEnabled() {
+	if builder.Instance.VaultDefaultUserSecretEnabled() &&
+		builder.Instance.Spec.SecretBackend.CredentialUpdaterImage != "" {
 		podTemplateSpec.Spec.Containers = append(podTemplateSpec.Spec.Containers,
 			rabbitMQAdminPasswordUpdater(builder.Instance, rabbitmqUID))
 	}
@@ -659,7 +660,7 @@ func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster, rab
 				"memory": k8sresource.MustParse("500Ki"),
 			},
 		},
-		Image: "900900/rabbitmq-admin-password-updater:dev",
+		Image: instance.Spec.SecretBackend.CredentialUpdaterImage,
 		//TODO remove (used for dev)
 		ImagePullPolicy: "Always",
 		Args: []string{

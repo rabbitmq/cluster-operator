@@ -3,8 +3,12 @@ kind: RabbitmqCluster
 metadata:
   name: vault-default-user
 spec:
-  replicas: 1
+  replicas: 3
   secretBackend:
     vault:
       role: rabbitmq
       pathDefaultUser: secret/data/rabbitmq/config
+    # Deploy a sidecar container that rotates admin password in RabbitMQ server
+    # whenever Vault sidecar container puts a new password into
+    # /etc/rabbitmq/conf.d/11-default_user.conf
+    credentialUpdaterImage: "rabbitmqoperator/admin-password-updater:0.1.0"

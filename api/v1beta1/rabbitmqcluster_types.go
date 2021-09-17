@@ -97,6 +97,18 @@ type RabbitmqClusterSpec struct {
 // If not configured, K8s Secrets will be used.
 type SecretBackend struct {
 	Vault VaultSpec `json:"vault,omitempty"`
+	// A sidecar container that updates credentials in RabbitMQ server.
+	// As of now, only image "rabbitmqoperator/admin-password-updater:<tag>" exists.
+	// If this image is set, a sidecar container will be deployed that watches file
+	// /etc/rabbitmq/conf.d/11-default_user.conf for changes.
+	// This file is changed when the Vault sidecar observes a new default user password in Vault server
+	// and places the new password into this file.
+	// Since RabbitMQ server cannot pick up this config file change on the fly, the admin-password-updater
+	// will update the password on the RabbitMQ server and also copy the new password to file
+	// /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
+	// In other words, image "rabbitmqoperator/admin-password-updater:<tag>" exists to allow
+	// default user password rotation without the need to restart RabbitMQ server.
+	CredentialUpdaterImage string `json:"credentialUpdaterImage,omitempty"`
 }
 
 // VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations)

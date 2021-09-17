@@ -3798,6 +3798,9 @@ spec:
                 secretBackend:
                   description: Secret backend configuration for the RabbitmqCluster. If configured, the cluster-operator will not create a default user K8s Secret. Instead, default user credentials will be fetched from an external secret backend.
                   properties:
+                    credentialUpdaterImage:
+                      description: A sidecar container that updates credentials in RabbitMQ server. As of now, only image "rabbitmqoperator/admin-password-updater:<tag>" exists. If this image is set, a sidecar container will be deployed that watches file /etc/rabbitmq/conf.d/11-default_user.conf for changes. This file is changed when the Vault sidecar observes a new default user password in Vault server and places the new password into this file. Since RabbitMQ server cannot pick up this config file change on the fly, the admin-password-updater will update the password on the RabbitMQ server and also copy the new password to file /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI). In other words, image "rabbitmqoperator/admin-password-updater:<tag>" exists to allow default user password rotation without the need to restart RabbitMQ server.
+                      type: string
                     vault:
                       description: VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations) to RabbitMQ Pods. It requires a Vault Agent Sidecar Injector (https://www.vaultproject.io/docs/platform/k8s/injector) to be installed in the K8s cluster. The injector is a K8s Mutation Webhook Controller that alters RabbitMQ Pod specifications (based on the added Vault annotations) to include Vault Agent containers that render Vault secrets to the volume.
                       properties:
