@@ -650,19 +650,16 @@ func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster, rab
 	container := corev1.Container{
 		Name: "rabbitmq-admin-password-updater",
 		Resources: corev1.ResourceRequirements{
-			//TODO refine
 			Limits: corev1.ResourceList{
-				"cpu":    k8sresource.MustParse("100m"),
-				"memory": k8sresource.MustParse("100Mi"),
+				"cpu":    k8sresource.MustParse("500m"),
+				"memory": k8sresource.MustParse("128Mi"),
 			},
 			Requests: corev1.ResourceList{
 				"cpu":    k8sresource.MustParse("10m"),
-				"memory": k8sresource.MustParse("500Ki"),
+				"memory": k8sresource.MustParse("512Ki"),
 			},
 		},
 		Image: instance.Spec.SecretBackend.CredentialUpdaterImage,
-		//TODO remove (used for dev)
-		ImagePullPolicy: "Always",
 		Args: []string{
 			"--management-uri", managementURI,
 			"-v", "4"},
@@ -831,8 +828,6 @@ func appendVaultAnnotations(
 
 	if vault.DefaultUserSecretEnabled() {
 		secretName := "11-default_user.conf"
-		//TODO remove (used for dev)
-		vaultAnnotations["vault.hashicorp.com/template-static-secret-render-interval"] = "15s"
 		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+secretName] = "/etc/rabbitmq/conf.d"
 		vaultAnnotations["vault.hashicorp.com/agent-inject-perms-"+secretName] = "0640"
 		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+secretName] = vault.PathDefaultUser
