@@ -23,23 +23,23 @@ import (
 var _ = Describe("RabbitmqResourceBuilder", func() {
 	Context("ResourceBuilders", func() {
 		var (
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "test",
-					Namespace: "namespace",
-				},
-			}
-
-			builder *resource.RabbitmqResourceBuilder
-			scheme  *runtime.Scheme
+			instance *rabbitmqv1beta1.RabbitmqCluster
+			builder  *resource.RabbitmqResourceBuilder
+			scheme   *runtime.Scheme
 		)
 
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
+			instance = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test",
+					Namespace: "namespace",
+				},
+			}
 			builder = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
+				Instance: instance,
 				Scheme:   scheme,
 			}
 		})
