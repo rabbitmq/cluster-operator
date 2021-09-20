@@ -566,7 +566,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			AutomountServiceAccountToken:  pointer.Bool(true),
 			Affinity:                      builder.Instance.Spec.Affinity,
 			Tolerations:                   builder.Instance.Spec.Tolerations,
-			InitContainers:                setupContainer(rabbitmqUID, builder.Instance),
+			InitContainers:                []corev1.Container{setupContainer(rabbitmqUID, builder.Instance)},
 			Volumes:                       volumes,
 			Containers: []corev1.Container{
 				{
@@ -719,76 +719,72 @@ func envVarsK8sObjects(instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.EnvVa
 	}
 }
 
-func setupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.Container {
+func setupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {
 	//Init Container resources
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
 
-	setupContainer := []corev1.Container{
-		{
-			Name:  "setup-container",
-			Image: instance.Spec.Image,
-			SecurityContext: &corev1.SecurityContext{
-				RunAsUser: &rabbitmqUID,
+	setupContainer := corev1.Container{
+		Name:  "setup-container",
+		Image: instance.Spec.Image,
+		SecurityContext: &corev1.SecurityContext{
+			RunAsUser: &rabbitmqUID,
+		},
+		Command: []string{
+			"sh", "-c",
+			"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
+				"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
+				"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; " +
+				"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
+				"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' %s >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
+				"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
+		},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu":    cpuRequest,
+				"memory": memoryRequest,
 			},
-			Command: []string{
-				"sh", "-c",
-				"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
-					"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
-					"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; ",
+			Requests: corev1.ResourceList{
+				"cpu":    cpuRequest,
+				"memory": memoryRequest,
 			},
-			Resources: corev1.ResourceRequirements{
-				Limits: corev1.ResourceList{
-					"cpu":    cpuRequest,
-					"memory": memoryRequest,
-				},
-				Requests: corev1.ResourceList{
-					"cpu":    cpuRequest,
-					"memory": memoryRequest,
-				},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "plugins-conf",
+				MountPath: "/tmp/rabbitmq-plugins/",
 			},
-			VolumeMounts: []corev1.VolumeMount{
-				{
-					Name:      "plugins-conf",
-					MountPath: "/tmp/rabbitmq-plugins/",
-				},
-				{
-					Name:      "rabbitmq-erlang-cookie",
-					MountPath: "/var/lib/rabbitmq/",
-				},
-				{
-					Name:      "erlang-cookie-secret",
-					MountPath: "/tmp/erlang-cookie-secret/",
-				},
-				{
-					Name:      "rabbitmq-plugins",
-					MountPath: "/operator",
-				},
-				{
-					Name:      "persistence",
-					MountPath: "/var/lib/rabbitmq/mnesia/",
-				},
+			{
+				Name:      "rabbitmq-erlang-cookie",
+				MountPath: "/var/lib/rabbitmq/",
+			},
+			{
+				Name:      "erlang-cookie-secret",
+				MountPath: "/tmp/erlang-cookie-secret/",
+			},
+			{
+				Name:      "rabbitmq-plugins",
+				MountPath: "/operator",
+			},
+			{
+				Name:      "persistence",
+				MountPath: "/var/lib/rabbitmq/mnesia/",
 			},
 		},
 	}
 
 	if instance.VaultDefaultUserSecretEnabled() {
-		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf"
-	} else {
 		// Vault annotation automatically mounts the volume
-		setupContainer[0].Command[2] += "echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf"
-		setupContainer[0].VolumeMounts = append(setupContainer[0].VolumeMounts, corev1.VolumeMount{
+		setupContainer.Command[2] = fmt.Sprintf(setupContainer.Command[2], "/etc/rabbitmq/conf.d/11-default_user.conf")
+	} else {
+		setupContainer.Command[2] = fmt.Sprintf(setupContainer.Command[2], "/tmp/default_user.conf")
+		setupContainer.VolumeMounts = append(setupContainer.VolumeMounts, corev1.VolumeMount{
 			Name:      "rabbitmq-confd",
 			MountPath: "/tmp/default_user.conf",
 			SubPath:   "default_user.conf",
 		})
 	}
 	return setupContainer
-
 }
 
 func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *rabbitmqv1beta1.RabbitmqCluster) {
@@ -807,7 +803,8 @@ func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *
 							},
 						},
 					},
-				})
+				},
+			)
 		}
 	}
 }
@@ -851,17 +848,17 @@ default_pass = {{ .Data.data.password }}
 		}
 
 		certDir := strings.TrimSuffix(tlsCertDir, "/")
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsCertFilename)] = certDir
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsCertFilename)] = pathCert
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", tlsCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "certificate")
+		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+tlsCertFilename] = certDir
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+tlsCertFilename] = pathCert
+		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+tlsCertFilename] = generateVaultTLSTemplate(commonName, altNames, vault, "certificate")
 
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", tlsKeyFilename)] = certDir
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", tlsKeyFilename)] = pathCert
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", tlsKeyFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "private_key")
+		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+tlsKeyFilename] = certDir
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+tlsKeyFilename] = pathCert
+		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+tlsKeyFilename] = generateVaultTLSTemplate(commonName, altNames, vault, "private_key")
 
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/secret-volume-path-%s", caCertFilename)] = certDir
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", caCertFilename)] = pathCert
-		vaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", caCertFilename)] = generateVaultTLSTemplate(commonName, altNames, vault, "issuing_ca")
+		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+caCertFilename] = certDir
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+caCertFilename] = pathCert
+		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+caCertFilename] = generateVaultTLSTemplate(commonName, altNames, vault, "issuing_ca")
 	}
 
 	return metadata.ReconcileAnnotations(currentAnnotations, vaultAnnotations)
@@ -873,7 +870,7 @@ func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 	for i = 0; i < pointer.Int32PtrDerefOr(instance.Spec.Replicas, 1); i++ {
 		altNames += fmt.Sprintf(",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace))
 	}
-	return strings.TrimLeft(altNames, ",")
+	return strings.TrimPrefix(altNames, ",")
 }
 
 func generateVaultTLSTemplate(commonName, altNames string, vault rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {

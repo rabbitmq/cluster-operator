@@ -67,17 +67,17 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			}
 		})
 
-		When("vault is enabled", func() {
+		When("default user credentials come from Vault", func() {
 			BeforeEach(func() {
 				builder.Instance.Spec.SecretBackend.Vault.Role = "myrole"
 				builder.Instance.Spec.SecretBackend.Vault.PathDefaultUser = "somepath"
 
 			})
-			It("returns all resource builders except defaultUser when vault is enabled", func() {
+			It("returns all resource builders except for defaultUser K8s Secret", func() {
 				resourceBuilders := builder.ResourceBuilders()
+				Expect(resourceBuilders).To(HaveLen(9))
 				Expect(resourceBuilders).NotTo(ContainElement(BeAssignableToTypeOf(&DefaultUserSecretBuilder{})))
 			})
 		})
-
 	})
 })

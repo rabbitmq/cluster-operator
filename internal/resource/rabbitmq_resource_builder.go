@@ -41,7 +41,8 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() []ResourceBuilder {
 		builder.StatefulSet(),
 	}
 	if builder.Instance.VaultDefaultUserSecretEnabled() {
-		builders = append(builders[:3], builders[3+1:]...) // delete DefaultUserSecret()
+		// do not create default-user K8s Secret
+		builders = append(builders[:3], builders[3+1:]...)
 	}
 	return builders
 }

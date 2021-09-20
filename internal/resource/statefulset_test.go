@@ -879,7 +879,7 @@ var _ = Describe("StatefulSet", func() {
 			BeforeEach(func() {
 				instance.Spec.SecretBackend.Vault.Role = "myrole"
 			})
-			When("secretBackend.vault.defaulUserSecretPath is set", func() {
+			When("secretBackend.vault.pathDefaultUser is set", func() {
 				BeforeEach(func() {
 					instance.Spec.SecretBackend.Vault.PathDefaultUser = "secret/myrabbit/config"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
@@ -932,14 +932,17 @@ default_pass = {{ .Data.data.password }}
 					}))
 				})
 				When("secretBackend.credentialUpdaterImage is set", func() {
+					var sidecar corev1.Container
 					BeforeEach(func() {
 						instance.Spec.SecretBackend.CredentialUpdaterImage = "updater-img"
-						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 					})
-					It("configures credential updater sidecar container", func() {
-						sidecar := extractContainer(
+					JustBeforeEach(func() {
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+						sidecar = extractContainer(
 							statefulSet.Spec.Template.Spec.Containers,
 							"rabbitmq-admin-password-updater")
+					})
+					It("configures credential updater sidecar container", func() {
 						expectedContainer := corev1.Container{
 							Name: "rabbitmq-admin-password-updater",
 							Resources: corev1.ResourceRequirements{
@@ -999,12 +1002,8 @@ default_pass = {{ .Data.data.password }}
 					When("TLS is enabled with certs from K8s secret", func() {
 						BeforeEach(func() {
 							instance.Spec.TLS.SecretName = "my-certs"
-							Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 						})
 						It("mounts rabbitmq-tls volume", func() {
-							sidecar := extractContainer(
-								statefulSet.Spec.Template.Spec.Containers,
-								"rabbitmq-admin-password-updater")
 							Expect(sidecar.VolumeMounts).To(ContainElement(corev1.VolumeMount{
 								Name:      "rabbitmq-tls",
 								MountPath: "/etc/rabbitmq-tls/",
@@ -1012,9 +1011,6 @@ default_pass = {{ .Data.data.password }}
 							}))
 						})
 						It("configures sidecar to talk to RabbitMQ Management API via TLS", func() {
-							sidecar := extractContainer(
-								statefulSet.Spec.Template.Spec.Containers,
-								"rabbitmq-admin-password-updater")
 							Expect(sidecar.Args).To(ContainElement(Equal("https://$(HOSTNAME_DOMAIN):15671")))
 						})
 					})

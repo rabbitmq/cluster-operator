@@ -86,12 +86,11 @@ type RabbitmqClusterSpec struct {
 	// +kubebuilder:default:=604800
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
 	// Secret backend configuration for the RabbitmqCluster.
-	// If configured, the cluster-operator will not create a default user K8s Secret.
-	// Instead, default user credentials will be fetched from an external secret backend.
+	// Enables to fetch default user credentials and certificates from K8s external secret stores.
 	SecretBackend SecretBackend `json:"secretBackend,omitempty"`
 }
 
-// SecretBackend configures a single secret backend from a list of available backends.
+// SecretBackend configures a single secret backend.
 // Today, only Vault exists as supported secret backend.
 // Future secret backends could be Secrets Store CSI Driver.
 // If not configured, K8s Secrets will be used.
@@ -102,11 +101,11 @@ type SecretBackend struct {
 	// If this image is set, a sidecar container will be deployed that watches file
 	// /etc/rabbitmq/conf.d/11-default_user.conf for changes.
 	// This file is changed when the Vault sidecar observes a new default user password in Vault server
-	// and places the new password into this file.
+	// placing the new password into this file.
 	// Since RabbitMQ server cannot pick up this config file change on the fly, the admin-password-updater
 	// will update the password on the RabbitMQ server and also copy the new password to file
 	// /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
-	// In other words, image "rabbitmqoperator/admin-password-updater:<tag>" exists to allow
+	// In other words, image "rabbitmqoperator/admin-password-updater>" exists to allow
 	// default user password rotation without the need to restart RabbitMQ server.
 	// +optional
 	CredentialUpdaterImage string `json:"credentialUpdaterImage,omitempty"`
@@ -118,17 +117,19 @@ type SecretBackend struct {
 // (based on the added Vault annotations) to include Vault Agent containers that render Vault secrets to the volume.
 type VaultSpec struct {
 	// Role in Vault.
-	// If vault.pathDefaultUser is set, this role must have capability to read the pre-created default user credentail in Vault.
+	// If vault.pathDefaultUser is set, this role must have capability to read the pre-created default user credential in Vault.
 	// If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains
 	// "<namespace>" and "<namespace>.svc".
 	Role string `json:"role,omitempty"`
-	// Path to access a KV secret with the fields username and password for the default user.
+	// Path in Vault to access a KV secret with the fields username and password for the default user.
+	// For example "secret/data/rabbitmq/config".
 	PathDefaultUser string       `json:"pathDefaultUser,omitempty"`
 	TLS             VaultTLSSpec `json:"tls,omitempty"`
 }
 
 type VaultTLSSpec struct {
-	// Path in PKI engine, e.g. "pki/issue/hashicorp-com"
+	// Path in Vault PKI engine.
+	// For example "pki/issue/hashicorp-com".
 	// required
 	PathCertificate string `json:"pathCertificate,omitempty"`
 	// Specifies the requested certificate Common Name (CN).
@@ -398,7 +399,7 @@ func (cluster *RabbitmqCluster) SecretTLSEnabled() bool {
 }
 
 func (cluster *RabbitmqCluster) MutualTLSEnabled() bool {
-	return (cluster.Spec.TLS.CaSecretName != "" && cluster.Spec.TLS.SecretName != "") || cluster.VaultTLSEnabled()
+	return (cluster.SecretTLSEnabled() && cluster.Spec.TLS.CaSecretName != "") || cluster.VaultTLSEnabled()
 }
 
 func (cluster *RabbitmqCluster) MemoryLimited() bool {

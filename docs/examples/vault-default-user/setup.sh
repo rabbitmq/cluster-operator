@@ -12,7 +12,7 @@ echo "Installing helm package in the example namespace..."
 helm repo add hashicorp https://helm.releases.hashicorp.com
 helm repo update
 helm install vault hashicorp/vault \
-    --version 0.15.0 \
+    --version 0.16.0 \
     --set='server.dev.enabled=true' \
     --set='server.logLevel=debug' \
     --set='injector.logLevel=debug' \

@@ -309,7 +309,7 @@ Spec is the desired state of the RabbitmqCluster Custom Resource.
 | *`override`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusteroverridespec[$$RabbitmqClusterOverrideSpec$$]__ | Provides the ability to override the generated manifest of several child resources.
 | *`skipPostDeploySteps`* __boolean__ | If unset, or set to false, the cluster will run `rabbitmq-queues rebalance all` whenever the cluster is updated. Set to true to prevent the operator rebalancing queue leaders after a cluster update. Has no effect if the cluster only consists of one node. For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
 | *`terminationGracePeriodSeconds`* __integer__ | TerminationGracePeriodSeconds is the timeout that each rabbitmqcluster pod will have to terminate gracefully. It defaults to 604800 seconds ( a week long) to ensure that the container preStop lifecycle hook can finish running. For more information, see: https://github.com/rabbitmq/cluster-operator/blob/main/docs/design/20200520-graceful-pod-termination.md
-| *`secretBackend`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-secretbackend[$$SecretBackend$$]__ | Secret backend configuration for the RabbitmqCluster. If configured, the cluster-operator will not create a default user K8s Secret. Instead, default user credentials will be fetched from an external secret backend.
+| *`secretBackend`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-secretbackend[$$SecretBackend$$]__ | Secret backend configuration for the RabbitmqCluster. Enables to fetch default user credentials and certificates from K8s external secret stores.
 |===
 
 
@@ -336,7 +336,7 @@ Status presents the observed state of RabbitmqCluster
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-secretbackend"]
 ==== SecretBackend 
 
-SecretBackend configures a single secret backend from a list of available backends. Today, only Vault exists as supported secret backend. Future secret backends could be Secrets Store CSI Driver. If not configured, K8s Secrets will be used.
+SecretBackend configures a single secret backend. Today, only Vault exists as supported secret backend. Future secret backends could be Secrets Store CSI Driver. If not configured, K8s Secrets will be used.
 
 .Appears In:
 ****
@@ -347,7 +347,7 @@ SecretBackend configures a single secret backend from a list of available backen
 |===
 | Field | Description
 | *`vault`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaultspec[$$VaultSpec$$]__ | 
-| *`credentialUpdaterImage`* __string__ | A sidecar container that updates credentials in RabbitMQ server. As of now, only image "rabbitmqoperator/admin-password-updater:<tag>" exists. If this image is set, a sidecar container will be deployed that watches file /etc/rabbitmq/conf.d/11-default_user.conf for changes. This file is changed when the Vault sidecar observes a new default user password in Vault server and places the new password into this file. Since RabbitMQ server cannot pick up this config file change on the fly, the admin-password-updater will update the password on the RabbitMQ server and also copy the new password to file /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI). In other words, image "rabbitmqoperator/admin-password-updater:<tag>" exists to allow default user password rotation without the need to restart RabbitMQ server.
+| *`credentialUpdaterImage`* __string__ | A sidecar container that updates credentials in RabbitMQ server. As of now, only image "rabbitmqoperator/admin-password-updater" exists. If this image is set, a sidecar container will be deployed that watches file /etc/rabbitmq/conf.d/11-default_user.conf for changes. This file is changed when the Vault sidecar observes a new default user password in Vault server placing the new password into this file. Since RabbitMQ server cannot pick up this config file change on the fly, the admin-password-updater will update the password on the RabbitMQ server and also copy the new password to file /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI). In other words, image "rabbitmqoperator/admin-password-updater>" exists to allow default user password rotation without the need to restart RabbitMQ server.
 |===
 
 
@@ -444,8 +444,8 @@ VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platf
 [cols="25a,75a", options="header"]
 |===
 | Field | Description
-| *`role`* __string__ | Role in Vault. If vault.pathDefaultUser is set, this role must have capability to read the pre-created default user credentail in Vault. If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains "<namespace>" and "<namespace>.svc".
-| *`pathDefaultUser`* __string__ | Path to access a KV secret with the fields username and password for the default user.
+| *`role`* __string__ | Role in Vault. If vault.pathDefaultUser is set, this role must have capability to read the pre-created default user credential in Vault. If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains "<namespace>" and "<namespace>.svc".
+| *`pathDefaultUser`* __string__ | Path in Vault to access a KV secret with the fields username and password for the default user. For example "secret/data/rabbitmq/config".
 | *`tls`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaulttlsspec[$$VaultTLSSpec$$]__ | 
 |===
 
@@ -463,7 +463,7 @@ VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platf
 [cols="25a,75a", options="header"]
 |===
 | Field | Description
-| *`pathCertificate`* __string__ | Path in PKI engine, e.g. "pki/issue/hashicorp-com" required
+| *`pathCertificate`* __string__ | Path in Vault PKI engine. For example "pki/issue/hashicorp-com". required
 | *`commonName`* __string__ | Specifies the requested certificate Common Name (CN). Defaults to <serviceName>.<namespace>.svc if not provided.
 | *`altNames`* __string__ | Specifies the requested Subject Alternative Names (SANs), in a comma-delimited list. These will be appended to the SANs added by the cluster-operator. The cluster-operator will add SANS: "<RabbitmqCluster name>-server-<index>.<RabbitmqCluster name>-nodes.<namespace>" for each pod, e.g. "myrabbit-server-0.myrabbit-nodes.default".
 | *`ipSans`* __string__ | Specifies the requested IP Subject Alternative Names, in a comma-delimited list.

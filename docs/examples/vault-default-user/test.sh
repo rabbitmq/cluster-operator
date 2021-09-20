@@ -28,6 +28,8 @@ kubectl exec vault-default-user-server-0 -c rabbitmq -- \
 echo "Rotating password in Vault..."
 kubectl exec vault-0 -c vault -- vault kv put secret/rabbitmq/config username='rabbitmq' password='pwd2'
 
+# It takes ~3 minutes until Vault sidecar detects the password change.
+# Can be reduced using Vault Agent annotation "vault.hashicorp.com/template-static-secret-render-interval".
 with_retry() {
     retries=30
     while ! eval "$1"
@@ -47,7 +49,7 @@ echo "Checking authentication with new password..."
 with_retry "kubectl exec vault-default-user-server-0 -c rabbitmq -- rabbitmqctl authenticate_user rabbitmq pwd2"
 
 echo "Checking rabbitmqadmin CLI can authenticate with new password on server-0..."
-kubectl exec vault-default-user-server-0 -c rabbitmq -- rabbitmqadmin show overview
+with_retry "kubectl exec vault-default-user-server-0 -c rabbitmq -- rabbitmqadmin show overview"
 echo "Checking rabbitmqadmin CLI can authenticate with new password on server-1..."
 with_retry "kubectl exec vault-default-user-server-1 -c rabbitmq -- rabbitmqadmin show overview"
 echo "Checking rabbitmqadmin CLI can authenticate with new password on server-2..."
