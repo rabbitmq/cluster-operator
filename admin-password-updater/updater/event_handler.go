@@ -79,7 +79,7 @@ func (u *PasswordUpdater) HandleEvents() {
 				u.Rmqc.SetUsername(adminUser)
 				u.Rmqc.SetPassword(oldPasswd)
 
-				if !u.updateInRabbitMQ(adminUser, newPasswd) {
+				if err := u.updateInRabbitMQ(adminUser, newPasswd); err != nil {
 					break
 				}
 
@@ -114,8 +114,8 @@ func fileChanged(defaultUserFile string, event fsnotify.Event) bool {
 }
 
 // updateInRabbitMQ sets newPasswd for existingUser in the RabbitMQ server.
-// It returns true if password could be sucessfully updated or password was already up-to-date.
-func (u *PasswordUpdater) updateInRabbitMQ(existingUser, newPasswd string) (ok bool) {
+// It returns an error if password cannot be updated.
+func (u *PasswordUpdater) updateInRabbitMQ(existingUser, newPasswd string) error {
 	pathUsers := "/api/users/" + existingUser
 
 	user, err := u.Rmqc.GetUser(existingUser)
@@ -137,10 +137,10 @@ func (u *PasswordUpdater) updateInRabbitMQ(existingUser, newPasswd string) (ok b
 
 	u.Log.V(3).Info("HTTP response", "method", http.MethodPut, "path", pathUsers, "status", resp.Status)
 	u.Log.V(2).Info("updated password on RabbitMQ server", "user", existingUser)
-	return true
+	return nil
 }
 
-func (u *PasswordUpdater) handleHTTPError(err error, httpMethod, pathUsers, newPasswd string) (ok bool) {
+func (u *PasswordUpdater) handleHTTPError(err error, httpMethod, pathUsers, newPasswd string) error {
 	// as returned in
 	// https://github.com/michaelklishin/rabbit-hole/blob/1de83b96b8ba1e29afd003143a9d8a8234d4e913/client.go#L153
 	if err.Error() == "Error: API responded with a 401 Unauthorized" {
@@ -150,23 +150,23 @@ func (u *PasswordUpdater) handleHTTPError(err error, httpMethod, pathUsers, newP
 			"HTTP request with old password returned 401 Unauthorized, therefore trying to authenticate with new password...",
 			"method", httpMethod, "path", pathUsers)
 		u.Rmqc.SetPassword(newPasswd)
-		return u.canAuthenticate()
+		return u.authenticate()
 	}
 	u.Log.Error(err, "HTTP request failed", "method", httpMethod, "path", pathUsers)
-	return false
+	return err
 }
 
-// canAuthenticate checks whether authentication succeeds.
+// authenticate checks whether authentication succeeds.
 // It queries /api/whoami (although it could query any other endpoint requiring basic auth).
-// Returns true if authentication succeeds.
-func (u *PasswordUpdater) canAuthenticate() bool {
+// Returns an error if authentication fails.
+func (u *PasswordUpdater) authenticate() error {
 	const pathWhoAmI = "/api/whoami"
 	_, err := u.Rmqc.Whoami()
 	if err != nil {
 		u.Log.Error(err, fmt.Sprintf("failed to GET %s with new password", pathWhoAmI))
-		return false
+		return err
 	}
 	u.Log.V(2).Info(fmt.Sprintf(
 		"GET %s with new password succeeded, therefore skipping PUT %s...", pathWhoAmI, "/api/users/"+u.Rmqc.GetUsername()))
-	return true
+	return nil
 }
