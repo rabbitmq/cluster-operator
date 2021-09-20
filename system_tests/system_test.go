@@ -390,6 +390,9 @@ CONSOLE_LOG=new`
 
 				// test https://github.com/rabbitmq/cluster-operator/issues/662 is fixed
 				By("clustering correctly")
+				if strings.Contains(cluster.Spec.Image, ":3.8.8") {
+					Skip(cluster.Spec.Image + " is known to not cluster consistently (fixed in v3.8.18)")
+				}
 				rmqc, err := rabbithole.NewClient(fmt.Sprintf("http://%s:%s", hostname, port), username, password)
 				Expect(err).NotTo(HaveOccurred())
 				nodes, err := rmqc.ListNodes()
