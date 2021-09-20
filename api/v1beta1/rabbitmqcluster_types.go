@@ -105,7 +105,7 @@ type SecretBackend struct {
 	// Since RabbitMQ server cannot pick up this config file change on the fly, the admin-password-updater
 	// will update the password on the RabbitMQ server and also copy the new password to file
 	// /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
-	// In other words, image "rabbitmqoperator/admin-password-updater>" exists to allow
+	// In other words, image "rabbitmqoperator/admin-password-updater" exists to allow
 	// default user password rotation without the need to restart RabbitMQ server.
 	// +optional
 	CredentialUpdaterImage string `json:"credentialUpdaterImage,omitempty"`
