@@ -121,6 +121,10 @@ type VaultSpec struct {
 	// If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains
 	// "<namespace>" and "<namespace>.svc".
 	Role string `json:"role,omitempty"`
+	// Vault annotations that override the Vault annotations set by the cluster-operator.
+	// For a list of valid Vault annotations, see https://www.vaultproject.io/docs/platform/k8s/injector/annotations
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 	// Path in Vault to access a KV secret with the fields username and password for the default user.
 	// For example "secret/data/rabbitmq/config".
 	PathDefaultUser string       `json:"pathDefaultUser,omitempty"`

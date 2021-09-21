@@ -853,7 +853,7 @@ default_pass = {{ .Data.data.password }}
 		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+caCertFilename] = generateVaultTLSTemplate(commonName, altNames, vault, "issuing_ca")
 	}
 
-	return metadata.ReconcileAnnotations(currentAnnotations, vaultAnnotations)
+	return metadata.ReconcileAnnotations(currentAnnotations, vaultAnnotations, vault.Annotations)
 }
 
 func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {

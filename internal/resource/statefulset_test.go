@@ -880,9 +880,11 @@ var _ = Describe("StatefulSet", func() {
 				instance.Spec.SecretBackend.Vault.Role = "myrole"
 			})
 			When("secretBackend.vault.pathDefaultUser is set", func() {
+				JustBeforeEach(func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				})
 				BeforeEach(func() {
 					instance.Spec.SecretBackend.Vault.PathDefaultUser = "secret/myrabbit/config"
-					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				})
 
 				It("adds general Vault annotations", func() {
@@ -902,6 +904,25 @@ var _ = Describe("StatefulSet", func() {
 default_user = {{ .Data.data.username }}
 default_pass = {{ .Data.data.password }}
 {{- end }}`))
+				})
+
+				When("secretBackend.vault.Annotations is set", func() {
+					BeforeEach(func() {
+						instance.Spec.SecretBackend.Vault.Annotations = map[string]string{
+							"vault.hashicorp.com/agent-init-first": "false",
+							"mykey":                                "myval",
+						}
+					})
+					It("overrides operator-set Vault annotations", func() {
+						a := statefulSet.Spec.Template.Annotations
+						// user overriden annotations
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-init-first", "false"))
+						Expect(a).To(HaveKeyWithValue("mykey", "myval"))
+						// opererator-set annotations
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.SecretBackend.Vault.Role))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-11-default_user.conf", "/etc/rabbitmq/conf.d"))
+					})
 				})
 
 				It("does not project default user secret to rabbitmq-confd volume", func() {
