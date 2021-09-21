@@ -45,7 +45,7 @@ To enable rotation, set `spec.secretBackend.credentialUpdaterImage` to `"rabbitm
 The Vault sidecar container will place the updated admin password from Vault server into file `/etc/rabbitmq/conf.d/11-default_user.conf`.
 However, RabbitMQ cannot pick up config file changes on the fly.
 Therefore, some component need to update the password on the RabbitMQ server.
-The Vault sidecar container does not seem to contain the tools to HTTP POST to the RabbitMQ Management API or to `kubectl exec` into the RabbitMQ container.
+The Vault sidecar container does not seem to contain the tools to HTTP PUT to the RabbitMQ Management API or to `kubectl exec` into the RabbitMQ container.
 Since we do not want to change the default Vault image, a 2nd side car container `rabbitmq-admin-password-updater` gets deployed.
 It contains a single Go binary that constantly watches `11-default_user.conf` for changes.
-If a new password is detected, it POSTs to the RabbitMQ management API updating the password server side and copies the password into `/var/lib/rabbitmq/.rabbitmqadmin.conf` to be used for the `rabbitmqadmin` CLI.
+If a new password is detected, it PUTs to the RabbitMQ management API updating the password server side and copies the password into `/var/lib/rabbitmq/.rabbitmqadmin.conf` to be used for the `rabbitmqadmin` CLI.
