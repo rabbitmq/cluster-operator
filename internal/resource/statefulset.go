@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -634,12 +633,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	if builder.Instance.VaultDefaultUserSecretEnabled() &&
 		builder.Instance.Spec.SecretBackend.CredentialUpdaterImage != "" {
 		podTemplateSpec.Spec.Containers = append(podTemplateSpec.Spec.Containers,
-			rabbitMQAdminPasswordUpdater(builder.Instance, rabbitmqUID))
+			rabbitMQAdminPasswordUpdater(builder.Instance))
 	}
 	return podTemplateSpec
 }
 
-func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster, rabbitmqUID int64) corev1.Container {
+func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {
 	managementURI := "http://127.0.0.1:15672"
 	if instance.TLSEnabled() {
 		// RabbitMQ certificate SAN must include this host name.
@@ -663,9 +662,6 @@ func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster, rab
 		Args: []string{
 			"--management-uri", managementURI,
 			"-v", "4"},
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &rabbitmqUID,
-		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "rabbitmq-erlang-cookie",
@@ -727,9 +723,6 @@ func setupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.RabbitmqCluster
 	setupContainer := corev1.Container{
 		Name:  "setup-container",
 		Image: instance.Spec.Image,
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &rabbitmqUID,
-		},
 		Command: []string{
 			"sh", "-c",
 			"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
@@ -817,10 +810,9 @@ func appendVaultAnnotations(
 	vault := instance.Spec.SecretBackend.Vault
 
 	vaultAnnotations := map[string]string{
-		"vault.hashicorp.com/agent-inject":      "true",
-		"vault.hashicorp.com/agent-init-first":  "true",
-		"vault.hashicorp.com/role":              vault.Role,
-		"vault.hashicorp.com/agent-run-as-user": strconv.FormatInt(rabbitmqUID, 10),
+		"vault.hashicorp.com/agent-inject":     "true",
+		"vault.hashicorp.com/agent-init-first": "true",
+		"vault.hashicorp.com/role":             vault.Role,
 	}
 
 	if vault.DefaultUserSecretEnabled() {

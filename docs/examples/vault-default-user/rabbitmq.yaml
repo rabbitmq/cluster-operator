@@ -11,4 +11,4 @@ spec:
     # Optionally, deploy a sidecar container that rotates admin password in RabbitMQ server
     # whenever Vault sidecar container puts a new password into
     # /etc/rabbitmq/conf.d/11-default_user.conf
-    credentialUpdaterImage: "rabbitmqoperator/admin-password-updater:0.1.0"
+    credentialUpdaterImage: "rabbitmqoperator/admin-password-updater:0.1.1"

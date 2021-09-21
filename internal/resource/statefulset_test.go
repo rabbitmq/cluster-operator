@@ -890,7 +890,6 @@ var _ = Describe("StatefulSet", func() {
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-init-first", "true"))
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.SecretBackend.Vault.Role))
-					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-run-as-user", "999"))
 				})
 
 				It("adds Vault annotations to fetch the default user", func() {
@@ -959,9 +958,6 @@ default_pass = {{ .Data.data.password }}
 							Args: []string{
 								"--management-uri", "http://127.0.0.1:15672",
 								"-v", "4"},
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: pointer.Int64Ptr(999),
-							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "rabbitmq-erlang-cookie",
@@ -1301,13 +1297,9 @@ default_pass = {{ .Data.data.password }}
 			initContainers := statefulSet.Spec.Template.Spec.InitContainers
 			Expect(initContainers).To(HaveLen(1))
 
-			rmqUID := int64(999)
 			initContainer := extractContainer(initContainers, "setup-container")
 			Expect(initContainer).To(MatchFields(IgnoreExtras, Fields{
 				"Image": Equal("rabbitmq-image-from-cr"),
-				"SecurityContext": PointTo(MatchFields(IgnoreExtras, Fields{
-					"RunAsUser": Equal(&rmqUID),
-				})),
 				"Command": ConsistOf(
 					"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
 						"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; "+
