@@ -7,6 +7,10 @@ spec:
   secretBackend:
     vault:
       role: rabbitmq
+      # Optionally, set Vault annotations as listed in
+      # https://www.vaultproject.io/docs/platform/k8s/injector/annotations
+      annotations:
+        vault.hashicorp.com/template-static-secret-render-interval: "15s"
       pathDefaultUser: secret/data/rabbitmq/config
     # Optionally, deploy a sidecar container that rotates admin password in RabbitMQ server
     # whenever Vault sidecar container puts a new password into
