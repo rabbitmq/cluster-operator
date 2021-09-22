@@ -92,7 +92,7 @@ func (p PersistenceScaler) getClusterPVCs(ctx context.Context, rmq rabbitmqv1bet
 		}
 	}
 	if len(pvcs) > 0 {
-		logger.Info("Found existing PVCs", "pvcList", pvcs)
+		logger.V(1).Info("Found existing PVCs", "pvcList", pvcs)
 	}
 	return pvcs, nil
 }
