@@ -388,7 +388,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					rabbit := generateRabbitmqClusterObject("rabbit-vault-default-user")
 					rabbit.Spec.SecretBackend.Vault = VaultSpec{
 						Role:            "test-role",
-						PathDefaultUser: "test-path",
+						DefaultUserPath: "test-path",
 					}
 					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
 					fetchedRabbit := &RabbitmqCluster{}
@@ -398,12 +398,13 @@ var _ = Describe("RabbitmqCluster", func() {
 					}, fetchedRabbit)).To(Succeed())
 
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
-					Expect(fetchedRabbit.Spec.SecretBackend.Vault.PathDefaultUser).To(Equal("test-path"))
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserPath).To(Equal("test-path"))
 					Expect(fetchedRabbit.VaultEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeFalse())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeFalse())
+
 				})
 			})
 			When("only TLS is configured", func() {
@@ -412,7 +413,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					rabbit.Spec.SecretBackend.Vault = VaultSpec{
 						Role: "test-role",
 						TLS: VaultTLSSpec{
-							PathCertificate: "pki/issue/hashicorp-com",
+							PKIIssuerPath: "pki/issue/hashicorp-com",
 						},
 					}
 					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
@@ -423,7 +424,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					}, fetchedRabbit)).To(Succeed())
 
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
-					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLS.PathCertificate).To(Equal("pki/issue/hashicorp-com"))
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLS.PKIIssuerPath).To(Equal("pki/issue/hashicorp-com"))
 					Expect(fetchedRabbit.VaultEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeFalse())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeFalse())

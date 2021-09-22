@@ -96,19 +96,7 @@ type RabbitmqClusterSpec struct {
 // If not configured, K8s Secrets will be used.
 type SecretBackend struct {
 	Vault VaultSpec `json:"vault,omitempty"`
-	// A sidecar container that updates credentials in RabbitMQ server.
-	// As of now, only image "rabbitmqoperator/admin-password-updater" exists.
-	// If this image is set, a sidecar container will be deployed that watches file
-	// /etc/rabbitmq/conf.d/11-default_user.conf for changes.
-	// This file is changed when the Vault sidecar observes a new default user password in Vault server
-	// placing the new password into this file.
-	// Since RabbitMQ server cannot pick up this config file change on the fly, the admin-password-updater
-	// will update the password on the RabbitMQ server and also copy the new password to file
-	// /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
-	// In other words, image "rabbitmqoperator/admin-password-updater" exists to allow
-	// default user password rotation without the need to restart RabbitMQ server.
-	// +optional
-	CredentialUpdaterImage string `json:"credentialUpdaterImage,omitempty"`
+
 }
 
 // VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations)
@@ -127,15 +115,23 @@ type VaultSpec struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Path in Vault to access a KV secret with the fields username and password for the default user.
 	// For example "secret/data/rabbitmq/config".
-	PathDefaultUser string       `json:"pathDefaultUser,omitempty"`
-	TLS             VaultTLSSpec `json:"tls,omitempty"`
+	DefaultUserPath string `json:"defaultUserPath,omitempty"`
+	// sidecar container that updates the defaultUser's password in RabbitMq when it changes in Vault. Additionally,
+	// it updates /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
+	// A default image name and version is provided (rabbitmqoperator/admin-password-updater:0.1.1).
+	// Only override when the default image version is not appropriate.
+	// When set to empty string, it disables the sidecar and passwords are not updated in RabbitMQ.
+	//e.g. defaultUserUpdaterImage: ""`
+	// +optional
+	DefaultUserUpdaterImage string       `json:"defaultUserUpdaterImage,omitempty"`
+	TLS                     VaultTLSSpec `json:"tls,omitempty"`
 }
 
 type VaultTLSSpec struct {
 	// Path in Vault PKI engine.
 	// For example "pki/issue/hashicorp-com".
 	// required
-	PathCertificate string `json:"pathCertificate,omitempty"`
+	PKIIssuerPath string `json:"pkiIssuerPath,omitempty"`
 	// Specifies the requested certificate Common Name (CN).
 	// Defaults to <serviceName>.<namespace>.svc if not provided.
 	// +optional
@@ -153,10 +149,17 @@ type VaultTLSSpec struct {
 }
 
 func (spec *VaultSpec) TLSEnabled() bool {
-	return spec.TLS.PathCertificate != ""
+	return spec.TLS.PKIIssuerPath != ""
 }
 func (spec *VaultSpec) DefaultUserSecretEnabled() bool {
-	return spec.PathDefaultUser != ""
+	return spec.DefaultUserPath != ""
+}
+func (spec *VaultSpec) ResolveDefaultUserUpdaterInage() string {
+	if spec.DefaultUserUpdaterImage == "" {
+		return "rabbitmqoperator/admin-password-updater:0.1.1"
+	}
+	return spec.DefaultUserUpdaterImage
+
 }
 
 // Provides the ability to override the generated manifest of several child resources.

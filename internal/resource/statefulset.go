@@ -630,8 +630,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		},
 	}
-	if builder.Instance.VaultDefaultUserSecretEnabled() &&
-		builder.Instance.Spec.SecretBackend.CredentialUpdaterImage != "" {
+	if builder.Instance.VaultDefaultUserSecretEnabled() {
 		podTemplateSpec.Spec.Containers = append(podTemplateSpec.Spec.Containers,
 			rabbitMQAdminPasswordUpdater(builder.Instance))
 	}
@@ -658,7 +657,7 @@ func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) cor
 				"memory": k8sresource.MustParse("512Ki"),
 			},
 		},
-		Image: instance.Spec.SecretBackend.CredentialUpdaterImage,
+		Image: instance.Spec.SecretBackend.Vault.ResolveDefaultUserUpdaterInage(),
 		Args: []string{
 			"--management-uri", managementURI,
 			"-v", "4"},
@@ -819,16 +818,16 @@ func appendVaultAnnotations(
 		secretName := "11-default_user.conf"
 		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+secretName] = "/etc/rabbitmq/conf.d"
 		vaultAnnotations["vault.hashicorp.com/agent-inject-perms-"+secretName] = "0640"
-		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+secretName] = vault.PathDefaultUser
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+secretName] = vault.DefaultUserPath
 		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+secretName] = fmt.Sprintf(`
 {{- with secret "%s" -}}
 default_user = {{ .Data.data.username }}
 default_pass = {{ .Data.data.password }}
-{{- end }}`, vault.PathDefaultUser)
+{{- end }}`, vault.DefaultUserPath)
 	}
 
 	if vault.TLSEnabled() {
-		pathCert := vault.TLS.PathCertificate
+		pathCert := vault.TLS.PKIIssuerPath
 		commonName := instance.ServiceSubDomain()
 		if vault.TLS.CommonName != "" {
 			commonName = vault.TLS.CommonName
@@ -866,7 +865,7 @@ func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 }
 
 func generateVaultTLSTemplate(commonName, altNames string, vault rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
-	pathCert := vault.TLS.PathCertificate
+	pathCert := vault.TLS.PKIIssuerPath
 	return fmt.Sprintf(`
 {{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}
 {{ .Data.%s }}

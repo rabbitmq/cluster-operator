@@ -879,12 +879,12 @@ var _ = Describe("StatefulSet", func() {
 			BeforeEach(func() {
 				instance.Spec.SecretBackend.Vault.Role = "myrole"
 			})
-			When("secretBackend.vault.pathDefaultUser is set", func() {
+			When("secretBackend.vault.defaultUserPath is set", func() {
 				JustBeforeEach(func() {
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				})
 				BeforeEach(func() {
-					instance.Spec.SecretBackend.Vault.PathDefaultUser = "secret/myrabbit/config"
+					instance.Spec.SecretBackend.Vault.DefaultUserPath = "secret/myrabbit/config"
 				})
 
 				It("adds general Vault annotations", func() {
@@ -898,7 +898,7 @@ var _ = Describe("StatefulSet", func() {
 					a := statefulSet.Spec.Template.Annotations
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-11-default_user.conf", "/etc/rabbitmq/conf.d"))
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-perms-11-default_user.conf", "0640"))
-					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-11-default_user.conf", instance.Spec.SecretBackend.Vault.PathDefaultUser))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-11-default_user.conf", instance.Spec.SecretBackend.Vault.DefaultUserPath))
 					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-11-default_user.conf", `
 {{- with secret "secret/myrabbit/config" -}}
 default_user = {{ .Data.data.username }}
@@ -951,18 +951,21 @@ default_pass = {{ .Data.data.password }}
 						})),
 					}))
 				})
-				When("secretBackend.credentialUpdaterImage is set", func() {
+				Context("credential updater sidecar container", func() {
 					var sidecar corev1.Container
-					BeforeEach(func() {
-						instance.Spec.SecretBackend.CredentialUpdaterImage = "updater-img"
-					})
 					JustBeforeEach(func() {
 						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 						sidecar = extractContainer(
 							statefulSet.Spec.Template.Spec.Containers,
 							"rabbitmq-admin-password-updater")
 					})
-					It("configures credential updater sidecar container", func() {
+
+					It("automatically configures default credential updater sidecar container", func() {
+						var sidecar corev1.Container
+						sidecar = extractContainer(
+							statefulSet.Spec.Template.Spec.Containers,
+							"rabbitmq-admin-password-updater")
+
 						expectedContainer := corev1.Container{
 							Name: "rabbitmq-admin-password-updater",
 							Resources: corev1.ResourceRequirements{
@@ -975,7 +978,7 @@ default_pass = {{ .Data.data.password }}
 									"memory": k8sresource.MustParse("512Ki"),
 								},
 							},
-							Image: instance.Spec.SecretBackend.CredentialUpdaterImage,
+							Image: "rabbitmqoperator/admin-password-updater:0.1.1",
 							Args: []string{
 								"--management-uri", "http://127.0.0.1:15672",
 								"-v", "4"},
@@ -1016,6 +1019,7 @@ default_pass = {{ .Data.data.password }}
 						}
 						Expect(sidecar).To(Equal(expectedContainer))
 					})
+
 					When("TLS is enabled with certs from K8s secret", func() {
 						BeforeEach(func() {
 							instance.Spec.TLS.SecretName = "my-certs"
@@ -1031,12 +1035,21 @@ default_pass = {{ .Data.data.password }}
 							Expect(sidecar.Args).To(ContainElement(Equal("https://$(HOSTNAME_DOMAIN):15671")))
 						})
 					})
+
+					When("DefaultUserUpdaterImage is set to non-empty string", func() {
+						BeforeEach(func() {
+							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = "another-image"
+						})
+						It("sidecar is configured with the configured image name", func() {
+							Expect(sidecar.Image).To(Equal("another-image"))
+						})
+					})
 				})
 			})
 
 			When("secretBackend.vault.tls is set", func() {
 				BeforeEach(func() {
-					instance.Spec.SecretBackend.Vault.TLS.PathCertificate = "pki/issue/vmware-com"
+					instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath = "pki/issue/vmware-com"
 					instance.Name = "myrabbit"
 				})
 				Context("with only required config", func() {
@@ -1050,9 +1063,9 @@ default_pass = {{ .Data.data.password }}
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.key", "/etc/rabbitmq-tls"))
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-ca.crt", "/etc/rabbitmq-tls"))
 
-						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.crt", instance.Spec.SecretBackend.Vault.TLS.PathCertificate))
-						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.key", instance.Spec.SecretBackend.Vault.TLS.PathCertificate))
-						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-ca.crt", instance.Spec.SecretBackend.Vault.TLS.PathCertificate))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.crt", instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.key", instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-ca.crt", instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath))
 
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.crt", `
 {{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}

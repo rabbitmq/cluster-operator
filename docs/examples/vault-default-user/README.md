@@ -40,12 +40,18 @@ kubectl exec vault-default-user-server-0 -c rabbitmq -- rabbitmqctl authenticate
 where `<username>` and `<password>` are the values from step 4 above.
 
 ## Admin password rotation without restarting Pods
-Rotating the admin password (but not the username!) in supported without the need to restart RabbitMQ servers.
-To enable rotation, set `spec.secretBackend.credentialUpdaterImage` to `"rabbitmqoperator/admin-password-updater:<tag>"`.
-The Vault sidecar container will place the updated admin password from Vault server into file `/etc/rabbitmq/conf.d/11-default_user.conf`.
-However, RabbitMQ cannot pick up config file changes on the fly.
-Therefore, some component need to update the password on the RabbitMQ server.
-The Vault sidecar container does not seem to contain the tools to HTTP PUT to the RabbitMQ Management API or to `kubectl exec` into the RabbitMQ container.
-Since we do not want to change the default Vault image, a 2nd side car container `rabbitmq-admin-password-updater` gets deployed.
-It contains a single Go binary that constantly watches `11-default_user.conf` for changes.
-If a new password is detected, it PUTs to the RabbitMQ management API updating the password server side and copies the password into `/var/lib/rabbitmq/.rabbitmqadmin.conf` to be used for the `rabbitmqadmin` CLI.
+Rotating the admin password (but not the username!) is supported without the need to restart RabbitMQ servers.
+
+This is how it works:
+1. The RabbitMQ cluster operator deploys a sidecar container called `rabbitmq-admin-password-updater`
+2. When the default user password changes in Vault, the Vault sidecar container updates the new admin password from Vault server into file `/etc/rabbitmq/conf.d/11-default_user.conf`
+3. The `rabbitmq-admin-password-updater` sidecar monitors the file `/etc/rabbitmq/conf.d/11-default_user.conf` and when it changes, it updates the password in RabbitMQ.
+4. Additionally, the sidecar updates the local file `/var/lib/rabbitmq/.rabbitmqadmin.conf` with the new password (required by the local rabbitmqadmin tool)
+
+Although we do not need to set the `rabbitmq-admin-password-updater` image name, we can override it like shown below
+```
+   vault:
+      role: rabbitmq
+      defaultUserPath: secret/data/rabbitmq/config
+      defaultUserUpdaterImage: "rabbitmqoperator/admin-password-updater:0.1.1"
+```
