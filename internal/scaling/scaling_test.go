@@ -22,9 +22,6 @@ var _ = Describe("Scaling", func() {
 				Name:      "rabbit",
 				Namespace: namespace,
 			},
-			Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-				Replicas: &one,
-			},
 		}
 		existingPVC = generatePVC(rmq, 0, tenG)
 		existingSts = appsv1.StatefulSet{

@@ -34,7 +34,6 @@ var (
 	rmq               rabbitmqv1beta1.RabbitmqCluster
 	existingSts       appsv1.StatefulSet
 	existingPVC       corev1.PersistentVolumeClaim
-	one               = int32(1)
 	three             = int32(3)
 	oneG              = k8sresource.MustParse("1Gi")
 	tenG              = k8sresource.MustParse("10Gi")
@@ -109,15 +108,19 @@ func (matcher *GetActionMatcher) Match(actual interface{}) (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	return action.Matches(matcher.expectedVerb, matcher.expectedResourceType) && action.GetNamespace() == matcher.expectedNamespace && action.GetName() == matcher.expectedResourceName, nil
+	return action.Matches(matcher.expectedVerb, matcher.expectedResourceType) &&
+		action.GetNamespace() == matcher.expectedNamespace &&
+		action.GetName() == matcher.expectedResourceName, nil
 }
 
 func (matcher *GetActionMatcher) FailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' to match the observed action:\n%+v\n", matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
+	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' to match the observed action:\n%+v\n",
+		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
 func (matcher *GetActionMatcher) NegatedFailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' not to match the observed action:\n%+v\n", matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
+	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' not to match the observed action:\n%+v\n",
+		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
 func BeDeleteActionOnResource(expectedResourceType, expectedResourceName, expectedNamespace string) types.GomegaMatcher {
@@ -147,16 +150,20 @@ func (matcher *DeleteActionMatcher) Match(actual interface{}) (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	return action.Matches(matcher.expectedVerb, matcher.expectedResourceType) && action.GetNamespace() == matcher.expectedNamespace && action.GetName() == matcher.expectedResourceName, nil
+	return action.Matches(matcher.expectedVerb, matcher.expectedResourceType) &&
+		action.GetNamespace() == matcher.expectedNamespace &&
+		action.GetName() == matcher.expectedResourceName, nil
 
 }
 
 func (matcher *DeleteActionMatcher) FailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' to match the observed action:\n%+v\n", matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
+	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' to match the observed action:\n%+v\n",
+		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
 func (matcher *DeleteActionMatcher) NegatedFailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' not to match the observed action:\n%+v\n", matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
+	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' not to match the observed action:\n%+v\n",
+		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
 func BeUpdateActionOnResource(expectedResourceType, expectedResourceName, expectedNamespace string, updatedResourceMatcher types.GomegaMatcher) types.GomegaMatcher {
@@ -199,7 +206,9 @@ func (matcher *UpdateActionMatcher) Match(actual interface{}) (bool, error) {
 
 	// Check the object's Name, Namespace, resource type and the verb of the action first. If this fails, there's
 	// no point in running the extra matchers on the updated object.
-	if !(action.Matches(matcher.expectedVerb, matcher.expectedResourceType) && action.GetNamespace() == matcher.expectedNamespace && objMeta.GetName() == matcher.expectedResourceName) {
+	if !(action.Matches(matcher.expectedVerb, matcher.expectedResourceType) &&
+		action.GetNamespace() == matcher.expectedNamespace &&
+		objMeta.GetName() == matcher.expectedResourceName) {
 		return false, nil
 	}
 
@@ -216,12 +225,14 @@ func (matcher *UpdateActionMatcher) FailureMessage(actual interface{}) string {
 	if matcher.failedUpdatedResourceMatcher {
 		return matcher.updatedResourceMatcher.FailureMessage(actual)
 	}
-	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' to match the observed action:\n%+v\n", matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
+	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' to match the observed action:\n%+v\n",
+		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
 func (matcher *UpdateActionMatcher) NegatedFailureMessage(actual interface{}) string {
 	if matcher.failedUpdatedResourceMatcher {
 		return matcher.updatedResourceMatcher.NegatedFailureMessage(actual)
 	}
-	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' not to match the observed action:\n%+v\n", matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
+	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' not to match the observed action:\n%+v\n",
+		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }

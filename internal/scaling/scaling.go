@@ -14,6 +14,7 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -61,10 +62,9 @@ func (p PersistenceScaler) Scale(ctx context.Context, rmq rabbitmqv1beta1.Rabbit
 	if len(pvcsToBeScaled) == 0 {
 		return nil
 	}
-	logger.Info("Scaling up PVCs for a RabbitmqCluster", "RabbitmqCluster", rmq.Name, "pvcsToBeScaled", pvcsToBeScaled)
+	logger.Info("Scaling up PVCs", "RabbitmqCluster", rmq.Name, "pvcsToBeScaled", pvcsToBeScaled)
 
-	err = p.deleteSts(ctx, rmq)
-	if err != nil {
+	if err := p.deleteSts(ctx, rmq); err != nil {
 		logErr := fmt.Errorf("Failed to delete Statefulset from Kubernetes API: %w", err)
 		logger.Error(logErr, "Could not delete existing sts")
 		return logErr
@@ -78,8 +78,9 @@ func (p PersistenceScaler) getClusterPVCs(ctx context.Context, rmq rabbitmqv1bet
 
 	var pvcs []*corev1.PersistentVolumeClaim
 
-	for i := 0; i < int(*rmq.Spec.Replicas); i++ {
-		pvc, err := p.Client.CoreV1().PersistentVolumeClaims(rmq.Namespace).Get(ctx, rmq.PVCName(i), metav1.GetOptions{})
+	var i int32
+	for i = 0; i < pointer.Int32Deref(rmq.Spec.Replicas, 1); i++ {
+		pvc, err := p.Client.CoreV1().PersistentVolumeClaims(rmq.Namespace).Get(ctx, rmq.PVCName(int(i)), metav1.GetOptions{})
 		if client.IgnoreNotFound(err) != nil {
 			logErr := fmt.Errorf("Failed to get PVC from Kubernetes API: %w", err)
 			logger.Error(logErr, "Could not read existing PVC")
