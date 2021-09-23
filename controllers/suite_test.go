@@ -86,6 +86,7 @@ var _ = BeforeSuite(func() {
 		Scheme:      mgr.GetScheme(),
 		Recorder:    mgr.GetEventRecorderFor(controllerName),
 		Namespace:   "rabbitmq-system",
+		Clientset:   clientSet,
 		PodExecutor: fakeExecutor,
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())

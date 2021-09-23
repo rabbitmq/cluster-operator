@@ -170,20 +170,22 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, err
 			}
 
-			// only checks for PVC expansion and scale down if statefulSet is created
+			// only checks for scale down if statefulSet is created
 			// else continue to CreateOrUpdate()
 			if !k8serrors.IsNotFound(err) {
 				if err := builder.Update(sts); err != nil {
-					return ctrl.Result{}, err
-				}
-				if err = r.reconcilePVC(ctx, rabbitmqCluster, current, sts); err != nil {
-					r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
 					return ctrl.Result{}, err
 				}
 				if r.scaleDown(ctx, rabbitmqCluster, current, sts) {
 					// return when cluster scale down detected; unsupported operation
 					return ctrl.Result{}, nil
 				}
+			}
+
+			// The PVCs for the StatefulSet may require expanding
+			if err = r.reconcilePVC(ctx, rabbitmqCluster, sts); err != nil {
+				r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
+				return ctrl.Result{}, err
 			}
 		}
 
