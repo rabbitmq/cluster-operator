@@ -12,8 +12,5 @@ spec:
       annotations:
         vault.hashicorp.com/template-static-secret-render-interval: "15s"
       defaultUserPath: secret/data/rabbitmq/config
-      # Optionally, override the sidecar container image that rotates admin password in RabbitMQ server
-      # whenever Vault sidecar container puts a new password into
-      # If not specified, it defaults to "rabbitmqoperator/admin-password-updater:0.1.1"
-      # /etc/rabbitmq/conf.d/11-default_user.conf
-      # defaultUserUpdaterImage: "rabbitmqoperator/admin-password-updater:0.1.1"
+      # Optionally, we can override the sidecar container image that rotates admin password in RabbitMQ server
+      # whenever Vault sidecar container puts a new password into /etc/rabbitmq/conf.d/11-default_user.conf
