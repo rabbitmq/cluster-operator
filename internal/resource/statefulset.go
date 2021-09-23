@@ -630,7 +630,9 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		},
 	}
-	if builder.Instance.VaultDefaultUserSecretEnabled() {
+	if builder.Instance.VaultDefaultUserSecretEnabled() &&
+		builder.Instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage != nil &&
+		*builder.Instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage != "" {
 		podTemplateSpec.Spec.Containers = append(podTemplateSpec.Spec.Containers,
 			rabbitMQAdminPasswordUpdater(builder.Instance))
 	}
@@ -657,7 +659,7 @@ func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) cor
 				"memory": k8sresource.MustParse("512Ki"),
 			},
 		},
-		Image: instance.Spec.SecretBackend.Vault.ResolveDefaultUserUpdaterInage(),
+		Image: *instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage,
 		Args: []string{
 			"--management-uri", managementURI,
 			"-v", "4"},
@@ -864,7 +866,7 @@ func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 	return strings.TrimPrefix(altNames, ",")
 }
 
-func generateVaultTLSTemplate(commonName, altNames string, vault rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
+func generateVaultTLSTemplate(commonName, altNames string, vault *rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
 	pathCert := vault.TLS.PKIIssuerPath
 	return fmt.Sprintf(`
 {{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}

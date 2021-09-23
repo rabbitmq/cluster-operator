@@ -95,8 +95,7 @@ type RabbitmqClusterSpec struct {
 // Future secret backends could be Secrets Store CSI Driver.
 // If not configured, K8s Secrets will be used.
 type SecretBackend struct {
-	Vault VaultSpec `json:"vault,omitempty"`
-
+	Vault *VaultSpec `json:"vault,omitempty"`
 }
 
 // VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations)
@@ -116,12 +115,11 @@ type VaultSpec struct {
 	// Path in Vault to access a KV secret with the fields username and password for the default user.
 	// For example "secret/data/rabbitmq/config".
 	DefaultUserPath string `json:"defaultUserPath,omitempty"`
-	// sidecar container that updates the defaultUser's password in RabbitMq when it changes in Vault. Additionally,
-	// it updates /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
-	// A default image name and version is provided (rabbitmqoperator/admin-password-updater:0.1.1).
-	// Only override when the default image version is not appropriate.
-	// +optional
-	DefaultUserUpdaterImage string       `json:"defaultUserUpdaterImage,omitempty"`
+	// Sidecar container that updates the defaultUser's password in RabbitMQ when it changes in Vault.
+	// Additionally, it updates /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
+	// Set to empty string to disable the sidecar container.
+	// +kubebuilder:default:="rabbitmqoperator/admin-password-updater:0.1.1"
+	DefaultUserUpdaterImage *string      `json:"defaultUserUpdaterImage,omitempty"`
 	TLS                     VaultTLSSpec `json:"tls,omitempty"`
 }
 
@@ -151,13 +149,6 @@ func (spec *VaultSpec) TLSEnabled() bool {
 }
 func (spec *VaultSpec) DefaultUserSecretEnabled() bool {
 	return spec.DefaultUserPath != ""
-}
-func (spec *VaultSpec) ResolveDefaultUserUpdaterInage() string {
-	if spec.DefaultUserUpdaterImage == "" {
-		return "rabbitmqoperator/admin-password-updater:0.1.1"
-	}
-	return spec.DefaultUserUpdaterImage
-
 }
 
 // Provides the ability to override the generated manifest of several child resources.
@@ -434,7 +425,7 @@ func (cluster *RabbitmqCluster) StreamNeeded() bool {
 }
 
 func (cluster *RabbitmqCluster) VaultEnabled() bool {
-	return cluster.Spec.SecretBackend.Vault.Role != ""
+	return cluster.Spec.SecretBackend.Vault != nil
 }
 
 func (cluster *RabbitmqCluster) VaultDefaultUserSecretEnabled() bool {

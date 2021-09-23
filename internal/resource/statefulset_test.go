@@ -877,7 +877,9 @@ var _ = Describe("StatefulSet", func() {
 
 		Context("Vault", func() {
 			BeforeEach(func() {
-				instance.Spec.SecretBackend.Vault.Role = "myrole"
+				instance.Spec.SecretBackend.Vault = &rabbitmqv1beta1.VaultSpec{
+					Role: "test-role",
+				}
 			})
 			When("secretBackend.vault.defaultUserPath is set", func() {
 				JustBeforeEach(func() {
@@ -959,89 +961,87 @@ default_pass = {{ .Data.data.password }}
 							statefulSet.Spec.Template.Spec.Containers,
 							"rabbitmq-admin-password-updater")
 					})
-
-					It("automatically configures default credential updater sidecar container", func() {
-						var sidecar corev1.Container
-						sidecar = extractContainer(
-							statefulSet.Spec.Template.Spec.Containers,
-							"rabbitmq-admin-password-updater")
-
-						expectedContainer := corev1.Container{
-							Name: "rabbitmq-admin-password-updater",
-							Resources: corev1.ResourceRequirements{
-								Limits: corev1.ResourceList{
-									"cpu":    k8sresource.MustParse("500m"),
-									"memory": k8sresource.MustParse("128Mi"),
-								},
-								Requests: corev1.ResourceList{
-									"cpu":    k8sresource.MustParse("10m"),
-									"memory": k8sresource.MustParse("512Ki"),
-								},
-							},
-							Image: "rabbitmqoperator/admin-password-updater:0.1.1",
-							Args: []string{
-								"--management-uri", "http://127.0.0.1:15672",
-								"-v", "4"},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "rabbitmq-erlang-cookie",
-									MountPath: "/var/lib/rabbitmq/",
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name: "MY_POD_NAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath:  "metadata.name",
-											APIVersion: "v1",
-										},
-									},
-								},
-								{
-									Name: "MY_POD_NAMESPACE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath:  "metadata.namespace",
-											APIVersion: "v1",
-										},
-									},
-								},
-								{
-									Name:  "K8S_SERVICE_NAME",
-									Value: "foo-nodes",
-								},
-								{
-									Name:  "HOSTNAME_DOMAIN",
-									Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
-								},
-							},
-						}
-						Expect(sidecar).To(Equal(expectedContainer))
-					})
-
-					When("TLS is enabled with certs from K8s secret", func() {
+					When("disabled", func() {
 						BeforeEach(func() {
-							instance.Spec.TLS.SecretName = "my-certs"
+							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = pointer.String("")
 						})
-						It("mounts rabbitmq-tls volume", func() {
-							Expect(sidecar.VolumeMounts).To(ContainElement(corev1.VolumeMount{
-								Name:      "rabbitmq-tls",
-								MountPath: "/etc/rabbitmq-tls/",
-								ReadOnly:  true,
-							}))
-						})
-						It("configures sidecar to talk to RabbitMQ Management API via TLS", func() {
-							Expect(sidecar.Args).To(ContainElement(Equal("https://$(HOSTNAME_DOMAIN):15671")))
+						It("does not deploy sidecar container", func() {
+							Expect(sidecar).To(Equal(corev1.Container{}))
 						})
 					})
 
-					When("DefaultUserUpdaterImage is set to non-empty string", func() {
+					When("enabled", func() {
 						BeforeEach(func() {
-							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = "another-image"
+							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = pointer.String("updater-img")
 						})
-						It("sidecar is configured with the configured image name", func() {
-							Expect(sidecar.Image).To(Equal("another-image"))
+						It("configures default credential updater sidecar container", func() {
+							expectedContainer := corev1.Container{
+								Name: "rabbitmq-admin-password-updater",
+								Resources: corev1.ResourceRequirements{
+									Limits: corev1.ResourceList{
+										"cpu":    k8sresource.MustParse("500m"),
+										"memory": k8sresource.MustParse("128Mi"),
+									},
+									Requests: corev1.ResourceList{
+										"cpu":    k8sresource.MustParse("10m"),
+										"memory": k8sresource.MustParse("512Ki"),
+									},
+								},
+								Image: "updater-img",
+								Args: []string{
+									"--management-uri", "http://127.0.0.1:15672",
+									"-v", "4"},
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "rabbitmq-erlang-cookie",
+										MountPath: "/var/lib/rabbitmq/",
+									},
+								},
+								Env: []corev1.EnvVar{
+									{
+										Name: "MY_POD_NAME",
+										ValueFrom: &corev1.EnvVarSource{
+											FieldRef: &corev1.ObjectFieldSelector{
+												FieldPath:  "metadata.name",
+												APIVersion: "v1",
+											},
+										},
+									},
+									{
+										Name: "MY_POD_NAMESPACE",
+										ValueFrom: &corev1.EnvVarSource{
+											FieldRef: &corev1.ObjectFieldSelector{
+												FieldPath:  "metadata.namespace",
+												APIVersion: "v1",
+											},
+										},
+									},
+									{
+										Name:  "K8S_SERVICE_NAME",
+										Value: "foo-nodes",
+									},
+									{
+										Name:  "HOSTNAME_DOMAIN",
+										Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+									},
+								},
+							}
+							Expect(sidecar).To(Equal(expectedContainer))
+						})
+						When("TLS is enabled with certs from K8s secret", func() {
+							BeforeEach(func() {
+								instance.Spec.TLS.SecretName = "my-certs"
+							})
+							It("mounts rabbitmq-tls volume", func() {
+								Expect(sidecar.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+									Name:      "rabbitmq-tls",
+									MountPath: "/etc/rabbitmq-tls/",
+									ReadOnly:  true,
+								}))
+							})
+							It("configures sidecar to talk to RabbitMQ Management API via TLS", func() {
+								Expect(sidecar.Args).To(ContainElement(Equal("https://$(HOSTNAME_DOMAIN):15671")))
+							})
 						})
 					})
 				})

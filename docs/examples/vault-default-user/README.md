@@ -53,5 +53,13 @@ Although we do not need to set the `rabbitmq-admin-password-updater` image name,
    vault:
       role: rabbitmq
       defaultUserPath: secret/data/rabbitmq/config
-      defaultUserUpdaterImage: "rabbitmqoperator/admin-password-updater:0.1.1"
+      defaultUserUpdaterImage: "rabbitmqoperator/admin-password-updater:1.0.1"
+```
+
+To disable the sidecar container, set the image name to an empty string as shown below
+```
+   vault:
+      role: rabbitmq
+      defaultUserPath: secret/data/rabbitmq/config
+      defaultUserUpdaterImage: ""
 ```
