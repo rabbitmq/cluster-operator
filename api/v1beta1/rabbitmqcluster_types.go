@@ -120,8 +120,6 @@ type VaultSpec struct {
 	// it updates /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
 	// A default image name and version is provided (rabbitmqoperator/admin-password-updater:0.1.1).
 	// Only override when the default image version is not appropriate.
-	// When set to empty string, it disables the sidecar and passwords are not updated in RabbitMQ.
-	//e.g. defaultUserUpdaterImage: ""`
 	// +optional
 	DefaultUserUpdaterImage string       `json:"defaultUserUpdaterImage,omitempty"`
 	TLS                     VaultTLSSpec `json:"tls,omitempty"`
