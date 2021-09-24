@@ -207,11 +207,13 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
-	if err := r.setDefaultUserStatus(ctx, rabbitmqCluster); err != nil {
-		return ctrl.Result{}, err
-	}
-	if err := r.setBinding(ctx, rabbitmqCluster); err != nil {
-		return ctrl.Result{}, err
+	if !rabbitmqCluster.VaultDefaultUserSecretEnabled() {
+		if err := r.setDefaultUserStatus(ctx, rabbitmqCluster); err != nil {
+			return ctrl.Result{}, err
+		}
+		if err := r.setBinding(ctx, rabbitmqCluster); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// By this point the StatefulSet may have finished deploying. Run any
