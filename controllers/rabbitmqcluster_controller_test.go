@@ -191,7 +191,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 	})
 
-	FContext("Vault is enabled for DefaultUser", func() {
+	Context("Vault is enabled for DefaultUser", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -216,7 +216,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(client.Delete(ctx, cluster)).To(Succeed())
 		})
 
-		FIt("does not expose DefaultUser or its Binding as status", func() {
+		It("does not expose DefaultUser or its Binding as status", func() {
 			Expect(cluster).NotTo(BeNil())
 			Expect(cluster.Status).NotTo(BeNil())
 			Expect(cluster.Status.DefaultUser).To(BeNil())
