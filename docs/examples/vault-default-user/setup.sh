@@ -8,7 +8,7 @@ vault_exec () {
     kubectl exec vault-0 -c vault -- /bin/sh -c "$*"
 }
 
-echo "Installing helm package in the example namespace..."
+echo "Installing Vault server and Vault agent injector..."
 helm repo add hashicorp https://helm.releases.hashicorp.com
 helm repo update
 helm install vault hashicorp/vault \
