@@ -648,7 +648,7 @@ func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) cor
 		managementURI = "https://$(HOSTNAME_DOMAIN):15671"
 	}
 	container := corev1.Container{
-		Name: "rabbitmq-admin-password-updater",
+		Name: "default-user-credential-updater",
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				"cpu":    k8sresource.MustParse("500m"),

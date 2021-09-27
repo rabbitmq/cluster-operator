@@ -43,17 +43,17 @@ where `<username>` and `<password>` are the values from step 4 above.
 Rotating the admin password (but not the username!) is supported without the need to restart RabbitMQ servers.
 
 This is how it works:
-1. The RabbitMQ cluster operator deploys a sidecar container called `rabbitmq-admin-password-updater`
+1. The RabbitMQ cluster operator deploys a sidecar container called `default-user-credential-updater`
 2. When the default user password changes in Vault, the Vault sidecar container updates the new admin password from Vault server into file `/etc/rabbitmq/conf.d/11-default_user.conf`
-3. The `rabbitmq-admin-password-updater` sidecar monitors the file `/etc/rabbitmq/conf.d/11-default_user.conf` and when it changes, it updates the password in RabbitMQ.
+3. The `default-user-credential-updater` sidecar monitors the file `/etc/rabbitmq/conf.d/11-default_user.conf` and when it changes, it updates the password in RabbitMQ.
 4. Additionally, the sidecar updates the local file `/var/lib/rabbitmq/.rabbitmqadmin.conf` with the new password (required by the local rabbitmqadmin tool)
 
-Although we do not need to set the `rabbitmq-admin-password-updater` image name, we can override it like shown below
+Although we do not need to set the `default-user-credential-updater` image name, we can override it like shown below
 ```
    vault:
       role: rabbitmq
       defaultUserPath: secret/data/rabbitmq/config
-      defaultUserUpdaterImage: "rabbitmqoperator/admin-password-updater:1.0.1"
+      defaultUserUpdaterImage: "rabbitmqoperator/default-user-credential-updater:1.0.1"
 ```
 
 To disable the sidecar container, set the image name to an empty string as shown below

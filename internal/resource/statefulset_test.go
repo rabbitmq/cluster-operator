@@ -959,7 +959,7 @@ default_pass = {{ .Data.data.password }}
 						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 						sidecar = extractContainer(
 							statefulSet.Spec.Template.Spec.Containers,
-							"rabbitmq-admin-password-updater")
+							"default-user-credential-updater")
 					})
 					When("disabled", func() {
 						BeforeEach(func() {
@@ -976,7 +976,7 @@ default_pass = {{ .Data.data.password }}
 						})
 						It("configures default credential updater sidecar container", func() {
 							expectedContainer := corev1.Container{
-								Name: "rabbitmq-admin-password-updater",
+								Name: "default-user-credential-updater",
 								Resources: corev1.ResourceRequirements{
 									Limits: corev1.ResourceList{
 										"cpu":    k8sresource.MustParse("500m"),

@@ -390,9 +390,9 @@ var _ = Describe("RabbitmqCluster", func() {
 					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeFalse())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeFalse())
 
-					By("setting the admin-password-updater image by default")
+					By("setting the default-user-credential-updater image by default")
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserUpdaterImage).To(
-						PointTo(HavePrefix("rabbitmqoperator/admin-password-updater:")))
+						PointTo(HavePrefix("rabbitmqoperator/default-user-credential-updater:")))
 				})
 			})
 			When("only TLS is configured", func() {
