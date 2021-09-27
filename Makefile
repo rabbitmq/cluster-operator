@@ -167,11 +167,7 @@ kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
 	echo "running kubectl plugin tests"
 	./bin/kubectl-rabbitmq.bats
 
-.PHONY: password-updater-tests
-password-updater-tests: install-tools
-	cd admin-password-updater; ginkgo --randomizeAllSpecs updater
-
-tests: unit-tests integration-tests system-tests kubectl-plugin-tests password-updater-tests
+tests: unit-tests integration-tests system-tests kubectl-plugin-tests
 
 docker-registry-secret: check-env-docker-credentials operator-namespace
 	echo "creating registry secret and patching default service account"
