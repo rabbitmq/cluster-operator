@@ -337,10 +337,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		"prometheus.io/port":   prometheusPort,
 	}
 
-	rabbitmqUID := int64(999)
-
 	if builder.Instance.VaultEnabled() {
-		defaultPodAnnotations = appendVaultAnnotations(defaultPodAnnotations, builder.Instance, rabbitmqUID)
+		defaultPodAnnotations = appendVaultAnnotations(defaultPodAnnotations, builder.Instance)
 	}
 
 	readinessProbePort := "amqp"
@@ -536,6 +534,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		volumes = append(volumes, tlsProjectedVolume)
 	}
 
+	rabbitmqUID := int64(999)
 	podTemplateSpec := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: metadata.ReconcileAnnotations(previousPodAnnotations, defaultPodAnnotations),
@@ -565,7 +564,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			AutomountServiceAccountToken:  pointer.Bool(true),
 			Affinity:                      builder.Instance.Spec.Affinity,
 			Tolerations:                   builder.Instance.Spec.Tolerations,
-			InitContainers:                []corev1.Container{setupContainer(rabbitmqUID, builder.Instance)},
+			InitContainers:                []corev1.Container{setupContainer(builder.Instance)},
 			Volumes:                       volumes,
 			Containers: []corev1.Container{
 				{
@@ -716,7 +715,7 @@ func envVarsK8sObjects(instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.EnvVa
 	}
 }
 
-func setupContainer(rabbitmqUID int64, instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {
+func setupContainer(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {
 	//Init Container resources
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
@@ -803,11 +802,7 @@ func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *
 	}
 }
 
-func appendVaultAnnotations(
-	currentAnnotations map[string]string,
-	instance *rabbitmqv1beta1.RabbitmqCluster,
-	rabbitmqUID int64) map[string]string {
-
+func appendVaultAnnotations(currentAnnotations map[string]string, instance *rabbitmqv1beta1.RabbitmqCluster) map[string]string {
 	vault := instance.Spec.SecretBackend.Vault
 
 	vaultAnnotations := map[string]string{
@@ -867,11 +862,10 @@ func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 }
 
 func generateVaultTLSTemplate(commonName, altNames string, vault *rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
-	pathCert := vault.TLS.PKIIssuerPath
 	return fmt.Sprintf(`
 {{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}
 {{ .Data.%s }}
-{{- end }}`, pathCert, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
+{{- end }}`, vault.TLS.PKIIssuerPath, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
 }
 
 func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort {

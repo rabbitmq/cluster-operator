@@ -112,10 +112,10 @@ type VaultSpec struct {
 	// For a list of valid Vault annotations, see https://www.vaultproject.io/docs/platform/k8s/injector/annotations
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
-	// Path in Vault to access a KV secret with the fields username and password for the default user.
+	// Path in Vault to access a KV (Key-Value) secret with the fields username and password for the default user.
 	// For example "secret/data/rabbitmq/config".
 	DefaultUserPath string `json:"defaultUserPath,omitempty"`
-	// Sidecar container that updates the defaultUser's password in RabbitMQ when it changes in Vault.
+	// Sidecar container that updates the default user's password in RabbitMQ when it changes in Vault.
 	// Additionally, it updates /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
 	// Set to empty string to disable the sidecar container.
 	// +kubebuilder:default:="rabbitmqoperator/default-user-credential-updater:0.1.1"
@@ -134,7 +134,7 @@ type VaultTLSSpec struct {
 	CommonName string `json:"commonName,omitempty"`
 	// Specifies the requested Subject Alternative Names (SANs), in a comma-delimited list.
 	// These will be appended to the SANs added by the cluster-operator.
-	// The cluster-operator will add SANS:
+	// The cluster-operator will add SANs:
 	// "<RabbitmqCluster name>-server-<index>.<RabbitmqCluster name>-nodes.<namespace>" for each pod,
 	// e.g. "myrabbit-server-0.myrabbit-nodes.default".
 	// +optional

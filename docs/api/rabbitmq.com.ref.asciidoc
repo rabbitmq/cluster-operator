@@ -445,8 +445,8 @@ VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platf
 | Field | Description
 | *`role`* __string__ | Role in Vault. If vault.pathDefaultUser is set, this role must have capability to read the pre-created default user credential in Vault. If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains "<namespace>" and "<namespace>.svc".
 | *`annotations`* __object (keys:string, values:string)__ | Vault annotations that override the Vault annotations set by the cluster-operator. For a list of valid Vault annotations, see https://www.vaultproject.io/docs/platform/k8s/injector/annotations
-| *`defaultUserPath`* __string__ | Path in Vault to access a KV secret with the fields username and password for the default user. For example "secret/data/rabbitmq/config".
-| *`defaultUserUpdaterImage`* __string__ | Sidecar container that updates the defaultUser's password in RabbitMQ when it changes in Vault. Additionally, it updates /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI). Set to empty string to disable the sidecar container.
+| *`defaultUserPath`* __string__ | Path in Vault to access a KV (Key-Value) secret with the fields username and password for the default user. For example "secret/data/rabbitmq/config".
+| *`defaultUserUpdaterImage`* __string__ | Sidecar container that updates the default user's password in RabbitMQ when it changes in Vault. Additionally, it updates /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI). Set to empty string to disable the sidecar container.
 | *`tls`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaulttlsspec[$$VaultTLSSpec$$]__ | 
 |===
 
@@ -466,7 +466,7 @@ VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platf
 | Field | Description
 | *`pkiIssuerPath`* __string__ | Path in Vault PKI engine. For example "pki/issue/hashicorp-com". required
 | *`commonName`* __string__ | Specifies the requested certificate Common Name (CN). Defaults to <serviceName>.<namespace>.svc if not provided.
-| *`altNames`* __string__ | Specifies the requested Subject Alternative Names (SANs), in a comma-delimited list. These will be appended to the SANs added by the cluster-operator. The cluster-operator will add SANS: "<RabbitmqCluster name>-server-<index>.<RabbitmqCluster name>-nodes.<namespace>" for each pod, e.g. "myrabbit-server-0.myrabbit-nodes.default".
+| *`altNames`* __string__ | Specifies the requested Subject Alternative Names (SANs), in a comma-delimited list. These will be appended to the SANs added by the cluster-operator. The cluster-operator will add SANs: "<RabbitmqCluster name>-server-<index>.<RabbitmqCluster name>-nodes.<namespace>" for each pod, e.g. "myrabbit-server-0.myrabbit-nodes.default".
 | *`ipSans`* __string__ | Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
 |===
 
