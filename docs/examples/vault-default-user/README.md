@@ -9,7 +9,7 @@ As explained in [this KubeCon talk](https://youtu.be/w0k7MI6sCJg?t=177) there fo
 3. Sidecar + MutatingWebhookConfiguration
 4. Secrets Store CSI Driver
 
-In this example, we take the 3rd approach (`Sidecar + MutatingWebhookConfiguration`) integrating with Vault using [vault-k8s](https://github.com/hashicorp/vault-k8s). If `spec.secretBackend.vault.defaultUserPath` is set in the RabbimqCluster CRD, the Cluster Operator will **not** create a K8s Secret for the default user credentials. Instead, Vault init and sidecar containers will fetch username and password from Vault.
+This example takes the 3rd approach (`Sidecar + MutatingWebhookConfiguration`) integrating with Vault using [vault-k8s](https://github.com/hashicorp/vault-k8s). If `spec.secretBackend.vault.defaultUserPath` is set in the RabbimqCluster CRD, the Cluster Operator will **not** create a K8s Secret for the default user credentials. Instead, Vault init and sidecar containers will fetch username and password from Vault.
 
 If `spec.secretBackend.vault.tls.pkiIssuerPath` is set, short-lived server certificates are issued from [Vault PKI Secrets Engine](https://www.vaultproject.io/docs/secrets/pki) upon every RabbitMQ Pod (re)start. See [examples/vault-tls](../vault-tls) for more information.
 
@@ -32,7 +32,7 @@ You can deploy this example like this:
 kubectl apply -f rabbitmq.yaml
 ```
 
-And once deployed, you can check check that the admin user credentials got provisioned by Vault:
+And once deployed, you can check that the admin user credentials got provisioned by Vault:
 
 ```shell
 kubectl exec vault-default-user-server-0 -c rabbitmq -- rabbitmqctl authenticate_user <username> <password>
@@ -44,22 +44,20 @@ Rotating the admin password (but not the username!) is supported without the nee
 
 This is how it works:
 1. The RabbitMQ cluster operator deploys a sidecar container called `default-user-credential-updater`
-2. When the default user password changes in Vault, the Vault sidecar container updates the new admin password from Vault server into file `/etc/rabbitmq/conf.d/11-default_user.conf`
-3. The `default-user-credential-updater` sidecar monitors the file `/etc/rabbitmq/conf.d/11-default_user.conf` and when it changes, it updates the password in RabbitMQ.
-4. Additionally, the sidecar updates the local file `/var/lib/rabbitmq/.rabbitmqadmin.conf` with the new password (required by the local rabbitmqadmin tool)
+2. When the default user password changes in Vault server, the Vault sidecar container writes the new admin password to file `/etc/rabbitmq/conf.d/11-default_user.conf`
+3. The `default-user-credential-updater` sidecar watches file `/etc/rabbitmq/conf.d/11-default_user.conf` and when it changes, it updates the password in RabbitMQ.
+4. Additionally, the sidecar updates the local file `/var/lib/rabbitmq/.rabbitmqadmin.conf` with the new password (required by `rabbitmqadmin` CLI).
 
-Although we do not need to set the `default-user-credential-updater` image name, we can override it like shown below
+The `default-user-credential-updater` image can be overriden:
 ```
    vault:
-      role: rabbitmq
-      defaultUserPath: secret/data/rabbitmq/config
       defaultUserUpdaterImage: "rabbitmqoperator/default-user-credential-updater:1.0.1"
+      ...
 ```
 
-To disable the sidecar container, set the image name to an empty string as shown below
+To disable the sidecar container, set the image to an empty string:
 ```
    vault:
-      role: rabbitmq
-      defaultUserPath: secret/data/rabbitmq/config
       defaultUserUpdaterImage: ""
+      ...
 ```
