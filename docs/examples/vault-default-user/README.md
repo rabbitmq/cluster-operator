@@ -9,9 +9,9 @@ As explained in [this KubeCon talk](https://youtu.be/w0k7MI6sCJg?t=177) there fo
 3. Sidecar + MutatingWebhookConfiguration
 4. Secrets Store CSI Driver
 
-In this example, we take the 3rd approach (`Sidecar + MutatingWebhookConfiguration`) integrating with Vault using [vault-k8s](https://github.com/hashicorp/vault-k8s). If `spec.secretBackend.vault.pathDefaultUser` is set in the RabbimqCluster CRD, the Cluster Operator will **not** create a K8s Secret for the default user credentials. Instead, Vault init and sidecar containers will fetch username and password from Vault.
+In this example, we take the 3rd approach (`Sidecar + MutatingWebhookConfiguration`) integrating with Vault using [vault-k8s](https://github.com/hashicorp/vault-k8s). If `spec.secretBackend.vault.defaultUserPath` is set in the RabbimqCluster CRD, the Cluster Operator will **not** create a K8s Secret for the default user credentials. Instead, Vault init and sidecar containers will fetch username and password from Vault.
 
-If `spec.secretBackend.vault.tls.pathCertificate` is set, short-lived server certificates are issued from [Vault PKI Secrets Engine](https://www.vaultproject.io/docs/secrets/pki) upon every RabbitMQ Pod (re)start. See [examples/vault-tls](../vault-tls) for more information.
+If `spec.secretBackend.vault.tls.pkiIssuerPath` is set, short-lived server certificates are issued from [Vault PKI Secrets Engine](https://www.vaultproject.io/docs/secrets/pki) upon every RabbitMQ Pod (re)start. See [examples/vault-tls](../vault-tls) for more information.
 
 (This Vault integration example is independent of and not to be confused with the [Vault RabbitMQ Secrets Engine](https://www.vaultproject.io/docs/secrets/rabbitmq).)
 
@@ -21,8 +21,8 @@ This example requires:
 1. Vault server is installed.
 2. [Vault agent injector](https://www.vaultproject.io/docs/platform/k8s/injector) is installed.
 3. [Vault Kubernetes Auth Method](https://www.vaultproject.io/docs/auth/kubernetes) is enabled.
-4. The RabbitMQ admin credentials were already written to Vault to path `spec.secretBackend.vault.pathDefaultUser` with keys `username` and `password` (by some cluster-operator external mechanism. The cluster-operator will never write admin credentials to Vault).
-5. Role `spec.secretBackend.vault.role` is configured in Vault with a policy to read from `pathDefaultUser`.
+4. The RabbitMQ admin credentials were already written to Vault to path `spec.secretBackend.vault.defaultUserPath` with keys `username` and `password` (by some cluster-operator external mechanism. The cluster-operator will never write admin credentials to Vault).
+5. Role `spec.secretBackend.vault.role` is configured in Vault with a policy to read from `defaultUserPath`.
 
 Run script [setup.sh](./setup.sh) to get started with a Vault server in [dev mode](https://www.vaultproject.io/docs/concepts/dev-server) fullfilling above requirements. (This script is not production-ready. It is only meant to get you started experiencing end-to-end how RabbitMQ integrates with Vault.)
 

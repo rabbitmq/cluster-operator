@@ -104,7 +104,7 @@ type SecretBackend struct {
 // (based on the added Vault annotations) to include Vault Agent containers that render Vault secrets to the volume.
 type VaultSpec struct {
 	// Role in Vault.
-	// If vault.pathDefaultUser is set, this role must have capability to read the pre-created default user credential in Vault.
+	// If vault.defaultUserPath is set, this role must have capability to read the pre-created default user credential in Vault.
 	// If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains
 	// "<namespace>" and "<namespace>.svc".
 	Role string `json:"role,omitempty"`

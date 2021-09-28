@@ -443,7 +443,7 @@ VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platf
 [cols="25a,75a", options="header"]
 |===
 | Field | Description
-| *`role`* __string__ | Role in Vault. If vault.pathDefaultUser is set, this role must have capability to read the pre-created default user credential in Vault. If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains "<namespace>" and "<namespace>.svc".
+| *`role`* __string__ | Role in Vault. If vault.defaultUserPath is set, this role must have capability to read the pre-created default user credential in Vault. If vault.tls is set, this role must have capability to create and update certificates in the Vault PKI engine for the domains "<namespace>" and "<namespace>.svc".
 | *`annotations`* __object (keys:string, values:string)__ | Vault annotations that override the Vault annotations set by the cluster-operator. For a list of valid Vault annotations, see https://www.vaultproject.io/docs/platform/k8s/injector/annotations
 | *`defaultUserPath`* __string__ | Path in Vault to access a KV (Key-Value) secret with the fields username and password for the default user. For example "secret/data/rabbitmq/config".
 | *`defaultUserUpdaterImage`* __string__ | Sidecar container that updates the default user's password in RabbitMQ when it changes in Vault. Additionally, it updates /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI). Set to empty string to disable the sidecar container.

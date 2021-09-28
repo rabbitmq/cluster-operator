@@ -35,7 +35,7 @@ echo "Creating credentials for rabbitmq default user..."
 vault_exec "vault kv put secret/rabbitmq/config username='rabbitmq' password='pwd1'"
 
 # Create a policy that allows to read the default user credentials.
-# The path need to be referenced from the RabbitmqCluster CRD spec.secretBackend.vault.pathDefaultUser
+# The path need to be referenced from the RabbitmqCluster CRD spec.secretBackend.vault.defaultUserPath
 vault_exec "vault policy write rabbitmq-policy - <<EOF
 path \"secret/data/rabbitmq/config\" {
     capabilities = [\"read\"]
