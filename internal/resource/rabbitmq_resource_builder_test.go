@@ -23,33 +23,31 @@ import (
 var _ = Describe("RabbitmqResourceBuilder", func() {
 	Context("ResourceBuilders", func() {
 		var (
-			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "test",
-					Namespace: "namespace",
-				},
-			}
-
-			builder *resource.RabbitmqResourceBuilder
-			scheme  *runtime.Scheme
+			instance *rabbitmqv1beta1.RabbitmqCluster
+			builder  *resource.RabbitmqResourceBuilder
+			scheme   *runtime.Scheme
 		)
 
 		BeforeEach(func() {
 			scheme = runtime.NewScheme()
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
+			instance = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test",
+					Namespace: "namespace",
+				},
+			}
 			builder = &resource.RabbitmqResourceBuilder{
-				Instance: &instance,
+				Instance: instance,
 				Scheme:   scheme,
 			}
 		})
 
 		It("returns the required resource builders in the expected order", func() {
-			resourceBuilders, err := builder.ResourceBuilders()
-			Expect(err).NotTo(HaveOccurred())
+			resourceBuilders := builder.ResourceBuilders()
 
-			expectedLen := 10
-			Expect(len(resourceBuilders)).To(Equal(expectedLen))
+			Expect(resourceBuilders).To(HaveLen(10))
 
 			expectedBuildersInOrder := []ResourceBuilder{
 				&HeadlessServiceBuilder{},
@@ -64,9 +62,23 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				&StatefulSetBuilder{},
 			}
 
-			for i := 0; i < expectedLen; i++ {
-				Expect(resourceBuilders[i]).To(BeAssignableToTypeOf(expectedBuildersInOrder[i]))
+			for i, resourceBuilder := range resourceBuilders {
+				Expect(resourceBuilder).To(BeAssignableToTypeOf(expectedBuildersInOrder[i]))
 			}
+		})
+
+		When("default user credentials come from Vault", func() {
+			BeforeEach(func() {
+				instance.Spec.SecretBackend.Vault = &rabbitmqv1beta1.VaultSpec{
+					Role:            "test-role",
+					DefaultUserPath: "somepath",
+				}
+			})
+			It("returns all resource builders except for defaultUser K8s Secret", func() {
+				resourceBuilders := builder.ResourceBuilders()
+				Expect(resourceBuilders).To(HaveLen(9))
+				Expect(resourceBuilders).NotTo(ContainElement(BeAssignableToTypeOf(&DefaultUserSecretBuilder{})))
+			})
 		})
 	})
 })

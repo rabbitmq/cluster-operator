@@ -56,8 +56,6 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 		return nil, err
 	}
 
-	host := fmt.Sprintf("%s.%s.svc", builder.Instance.Name, builder.Instance.Namespace)
-
 	// Default user secret implements the service binding Provisioned Service
 	// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
 	secret := &corev1.Secret{
@@ -72,7 +70,7 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 			"default_user.conf": defaultUserConf,
 			"provider":          []byte(bindingProvider),
 			"type":              []byte(bindingType),
-			"host":              []byte(host),
+			"host":              []byte(builder.Instance.ServiceSubDomain()),
 		},
 	}
 	builder.updatePorts(secret)

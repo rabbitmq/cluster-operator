@@ -49,9 +49,13 @@ prometheus.ssl.certfile  = /etc/rabbitmq-tls/tls.crt
 prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
 prometheus.ssl.port      = 15691
 `
-	caCertPath  = "/etc/rabbitmq-tls/ca.crt"
-	tlsCertPath = "/etc/rabbitmq-tls/tls.crt"
-	tlsKeyPath  = "/etc/rabbitmq-tls/tls.key"
+	tlsCertDir      = "/etc/rabbitmq-tls/"
+	caCertFilename  = "ca.crt"
+	caCertPath      = tlsCertDir + caCertFilename
+	tlsCertFilename = "tls.crt"
+	tlsCertPath     = tlsCertDir + tlsCertFilename
+	tlsKeyFilename  = "tls.key"
+	tlsKeyPath      = tlsCertDir + tlsKeyFilename
 )
 
 type ServerConfigMapBuilder struct {

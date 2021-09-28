@@ -875,6 +875,239 @@ var _ = Describe("StatefulSet", func() {
 			Expect(container.Env).To(ConsistOf(requiredEnvVariables))
 		})
 
+		Context("Vault", func() {
+			BeforeEach(func() {
+				instance.Spec.SecretBackend.Vault = &rabbitmqv1beta1.VaultSpec{
+					Role: "test-role",
+				}
+			})
+			When("secretBackend.vault.defaultUserPath is set", func() {
+				JustBeforeEach(func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				})
+				BeforeEach(func() {
+					instance.Spec.SecretBackend.Vault.DefaultUserPath = "secret/myrabbit/config"
+				})
+
+				It("adds general Vault annotations", func() {
+					a := statefulSet.Spec.Template.Annotations
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-init-first", "true"))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.SecretBackend.Vault.Role))
+				})
+
+				It("adds Vault annotations to fetch the default user", func() {
+					a := statefulSet.Spec.Template.Annotations
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-11-default_user.conf", "/etc/rabbitmq/conf.d"))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-perms-11-default_user.conf", "0640"))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-11-default_user.conf", instance.Spec.SecretBackend.Vault.DefaultUserPath))
+					Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-11-default_user.conf", `
+{{- with secret "secret/myrabbit/config" -}}
+default_user = {{ .Data.data.username }}
+default_pass = {{ .Data.data.password }}
+{{- end }}`))
+				})
+
+				When("secretBackend.vault.Annotations is set", func() {
+					BeforeEach(func() {
+						instance.Spec.SecretBackend.Vault.Annotations = map[string]string{
+							"vault.hashicorp.com/agent-init-first": "false",
+							"mykey":                                "myval",
+						}
+					})
+					It("overrides operator-set Vault annotations", func() {
+						a := statefulSet.Spec.Template.Annotations
+						// user overriden annotations
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-init-first", "false"))
+						Expect(a).To(HaveKeyWithValue("mykey", "myval"))
+						// opererator-set annotations
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject", "true"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/role", instance.Spec.SecretBackend.Vault.Role))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-11-default_user.conf", "/etc/rabbitmq/conf.d"))
+					})
+				})
+
+				It("does not project default user secret to rabbitmq-confd volume", func() {
+					rabbitmqConfdVolume := extractVolume(statefulSet.Spec.Template.Spec.Volumes, "rabbitmq-confd")
+					defaultUserSecret := extractProjectedSecret(rabbitmqConfdVolume, "foo-default-user")
+					Expect(defaultUserSecret.Secret).To(BeNil())
+				})
+
+				It("configures setup-container to render rabbitmqadmin.conf from Vault mounted 11-default-user.conf file", func() {
+					setupContainer := extractContainer(statefulSet.Spec.Template.Spec.InitContainers, "setup-container")
+					Expect(setupContainer).To(MatchFields(IgnoreExtras, Fields{
+						"Command": ConsistOf(
+							"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
+								"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; "+
+								"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; "+
+								"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf "+
+								"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf "+
+								"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
+						),
+						"VolumeMounts": Not(ContainElement([]corev1.VolumeMount{
+							{
+								Name:      "rabbitmq-confd",
+								MountPath: "/tmp/default_user.conf",
+								SubPath:   "default_user.conf",
+							},
+						})),
+					}))
+				})
+				Context("credential updater sidecar container", func() {
+					var sidecar corev1.Container
+					JustBeforeEach(func() {
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+						sidecar = extractContainer(
+							statefulSet.Spec.Template.Spec.Containers,
+							"default-user-credential-updater")
+					})
+					When("disabled", func() {
+						BeforeEach(func() {
+							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = pointer.String("")
+						})
+						It("does not deploy sidecar container", func() {
+							Expect(sidecar).To(Equal(corev1.Container{}))
+						})
+					})
+
+					When("enabled", func() {
+						BeforeEach(func() {
+							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = pointer.String("updater-img")
+						})
+						It("configures default credential updater sidecar container", func() {
+							expectedContainer := corev1.Container{
+								Name: "default-user-credential-updater",
+								Resources: corev1.ResourceRequirements{
+									Limits: corev1.ResourceList{
+										"cpu":    k8sresource.MustParse("500m"),
+										"memory": k8sresource.MustParse("128Mi"),
+									},
+									Requests: corev1.ResourceList{
+										"cpu":    k8sresource.MustParse("10m"),
+										"memory": k8sresource.MustParse("512Ki"),
+									},
+								},
+								Image: "updater-img",
+								Args: []string{
+									"--management-uri", "http://127.0.0.1:15672",
+									"-v", "4"},
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "rabbitmq-erlang-cookie",
+										MountPath: "/var/lib/rabbitmq/",
+									},
+								},
+								Env: []corev1.EnvVar{
+									{
+										Name: "MY_POD_NAME",
+										ValueFrom: &corev1.EnvVarSource{
+											FieldRef: &corev1.ObjectFieldSelector{
+												FieldPath:  "metadata.name",
+												APIVersion: "v1",
+											},
+										},
+									},
+									{
+										Name: "MY_POD_NAMESPACE",
+										ValueFrom: &corev1.EnvVarSource{
+											FieldRef: &corev1.ObjectFieldSelector{
+												FieldPath:  "metadata.namespace",
+												APIVersion: "v1",
+											},
+										},
+									},
+									{
+										Name:  "K8S_SERVICE_NAME",
+										Value: "foo-nodes",
+									},
+									{
+										Name:  "HOSTNAME_DOMAIN",
+										Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+									},
+								},
+							}
+							Expect(sidecar).To(Equal(expectedContainer))
+						})
+						When("TLS is enabled with certs from K8s secret", func() {
+							BeforeEach(func() {
+								instance.Spec.TLS.SecretName = "my-certs"
+							})
+							It("mounts rabbitmq-tls volume", func() {
+								Expect(sidecar.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+									Name:      "rabbitmq-tls",
+									MountPath: "/etc/rabbitmq-tls/",
+									ReadOnly:  true,
+								}))
+							})
+							It("configures sidecar to talk to RabbitMQ Management API via TLS", func() {
+								Expect(sidecar.Args).To(ContainElement(Equal("https://$(HOSTNAME_DOMAIN):15671")))
+							})
+						})
+					})
+				})
+			})
+
+			When("secretBackend.vault.tls is set", func() {
+				BeforeEach(func() {
+					instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath = "pki/issue/vmware-com"
+					instance.Name = "myrabbit"
+				})
+				Context("with only required config", func() {
+					BeforeEach(func() {
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					})
+
+					It("adds Vault annnotations requesting new leaf certs", func() {
+						a := statefulSet.Spec.Template.Annotations
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.crt", "/etc/rabbitmq-tls"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-tls.key", "/etc/rabbitmq-tls"))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/secret-volume-path-ca.crt", "/etc/rabbitmq-tls"))
+
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.crt", instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-tls.key", instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-ca.crt", instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath))
+
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.crt", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
+{{ .Data.certificate }}
+{{- end }}`))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.key", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
+{{ .Data.private_key }}
+{{- end }}`))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-ca.crt", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
+{{ .Data.issuing_ca }}
+{{- end }}`))
+					})
+				})
+				Context("with all optional config", func() {
+					BeforeEach(func() {
+						instance.Spec.SecretBackend.Vault.TLS.CommonName = "myrabbit.com"
+						instance.Spec.SecretBackend.Vault.TLS.AltNames = "alt1,alt2"
+						instance.Spec.SecretBackend.Vault.TLS.IpSans = "9.9.9.9"
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					})
+
+					It("adds Vault annnotations requesting new leaf certs", func() {
+						a := statefulSet.Spec.Template.Annotations
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.crt", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
+{{ .Data.certificate }}
+{{- end }}`))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.key", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
+{{ .Data.private_key }}
+{{- end }}`))
+						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-ca.crt", `
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
+{{ .Data.issuing_ca }}
+{{- end }}`))
+					})
+				})
+			})
+		})
+
 		Context("Rabbitmq container volume mounts", func() {
 			DescribeTable("Volume mounts depending on spec configuration and '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' ",
 				func(rabbitmqEnv, advancedConfig string) {
@@ -944,19 +1177,7 @@ var _ = Describe("StatefulSet", func() {
 						VolumeSource: corev1.VolumeSource{
 							Projected: &corev1.ProjectedVolumeSource{
 								Sources: []corev1.VolumeProjection{
-									{
-										Secret: &corev1.SecretProjection{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: builder.Instance.ChildResourceName("default-user"),
-											},
-											Items: []corev1.KeyToPath{
-												{
-													Key:  "default_user.conf",
-													Path: "default_user.conf",
-												},
-											},
-										},
-									},
+
 									{
 										ConfigMap: &corev1.ConfigMapProjection{
 											LocalObjectReference: corev1.LocalObjectReference{
@@ -970,6 +1191,19 @@ var _ = Describe("StatefulSet", func() {
 												{
 													Key:  "userDefinedConfiguration.conf",
 													Path: "userDefinedConfiguration.conf",
+												},
+											},
+										},
+									},
+									{
+										Secret: &corev1.SecretProjection{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: builder.Instance.ChildResourceName("default-user"),
+											},
+											Items: []corev1.KeyToPath{
+												{
+													Key:  "default_user.conf",
+													Path: "default_user.conf",
 												},
 											},
 										},
@@ -1097,13 +1331,9 @@ var _ = Describe("StatefulSet", func() {
 			initContainers := statefulSet.Spec.Template.Spec.InitContainers
 			Expect(initContainers).To(HaveLen(1))
 
-			rmqUID := int64(999)
 			initContainer := extractContainer(initContainers, "setup-container")
 			Expect(initContainer).To(MatchFields(IgnoreExtras, Fields{
 				"Image": Equal("rabbitmq-image-from-cr"),
-				"SecurityContext": PointTo(MatchFields(IgnoreExtras, Fields{
-					"RunAsUser": Equal(&rmqUID),
-				})),
 				"Command": ConsistOf(
 					"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie "+
 						"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; "+
@@ -2030,10 +2260,24 @@ func extractContainer(containers []corev1.Container, containerName string) corev
 			return container
 		}
 	}
-
 	return corev1.Container{}
 }
-
+func extractVolume(volumes []corev1.Volume, name string) corev1.Volume {
+	for _, volume := range volumes {
+		if volume.Name == name {
+			return volume
+		}
+	}
+	return corev1.Volume{}
+}
+func extractProjectedSecret(volume corev1.Volume, secretName string) corev1.VolumeProjection {
+	for _, volumeProjection := range volume.Projected.Sources {
+		if volumeProjection.Secret != nil && volumeProjection.Secret.Name == secretName {
+			return volumeProjection
+		}
+	}
+	return corev1.VolumeProjection{}
+}
 func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
 	return rabbitmqv1beta1.RabbitmqCluster{

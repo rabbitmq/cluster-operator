@@ -11,6 +11,7 @@ package v1beta1
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -31,39 +32,39 @@ var _ = Describe("RabbitmqCluster", func() {
 		It("can be created with a single replica", func() {
 			created := generateRabbitmqClusterObject("rabbit1")
 			created.Spec.Replicas = pointer.Int32Ptr(1)
-			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
-			Expect(k8sClient.Get(context.TODO(), getKey(created), fetched)).To(Succeed())
+			Expect(k8sClient.Get(context.Background(), getKey(created), fetched)).To(Succeed())
 			Expect(fetched).To(Equal(created))
 		})
 
 		It("can be created with three replicas", func() {
 			created := generateRabbitmqClusterObject("rabbit2")
 			created.Spec.Replicas = pointer.Int32Ptr(3)
-			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
-			Expect(k8sClient.Get(context.TODO(), getKey(created), fetched)).To(Succeed())
+			Expect(k8sClient.Get(context.Background(), getKey(created), fetched)).To(Succeed())
 			Expect(fetched).To(Equal(created))
 		})
 
 		It("can be created with five replicas", func() {
 			created := generateRabbitmqClusterObject("rabbit3")
 			created.Spec.Replicas = pointer.Int32Ptr(5)
-			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
-			Expect(k8sClient.Get(context.TODO(), getKey(created), fetched)).To(Succeed())
+			Expect(k8sClient.Get(context.Background(), getKey(created), fetched)).To(Succeed())
 			Expect(fetched).To(Equal(created))
 		})
 
 		It("can be deleted", func() {
 			created := generateRabbitmqClusterObject("rabbit4")
-			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
 
-			Expect(k8sClient.Delete(context.TODO(), created)).To(Succeed())
-			Expect(k8sClient.Get(context.TODO(), getKey(created), created)).ToNot(Succeed())
+			Expect(k8sClient.Delete(context.Background(), created)).To(Succeed())
+			Expect(k8sClient.Get(context.Background(), getKey(created), created)).ToNot(Succeed())
 		})
 
 		It("can be created with resource requests", func() {
@@ -78,13 +79,13 @@ var _ = Describe("RabbitmqCluster", func() {
 					corev1.ResourceMemory: k8sresource.MustParse("100Mi"),
 				},
 			}
-			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
 		})
 
 		It("can be created with server side TLS", func() {
 			created := generateRabbitmqClusterObject("rabbit-tls")
 			created.Spec.TLS.SecretName = "tls-secret-name"
-			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
 		})
 
 		It("can be queried if TLS is enabled", func() {
@@ -125,15 +126,15 @@ var _ = Describe("RabbitmqCluster", func() {
 			By("checking the replica count", func() {
 				invalidReplica := generateRabbitmqClusterObject("rabbit4")
 				invalidReplica.Spec.Replicas = pointer.Int32Ptr(-1)
-				Expect(apierrors.IsInvalid(k8sClient.Create(context.TODO(), invalidReplica))).To(BeTrue())
-				Expect(k8sClient.Create(context.TODO(), invalidReplica)).To(MatchError(ContainSubstring("spec.replicas in body should be greater than or equal to 0")))
+				Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalidReplica))).To(BeTrue())
+				Expect(k8sClient.Create(context.Background(), invalidReplica)).To(MatchError(ContainSubstring("spec.replicas in body should be greater than or equal to 0")))
 			})
 
 			By("checking the service type", func() {
 				invalidService := generateRabbitmqClusterObject("rabbit5")
 				invalidService.Spec.Service.Type = "ihateservices"
-				Expect(apierrors.IsInvalid(k8sClient.Create(context.TODO(), invalidService))).To(BeTrue())
-				Expect(k8sClient.Create(context.TODO(), invalidService)).To(MatchError(ContainSubstring("supported values: \"ClusterIP\", \"LoadBalancer\", \"NodePort\"")))
+				Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalidService))).To(BeTrue())
+				Expect(k8sClient.Create(context.Background(), invalidService)).To(MatchError(ContainSubstring("supported values: \"ClusterIP\", \"LoadBalancer\", \"NodePort\"")))
 			})
 		})
 
@@ -163,12 +164,9 @@ var _ = Describe("RabbitmqCluster", func() {
 						},
 					}
 
-					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					Expect(k8sClient.Create(context.Background(), &rmqClusterInstance)).To(Succeed())
 					fetchedRabbit := &RabbitmqCluster{}
-					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
-						Name:      "rabbitmq-defaults",
-						Namespace: "default",
-					}, fetchedRabbit)).To(Succeed())
+					Expect(k8sClient.Get(context.Background(), getKey(&rmqClusterInstance), fetchedRabbit)).To(Succeed())
 					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
 			})
@@ -241,12 +239,9 @@ var _ = Describe("RabbitmqCluster", func() {
 						},
 					}
 
-					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					Expect(k8sClient.Create(context.Background(), &rmqClusterInstance)).To(Succeed())
 					fetchedRabbit := &RabbitmqCluster{}
-					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
-						Name:      "rabbitmq-full-manifest",
-						Namespace: "default",
-					}, fetchedRabbit)).To(Succeed())
+					Expect(k8sClient.Get(context.Background(), getKey(&rmqClusterInstance), fetchedRabbit)).To(Succeed())
 					Expect(fetchedRabbit.Spec).To(Equal(rmqClusterInstance.Spec))
 				})
 			})
@@ -266,12 +261,9 @@ var _ = Describe("RabbitmqCluster", func() {
 
 					expectedClusterInstance.Spec.Image = "test-image"
 
-					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					Expect(k8sClient.Create(context.Background(), &rmqClusterInstance)).To(Succeed())
 					fetchedRabbit := &RabbitmqCluster{}
-					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
-						Name:      "rabbitmq-image",
-						Namespace: "default",
-					}, fetchedRabbit)).To(Succeed())
+					Expect(k8sClient.Get(context.Background(), getKey(&rmqClusterInstance), fetchedRabbit)).To(Succeed())
 					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
 
@@ -289,12 +281,9 @@ var _ = Describe("RabbitmqCluster", func() {
 
 					expectedClusterInstance.Spec.Resources = expectedResources
 
-					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					Expect(k8sClient.Create(context.Background(), &rmqClusterInstance)).To(Succeed())
 					fetchedRabbit := &RabbitmqCluster{}
-					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
-						Name:      "rabbitmq-empty-resource",
-						Namespace: "default",
-					}, fetchedRabbit)).To(Succeed())
+					Expect(k8sClient.Get(context.Background(), getKey(&rmqClusterInstance), fetchedRabbit)).To(Succeed())
 					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
 
@@ -316,12 +305,9 @@ var _ = Describe("RabbitmqCluster", func() {
 
 					expectedClusterInstance.Spec.Resources = expectedResources
 
-					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					Expect(k8sClient.Create(context.Background(), &rmqClusterInstance)).To(Succeed())
 					fetchedRabbit := &RabbitmqCluster{}
-					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
-						Name:      "rabbitmq-partial-resource",
-						Namespace: "default",
-					}, fetchedRabbit)).To(Succeed())
+					Expect(k8sClient.Get(context.Background(), getKey(&rmqClusterInstance), fetchedRabbit)).To(Succeed())
 					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
 
@@ -343,12 +329,9 @@ var _ = Describe("RabbitmqCluster", func() {
 						Type:        "ClusterIP",
 					}
 
-					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					Expect(k8sClient.Create(context.Background(), &rmqClusterInstance)).To(Succeed())
 					fetchedRabbit := &RabbitmqCluster{}
-					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
-						Name:      "rabbit-service-type",
-						Namespace: "default",
-					}, fetchedRabbit)).To(Succeed())
+					Expect(k8sClient.Get(context.Background(), getKey(&rmqClusterInstance), fetchedRabbit)).To(Succeed())
 					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
 				})
 
@@ -372,13 +355,66 @@ var _ = Describe("RabbitmqCluster", func() {
 						Storage:          &tenGi,
 					}
 
-					Expect(k8sClient.Create(context.TODO(), &rmqClusterInstance)).To(Succeed())
+					Expect(k8sClient.Create(context.Background(), &rmqClusterInstance)).To(Succeed())
 					fetchedRabbit := &RabbitmqCluster{}
-					Expect(k8sClient.Get(context.TODO(), types.NamespacedName{
-						Name:      "rabbit-storage",
-						Namespace: "default",
-					}, fetchedRabbit)).To(Succeed())
+					Expect(k8sClient.Get(context.Background(), getKey(&rmqClusterInstance), fetchedRabbit)).To(Succeed())
 					Expect(fetchedRabbit.Spec).To(Equal(expectedClusterInstance.Spec))
+				})
+			})
+		})
+		Context("Vault", func() {
+			It("is disabled by default", func() {
+				rabbit := generateRabbitmqClusterObject("rabbit-without-vault")
+				Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
+				fetchedRabbit := &RabbitmqCluster{}
+				Expect(k8sClient.Get(context.Background(), getKey(rabbit), fetchedRabbit)).To(Succeed())
+
+				Expect(fetchedRabbit.VaultEnabled()).To(BeFalse())
+			})
+			When("only default user is configured", func() {
+				It("sets vault configuration correctly", func() {
+					rabbit := generateRabbitmqClusterObject("rabbit-vault-default-user")
+					rabbit.Spec.SecretBackend.Vault = &VaultSpec{
+						Role:            "test-role",
+						DefaultUserPath: "test-path",
+					}
+					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.Background(), getKey(rabbit), fetchedRabbit)).To(Succeed())
+
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserPath).To(Equal("test-path"))
+					Expect(fetchedRabbit.VaultEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeFalse())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeFalse())
+
+					By("setting the default-user-credential-updater image by default")
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserUpdaterImage).To(
+						PointTo(HavePrefix("rabbitmqoperator/default-user-credential-updater:")))
+				})
+			})
+			When("only TLS is configured", func() {
+				It("sets vault configuration correctly", func() {
+					rabbit := generateRabbitmqClusterObject("rabbit-vault-tls")
+					rabbit.Spec.SecretBackend.Vault = &VaultSpec{
+						Role: "test-role",
+						TLS: VaultTLSSpec{
+							PKIIssuerPath: "pki/issue/hashicorp-com",
+						},
+					}
+					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.Background(), getKey(rabbit), fetchedRabbit)).To(Succeed())
+
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLS.PKIIssuerPath).To(Equal("pki/issue/hashicorp-com"))
+					Expect(fetchedRabbit.VaultEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeFalse())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeFalse())
+					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeTrue())
 				})
 			})
 		})

@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,6 +33,7 @@ import (
 )
 
 const (
+	stsSuffix           string = "server"
 	initContainerCPU    string = "100m"
 	initContainerMemory string = "500Mi"
 	defaultPVCName      string = "persistence"
@@ -55,7 +57,7 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName("server"),
+			Name:      builder.Instance.ChildResourceName(stsSuffix),
 			Namespace: builder.Instance.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
@@ -335,12 +337,9 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		"prometheus.io/port":   prometheusPort,
 	}
 
-	//Init Container resources
-	cpuRequest := k8sresource.MustParse(initContainerCPU)
-	memoryRequest := k8sresource.MustParse(initContainerMemory)
-
-	automountServiceAccountToken := true
-	rabbitmqUID := int64(999)
+	if builder.Instance.VaultEnabled() {
+		defaultPodAnnotations = appendVaultAnnotations(defaultPodAnnotations, builder.Instance)
+	}
 
 	readinessProbePort := "amqp"
 	if builder.Instance.DisableNonTLSListeners() {
@@ -363,19 +362,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			VolumeSource: corev1.VolumeSource{
 				Projected: &corev1.ProjectedVolumeSource{
 					Sources: []corev1.VolumeProjection{
-						{
-							Secret: &corev1.SecretProjection{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: builder.Instance.ChildResourceName(DefaultUserSecretName),
-								},
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "default_user.conf",
-										Path: "default_user.conf",
-									},
-								},
-							},
-						},
+
 						{
 							ConfigMap: &corev1.ConfigMapProjection{
 								LocalObjectReference: corev1.LocalObjectReference{
@@ -434,6 +421,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 	}
 
+	if !builder.Instance.VaultDefaultUserSecretEnabled() {
+		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance)
+	}
+
 	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" || builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
 		volumes = append(volumes, corev1.Volume{
 			Name: "server-conf",
@@ -474,11 +465,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 		{
 			Name:      "rabbitmq-confd",
-			MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf",
-			SubPath:   "default_user.conf",
-		},
-		{
-			Name:      "rabbitmq-confd",
 			MountPath: "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
 			SubPath:   "userDefinedConfiguration.conf",
 		},
@@ -486,6 +472,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			Name:      "pod-info",
 			MountPath: "/etc/pod-info/",
 		},
+	}
+
+	if !builder.Instance.VaultDefaultUserSecretEnabled() {
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/11-default_user.conf", SubPath: "default_user.conf",
+		})
 	}
 
 	if builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
@@ -501,7 +493,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	}
 
 	tlsSpec := builder.Instance.Spec.TLS
-	if builder.Instance.TLSEnabled() {
+	if builder.Instance.SecretTLSEnabled() {
 		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 			Name:      "rabbitmq-tls",
 			MountPath: "/etc/rabbitmq-tls/",
@@ -542,7 +534,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		volumes = append(volumes, tlsProjectedVolume)
 	}
 
-	return corev1.PodTemplateSpec{
+	rabbitmqUID := int64(999)
+	podTemplateSpec := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: metadata.ReconcileAnnotations(previousPodAnnotations, defaultPodAnnotations),
 			Labels:      metadata.Label(builder.Instance.Name),
@@ -568,109 +561,34 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
 			TerminationGracePeriodSeconds: builder.Instance.Spec.TerminationGracePeriodSeconds,
 			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
-			AutomountServiceAccountToken:  &automountServiceAccountToken,
+			AutomountServiceAccountToken:  pointer.Bool(true),
 			Affinity:                      builder.Instance.Spec.Affinity,
 			Tolerations:                   builder.Instance.Spec.Tolerations,
-			InitContainers: []corev1.Container{
-				{
-					Name:  "setup-container",
-					Image: builder.Instance.Spec.Image,
-					SecurityContext: &corev1.SecurityContext{
-						RunAsUser: &rabbitmqUID,
-					},
-					Command: []string{
-						"sh", "-c", "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
-							"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
-							"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; " +
-							"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-							"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-							"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
-					},
-					Resources: corev1.ResourceRequirements{
-						Limits: map[corev1.ResourceName]k8sresource.Quantity{
-							"cpu":    cpuRequest,
-							"memory": memoryRequest,
-						},
-						Requests: map[corev1.ResourceName]k8sresource.Quantity{
-							"cpu":    cpuRequest,
-							"memory": memoryRequest,
-						},
-					},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "plugins-conf",
-							MountPath: "/tmp/rabbitmq-plugins/",
-						},
-						{
-							Name:      "rabbitmq-erlang-cookie",
-							MountPath: "/var/lib/rabbitmq/",
-						},
-						{
-							Name:      "erlang-cookie-secret",
-							MountPath: "/tmp/erlang-cookie-secret/",
-						},
-						{
-							Name:      "rabbitmq-plugins",
-							MountPath: "/operator",
-						},
-						{
-							Name:      "persistence",
-							MountPath: "/var/lib/rabbitmq/mnesia/",
-						},
-						{
-							Name:      "rabbitmq-confd",
-							MountPath: "/tmp/default_user.conf",
-							SubPath:   "default_user.conf",
-						},
-					},
-				},
-			},
-			Volumes: volumes,
+			InitContainers:                []corev1.Container{setupContainer(builder.Instance)},
+			Volumes:                       volumes,
 			Containers: []corev1.Container{
 				{
 					Name:      "rabbitmq",
 					Resources: *builder.Instance.Spec.Resources,
 					Image:     builder.Instance.Spec.Image,
-					Env: []corev1.EnvVar{
-						{
-							Name: "MY_POD_NAME",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath:  "metadata.name",
-									APIVersion: "v1",
-								},
-							},
-						},
-						{
-							Name: "MY_POD_NAMESPACE",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath:  "metadata.namespace",
-									APIVersion: "v1",
-								},
-							},
-						},
-						{
+					Env: append(envVarsK8sObjects(builder.Instance),
+						corev1.EnvVar{
 							Name:  "RABBITMQ_ENABLED_PLUGINS_FILE",
 							Value: "/operator/enabled_plugins",
 						},
-						{
-							Name:  "K8S_SERVICE_NAME",
-							Value: builder.Instance.ChildResourceName(headlessServiceSuffix),
-						},
-						{
+						corev1.EnvVar{
 							Name:  "RABBITMQ_USE_LONGNAME",
 							Value: "true",
 						},
-						{
+						corev1.EnvVar{
 							Name:  "RABBITMQ_NODENAME",
 							Value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 						},
-						{
+						corev1.EnvVar{
 							Name:  "K8S_HOSTNAME_SUFFIX",
 							Value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
 						},
-					},
+					),
 					Ports:        builder.updateContainerPorts(),
 					VolumeMounts: rabbitmqContainerVolumeMounts,
 					// Why using a tcp readiness probe instead of running `rabbitmq-diagnostics check_port_connectivity`?
@@ -711,6 +629,243 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		},
 	}
+	if builder.Instance.VaultDefaultUserSecretEnabled() &&
+		builder.Instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage != nil &&
+		*builder.Instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage != "" {
+		podTemplateSpec.Spec.Containers = append(podTemplateSpec.Spec.Containers,
+			defaultUserCredentialUpdater(builder.Instance))
+	}
+	return podTemplateSpec
+}
+
+func defaultUserCredentialUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {
+	managementURI := "http://127.0.0.1:15672"
+	if instance.TLSEnabled() {
+		// RabbitMQ certificate SAN must include this host name.
+		// (Alternatively, we could have put 127.0.0.1 in the management URI and put 127.0.0.1 into certificate IP SAN.
+		// However, that approach seems to be less common.)
+		managementURI = "https://$(HOSTNAME_DOMAIN):15671"
+	}
+	container := corev1.Container{
+		Name: "default-user-credential-updater",
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu":    k8sresource.MustParse("500m"),
+				"memory": k8sresource.MustParse("128Mi"),
+			},
+			Requests: corev1.ResourceList{
+				"cpu":    k8sresource.MustParse("10m"),
+				"memory": k8sresource.MustParse("512Ki"),
+			},
+		},
+		Image: *instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage,
+		Args: []string{
+			"--management-uri", managementURI,
+			"-v", "4"},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "rabbitmq-erlang-cookie",
+				MountPath: "/var/lib/rabbitmq/",
+			},
+			// VolumeMount /etc/rabbitmq/conf.d/11-default-user will be added by Vault injector.
+		},
+		Env: append(envVarsK8sObjects(instance),
+			corev1.EnvVar{
+				Name:  "HOSTNAME_DOMAIN",
+				Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)",
+			}),
+	}
+
+	if instance.SecretTLSEnabled() {
+		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+			Name:      "rabbitmq-tls",
+			MountPath: "/etc/rabbitmq-tls/",
+			ReadOnly:  true,
+		})
+	}
+	// If instance.VaultTLSEnabled() volume mount /etc/rabbitmq-tls/ will be added by Vault injector.
+
+	return container
+}
+
+func envVarsK8sObjects(instance *rabbitmqv1beta1.RabbitmqCluster) []corev1.EnvVar {
+	return []corev1.EnvVar{
+		{
+			Name: "MY_POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath:  "metadata.name",
+					APIVersion: "v1",
+				},
+			},
+		},
+		{
+			Name: "MY_POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath:  "metadata.namespace",
+					APIVersion: "v1",
+				},
+			},
+		},
+		{
+			Name:  "K8S_SERVICE_NAME",
+			Value: instance.ChildResourceName(headlessServiceSuffix),
+		},
+	}
+}
+
+func setupContainer(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {
+	//Init Container resources
+	cpuRequest := k8sresource.MustParse(initContainerCPU)
+	memoryRequest := k8sresource.MustParse(initContainerMemory)
+
+	setupContainer := corev1.Container{
+		Name:  "setup-container",
+		Image: instance.Spec.Image,
+		Command: []string{
+			"sh", "-c",
+			"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
+				"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
+				"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; " +
+				"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
+				"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' %s >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
+				"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
+		},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu":    cpuRequest,
+				"memory": memoryRequest,
+			},
+			Requests: corev1.ResourceList{
+				"cpu":    cpuRequest,
+				"memory": memoryRequest,
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "plugins-conf",
+				MountPath: "/tmp/rabbitmq-plugins/",
+			},
+			{
+				Name:      "rabbitmq-erlang-cookie",
+				MountPath: "/var/lib/rabbitmq/",
+			},
+			{
+				Name:      "erlang-cookie-secret",
+				MountPath: "/tmp/erlang-cookie-secret/",
+			},
+			{
+				Name:      "rabbitmq-plugins",
+				MountPath: "/operator",
+			},
+			{
+				Name:      "persistence",
+				MountPath: "/var/lib/rabbitmq/mnesia/",
+			},
+		},
+	}
+
+	if instance.VaultDefaultUserSecretEnabled() {
+		// Vault annotation automatically mounts the volume
+		setupContainer.Command[2] = fmt.Sprintf(setupContainer.Command[2], "/etc/rabbitmq/conf.d/11-default_user.conf")
+	} else {
+		setupContainer.Command[2] = fmt.Sprintf(setupContainer.Command[2], "/tmp/default_user.conf")
+		setupContainer.VolumeMounts = append(setupContainer.VolumeMounts, corev1.VolumeMount{
+			Name:      "rabbitmq-confd",
+			MountPath: "/tmp/default_user.conf",
+			SubPath:   "default_user.conf",
+		})
+	}
+	return setupContainer
+}
+
+func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *rabbitmqv1beta1.RabbitmqCluster) {
+	for _, value := range volumes {
+		if value.Name == "rabbitmq-confd" {
+			value.VolumeSource.Projected.Sources = append(value.VolumeSource.Projected.Sources,
+				corev1.VolumeProjection{
+					Secret: &corev1.SecretProjection{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: instance.ChildResourceName(DefaultUserSecretName),
+						},
+						Items: []corev1.KeyToPath{
+							{
+								Key:  "default_user.conf",
+								Path: "default_user.conf",
+							},
+						},
+					},
+				},
+			)
+		}
+	}
+}
+
+func appendVaultAnnotations(currentAnnotations map[string]string, instance *rabbitmqv1beta1.RabbitmqCluster) map[string]string {
+	vault := instance.Spec.SecretBackend.Vault
+
+	vaultAnnotations := map[string]string{
+		"vault.hashicorp.com/agent-inject":     "true",
+		"vault.hashicorp.com/agent-init-first": "true",
+		"vault.hashicorp.com/role":             vault.Role,
+	}
+
+	if vault.DefaultUserSecretEnabled() {
+		secretName := "11-default_user.conf"
+		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+secretName] = "/etc/rabbitmq/conf.d"
+		vaultAnnotations["vault.hashicorp.com/agent-inject-perms-"+secretName] = "0640"
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+secretName] = vault.DefaultUserPath
+		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+secretName] = fmt.Sprintf(`
+{{- with secret "%s" -}}
+default_user = {{ .Data.data.username }}
+default_pass = {{ .Data.data.password }}
+{{- end }}`, vault.DefaultUserPath)
+	}
+
+	if vault.TLSEnabled() {
+		pathCert := vault.TLS.PKIIssuerPath
+		commonName := instance.ServiceSubDomain()
+		if vault.TLS.CommonName != "" {
+			commonName = vault.TLS.CommonName
+		}
+
+		altNames := podHostNames(instance)
+		if vault.TLS.AltNames != "" {
+			altNames = fmt.Sprintf("%s,%s", altNames, vault.TLS.AltNames)
+		}
+
+		certDir := strings.TrimSuffix(tlsCertDir, "/")
+		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+tlsCertFilename] = certDir
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+tlsCertFilename] = pathCert
+		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+tlsCertFilename] = generateVaultTLSTemplate(commonName, altNames, vault, "certificate")
+
+		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+tlsKeyFilename] = certDir
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+tlsKeyFilename] = pathCert
+		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+tlsKeyFilename] = generateVaultTLSTemplate(commonName, altNames, vault, "private_key")
+
+		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+caCertFilename] = certDir
+		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+caCertFilename] = pathCert
+		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+caCertFilename] = generateVaultTLSTemplate(commonName, altNames, vault, "issuing_ca")
+	}
+
+	return metadata.ReconcileAnnotations(currentAnnotations, vaultAnnotations, vault.Annotations)
+}
+
+func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
+	altNames := ""
+	var i int32
+	for i = 0; i < pointer.Int32PtrDerefOr(instance.Spec.Replicas, 1); i++ {
+		altNames += fmt.Sprintf(",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace))
+	}
+	return strings.TrimPrefix(altNames, ",")
+}
+
+func generateVaultTLSTemplate(commonName, altNames string, vault *rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
+	return fmt.Sprintf(`
+{{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}
+{{ .Data.%s }}
+{{- end }}`, vault.TLS.PKIIssuerPath, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
 }
 
 func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort {

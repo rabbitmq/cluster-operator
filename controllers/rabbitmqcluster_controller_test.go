@@ -191,6 +191,39 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 	})
 
+	Context("Vault is enabled for DefaultUser", func() {
+		BeforeEach(func() {
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-vault",
+					Namespace: defaultNamespace,
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					SecretBackend: rabbitmqv1beta1.SecretBackend{
+						Vault: &rabbitmqv1beta1.VaultSpec{
+							Role:            "some-role",
+							DefaultUserPath: "some-path",
+						},
+					},
+				},
+			}
+
+			Expect(client.Create(ctx, cluster)).To(Succeed())
+			waitForClusterCreation(ctx, cluster, client)
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(ctx, cluster)).To(Succeed())
+		})
+
+		It("does not expose DefaultUser or its Binding as status", func() {
+			Expect(cluster).NotTo(BeNil())
+			Expect(cluster.Status).NotTo(BeNil())
+			Expect(cluster.Status.DefaultUser).To(BeNil())
+			Expect(cluster.Status.Binding).To(BeNil())
+		})
+	})
+
 	Context("ImagePullSecret configure on the instance", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
@@ -862,19 +895,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 						Projected: &corev1.ProjectedVolumeSource{
 							Sources: []corev1.VolumeProjection{
 								{
-									Secret: &corev1.SecretProjection{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "rabbitmq-sts-override-default-user",
-										},
-										Items: []corev1.KeyToPath{
-											{
-												Key:  "default_user.conf",
-												Path: "default_user.conf",
-											},
-										},
-									},
-								},
-								{
 									ConfigMap: &corev1.ConfigMapProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: "rabbitmq-sts-override-server-conf",
@@ -887,6 +907,19 @@ var _ = Describe("RabbitmqClusterController", func() {
 											{
 												Key:  "userDefinedConfiguration.conf",
 												Path: "userDefinedConfiguration.conf",
+											},
+										},
+									},
+								},
+								{
+									Secret: &corev1.SecretProjection{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "rabbitmq-sts-override-default-user",
+										},
+										Items: []corev1.KeyToPath{
+											{
+												Key:  "default_user.conf",
+												Path: "default_user.conf",
 											},
 										},
 									},

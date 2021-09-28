@@ -1,0 +1,14 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: vault-default-user
+spec:
+  replicas: 3
+  secretBackend:
+    vault:
+      role: rabbitmq
+      # Optionally, set Vault annotations as listed in
+      # https://www.vaultproject.io/docs/platform/k8s/injector/annotations
+      annotations:
+        vault.hashicorp.com/template-static-secret-render-interval: "15s"
+      defaultUserPath: secret/data/rabbitmq/config
