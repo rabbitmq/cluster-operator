@@ -62,13 +62,18 @@ var _ = Describe("RabbitmqClusterController", func() {
 		AfterEach(func() {
 			Expect(client.Delete(ctx, cluster)).To(Succeed())
 			Eventually(func() bool {
-				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, cluster)
 				return apierrors.IsNotFound(err)
 			}, 5).Should(BeTrue())
 		})
 
 		It("works", func() {
+			By("populating the image spec with the default image", func() {
+				fetchedCluster := &rabbitmqv1beta1.RabbitmqCluster{}
+				Expect(client.Get(ctx, types.NamespacedName{Name: "rabbitmq-one", Namespace: defaultNamespace}, fetchedCluster)).To(Succeed())
+				Expect(fetchedCluster.Spec.Image).To(Equal(defaultRabbitmqImage))
+			})
+
 			By("creating a statefulset with default configurations", func() {
 				sts := statefulSet(ctx, cluster)
 

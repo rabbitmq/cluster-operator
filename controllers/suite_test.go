@@ -33,7 +33,10 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
-const controllerName = "rabbitmqcluster-controller"
+const (
+	controllerName       = "rabbitmqcluster-controller"
+	defaultRabbitmqImage = "default-rabbit-image:stable"
+)
 
 var (
 	testEnv         *envtest.Environment
@@ -82,12 +85,13 @@ var _ = BeforeSuite(func() {
 
 	fakeExecutor = &fakePodExecutor{}
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		Recorder:    mgr.GetEventRecorderFor(controllerName),
-		Namespace:   "rabbitmq-system",
-		Clientset:   clientSet,
-		PodExecutor: fakeExecutor,
+		Client:               mgr.GetClient(),
+		Scheme:               mgr.GetScheme(),
+		Recorder:             mgr.GetEventRecorderFor(controllerName),
+		Namespace:            "rabbitmq-system",
+		Clientset:            clientSet,
+		PodExecutor:          fakeExecutor,
+		DefaultRabbitmqImage: defaultRabbitmqImage,
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
