@@ -346,7 +346,7 @@ CONSOLE_LOG=new`
 				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
 				Expect(err).ToNot(HaveOccurred())
 				return pvc.Spec.Resources.Requests["storage"]
-			}, 180, 5).Should(Equal(newCapacity))
+			}, "5m", 10).Should(Equal(newCapacity))
 
 			// storage capacity reflected in the pod
 			Eventually(func() int {
@@ -355,7 +355,7 @@ CONSOLE_LOG=new`
 				updatedDiskSize, err := strconv.Atoi(strings.Fields(strings.Split(string(output), "\n")[1])[1])
 				Expect(err).ToNot(HaveOccurred())
 				return updatedDiskSize
-			}, 180, 5).Should(BeNumerically(">", previousDiskSize))
+			}, "10m", 10).Should(BeNumerically(">", previousDiskSize))
 
 			// pod was not recreated
 			Expect(pod(ctx, clientSet, cluster, 0).UID).To(Equal(podUID))
