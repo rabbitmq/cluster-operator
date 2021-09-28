@@ -634,12 +634,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		builder.Instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage != nil &&
 		*builder.Instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage != "" {
 		podTemplateSpec.Spec.Containers = append(podTemplateSpec.Spec.Containers,
-			rabbitMQAdminPasswordUpdater(builder.Instance))
+			defaultUserCredentialUpdater(builder.Instance))
 	}
 	return podTemplateSpec
 }
 
-func rabbitMQAdminPasswordUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {
+func defaultUserCredentialUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {
 	managementURI := "http://127.0.0.1:15672"
 	if instance.TLSEnabled() {
 		// RabbitMQ certificate SAN must include this host name.
