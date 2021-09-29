@@ -8,13 +8,13 @@ By defining NetworkPolicies, you can restrict the network entities with which yo
 from reaching the cluster. It is important to note that once a RabbitmqCluster Pod, or any other Pod for that matter, is the target of any
 NetworkPolicy, it becomes isolated to all traffic except that permitted by a NetworkPolicy.
 
-The first policy in this example, [allow-inter-node-traffic.yaml](/allow-inter-node-traffic.yaml) ensures that the only nodes in the RabbitmqCluster
+The first policy in this example, [allow-inter-node-traffic.yaml](./allow-inter-node-traffic.yaml) ensures that the only nodes in the RabbitmqCluster
 send or receive traffic with each other on the ports used for inter-node communication.
 
-The second policy, [allow-operator-traffic.yaml](/allow-operator-traffic.yaml), allows the cluster-operator and the messaging-topology-operator to
+The second policy, [allow-operator-traffic.yaml](./allow-operator-traffic.yaml), allows the cluster-operator and the messaging-topology-operator to
 communicate with the cluster Pods over HTTP, which is necessary for some reconciliation operations.
 
-The third policy, [allow-rabbitmq-traffic.yaml](/allow-rabbitmq-traffic.yaml), allows all ingress traffic to external-facing ports on the cluster,
+The third policy, [allow-rabbitmq-traffic.yaml](./allow-rabbitmq-traffic.yaml), allows all ingress traffic to external-facing ports on the cluster,
 such as for AMQP messaging, Prometheus scraping, etc. In practice you may wish to add a selector to this policy to only allow traffic to these
 ports from your known client application Pods, or Prometheus servers, etc., depending on your network topology.
 
