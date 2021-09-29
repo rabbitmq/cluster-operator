@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-rabbitmq-traffic
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: rabbitmq
+      app.kubernetes.io/name: network-policies
+  policyTypes:
+  - Ingress
+  ingress:
+  - ports:
+    - port: 5672  # AMQP
+    - port: 5671  # AMQP + TLS
+    - port: 5552  # Streams
+    - port: 5551  # Streams + TLS
+    - port: 15672 # HTTP API
+    - port: 15671 # HTTP API + TLS
+    - port: 61613 # STOMP
+    - port: 61614 # STOMP + TLS
+    - port: 1883  # MQTT
+    - port: 8883  # MQTT + TLS
+    - port: 15674 # STOMP-over-WebSockets
+    - port: 15675 # MQTT-over-WebSockets
+    - port: 15692 # Prometheus endpoint
+    - port: 15691 # Prometheus endpoint + TLS
+
