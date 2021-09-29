@@ -1,0 +1,14 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: network-policies
+spec:
+  image: rabbitmq:3.9.7-management
+  replicas: 3
+  rabbitmq:
+    additionalPlugins:
+    - rabbitmq_mqtt
+    - rabbitmq_stomp
+    - rabbitmq_stream
+    - rabbitmq_web_mqtt
+    - rabbitmq_web_stomp

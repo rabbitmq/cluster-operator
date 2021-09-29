@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-inter-node-traffic
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: rabbitmq
+      app.kubernetes.io/name: network-policies
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: rabbitmq
+          app.kubernetes.io/name: network-policies
+    ports:
+    - port: 4369  # epmd
+    - port: 25672 # clustering
+    - port: 35672 # CLI tooling
+    - port: 35673 # CLI tooling
+    - port: 35674 # CLI tooling
+    - port: 35675 # CLI tooling
+    - port: 35676 # CLI tooling
+    - port: 35677 # CLI tooling
+    - port: 35678 # CLI tooling
+    - port: 35679 # CLI tooling
+    - port: 35680 # CLI tooling
+    - port: 35681 # CLI tooling
+    - port: 35682 # CLI tooling
+  # If using the k8s feature gate NetworkPolicyEndPort (enabled by default 1.22+), the last 11 entries can be simplified to:
+  # - port: 35672 # CLI tooling
+  #   endPort: 35682
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: rabbitmq
+          app.kubernetes.io/name: network-policies
+    ports:
+    - port: 4369  # epmd
+    - port: 25672 # clustering
+    - port: 35672 # CLI tooling
+    - port: 35673 # CLI tooling
+    - port: 35674 # CLI tooling
+    - port: 35675 # CLI tooling
+    - port: 35676 # CLI tooling
+    - port: 35677 # CLI tooling
+    - port: 35678 # CLI tooling
+    - port: 35679 # CLI tooling
+    - port: 35680 # CLI tooling
+    - port: 35681 # CLI tooling
+    - port: 35682 # CLI tooling
+  # If using the k8s feature gate NetworkPolicyEndPort (enabled by default 1.22+), the last 11 entries can be simplified to:
+  # - port: 35672 # CLI tooling
+  #   endPort: 35682
