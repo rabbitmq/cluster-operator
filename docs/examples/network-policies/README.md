@@ -8,8 +8,20 @@ By defining NetworkPolicies, you can restrict the network entities with which yo
 from reaching the cluster. It is important to note that once a RabbitmqCluster Pod, or any other Pod for that matter, is the target of any
 NetworkPolicy, it becomes isolated to all traffic except that permitted by a NetworkPolicy.
 
-The first policy in this example, [allow-inter-node-traffic.yaml](./allow-inter-node-traffic.yaml) ensures that the only nodes in the RabbitmqCluster
-send or receive traffic with each other on the ports used for inter-node communication.
+The following example policies all target (and therefore, affect the Pods of) the specific RabbitmqCluster deployed by [rabbitmq.yaml](./rabbitmq.yaml).
+This is done by targetting the RabbitmqCluster Pods using podSelector label matching:
+```yaml
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: rabbitmq
+      app.kubernetes.io/name: network-policies
+```
+To create policies that match any RabbitmqCluster, you can remove the `app.kubernetes.io/name` labelSelector. Bear in mind this might not always
+be appropriate for all NetworkPolicies; for example, inter-node traffic should be restricted on a per-RabbitmqCluster scope.
+
+The first policy in this example, [allow-inter-node-traffic.yaml](./allow-inter-node-traffic.yaml) ensures that only the Pods in the RabbitmqCluster
+can send or receive traffic with each other on the ports used for inter-node communication.
 
 The second policy, [allow-operator-traffic.yaml](./allow-operator-traffic.yaml), allows the cluster-operator and the messaging-topology-operator to
 communicate with the cluster Pods over HTTP, which is necessary for some reconciliation operations.
