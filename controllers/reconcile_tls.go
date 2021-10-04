@@ -33,7 +33,7 @@ func (r *RabbitmqClusterReconciler) reconcileTLS(ctx context.Context, rabbitmqCl
 func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	logger := ctrl.LoggerFrom(ctx)
 	secretName := rabbitmqCluster.Spec.TLS.SecretName
-	logger.Info("TLS enabled, looking for secret", "secret", secretName)
+	logger.V(1).Info("TLS enabled, looking for secret", "secret", secretName)
 
 	// check if secret exists
 	secret := &corev1.Secret{}
@@ -57,7 +57,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 	if rabbitmqCluster.MutualTLSEnabled() {
 		if !rabbitmqCluster.SingleTLSSecret() {
 			secretName := rabbitmqCluster.Spec.TLS.CaSecretName
-			logger.Info("mutual TLS enabled, looking for CA certificate secret", "secret", secretName)
+			logger.V(1).Info("mutual TLS enabled, looking for CA certificate secret", "secret", secretName)
 
 			// check if secret exists
 			secret = &corev1.Secret{}

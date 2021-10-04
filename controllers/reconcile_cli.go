@@ -22,7 +22,7 @@ func (r *RabbitmqClusterReconciler) runRabbitmqCLICommandsIfAnnotated(ctx contex
 		return 0, err
 	}
 	if !allReplicasReadyAndUpdated(sts) {
-		logger.Info("not all replicas ready yet; requeuing request to run RabbitMQ CLI commands")
+		logger.V(1).Info("not all replicas ready yet; requeuing request to run RabbitMQ CLI commands")
 		return 15 * time.Second, nil
 	}
 	// Retrieve the plugins config map, if it exists.
