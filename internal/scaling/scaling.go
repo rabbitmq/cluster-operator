@@ -197,7 +197,7 @@ func retryWithInterval(logger logr.Logger, msg string, retry int, interval time.
 			return
 		}
 		time.Sleep(interval)
-		logger.Info("retrying again", "action", msg, "interval", interval, "attempt", i+1)
+		logger.V(1).Info("retrying again", "action", msg, "interval", interval, "attempt", i+1)
 	}
 	return fmt.Errorf("failed to %s after %d retries", msg, retry)
 }
