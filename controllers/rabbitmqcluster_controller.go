@@ -125,7 +125,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			}
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 	}
 
 	// Ensure the resource have a deletion marker
