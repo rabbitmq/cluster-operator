@@ -16,6 +16,26 @@ spec:
     scrapeTimeout: 14s
     tlsConfig:
       insecureSkipVerify: true
+  - port: prometheus
+    scheme: http
+    path: /metrics/detailed
+    params:
+      family:
+        - queue_coarse_metrics
+        - queue_metrics
+    interval: 15s
+    scrapeTimeout: 14s
+  - port: prometheus-tls
+    scheme: https
+    path: /metrics/detailed
+    params:
+      family:
+        - queue_coarse_metrics
+        - queue_metrics
+    interval: 15s
+    scrapeTimeout: 14s
+    tlsConfig:
+      insecureSkipVerify: true
   selector:
     matchLabels:
       app.kubernetes.io/component: rabbitmq
