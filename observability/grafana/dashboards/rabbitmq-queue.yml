@@ -8,6 +8,36 @@ metadata:
 data:
   rabbitmq-queue-grafana-dashboard.json: |-
     {
+      "__inputs": [
+        {
+          "name": "DS_PROMETHEUS",
+          "label": "Prometheus",
+          "description": "",
+          "type": "datasource",
+          "pluginId": "prometheus",
+          "pluginName": "Prometheus"
+        }
+      ],
+      "__requires": [
+        {
+          "type": "grafana",
+          "id": "grafana",
+          "name": "Grafana",
+          "version": "7.5.3"
+        },
+        {
+          "type": "datasource",
+          "id": "prometheus",
+          "name": "Prometheus",
+          "version": "1.0.0"
+        },
+        {
+          "type": "panel",
+          "id": "timeseries",
+          "name": "Time series",
+          "version": ""
+        }
+      ],
       "annotations": {
         "list": [
           {
@@ -24,8 +54,8 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 31,
-      "iteration": 1633436610573,
+      "id": null,
+      "iteration": 1633508002435,
       "links": [],
       "panels": [
         {
@@ -44,6 +74,7 @@ data:
                 "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
+                  "graph": false,
                   "legend": false,
                   "tooltip": false,
                   "viz": false
@@ -55,14 +86,7 @@ data:
                   "type": "linear"
                 },
                 "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
+                "spanNulls": false
               },
               "mappings": [],
               "thresholds": {
@@ -133,6 +157,9 @@ data:
             },
             "tooltip": {
               "mode": "single"
+            },
+            "tooltipOptions": {
+              "mode": "single"
             }
           },
           "targets": [
@@ -157,7 +184,7 @@ data:
         }
       ],
       "refresh": false,
-      "schemaVersion": 30,
+      "schemaVersion": 27,
       "style": "dark",
       "tags": [],
       "templating": {
@@ -184,11 +211,7 @@ data:
           },
           {
             "allValue": null,
-            "current": {
-              "selected": false,
-              "text": "opportunity-92",
-              "value": "opportunity-92"
-            },
+            "current": {},
             "datasource": "${DS_PROMETHEUS}",
             "definition": "label_values(rabbitmq_identity_info, namespace)",
             "description": null,
@@ -207,15 +230,15 @@ data:
             "regex": "",
             "skipUrlSync": false,
             "sort": 1,
-            "type": "query"
+            "tagValuesQuery": "",
+            "tags": [],
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
           },
           {
             "allValue": null,
-            "current": {
-              "selected": false,
-              "text": "rabbitmq",
-              "value": "rabbitmq"
-            },
+            "current": {},
             "datasource": "${DS_PROMETHEUS}",
             "definition": "label_values(rabbitmq_identity_info{namespace=\"$namespace\"}, rabbitmq_cluster)",
             "description": null,
@@ -234,16 +257,16 @@ data:
             "regex": "",
             "skipUrlSync": false,
             "sort": 1,
-            "type": "query"
+            "tagValuesQuery": "",
+            "tags": [],
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
           },
           {
             "allValue": null,
-            "current": {
-              "selected": false,
-              "text": "perf-test-1",
-              "value": "perf-test-1"
-            },
-            "datasource": null,
+            "current": {},
+            "datasource": "${DS_PROMETHEUS}",
             "definition": "query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info{namespace=\"$namespace\"})",
             "description": null,
             "error": null,
@@ -261,7 +284,11 @@ data:
             "regex": "/.*queue=\"([^\"]+)\".*/",
             "skipUrlSync": false,
             "sort": 0,
-            "type": "query"
+            "tagValuesQuery": "",
+            "tags": [],
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
           }
         ]
       },
@@ -273,5 +300,5 @@ data:
       "timezone": "",
       "title": "RabbitMQ-Queue",
       "uid": "j9t8vwH7k",
-      "version": 10
+      "version": 1
     }
