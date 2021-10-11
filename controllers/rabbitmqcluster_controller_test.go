@@ -221,11 +221,16 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(client.Delete(ctx, cluster)).To(Succeed())
 		})
 
-		It("does not expose DefaultUser or its Binding as status", func() {
+		It("applies the Vault configuration", func() {
+			By("not exposing DefaultUser or its Binding as status")
 			Expect(cluster).NotTo(BeNil())
 			Expect(cluster.Status).NotTo(BeNil())
 			Expect(cluster.Status.DefaultUser).To(BeNil())
 			Expect(cluster.Status.Binding).To(BeNil())
+			By("setting the default user updater image to the controller default")
+			fetchedCluster := &rabbitmqv1beta1.RabbitmqCluster{}
+			Expect(client.Get(ctx, types.NamespacedName{Name: "rabbitmq-vault", Namespace: defaultNamespace}, fetchedCluster)).To(Succeed())
+			Expect(fetchedCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage).To(PointTo(Equal(defaultUserUpdaterImage)))
 		})
 	})
 

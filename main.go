@@ -44,12 +44,14 @@ func init() {
 
 func main() {
 	var (
-		metricsAddr          string
-		defaultRabbitmqImage string
+		metricsAddr             string
+		defaultRabbitmqImage    string
+		defaultUserUpdaterImage string
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":9782", "The address the metric endpoint binds to.")
 	flag.StringVar(&defaultRabbitmqImage, "default-rabbitmq-image", "rabbitmq:3.8.21-management", "The default image to use in RabbitmqClusters when not specified in the rabbitmqcluster.spec.image")
+	flag.StringVar(&defaultUserUpdaterImage, "default-user-updater-image", "rabbitmqoperator/default-user-credential-updater:1.0.0", "The default image to use when updating the default user's password in RabbitMQ when it changes in Vault")
 
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -110,14 +112,15 @@ func main() {
 	}
 
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client:               mgr.GetClient(),
-		Scheme:               mgr.GetScheme(),
-		Recorder:             mgr.GetEventRecorderFor(controllerName),
-		Namespace:            operatorNamespace,
-		ClusterConfig:        clusterConfig,
-		Clientset:            kubernetes.NewForConfigOrDie(clusterConfig),
-		PodExecutor:          controllers.NewPodExecutor(),
-		DefaultRabbitmqImage: defaultRabbitmqImage,
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
+		Recorder:                mgr.GetEventRecorderFor(controllerName),
+		Namespace:               operatorNamespace,
+		ClusterConfig:           clusterConfig,
+		Clientset:               kubernetes.NewForConfigOrDie(clusterConfig),
+		PodExecutor:             controllers.NewPodExecutor(),
+		DefaultRabbitmqImage:    defaultRabbitmqImage,
+		DefaultUserUpdaterImage: defaultUserUpdaterImage,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		log.Error(err, "unable to create controller", controllerName)

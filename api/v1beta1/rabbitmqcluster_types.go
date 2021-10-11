@@ -117,7 +117,6 @@ type VaultSpec struct {
 	// Sidecar container that updates the default user's password in RabbitMQ when it changes in Vault.
 	// Additionally, it updates /var/lib/rabbitmq/.rabbitmqadmin.conf (used by rabbitmqadmin CLI).
 	// Set to empty string to disable the sidecar container.
-	// +kubebuilder:default:="rabbitmqoperator/default-user-credential-updater:1.0.0"
 	DefaultUserUpdaterImage *string      `json:"defaultUserUpdaterImage,omitempty"`
 	TLS                     VaultTLSSpec `json:"tls,omitempty"`
 }
@@ -425,6 +424,10 @@ func (cluster *RabbitmqCluster) StreamNeeded() bool {
 
 func (cluster *RabbitmqCluster) VaultEnabled() bool {
 	return cluster.Spec.SecretBackend.Vault != nil
+}
+
+func (cluster *RabbitmqCluster) UsesDefaultUserUpdaterImage() bool {
+	return cluster.VaultEnabled() && (cluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage == nil || *cluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage == "")
 }
 
 func (cluster *RabbitmqCluster) VaultDefaultUserSecretEnabled() bool {

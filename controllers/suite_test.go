@@ -34,8 +34,9 @@ import (
 )
 
 const (
-	controllerName       = "rabbitmqcluster-controller"
-	defaultRabbitmqImage = "default-rabbit-image:stable"
+	controllerName          = "rabbitmqcluster-controller"
+	defaultRabbitmqImage    = "default-rabbit-image:stable"
+	defaultUserUpdaterImage = "default-UU-image:unstable"
 )
 
 var (
@@ -85,13 +86,14 @@ var _ = BeforeSuite(func() {
 
 	fakeExecutor = &fakePodExecutor{}
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client:               mgr.GetClient(),
-		Scheme:               mgr.GetScheme(),
-		Recorder:             mgr.GetEventRecorderFor(controllerName),
-		Namespace:            "rabbitmq-system",
-		Clientset:            clientSet,
-		PodExecutor:          fakeExecutor,
-		DefaultRabbitmqImage: defaultRabbitmqImage,
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
+		Recorder:                mgr.GetEventRecorderFor(controllerName),
+		Namespace:               "rabbitmq-system",
+		Clientset:               clientSet,
+		PodExecutor:             fakeExecutor,
+		DefaultRabbitmqImage:    defaultRabbitmqImage,
+		DefaultUserUpdaterImage: defaultUserUpdaterImage,
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
