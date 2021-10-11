@@ -427,7 +427,7 @@ func (cluster *RabbitmqCluster) VaultEnabled() bool {
 }
 
 func (cluster *RabbitmqCluster) UsesDefaultUserUpdaterImage() bool {
-	return cluster.VaultEnabled() && (cluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage == nil || *cluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage == "")
+	return cluster.VaultEnabled() && cluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage == nil
 }
 
 func (cluster *RabbitmqCluster) VaultDefaultUserSecretEnabled() bool {

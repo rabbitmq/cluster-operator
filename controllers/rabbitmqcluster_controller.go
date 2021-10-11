@@ -128,6 +128,19 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
+	if rabbitmqCluster.UsesDefaultUserUpdaterImage() {
+		rabbitmqCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = &r.DefaultUserUpdaterImage
+		if err = r.Update(ctx, rabbitmqCluster); err != nil {
+			if k8serrors.IsConflict(err) {
+				logger.Info("failed to update image because of conflict; requeueing...",
+					"namespace", rabbitmqCluster.Namespace,
+					"name", rabbitmqCluster.Name)
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+			}
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Ensure the resource have a deletion marker
 	if err := r.addFinalizerIfNeeded(ctx, rabbitmqCluster); err != nil {
 		return ctrl.Result{}, err
@@ -222,19 +235,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if requeueAfter, err := r.restartStatefulSetIfNeeded(ctx, logger, rabbitmqCluster); err != nil || requeueAfter > 0 {
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
-	}
-
-	if rabbitmqCluster.UsesDefaultUserUpdaterImage() {
-		rabbitmqCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = &r.DefaultUserUpdaterImage
-		if err = r.Update(ctx, rabbitmqCluster); err != nil {
-			if k8serrors.IsConflict(err) {
-				logger.Info("failed to update image because of conflict; requeueing...",
-					"namespace", rabbitmqCluster.Namespace,
-					"name", rabbitmqCluster.Name)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
-			}
-			return ctrl.Result{}, err
-		}
 	}
 
 	if !rabbitmqCluster.VaultDefaultUserSecretEnabled() {
