@@ -43,8 +43,13 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
+	var (
+		metricsAddr          string
+		defaultRabbitmqImage string
+	)
+
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":9782", "The address the metric endpoint binds to.")
+	flag.StringVar(&defaultRabbitmqImage, "default-rabbitmq-image", "rabbitmq:3.8.21-management", "The default image to use in RabbitmqClusters when not specified in the rabbitmqcluster.spec.image")
 
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -105,13 +110,14 @@ func main() {
 	}
 
 	err = (&controllers.RabbitmqClusterReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		Recorder:      mgr.GetEventRecorderFor(controllerName),
-		Namespace:     operatorNamespace,
-		ClusterConfig: clusterConfig,
-		Clientset:     kubernetes.NewForConfigOrDie(clusterConfig),
-		PodExecutor:   controllers.NewPodExecutor(),
+		Client:               mgr.GetClient(),
+		Scheme:               mgr.GetScheme(),
+		Recorder:             mgr.GetEventRecorderFor(controllerName),
+		Namespace:            operatorNamespace,
+		ClusterConfig:        clusterConfig,
+		Clientset:            kubernetes.NewForConfigOrDie(clusterConfig),
+		PodExecutor:          controllers.NewPodExecutor(),
+		DefaultRabbitmqImage: defaultRabbitmqImage,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		log.Error(err, "unable to create controller", controllerName)

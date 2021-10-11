@@ -79,7 +79,7 @@ destroy: ## Cleanup all controller artefacts
 run: generate manifests fmt vet install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
 
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
-	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=rabbitmq-system go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel
+	KUBE_CONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=rabbitmq-system go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel $(OPERATOR_ARGS)
 
 delve: generate install deploy-namespace-rbac just-delve ## Deploys CRD, Namespace, RBACs and starts Delve debugger
 
