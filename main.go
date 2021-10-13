@@ -45,13 +45,11 @@ func init() {
 func main() {
 	var (
 		metricsAddr             string
-		defaultRabbitmqImage    string
-		defaultUserUpdaterImage string
+		defaultRabbitmqImage    = "rabbitmq:3.8.21-management"
+		defaultUserUpdaterImage = "rabbitmqoperator/default-user-credential-updater:1.0.0"
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":9782", "The address the metric endpoint binds to.")
-	flag.StringVar(&defaultRabbitmqImage, "default-rabbitmq-image", "rabbitmq:3.8.21-management", "The default image to use in RabbitmqClusters when not specified in the rabbitmqcluster.spec.image")
-	flag.StringVar(&defaultUserUpdaterImage, "default-user-updater-image", "rabbitmqoperator/default-user-credential-updater:1.0.0", "The default image to use when updating the default user's password in RabbitMQ when it changes in Vault")
 
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -68,6 +66,14 @@ func main() {
 
 	// If the environment variable is not set Getenv returns an empty string which ctrl.Options.Namespace takes to mean all namespaces should be watched
 	operatorScopeNamespace := os.Getenv("OPERATOR_SCOPE_NAMESPACE")
+
+	if configuredDefaultRabbitmqImage, ok := os.LookupEnv("DEFAULT_RABBITMQ_IMAGE"); ok {
+		defaultRabbitmqImage = configuredDefaultRabbitmqImage
+	}
+
+	if configuredDefaultUserUpdaterImage, ok := os.LookupEnv("DEFAULT_USER_UPDATER_IMAGE"); ok {
+		defaultUserUpdaterImage = configuredDefaultUserUpdaterImage
+	}
 
 	options := ctrl.Options{
 		Scheme:                  scheme,
