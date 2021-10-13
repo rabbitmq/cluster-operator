@@ -11,7 +11,6 @@ package v1beta1
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -389,10 +388,6 @@ var _ = Describe("RabbitmqCluster", func() {
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeFalse())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeFalse())
-
-					By("setting the default-user-credential-updater image by default")
-					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserUpdaterImage).To(
-						PointTo(HavePrefix("rabbitmqoperator/default-user-credential-updater:")))
 				})
 			})
 			When("only TLS is configured", func() {

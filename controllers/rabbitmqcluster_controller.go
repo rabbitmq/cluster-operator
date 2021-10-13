@@ -57,13 +57,14 @@ const (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
-	Scheme               *runtime.Scheme
-	Namespace            string
-	Recorder             record.EventRecorder
-	ClusterConfig        *rest.Config
-	Clientset            *kubernetes.Clientset
-	PodExecutor          PodExecutor
-	DefaultRabbitmqImage string
+	Scheme                  *runtime.Scheme
+	Namespace               string
+	Recorder                record.EventRecorder
+	ClusterConfig           *rest.Config
+	Clientset               *kubernetes.Clientset
+	PodExecutor             PodExecutor
+	DefaultRabbitmqImage    string
+	DefaultUserUpdaterImage string
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -116,6 +117,19 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if rabbitmqCluster.Spec.Image == "" {
 		rabbitmqCluster.Spec.Image = r.DefaultRabbitmqImage
+		if err = r.Update(ctx, rabbitmqCluster); err != nil {
+			if k8serrors.IsConflict(err) {
+				logger.Info("failed to update image because of conflict; requeueing...",
+					"namespace", rabbitmqCluster.Namespace,
+					"name", rabbitmqCluster.Name)
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+			}
+			return ctrl.Result{}, err
+		}
+	}
+
+	if rabbitmqCluster.UsesDefaultUserUpdaterImage() {
+		rabbitmqCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = &r.DefaultUserUpdaterImage
 		if err = r.Update(ctx, rabbitmqCluster); err != nil {
 			if k8serrors.IsConflict(err) {
 				logger.Info("failed to update image because of conflict; requeueing...",
