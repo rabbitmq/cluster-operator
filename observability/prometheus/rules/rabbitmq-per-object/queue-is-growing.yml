@@ -1,0 +1,29 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-queue-is-growing
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    rules:
+    - alert: QueueIsGrowing
+      # `> 1` because of floating point rounding errors
+      expr: |
+          (
+              avg_over_time(rabbitmq_detailed_queue_messages[10m]) - avg_over_time(rabbitmq_detailed_queue_messages[10m] offset 1m) > 1
+          ) * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info
+      for: 10m
+      annotations:
+        description: |
+          Over the last 10 minutes, queue `{{ $labels.queue }}` in virtual host `{{ $labels.vhost }}`
+          was growing. 10 minute moving average has grown by {{ $value }}.
+          This happens in RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}` in namespace `{{ $labels.namespace }}`.
+        summary: |
+          Queue size is steadily growing over time.
+      labels:
+        rulesgroup: rabbitmq
+        severity: warning
