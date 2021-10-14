@@ -277,7 +277,7 @@ data:
             "name": "queue",
             "options": [],
             "query": {
-              "query": "query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info{namespace=\"$namespace\"})",
+              "query": "query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info{namespace=\"$namespace\", rabbitmq_cluster=\"$rabbitmq_cluster\"})",
               "refId": "StandardVariableQuery"
             },
             "refresh": 2,
