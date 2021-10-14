@@ -837,17 +837,21 @@ func publishAndConsumeMQTTMsg(hostname, port, username, password string, overWeb
 
 	var token mqtt.Token
 	EventuallyWithOffset(1, func() bool {
+		fmt.Printf("Attempt to connect using MQTT to url %s ( %+v\n )", url, opts)
+
 		token = c.Connect()
 		// Waits for the network request to reach the destination and receive a response
-		if !token.WaitTimeout(3 * time.Second) {
+		if !token.WaitTimeout(30 * time.Second) {
+			fmt.Printf("Timed out\n")
 			return false
 		}
 
 		if err := token.Error(); err == nil {
+			fmt.Printf("Connected !\n")
 			return true
 		}
 		return false
-	}, 30, 2).Should(BeTrue(), "Expected to be able to connect to MQTT port")
+	}, 30, 20).Should(BeTrue(), "Expected to be able to connect to MQTT port")
 
 	topic := "tests/mqtt"
 	msgReceived := false

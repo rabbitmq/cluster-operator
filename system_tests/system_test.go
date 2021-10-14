@@ -586,13 +586,44 @@ CONSOLE_LOG=new`
 			By("STOMP")
 			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password, nil)
 
-			// github.com/go-stomp/stomp does not support STOMP-over-WebSockets
+		})
+		
+	})
 
-			By("stream")
+	FWhen("stream plugin is enabled", func() {
+		var (
+			cluster  *rabbitmqv1beta1.RabbitmqCluster
+			hostname string
+			username string
+			password string
+		)
+
+		BeforeEach(func() {
+			instanceName := "stream"
+			cluster = newRabbitmqCluster(namespace, instanceName)
+			cluster.Spec.Service.Type = "NodePort"
+			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
+				"rabbitmq_stream",
+			}
+			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
+			waitForRabbitmqRunning(cluster)
+
+			hostname = kubernetesNodeIp(ctx, clientSet)
+			var err error
+			username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", instanceName)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
+		})
+
+		FIt("publishes and consumes a message", func() {
 			if strings.Contains(cluster.Spec.Image, ":3.8") || strings.HasSuffix(cluster.Spec.Image, "tanzu-rabbitmq:1") {
 				Skip("rabbitmq_stream plugin is not supported by RabbitMQ image " + cluster.Spec.Image)
 			}
 			publishAndConsumeStreamMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 		})
+
 	})
 })
