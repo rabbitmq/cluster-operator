@@ -12,7 +12,7 @@ echo "Installing Vault server and Vault agent injector..."
 helm repo add hashicorp https://helm.releases.hashicorp.com
 helm repo update
 helm install vault hashicorp/vault \
-    --version 0.16.0 \
+    --version 0.16.1 \
     --set='server.dev.enabled=true' \
     --set='server.logLevel=debug' \
     --set='injector.logLevel=debug' \
