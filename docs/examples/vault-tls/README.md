@@ -6,6 +6,8 @@ If `spec.secretBackend.vault.tls.pkiIssuerPath` is set, new short-lived certific
 The private key is never stored in Vault.
 Before the short-lived server certificate expires, the Vault sidecar container will request new a certificate putting it into `/etc/rabbitmq-tls/` where it will be picked up on-the-fly by the Erlang VM without the need to restart the pod.
 
+This example is presented in [this](https://youtu.be/twCzPEAjy8M) video.
+
 ## Usage
 
 This example requires:

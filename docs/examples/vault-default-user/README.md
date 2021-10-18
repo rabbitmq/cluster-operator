@@ -15,6 +15,8 @@ If `spec.secretBackend.vault.tls.pkiIssuerPath` is set, short-lived server certi
 
 (This Vault integration example is independent of and not to be confused with the [Vault RabbitMQ Secrets Engine](https://www.vaultproject.io/docs/secrets/rabbitmq).)
 
+This example is presented in [this](https://youtu.be/twCzPEAjy8M) video.
+
 ## Usage
 
 This example requires:
