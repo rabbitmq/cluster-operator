@@ -545,7 +545,7 @@ CONSOLE_LOG=new`
 		})
 	})
 
-	When("(web) MQTT, STOMP, and stream plugins are enabled", func() {
+	When("(web) MQTT, STOMP are enabled", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
@@ -565,6 +565,8 @@ CONSOLE_LOG=new`
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
+			waitForPortReadiness(cluster, 1883) // mqtt
+			waitForPortReadiness(cluster, 61613) // stomp
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
 			var err error
@@ -587,7 +589,7 @@ CONSOLE_LOG=new`
 			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password, nil)
 
 		})
-		
+
 	})
 
 	FWhen("stream plugin is enabled", func() {
@@ -618,11 +620,14 @@ CONSOLE_LOG=new`
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
-		FIt("publishes and consumes a message", func() {
-			if strings.Contains(cluster.Spec.Image, ":3.8") || strings.HasSuffix(cluster.Spec.Image, "tanzu-rabbitmq:1") {
+		It("publishes and consumes a message", func() {
+			if !hasFeatureEnabled(cluster, "stream_queue") {
 				Skip("rabbitmq_stream plugin is not supported by RabbitMQ image " + cluster.Spec.Image)
+			}else {
+				fmt.Printf("Stream feature is enabled ")
+				waitForPortReadiness(cluster, 5552) // stream
+				publishAndConsumeStreamMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 			}
-			publishAndConsumeStreamMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 		})
 
 	})

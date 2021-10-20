@@ -59,11 +59,14 @@ import (
 )
 
 const podCreationTimeout = 10 * time.Minute
+const portReadinessTimeout = 10 * time.Second
 
 type featureFlag struct {
 	Name  string
 	State string
 }
+
+
 
 func MustHaveEnv(name string) string {
 	value := os.Getenv(name)
@@ -591,6 +594,37 @@ func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, 
 	}, podCreationTimeout, 1).Should(Equal("'True'"))
 
 	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
+}
+
+func waitForPortReadiness(cluster *rabbitmqv1beta1.RabbitmqCluster, port int) {
+	waitForPortReadinessWithOffset(cluster, port, 2)
+}
+func waitForPortReadinessWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, port int, callStackOffset int) {
+	EventuallyWithOffset(callStackOffset, func() error {
+		_, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "rabbitmq",
+			"rabbitmq-diagnostics", "check_port_listener", strconv.Itoa(port))
+		return err
+	}, portReadinessTimeout, 3).Should(Not(HaveOccurred()))
+}
+
+func hasFeatureEnabled(cluster *rabbitmqv1beta1.RabbitmqCluster, featureFlagName string) bool {
+	output, err := kubectlExec(cluster.Namespace,
+		statefulSetPodName(cluster, 0),
+		"rabbitmq",
+		"rabbitmqctl",
+		"list_feature_flags",
+		"--formatter=json",
+	)
+	Expect(err).NotTo(HaveOccurred())
+	var flags []featureFlag
+	Expect(json.Unmarshal(output, &flags)).To(Succeed())
+
+	for _, v := range flags {
+		if v.Name == featureFlagName && v.State == "enabled" {
+			return true
+		}
+	}
+	return false
 }
 
 // asserts an event with reason: "TLSError", occurs for the cluster in it's namespace
