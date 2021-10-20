@@ -151,7 +151,7 @@ var _ = Describe("Operator", func() {
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
-		It("keeps rabbitmq server related configurations up-to-date", func() {
+		FIt("keeps rabbitmq server related configurations up-to-date", func() {
 			By("updating enabled plugins  and the secret ports when additionalPlugins are modified", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
@@ -164,7 +164,7 @@ var _ = Describe("Operator", func() {
 					Expect(err).ToNot(HaveOccurred())
 					return configMap.Annotations
 				}
-				Eventually(getConfigMapAnnotations, 30, 1).Should(
+				Eventually(getConfigMapAnnotations, 1*time.Minute, 1).Should(
 					HaveKey("rabbitmq.com/pluginsUpdatedAt"), "plugins ConfigMap should have been annotated")
 				Eventually(getConfigMapAnnotations, 4*time.Minute, 1).Should(
 					Not(HaveKey("rabbitmq.com/pluginsUpdatedAt")), "plugins ConfigMap annotation should have been removed")
@@ -592,7 +592,7 @@ CONSOLE_LOG=new`
 
 	})
 
-	FWhen("stream plugin is enabled", func() {
+	When("stream plugin is enabled", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
