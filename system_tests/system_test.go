@@ -66,7 +66,7 @@ var _ = Describe("Operator", func() {
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
-		FIt("works", func() {
+		It("works", func() {
 			By("publishing and consuming a message", func() {
 				response := alivenessTest(hostname, port, username, password)
 				Expect(response.Status).To(Equal("ok"))
@@ -347,7 +347,7 @@ CONSOLE_LOG=new`
 				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
 				Expect(err).ToNot(HaveOccurred())
 				return pvc.Spec.Resources.Requests["storage"]
-			}, "5m", 10).Should(Equal(newCapacity))
+			}, "10m", 10).Should(Equal(newCapacity))
 
 			// storage capacity reflected in the pod
 			Eventually(func() int {
