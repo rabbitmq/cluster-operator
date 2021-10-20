@@ -66,7 +66,7 @@ var _ = Describe("Operator", func() {
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
-		It("works", func() {
+		FIt("works", func() {
 			By("publishing and consuming a message", func() {
 				response := alivenessTest(hostname, port, username, password)
 				Expect(response.Status).To(Equal("ok"))
@@ -115,7 +115,8 @@ var _ = Describe("Operator", func() {
 				Eventually(func() bool {
 					Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, fetchedRmq)).To(Succeed())
 					return fetchedRmq.Status.ObservedGeneration == fetchedRmq.Generation
-				}, 30).Should(BeTrue())
+				}, k8sQueryTimeout, 10).Should(BeTrue(), fmt.Sprintf("expected %d (Status.ObservedGeneration) = %d (Generation)",
+					fetchedRmq.Status.ObservedGeneration, fetchedRmq.Generation))
 			})
 
 			By("having all feature flags enabled", func() {
@@ -151,7 +152,7 @@ var _ = Describe("Operator", func() {
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
-		FIt("keeps rabbitmq server related configurations up-to-date", func() {
+		It("keeps rabbitmq server related configurations up-to-date", func() {
 			By("updating enabled plugins  and the secret ports when additionalPlugins are modified", func() {
 				// modify rabbitmqcluster.spec.rabbitmq.additionalPlugins
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
@@ -329,7 +330,7 @@ CONSOLE_LOG=new`
 			waitForRabbitmqRunning(cluster)
 		})
 
-		It("allows volume expansion", func() {
+		FIt("allows volume expansion", func() {
 			podUID := pod(ctx, clientSet, cluster, 0).UID
 			output, err := kubectlExec(namespace, statefulSetPodName(cluster, 0), "rabbitmq", "df", "/var/lib/rabbitmq/mnesia")
 			Expect(err).ToNot(HaveOccurred())

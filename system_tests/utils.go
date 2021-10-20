@@ -59,7 +59,8 @@ import (
 )
 
 const podCreationTimeout = 10 * time.Minute
-const portReadinessTimeout = 10 * time.Second
+const portReadinessTimeout = 1 * time.Minute
+const k8sQueryTimeout = 1 * time.Minute
 
 type featureFlag struct {
 	Name  string
