@@ -997,7 +997,7 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 	Expect(err).ToNot(HaveOccurred())
 
 	var env  *stream.Environment
-	for retry := 0; retry < 5; retry++ {
+	Eventually(func() error{
 		fmt.Println("connecting to stream endpoint ...")
 		env, err = stream.NewEnvironment(stream.NewEnvironmentOptions().
 			SetHost(host).
@@ -1010,13 +1010,12 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 			}))
 		if err == nil {
 			fmt.Println("connected to stream endpoint")
-			break
+			return nil
 		}else {
 			fmt.Errorf("failed to connect to stream endpoint (%s:%d) due to %g\n", host, portInt, err)
 		}
-		time.Sleep(portReadinessTimeout)
-	}
-	Expect(err).ToNot(HaveOccurred())
+		return err
+	}, portReadinessTimeout*5, portReadinessTimeout).ShouldNot(HaveOccurred())
 
 	const streamName = "system-test-stream"
 	Expect(env.DeclareStream(
