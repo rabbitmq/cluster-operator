@@ -623,11 +623,12 @@ CONSOLE_LOG=new`
 			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
 		})
 
-		It("publishes and consumes a message", func() {
+		FIt("publishes and consumes a message", func() {
 			if !hasFeatureEnabled(cluster, "stream_queue") {
 				Skip("rabbitmq_stream plugin is not supported by RabbitMQ image " + cluster.Spec.Image)
 			}else {
-				fmt.Printf("Stream feature is enabled ")
+				fmt.Println("Stream feature is enabled ")
+				waitForPortConnectivity(cluster)
 				waitForPortReadiness(cluster, 5552) // stream
 				publishAndConsumeStreamMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 			}

@@ -597,6 +597,17 @@ func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, 
 	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
 }
 
+func waitForPortConnectivity(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	waitForPortConnectivityWithOffset(cluster, 2)
+}
+func waitForPortConnectivityWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
+	EventuallyWithOffset(callStackOffset, func() error {
+		_, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "rabbitmq",
+			"rabbitmq-diagnostics", "check_port_connectivity")
+		return err
+	}, portReadinessTimeout, 3).Should(Not(HaveOccurred()))
+}
+
 func waitForPortReadiness(cluster *rabbitmqv1beta1.RabbitmqCluster, port int) {
 	waitForPortReadinessWithOffset(cluster, port, 2)
 }
@@ -872,8 +883,6 @@ func publishAndConsumeMQTTMsg(hostname, port, username, password string, overWeb
 
 	var token mqtt.Token
 	EventuallyWithOffset(1, func() bool {
-		fmt.Printf("Attempt to connect using MQTT to url %s ( %+v\n )", url, opts)
-
 		token = c.Connect()
 		// Waits for the network request to reach the destination and receive a response
 		if !token.WaitTimeout(30 * time.Second) {
@@ -987,15 +996,26 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 	portInt, err := strconv.Atoi(port)
 	Expect(err).ToNot(HaveOccurred())
 
-	env, err := stream.NewEnvironment(stream.NewEnvironmentOptions().
-		SetHost(host).
-		SetPort(portInt).
-		SetPassword(password).
-		SetUser(username).
-		SetAddressResolver(stream.AddressResolver{
-			Host: host,
-			Port: portInt,
-		}))
+	var env  *stream.Environment
+	for retry := 0; retry < 5; retry++ {
+		fmt.Println("connecting to stream endpoint ...")
+		env, err = stream.NewEnvironment(stream.NewEnvironmentOptions().
+			SetHost(host).
+			SetPort(portInt).
+			SetPassword(password).
+			SetUser(username).
+			SetAddressResolver(stream.AddressResolver{
+				Host: host,
+				Port: portInt,
+			}))
+		if err == nil {
+			fmt.Println("connected to stream endpoint")
+			break
+		}else {
+			fmt.Errorf("failed to connect to stream endpoint (%s:%d) due to %g\n", host, portInt, err)
+		}
+		time.Sleep(portReadinessTimeout)
+	}
 	Expect(err).ToNot(HaveOccurred())
 
 	const streamName = "system-test-stream"
