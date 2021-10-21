@@ -165,7 +165,7 @@ var _ = Describe("Operator", func() {
 					Expect(err).ToNot(HaveOccurred())
 					return configMap.Annotations
 				}
-				Eventually(getConfigMapAnnotations, 1*time.Minute, 1).Should(
+				Eventually(getConfigMapAnnotations, k8sQueryTimeout, 1).Should(
 					HaveKey("rabbitmq.com/pluginsUpdatedAt"), "plugins ConfigMap should have been annotated")
 				Eventually(getConfigMapAnnotations, 4*time.Minute, 1).Should(
 					Not(HaveKey("rabbitmq.com/pluginsUpdatedAt")), "plugins ConfigMap annotation should have been removed")
