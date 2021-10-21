@@ -330,7 +330,7 @@ CONSOLE_LOG=new`
 			waitForRabbitmqRunning(cluster)
 		})
 
-		FIt("allows volume expansion", func() {
+		It("allows volume expansion", func() {
 			podUID := pod(ctx, clientSet, cluster, 0).UID
 			output, err := kubectlExec(namespace, statefulSetPodName(cluster, 0), "rabbitmq", "df", "/var/lib/rabbitmq/mnesia")
 			Expect(err).ToNot(HaveOccurred())
@@ -346,6 +346,8 @@ CONSOLE_LOG=new`
 				pvcName := cluster.PVCName(0)
 				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
 				Expect(err).ToNot(HaveOccurred())
+				fmt.Printf("Retrieved PVC %s with conditions %+v\n", pvcName, pvc.Status.Conditions)
+
 				return pvc.Spec.Resources.Requests["storage"]
 			}, "10m", 10).Should(Equal(newCapacity))
 
