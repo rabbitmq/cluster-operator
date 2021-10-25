@@ -1012,7 +1012,7 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 			fmt.Println("connected to stream endpoint")
 			return nil
 		}else {
-			fmt.Errorf("failed to connect to stream endpoint (%s:%d) due to %g\n", host, portInt, err)
+			fmt.Printf("failed to connect to stream endpoint (%s:%d) due to %g\n", host, portInt, err)
 		}
 		return err
 	}, portReadinessTimeout*5, portReadinessTimeout).ShouldNot(HaveOccurred())
