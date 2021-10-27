@@ -130,7 +130,11 @@ func (builder *DefaultUserSecretBuilder) getHost() (string, error) {
 		return "", errors.New("waiting for LoadBalancer ingress")
 	}
 
-	return service.Status.LoadBalancer.Ingress[0].IP, nil
+	if service.Status.LoadBalancer.Ingress[0].IP == "" {
+		return service.Status.LoadBalancer.Ingress[0].Hostname, nil
+	} else {
+		return service.Status.LoadBalancer.Ingress[0].IP, nil
+	}
 }
 
 func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
