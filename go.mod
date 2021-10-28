@@ -16,10 +16,10 @@ require (
 	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210811090309-627299932bac
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	github.com/streadway/amqp v1.0.0
-	golang.org/x/net v0.0.0-20210510120150-4163338589ed
+	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
 	gopkg.in/ini.v1 v1.63.2
 	k8s.io/api v0.21.3
-	k8s.io/apimachinery v0.21.3
+	k8s.io/apimachinery v0.22.3
 	k8s.io/client-go v0.21.3
 	k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471
 	sigs.k8s.io/controller-runtime v0.9.6
@@ -180,7 +180,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/apiextensions-apiserver v0.21.3 // indirect
 	k8s.io/component-base v0.21.3 // indirect
-	k8s.io/klog/v2 v2.8.0 // indirect
+	k8s.io/klog/v2 v2.9.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
 	sigs.k8s.io/kustomize/api v0.10.0 // indirect
 	sigs.k8s.io/kustomize/cmd/config v0.10.1 // indirect
