@@ -548,7 +548,7 @@ CONSOLE_LOG=new`
 		})
 	})
 
-	When("(web) MQTT, STOMP are enabled", func() {
+	When("(web) MQTT, STOMP and stream are enabled", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
@@ -591,48 +591,17 @@ CONSOLE_LOG=new`
 			By("STOMP")
 			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password, nil)
 
-		})
-
-	})
-
-	When("stream plugin is enabled", func() {
-		var (
-			cluster  *rabbitmqv1beta1.RabbitmqCluster
-			hostname string
-			username string
-			password string
-		)
-
-		BeforeEach(func() {
-			instanceName := "stream"
-			cluster = newRabbitmqCluster(namespace, instanceName)
-			cluster.Spec.Service.Type = "NodePort"
-			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
-				"rabbitmq_stream",
-			}
-			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
-			waitForRabbitmqRunning(cluster)
-
-			hostname = kubernetesNodeIp(ctx, clientSet)
-			var err error
-			username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", instanceName)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			Expect(rmqClusterClient.Delete(context.TODO(), cluster)).To(Succeed())
-		})
-
-		It("publishes and consumes a message", func() {
+			By("Streams")
 			if !hasFeatureEnabled(cluster, "stream_queue") {
 				Skip("rabbitmq_stream plugin is not supported by RabbitMQ image " + cluster.Spec.Image)
 			}else {
-				fmt.Println("Stream feature is enabled ")
 				waitForPortConnectivity(cluster)
 				waitForPortReadiness(cluster, 5552) // stream
 				publishAndConsumeStreamMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 			}
 		})
 
+
 	})
+
 })
