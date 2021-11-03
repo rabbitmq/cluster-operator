@@ -1,11 +1,10 @@
 # Production Example
 
-Before you can deploy this RabbitMQ cluster, you will need a multi-zone Kubernetes cluster with at least 3 worker nodes with 4 CPUs and 10Gi RAM on each node available for RabbitMQ.
+Before you can deploy this RabbitMQ cluster, you will need a multi-zone Kubernetes deployment with at least 3 worker nodes, each in a different zone, and each with 4 CPUs and 10Gi RAM available for RabbitMQ.
 
 A `storageClass` named `ssd` will need to be defined too.
 Feel free to use the [GKE-specific example](ssd-gke.yaml) included in this example for reference.
 Each RabbitMQ node will provision a 500Gi persistent volume of type `ssd`.
-
 This configuration is a requirement for sustaining 1 billion persistent messages per day of 8kB payload each and a replication factor of three using [quorum queues](https://www.rabbitmq.com/quorum-queues.html).
 
 To deploy this RabbitMQ cluster, run the following:
@@ -16,7 +15,7 @@ kubectl apply -f pod-disruption-budget.yaml
 ```
 
 This example is a good starting point for a production RabbitMQ deployment and it may not be suitable for **your use-case**.
-We needed a RabbitMQ cluster that can sustain 1 billion persistent messages per day at 8kB payload and a replication factor of three using [quorum queues](https://www.rabbitmq.com/quorum-queues.html).
+This RabbitMQ cluster can sustain 1 billion persistent messages per day at 8kB payload and a replication factor of three using [quorum queues](https://www.rabbitmq.com/quorum-queues.html).
 The rest of the workload details are outlined in this [monthly cost savings calculator](https://rabbitmq.com/tanzu#calculator).
 
 While a RabbitMQ cluster with sufficient resources is important for production, it is equally important for your applications to use RabbitMQ correctly.
