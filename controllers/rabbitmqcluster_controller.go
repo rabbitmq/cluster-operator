@@ -13,6 +13,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -150,8 +151,11 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
-	if err := r.reconcileTLS(ctx, rabbitmqCluster); err != nil {
-		return ctrl.Result{}, err
+	tlsErr := r.reconcileTLS(ctx, rabbitmqCluster)
+	if errors.Is(tlsErr, disableNonTLSConfigErr) {
+		return ctrl.Result{}, nil
+	} else if tlsErr != nil {
+		return ctrl.Result{}, tlsErr
 	}
 
 	sts, err := r.statefulSet(ctx, rabbitmqCluster)
