@@ -270,6 +270,54 @@ var _ = Context("Services", func() {
 					Entry("OSR", "rabbitmq_multi_dc_replication", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
 				)
 			})
+
+			When("MQTT and Web-MQTT are enabled", func() {
+				It("exposes ports for both protocols", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_web_mqtt"}
+					instance.Spec.TLS.CaSecretName = "my-ca"
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
+						{
+							Name:        "web-mqtt-tls",
+							Protocol:    corev1.ProtocolTCP,
+							AppProtocol: pointer.String("https"),
+							Port:        15676,
+							TargetPort:  intstr.FromInt(15676),
+						},
+						{
+							Name:        "mqtts",
+							Protocol:    corev1.ProtocolTCP,
+							AppProtocol: pointer.String("mqtts"),
+							Port:        8883,
+							TargetPort:  intstr.FromInt(8883),
+						},
+					}))
+				})
+			})
+
+			When("STOMP and Web-STOMP are enabled", func() {
+				It("exposes ports for both protocols", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_stomp", "rabbitmq_web_stomp"}
+					instance.Spec.TLS.CaSecretName = "my-ca"
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
+						{
+							Name:        "web-stomp-tls",
+							Protocol:    corev1.ProtocolTCP,
+							AppProtocol: pointer.String("https"),
+							Port:        15673,
+							TargetPort:  intstr.FromInt(15673),
+						},
+						{
+							Name:        "stomps",
+							Protocol:    corev1.ProtocolTCP,
+							AppProtocol: pointer.String("stomp.github.io/stomp-tls"),
+							Port:        61614,
+							TargetPort:  intstr.FromInt(61614),
+						},
+					}))
+				})
+			})
 		})
 
 		Context("Annotations", func() {
