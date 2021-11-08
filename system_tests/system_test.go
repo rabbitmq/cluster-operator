@@ -568,7 +568,7 @@ CONSOLE_LOG=new`
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
-			waitForPortReadiness(cluster, 1883) // mqtt
+			waitForPortReadiness(cluster, 1883)  // mqtt
 			waitForPortReadiness(cluster, 61613) // stomp
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
@@ -594,13 +594,12 @@ CONSOLE_LOG=new`
 			By("Streams")
 			if !hasFeatureEnabled(cluster, "stream_queue") {
 				Skip("rabbitmq_stream plugin is not supported by RabbitMQ image " + cluster.Spec.Image)
-			}else {
+			} else {
 				waitForPortConnectivity(cluster)
 				waitForPortReadiness(cluster, 5552) // stream
 				publishAndConsumeStreamMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 			}
 		})
-
 
 	})
 

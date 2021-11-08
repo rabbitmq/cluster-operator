@@ -67,8 +67,6 @@ type featureFlag struct {
 	State string
 }
 
-
-
 func MustHaveEnv(name string) string {
 	value := os.Getenv(name)
 	if value == "" {
@@ -996,8 +994,8 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 	portInt, err := strconv.Atoi(port)
 	Expect(err).ToNot(HaveOccurred())
 
-	var env  *stream.Environment
-	Eventually(func() error{
+	var env *stream.Environment
+	Eventually(func() error {
 		fmt.Println("connecting to stream endpoint ...")
 		env, err = stream.NewEnvironment(stream.NewEnvironmentOptions().
 			SetHost(host).
@@ -1011,7 +1009,7 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 		if err == nil {
 			fmt.Println("connected to stream endpoint")
 			return nil
-		}else {
+		} else {
 			fmt.Printf("failed to connect to stream endpoint (%s:%d) due to %g\n", host, portInt, err)
 		}
 		return err
