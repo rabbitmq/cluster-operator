@@ -228,7 +228,7 @@ var _ = Describe("Reconcile TLS", func() {
 	})
 
 	When("DiableNonTLSListeners set to true", func() {
-		It("returns an error, logs TLSError and set ReconcileSuccess to false when TLS is not enabled", func() {
+		It("logs TLSError and set ReconcileSuccess to false when TLS is not enabled", func() {
 			tlsSpec := rabbitmqv1beta1.TLSSpec{
 				DisableNonTLSListeners: true,
 			}
