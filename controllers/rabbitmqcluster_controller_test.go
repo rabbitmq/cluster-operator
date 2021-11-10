@@ -421,8 +421,9 @@ var _ = Describe("RabbitmqClusterController", func() {
 			}, 3).Should(HaveKeyWithValue("test-key", "test-value"))
 
 			// verify that SuccessfulUpdate event is recorded for the service
-			Expect(aggregateEventMsgs(ctx, cluster, "SuccessfulUpdate")).To(
-				ContainSubstring("updated resource %s of Type *v1.Service", cluster.ChildResourceName("")))
+			Eventually(func() string {
+				return aggregateEventMsgs(ctx, cluster, "SuccessfulUpdate")
+			}, 5).Should(ContainSubstring("updated resource %s of Type *v1.Service", cluster.ChildResourceName("")))
 		})
 
 		It("the CPU and memory requirements are updated", func() {
@@ -1091,22 +1092,25 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
 			Expect(svc.Spec.Ports).To(ConsistOf(
 				corev1.ServicePort{
-					Name:       "amqp",
-					Port:       5672,
-					Protocol:   corev1.ProtocolTCP,
-					TargetPort: amqpTargetPort,
+					Name:        "amqp",
+					Port:        5672,
+					Protocol:    corev1.ProtocolTCP,
+					TargetPort:  amqpTargetPort,
+					AppProtocol: pointer.String("amqp"),
 				},
 				corev1.ServicePort{
-					Name:       "management",
-					Port:       15672,
-					Protocol:   corev1.ProtocolTCP,
-					TargetPort: managementTargetPort,
+					Name:        "management",
+					Port:        15672,
+					Protocol:    corev1.ProtocolTCP,
+					TargetPort:  managementTargetPort,
+					AppProtocol: pointer.String("http"),
 				},
 				corev1.ServicePort{
-					Name:       "prometheus",
-					Port:       15692,
-					Protocol:   corev1.ProtocolTCP,
-					TargetPort: prometheusTargetPort,
+					Name:        "prometheus",
+					Port:        15692,
+					Protocol:    corev1.ProtocolTCP,
+					TargetPort:  prometheusTargetPort,
+					AppProtocol: pointer.String("prometheus.io/metrics"),
 				},
 				corev1.ServicePort{
 					Protocol:   corev1.ProtocolTCP,

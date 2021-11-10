@@ -12,6 +12,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -110,172 +111,114 @@ func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.Service) er
 	return nil
 }
 
-func (builder *ServiceBuilder) generateServicePortsMapOnlyTLSListeners() map[string]corev1.ServicePort {
-	servicePortsMap := map[string]corev1.ServicePort{
-		"amqps": {
-			Protocol:   corev1.ProtocolTCP,
-			Port:       5671,
-			TargetPort: intstr.FromInt(5671),
-			Name:       "amqps",
-		},
-		"management-tls": {
-			Protocol:   corev1.ProtocolTCP,
-			Port:       15671,
-			TargetPort: intstr.FromInt(15671),
-			Name:       "management-tls",
-		},
-		"prometheus-tls": {
-			Protocol:   corev1.ProtocolTCP,
-			Port:       15691,
-			TargetPort: intstr.FromInt(15691),
-			Name:       "prometheus-tls",
-		},
-	}
+func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.ServicePort {
+	servicePortsMap := make(map[string]corev1.ServicePort, 7)
 
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
-		servicePortsMap["stomps"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       61614,
-			Name:       "stomps",
-			TargetPort: intstr.FromInt(61614),
+	if builder.Instance.DisableNonTLSListeners() == false {
+		servicePortsMap["amqp"] = corev1.ServicePort{
+			Protocol:    corev1.ProtocolTCP,
+			Port:        5672,
+			TargetPort:  intstr.FromInt(5672),
+			Name:        "amqp",
+			AppProtocol: pointer.String("amqp"),
 		}
-	}
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
-		servicePortsMap["mqtts"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       8883,
-			Name:       "mqtts",
-			TargetPort: intstr.FromInt(8883),
-		}
-	}
 
-	if builder.Instance.StreamNeeded() {
-		servicePortsMap["streams"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       5551,
-			Name:       "streams",
-			TargetPort: intstr.FromInt(5551),
+		servicePortsMap["management"] = corev1.ServicePort{
+			Protocol:    corev1.ProtocolTCP,
+			Port:        15672,
+			TargetPort:  intstr.FromInt(15672),
+			Name:        "management",
+			AppProtocol: pointer.String("http"),
 		}
-	}
 
-	if builder.Instance.MutualTLSEnabled() {
-		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
-			servicePortsMap["web-stomp-tls"] = corev1.ServicePort{
-				Protocol:   corev1.ProtocolTCP,
-				Port:       15673,
-				Name:       "web-stomp-tls",
-				TargetPort: intstr.FromInt(15673),
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
+			servicePortsMap["mqtt"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        1883,
+				TargetPort:  intstr.FromInt(1883),
+				Name:        "mqtt",
+				AppProtocol: pointer.String("mqtt"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
-			servicePortsMap["web-mqtt-tls"] = corev1.ServicePort{
-				Protocol:   corev1.ProtocolTCP,
-				Port:       15676,
-				Name:       "web-mqtt-tls",
-				TargetPort: intstr.FromInt(15676),
+			servicePortsMap["web-mqtt"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        15675,
+				TargetPort:  intstr.FromInt(15675),
+				Name:        "web-mqtt",
+				AppProtocol: pointer.String("http"),
 			}
 		}
-	}
-	return servicePortsMap
-}
-
-func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.ServicePort {
-	if builder.Instance.DisableNonTLSListeners() {
-		return builder.generateServicePortsMapOnlyTLSListeners()
-	}
-
-	servicePortsMap := map[string]corev1.ServicePort{
-		"amqp": {
-			Protocol:   corev1.ProtocolTCP,
-			Port:       5672,
-			TargetPort: intstr.FromInt(5672),
-			Name:       "amqp",
-		},
-		"management": {
-			Protocol:   corev1.ProtocolTCP,
-			Port:       15672,
-			TargetPort: intstr.FromInt(15672),
-			Name:       "management",
-		},
-	}
-
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
-		servicePortsMap["mqtt"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       1883,
-			TargetPort: intstr.FromInt(1883),
-			Name:       "mqtt",
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
+			servicePortsMap["stomp"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        61613,
+				TargetPort:  intstr.FromInt(61613),
+				Name:        "stomp",
+				AppProtocol: pointer.String("stomp.github.io/stomp"),
+			}
 		}
-	}
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
-		servicePortsMap["web-mqtt"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       15675,
-			TargetPort: intstr.FromInt(15675),
-			Name:       "web-mqtt",
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			servicePortsMap["web-stomp"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        15674,
+				TargetPort:  intstr.FromInt(15674),
+				Name:        "web-stomp",
+				AppProtocol: pointer.String("http"),
+			}
 		}
-	}
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
-		servicePortsMap["stomp"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       61613,
-			TargetPort: intstr.FromInt(61613),
-			Name:       "stomp",
-		}
-	}
-	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
-		servicePortsMap["web-stomp"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       15674,
-			TargetPort: intstr.FromInt(15674),
-			Name:       "web-stomp",
-		}
-	}
 
-	if builder.Instance.StreamNeeded() {
-		servicePortsMap["stream"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       5552,
-			TargetPort: intstr.FromInt(5552),
-			Name:       "stream",
+		if builder.Instance.StreamNeeded() {
+			servicePortsMap["stream"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        5552,
+				TargetPort:  intstr.FromInt(5552),
+				Name:        "stream",
+				AppProtocol: pointer.String("rabbitmq.com/stream"),
+			}
 		}
 	}
 
 	if builder.Instance.TLSEnabled() {
 		servicePortsMap["amqps"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       5671,
-			TargetPort: intstr.FromInt(5671),
-			Name:       "amqps",
+			Protocol:    corev1.ProtocolTCP,
+			Port:        5671,
+			TargetPort:  intstr.FromInt(5671),
+			Name:        "amqps",
+			AppProtocol: pointer.String("amqps"),
 		}
 		servicePortsMap["management-tls"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       15671,
-			TargetPort: intstr.FromInt(15671),
-			Name:       "management-tls",
+			Protocol:    corev1.ProtocolTCP,
+			Port:        15671,
+			TargetPort:  intstr.FromInt(15671),
+			Name:        "management-tls",
+			AppProtocol: pointer.String("https"),
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
 			servicePortsMap["stomps"] = corev1.ServicePort{
-				Protocol:   corev1.ProtocolTCP,
-				Port:       61614,
-				Name:       "stomps",
-				TargetPort: intstr.FromInt(61614),
+				Protocol:    corev1.ProtocolTCP,
+				Port:        61614,
+				Name:        "stomps",
+				TargetPort:  intstr.FromInt(61614),
+				AppProtocol: pointer.String("stomp.github.io/stomp-tls"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
 			servicePortsMap["mqtts"] = corev1.ServicePort{
-				Protocol:   corev1.ProtocolTCP,
-				Port:       8883,
-				Name:       "mqtts",
-				TargetPort: intstr.FromInt(8883),
+				Protocol:    corev1.ProtocolTCP,
+				Port:        8883,
+				Name:        "mqtts",
+				TargetPort:  intstr.FromInt(8883),
+				AppProtocol: pointer.String("mqtts"),
 			}
 		}
 		if builder.Instance.StreamNeeded() {
 			servicePortsMap["streams"] = corev1.ServicePort{
-				Protocol:   corev1.ProtocolTCP,
-				Port:       5551,
-				Name:       "streams",
-				TargetPort: intstr.FromInt(5551),
+				Protocol:    corev1.ProtocolTCP,
+				Port:        5551,
+				Name:        "streams",
+				TargetPort:  intstr.FromInt(5551),
+				AppProtocol: pointer.String("rabbitmq.com/stream-tls"),
 			}
 		}
 
@@ -285,35 +228,39 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 		// doubling the number of nodes showing up in Grafana because the
 		// 'instance' label consists of "<host>:<port>".
 		servicePortsMap["prometheus-tls"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       15691,
-			TargetPort: intstr.FromInt(15691),
-			Name:       "prometheus-tls",
+			Protocol:    corev1.ProtocolTCP,
+			Port:        15691,
+			TargetPort:  intstr.FromInt(15691),
+			Name:        "prometheus-tls",
+			AppProtocol: pointer.String("prometheus.io/metric-tls"),
 		}
 	} else {
 		servicePortsMap["prometheus"] = corev1.ServicePort{
-			Protocol:   corev1.ProtocolTCP,
-			Port:       15692,
-			TargetPort: intstr.FromInt(15692),
-			Name:       "prometheus",
+			Protocol:    corev1.ProtocolTCP,
+			Port:        15692,
+			TargetPort:  intstr.FromInt(15692),
+			Name:        "prometheus",
+			AppProtocol: pointer.String("prometheus.io/metrics"),
 		}
 	}
 
 	if builder.Instance.MutualTLSEnabled() {
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
 			servicePortsMap["stomps"] = corev1.ServicePort{
-				Protocol:   corev1.ProtocolTCP,
-				Port:       15673,
-				Name:       "web-stomp-tls",
-				TargetPort: intstr.FromInt(15673),
+				Protocol:    corev1.ProtocolTCP,
+				Port:        15673,
+				Name:        "web-stomp-tls",
+				TargetPort:  intstr.FromInt(15673),
+				AppProtocol: pointer.String("https"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
 			servicePortsMap["mqtts"] = corev1.ServicePort{
-				Protocol:   corev1.ProtocolTCP,
-				Port:       15676,
-				Name:       "web-mqtt-tls",
-				TargetPort: intstr.FromInt(15676),
+				Protocol:    corev1.ProtocolTCP,
+				Port:        15676,
+				Name:        "web-mqtt-tls",
+				TargetPort:  intstr.FromInt(15676),
+				AppProtocol: pointer.String("https"),
 			}
 		}
 	}
