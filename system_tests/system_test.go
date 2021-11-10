@@ -115,7 +115,8 @@ var _ = Describe("Operator", func() {
 				Eventually(func() bool {
 					Expect(rmqClusterClient.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, fetchedRmq)).To(Succeed())
 					return fetchedRmq.Status.ObservedGeneration == fetchedRmq.Generation
-				}, 30).Should(BeTrue())
+				}, k8sQueryTimeout, 10).Should(BeTrue(), fmt.Sprintf("expected %d (Status.ObservedGeneration) = %d (Generation)",
+					fetchedRmq.Status.ObservedGeneration, fetchedRmq.Generation))
 			})
 
 			By("having all feature flags enabled", func() {
@@ -164,7 +165,7 @@ var _ = Describe("Operator", func() {
 					Expect(err).ToNot(HaveOccurred())
 					return configMap.Annotations
 				}
-				Eventually(getConfigMapAnnotations, 30, 1).Should(
+				Eventually(getConfigMapAnnotations, k8sQueryTimeout, 1).Should(
 					HaveKey("rabbitmq.com/pluginsUpdatedAt"), "plugins ConfigMap should have been annotated")
 				Eventually(getConfigMapAnnotations, 4*time.Minute, 1).Should(
 					Not(HaveKey("rabbitmq.com/pluginsUpdatedAt")), "plugins ConfigMap annotation should have been removed")
@@ -345,8 +346,10 @@ CONSOLE_LOG=new`
 				pvcName := cluster.PVCName(0)
 				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
 				Expect(err).ToNot(HaveOccurred())
+				fmt.Printf("Retrieved PVC %s with conditions %+v\n", pvcName, pvc.Status.Conditions)
+
 				return pvc.Spec.Resources.Requests["storage"]
-			}, "5m", 10).Should(Equal(newCapacity))
+			}, "10m", 10).Should(Equal(newCapacity))
 
 			// storage capacity reflected in the pod
 			Eventually(func() int {
@@ -545,7 +548,7 @@ CONSOLE_LOG=new`
 		})
 	})
 
-	When("(web) MQTT, STOMP, and stream plugins are enabled", func() {
+	When("(web) MQTT, STOMP and stream are enabled", func() {
 		var (
 			cluster  *rabbitmqv1beta1.RabbitmqCluster
 			hostname string
@@ -565,6 +568,8 @@ CONSOLE_LOG=new`
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
+			waitForPortReadiness(cluster, 1883)  // mqtt
+			waitForPortReadiness(cluster, 61613) // stomp
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
 			var err error
@@ -586,13 +591,16 @@ CONSOLE_LOG=new`
 			By("STOMP")
 			publishAndConsumeSTOMPMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stomp"), username, password, nil)
 
-			// github.com/go-stomp/stomp does not support STOMP-over-WebSockets
-
-			By("stream")
-			if strings.Contains(cluster.Spec.Image, ":3.8") || strings.HasSuffix(cluster.Spec.Image, "tanzu-rabbitmq:1") {
+			By("Streams")
+			if !hasFeatureEnabled(cluster, "stream_queue") {
 				Skip("rabbitmq_stream plugin is not supported by RabbitMQ image " + cluster.Spec.Image)
+			} else {
+				waitForPortConnectivity(cluster)
+				waitForPortReadiness(cluster, 5552) // stream
+				publishAndConsumeStreamMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 			}
-			publishAndConsumeStreamMsg(hostname, rabbitmqNodePort(ctx, clientSet, cluster, "stream"), username, password)
 		})
+
 	})
+
 })

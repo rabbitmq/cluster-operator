@@ -59,6 +59,8 @@ import (
 )
 
 const podCreationTimeout = 10 * time.Minute
+const portReadinessTimeout = 1 * time.Minute
+const k8sQueryTimeout = 1 * time.Minute
 
 type featureFlag struct {
 	Name  string
@@ -593,6 +595,48 @@ func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, 
 	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
 }
 
+func waitForPortConnectivity(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	waitForPortConnectivityWithOffset(cluster, 2)
+}
+func waitForPortConnectivityWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, callStackOffset int) {
+	EventuallyWithOffset(callStackOffset, func() error {
+		_, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "rabbitmq",
+			"rabbitmq-diagnostics", "check_port_connectivity")
+		return err
+	}, portReadinessTimeout, 3).Should(Not(HaveOccurred()))
+}
+
+func waitForPortReadiness(cluster *rabbitmqv1beta1.RabbitmqCluster, port int) {
+	waitForPortReadinessWithOffset(cluster, port, 2)
+}
+func waitForPortReadinessWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, port int, callStackOffset int) {
+	EventuallyWithOffset(callStackOffset, func() error {
+		_, err := kubectlExec(cluster.Namespace, statefulSetPodName(cluster, 0), "rabbitmq",
+			"rabbitmq-diagnostics", "check_port_listener", strconv.Itoa(port))
+		return err
+	}, portReadinessTimeout, 3).Should(Not(HaveOccurred()))
+}
+
+func hasFeatureEnabled(cluster *rabbitmqv1beta1.RabbitmqCluster, featureFlagName string) bool {
+	output, err := kubectlExec(cluster.Namespace,
+		statefulSetPodName(cluster, 0),
+		"rabbitmq",
+		"rabbitmqctl",
+		"list_feature_flags",
+		"--formatter=json",
+	)
+	Expect(err).NotTo(HaveOccurred())
+	var flags []featureFlag
+	Expect(json.Unmarshal(output, &flags)).To(Succeed())
+
+	for _, v := range flags {
+		if v.Name == featureFlagName && v.State == "enabled" {
+			return true
+		}
+	}
+	return false
+}
+
 // asserts an event with reason: "TLSError", occurs for the cluster in it's namespace
 func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	var err error
@@ -839,15 +883,17 @@ func publishAndConsumeMQTTMsg(hostname, port, username, password string, overWeb
 	EventuallyWithOffset(1, func() bool {
 		token = c.Connect()
 		// Waits for the network request to reach the destination and receive a response
-		if !token.WaitTimeout(3 * time.Second) {
+		if !token.WaitTimeout(30 * time.Second) {
+			fmt.Printf("Timed out\n")
 			return false
 		}
 
 		if err := token.Error(); err == nil {
+			fmt.Printf("Connected !\n")
 			return true
 		}
 		return false
-	}, 30, 2).Should(BeTrue(), "Expected to be able to connect to MQTT port")
+	}, 30, 20).Should(BeTrue(), "Expected to be able to connect to MQTT port")
 
 	topic := "tests/mqtt"
 	msgReceived := false
@@ -948,16 +994,26 @@ func publishAndConsumeStreamMsg(host, port, username, password string) {
 	portInt, err := strconv.Atoi(port)
 	Expect(err).ToNot(HaveOccurred())
 
-	env, err := stream.NewEnvironment(stream.NewEnvironmentOptions().
-		SetHost(host).
-		SetPort(portInt).
-		SetPassword(password).
-		SetUser(username).
-		SetAddressResolver(stream.AddressResolver{
-			Host: host,
-			Port: portInt,
-		}))
-	Expect(err).ToNot(HaveOccurred())
+	var env *stream.Environment
+	Eventually(func() error {
+		fmt.Println("connecting to stream endpoint ...")
+		env, err = stream.NewEnvironment(stream.NewEnvironmentOptions().
+			SetHost(host).
+			SetPort(portInt).
+			SetPassword(password).
+			SetUser(username).
+			SetAddressResolver(stream.AddressResolver{
+				Host: host,
+				Port: portInt,
+			}))
+		if err == nil {
+			fmt.Println("connected to stream endpoint")
+			return nil
+		} else {
+			fmt.Printf("failed to connect to stream endpoint (%s:%d) due to %g\n", host, portInt, err)
+		}
+		return err
+	}, portReadinessTimeout*5, portReadinessTimeout).ShouldNot(HaveOccurred())
 
 	const streamName = "system-test-stream"
 	Expect(env.DeclareStream(
