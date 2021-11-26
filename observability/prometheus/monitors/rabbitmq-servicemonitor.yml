@@ -10,10 +10,18 @@ spec:
     scheme: http
     interval: 15s
     scrapeTimeout: 14s
+    relabelings:
+    - sourceLabels:
+      - __meta_kubernetes_endpoints_label_app_kubernetes_io_name
+      targetLabel: rabbitmq_cluster
   - port: prometheus-tls
     scheme: https
     interval: 15s
     scrapeTimeout: 14s
+    relabelings:
+    - sourceLabels:
+      - __meta_kubernetes_endpoints_label_app_kubernetes_io_name
+      targetLabel: rabbitmq_cluster
     tlsConfig:
       insecureSkipVerify: true
   - port: prometheus
@@ -25,6 +33,10 @@ spec:
         - queue_metrics
     interval: 15s
     scrapeTimeout: 14s
+    relabelings:
+    - sourceLabels:
+      - __meta_kubernetes_endpoints_label_app_kubernetes_io_name
+      targetLabel: rabbitmq_cluster
   - port: prometheus-tls
     scheme: https
     path: /metrics/detailed
@@ -34,10 +46,16 @@ spec:
         - queue_metrics
     interval: 15s
     scrapeTimeout: 14s
+    relabelings:
+    - sourceLabels:
+      - __meta_kubernetes_endpoints_label_app_kubernetes_io_name
+      targetLabel: rabbitmq_cluster
     tlsConfig:
       insecureSkipVerify: true
   selector:
     matchLabels:
       app.kubernetes.io/component: rabbitmq
+  targetLabels:
+    - app.kubernetes.io/name
   namespaceSelector:
     any: true
