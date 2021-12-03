@@ -746,8 +746,7 @@ var _ = Context("Services", func() {
 								TimeoutSeconds: &ten,
 							},
 						},
-						IPFamilies:   []corev1.IPFamily{IPv4},
-						TopologyKeys: []string{"a-topology-key"},
+						IPFamilies: []corev1.IPFamily{IPv4},
 					},
 				}
 
@@ -793,7 +792,6 @@ var _ = Context("Services", func() {
 				Expect(svc.Spec.PublishNotReadyAddresses).To(BeFalse())
 				Expect(*svc.Spec.SessionAffinityConfig.ClientIP.TimeoutSeconds).To(Equal(int32(10)))
 				Expect(svc.Spec.IPFamilies).To(ConsistOf(corev1.IPv4Protocol))
-				Expect(svc.Spec.TopologyKeys).To(Equal([]string{"a-topology-key"}))
 			})
 
 			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {
