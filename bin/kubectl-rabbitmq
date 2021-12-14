@@ -66,23 +66,23 @@ USAGE:
   List all instances that has the pause reconciliation label
     kubectl rabbitmq [-n NAMESPACE | -A] list-pause-reconciliation-instances
 
-  Run perf-test against an instance - you can pass as many perf test parameters as you want
+  Create a Job to run perf-test against an instance - you can pass as many perf test parameters as you want
   (see https://rabbitmq.github.io/rabbitmq-perf-test/stable/htmlsingle/ for more details)
-    kubectl rabbitmq [-n NAMESPACE] perf-test INSTANCE --rate 100
+    kubectl rabbitmq [-n NAMESPACE] perf-test INSTANCE --rate 100 -C 10000
   If you want to monitor perf-test, create the following ServiceMonitor:
     apiVersion: monitoring.coreos.com/v1
-    kind: ServiceMonitor
+    kind: PodMonitor
     metadata:
       name: kubectl-perf-test
     spec:
-      endpoints:
+      podMetricsEndpoints:
       - interval: 15s
-        targetPort: 8080
+        port: prometheus
       selector:
         matchLabels:
           app: perf-test
 
-  Run stream-perf-test against an instance - you can pass as many stream perf test parameters as you want
+  Create a job to run stream-perf-test against an instance - you can pass as many stream perf test parameters as you want
   (see https://rabbitmq.github.io/rabbitmq-stream-java-client/snapshot/htmlsingle/ for more details)
     kubectl rabbitmq [-n NAMESPACE] stream-perf-test INSTANCE --rate 100
 
@@ -130,27 +130,73 @@ get_instance_details() {
 perf_test() {
     get_instance_details "$@"
     shift 1
-    perftestopts=$*
 
-    kubectl ${NAMESPACE} run perf-test \
-        --expose=true \
-        --port=8080 \
-        --labels="app=perf-test,run=perf-test" \
-        --image=pivotalrabbitmq/perf-test \
-        -- --uri "amqp://${username}:${password}@${service}" \
-        --metrics-prometheus ${perftestopts}
+    local perf_test_job_file="perf-test.yml"
+    set -u
+    cd "$(mktemp -d)" || exit 1
+    {
+        echo "apiVersion: batch/v1"
+        echo "kind: Job"
+        echo "metadata:"
+        echo "  name: perf-test"
+        echo "  labels:"
+        echo "    app: perf-test"
+        echo "spec:"
+        echo "  completions: 1"
+        echo "  ttlSecondsAfterFinished: 300"
+        echo "  template:"
+        echo "    spec:"
+        echo "      restartPolicy: Never"
+        echo "      containers:"
+        echo "      - name: rabbitmq-perf-test"
+        echo "        image: pivotalrabbitmq/perf-test"
+        echo "        ports:"
+        echo "        - name: prometheus"
+        echo "          containerPort: 8080"
+        echo "        args:"
+        echo "        - \"--uri\""
+        echo "        - \"amqp://${username}:${password}@${service}\""
+        echo "        - \"--metrics-prometheus\""
+        for arg in "$@"; do
+            echo "        - \"$arg\""
+        done
+    } >"$perf_test_job_file"
+
+    kubectl $NAMESPACE apply -f "$perf_test_job_file"
 }
 
 stream_perf_test() {
     get_instance_details "$@"
     shift 1
-    streamperftestopts=$*
 
-    kubectl ${NAMESPACE} run stream-perf-test \
-        --labels="app=stream-perf-test,run=stream-perf-test" \
-        --image=pivotalrabbitmq/stream-perf-test \
-        -- --uris "rabbitmq-stream://${username}:${password}@${service}" \
-        ${streamperftestopts}
+    local perf_test_job_file="stream-perf-test.yml"
+    set -u
+    cd "$(mktemp -d)" || exit 1
+    {
+        echo "apiVersion: batch/v1"
+        echo "kind: Job"
+        echo "metadata:"
+        echo "  name: stream-perf-test"
+        echo "  labels:"
+        echo "    app: stream-perf-test"
+        echo "spec:"
+        echo "  completions: 1"
+        echo "  ttlSecondsAfterFinished: 300"
+        echo "  template:"
+        echo "    spec:"
+        echo "      restartPolicy: Never"
+        echo "      containers:"
+        echo "      - name: rabbitmq-stream-perf-test"
+        echo "        image: pivotalrabbitmq/stream-perf-test"
+        echo "        args:"
+        echo "        - \"--uris\""
+        echo "        - \"rabbitmq-stream://${username}:${password}@${service}\""
+        for arg in "$@"; do
+            echo "        - \"$arg\""
+        done
+    } >"$perf_test_job_file"
+
+    kubectl $NAMESPACE apply -f "$perf_test_job_file"
 }
 
 manage() {
