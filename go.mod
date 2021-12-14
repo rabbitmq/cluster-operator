@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.10.0
-	github.com/mikefarah/yq/v4 v4.15.1
+	github.com/mikefarah/yq/v4 v4.16.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210811090309-627299932bac
@@ -96,7 +96,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jhump/protoreflect v1.9.0 // indirect
-	github.com/jinzhu/copier v0.3.2 // indirect
+	github.com/jinzhu/copier v0.3.4 // indirect
 	github.com/jmoiron/sqlx v1.3.3 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
