@@ -74,14 +74,30 @@ var _ = Describe("RabbitmqClusterController", func() {
 				Expect(fetchedCluster.Spec.Image).To(Equal(defaultRabbitmqImage))
 			})
 
+			var sts *appsv1.StatefulSet
 			By("creating a statefulset with default configurations", func() {
-				sts := statefulSet(ctx, cluster)
+				sts = statefulSet(ctx, cluster)
 
 				Expect(sts.Name).To(Equal(cluster.ChildResourceName("server")))
-				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 
 				Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
 				Expect(sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
+			})
+
+			By("setting the default imagePullSecrets", func() {
+				Expect(sts.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(
+					[]corev1.LocalObjectReference{
+						{
+							Name: "image-secret-1",
+						},
+						{
+							Name: "image-secret-2",
+						},
+						{
+							Name: "image-secret-3",
+						},
+					},
+				))
 			})
 
 			By("creating the server conf configmap", func() {

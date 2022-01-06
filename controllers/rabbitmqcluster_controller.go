@@ -66,6 +66,7 @@ type RabbitmqClusterReconciler struct {
 	PodExecutor             PodExecutor
 	DefaultRabbitmqImage    string
 	DefaultUserUpdaterImage string
+	DefaultImagePullSecrets string
 }
 
 // the rbac rule requires an empty row at the end to render
@@ -121,6 +122,21 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if err = r.Update(ctx, rabbitmqCluster); err != nil {
 			if k8serrors.IsConflict(err) {
 				logger.Info("failed to update image because of conflict; requeueing...",
+					"namespace", rabbitmqCluster.Namespace,
+					"name", rabbitmqCluster.Name)
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+			}
+			return ctrl.Result{}, err
+		}
+	}
+
+	if rabbitmqCluster.Spec.ImagePullSecrets == nil {
+		for _, reference := range strings.Split(r.DefaultImagePullSecrets, ",") {
+			rabbitmqCluster.Spec.ImagePullSecrets = append(rabbitmqCluster.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: reference})
+		}
+		if err = r.Update(ctx, rabbitmqCluster); err != nil {
+			if k8serrors.IsConflict(err) {
+				logger.Info("failed to update image pull secrets because of conflict; requeueing...",
 					"namespace", rabbitmqCluster.Namespace,
 					"name", rabbitmqCluster.Name)
 				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
