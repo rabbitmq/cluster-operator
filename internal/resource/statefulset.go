@@ -555,7 +555,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 				},
 			},
 			SecurityContext: &corev1.PodSecurityContext{
-				FSGroup:   &rabbitmqUID,
+				FSGroup:   pointer.Int64(0),
 				RunAsUser: &rabbitmqUID,
 			},
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,

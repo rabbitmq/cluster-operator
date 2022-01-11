@@ -1307,7 +1307,7 @@ default_pass = {{ .Data.data.password }}
 			rmqUID := int64(999)
 
 			expectedPodSecurityContext := &corev1.PodSecurityContext{
-				FSGroup:   &rmqUID,
+				FSGroup:   pointer.Int64(0),
 				RunAsUser: &rmqUID,
 			}
 
