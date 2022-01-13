@@ -170,8 +170,7 @@ eventually() {
 
   eventually "kubectl exec bats-default-server-0 -- rabbitmqctl list_connections client_properties | grep perf-test " 600
 
-  kubectl delete pod -l "app=perf-test,run=perf-test"
-  kubectl delete svc -l "app=perf-test,run=perf-test"
+  kubectl delete job -l "app=perf-test"
 }
 
 @test "debug sets log level to debug" {
