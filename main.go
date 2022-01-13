@@ -47,6 +47,7 @@ func main() {
 		metricsAddr             string
 		defaultRabbitmqImage    = "rabbitmq:3.8.21-management"
 		defaultUserUpdaterImage = "rabbitmqoperator/default-user-credential-updater:1.0.0"
+		defaultImagePullSecrets = ""
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":9782", "The address the metric endpoint binds to.")
@@ -73,6 +74,10 @@ func main() {
 
 	if configuredDefaultUserUpdaterImage, ok := os.LookupEnv("DEFAULT_USER_UPDATER_IMAGE"); ok {
 		defaultUserUpdaterImage = configuredDefaultUserUpdaterImage
+	}
+
+	if configuredDefaultImagePullSecrets, ok := os.LookupEnv("DEFAULT_IMAGE_PULL_SECRETS"); ok {
+		defaultImagePullSecrets = configuredDefaultImagePullSecrets
 	}
 
 	options := ctrl.Options{
@@ -127,6 +132,7 @@ func main() {
 		PodExecutor:             controllers.NewPodExecutor(),
 		DefaultRabbitmqImage:    defaultRabbitmqImage,
 		DefaultUserUpdaterImage: defaultUserUpdaterImage,
+		DefaultImagePullSecrets: defaultImagePullSecrets,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		log.Error(err, "unable to create controller", controllerName)

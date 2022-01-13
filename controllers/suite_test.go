@@ -37,6 +37,7 @@ const (
 	controllerName          = "rabbitmqcluster-controller"
 	defaultRabbitmqImage    = "default-rabbit-image:stable"
 	defaultUserUpdaterImage = "default-UU-image:unstable"
+	defaultImagePullSecrets = "image-secret-1,image-secret-2,image-secret-3"
 )
 
 var (
@@ -94,6 +95,7 @@ var _ = BeforeSuite(func() {
 		PodExecutor:             fakeExecutor,
 		DefaultRabbitmqImage:    defaultRabbitmqImage,
 		DefaultUserUpdaterImage: defaultUserUpdaterImage,
+		DefaultImagePullSecrets: defaultImagePullSecrets,
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
