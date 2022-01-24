@@ -131,8 +131,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if rabbitmqCluster.Spec.ImagePullSecrets == nil {
+		// split the comma separated list of default image pull secrets from
+		// the 'DEFAULT_IMAGE_PULL_SECRETS' env var, but ignore empty strings.
 		for _, reference := range strings.Split(r.DefaultImagePullSecrets, ",") {
-			rabbitmqCluster.Spec.ImagePullSecrets = append(rabbitmqCluster.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: reference})
+			if len(reference) > 0 {
+				rabbitmqCluster.Spec.ImagePullSecrets = append(rabbitmqCluster.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: reference})
+			}
 		}
 		if err = r.Update(ctx, rabbitmqCluster); err != nil {
 			if k8serrors.IsConflict(err) {
