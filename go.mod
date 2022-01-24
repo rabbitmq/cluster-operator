@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.12.0
-	github.com/mikefarah/yq/v4 v4.16.2
+	github.com/mikefarah/yq/v4 v4.17.2
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210811090309-627299932bac
@@ -72,7 +72,7 @@ require (
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/flect v0.2.3 // indirect
-	github.com/goccy/go-yaml v1.9.4 // indirect
+	github.com/goccy/go-yaml v1.9.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v0.0.0-20210429001901-424d2337a529 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -95,7 +95,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jhump/protoreflect v1.9.0 // indirect
-	github.com/jinzhu/copier v0.3.4 // indirect
+	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/jmoiron/sqlx v1.3.3 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
