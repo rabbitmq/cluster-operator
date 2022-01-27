@@ -10,7 +10,7 @@ spec:
     advancedConfig: |
       [
           {ra, [
-              {wal_data_dir, '/var/lib/rabbitmq/quorum-wal'}
+              {wal_data_dir, "/var/lib/rabbitmq/quorum-wal"}
           ]}
       ].
   override:
