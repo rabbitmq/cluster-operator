@@ -1,7 +1,7 @@
 #@ load("@ytt:overlay", "overlay")
 #@ load("@ytt:data", "data")
 
-#@overlay/match by=overlay.subset({"kind": "Deployment"}), expects="1+"
+#@overlay/match by=overlay.subset({"kind": "Deployment", "metadata":{"name": "rabbitmq-cluster-operator"}}), expects="1+"
 ---
 spec:
   template:
