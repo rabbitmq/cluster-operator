@@ -16,7 +16,7 @@ require (
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	github.com/streadway/amqp v1.0.0
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
-	gopkg.in/ini.v1 v1.66.3
+	gopkg.in/ini.v1 v1.66.4
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v0.22.2
