@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/go-logr/logr"
 	"github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
@@ -15,7 +15,7 @@ import (
 // cluster scale down not supported
 // log error, publish warning event, and set ReconcileSuccess to false when scale down request detected
 func (r *RabbitmqClusterReconciler) scaleDown(ctx context.Context, cluster *v1beta1.RabbitmqCluster, current, sts *appsv1.StatefulSet) bool {
-	logger := logr.FromContext(ctx)
+	logger := ctrl.LoggerFrom(ctx)
 
 	currentReplicas := *current.Spec.Replicas
 	desiredReplicas := *sts.Spec.Replicas
