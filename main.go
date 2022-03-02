@@ -46,7 +46,7 @@ func main() {
 	var (
 		metricsAddr             string
 		defaultRabbitmqImage    = "rabbitmq:3.9.13-management"
-		defaultUserUpdaterImage = "rabbitmqoperator/default-user-credential-updater:1.0.0"
+		defaultUserUpdaterImage = "rabbitmqoperator/default-user-credential-updater:1.0.2"
 		defaultImagePullSecrets = ""
 	)
 
