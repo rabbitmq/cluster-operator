@@ -177,7 +177,7 @@ eventually() {
   kubectl rabbitmq debug bats-default
 
   # '[debug] <pid> Lager installed handler' is logged even without enabling debug logging
-  eventually "kubectl logs bats-default-server-0 | grep -v ' \[debug\] .* Lager installed handler ' | grep ' \[debug\] '" 30
+  eventually "kubectl logs bats-default-server-0 | grep -v ' \[dbug\] .* Lager installed handler ' | grep ' \[dbug\] '" 30
 }
 
 @test "delete deletes RabbitMQ cluster" {

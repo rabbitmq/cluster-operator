@@ -165,7 +165,7 @@ system-tests: install-tools ## Run end-to-end tests against Kubernetes cluster d
 
 kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
 	echo "running kubectl plugin tests"
-	./bin/kubectl-rabbitmq.bats
+	PATH=$(PWD)/bin:$$PATH ./bin/kubectl-rabbitmq.bats
 
 tests: unit-tests integration-tests system-tests kubectl-plugin-tests
 

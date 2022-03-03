@@ -226,7 +226,7 @@ manage() {
 }
 
 list_rabbitmq_clusters() {
-    kubectl get ${NAMESPACE} rabbitmqclusters
+    kubectl get ${NAMESPACE} rabbitmqclusters --sort-by='{.metadata.name}'
 }
 
 create() {
