@@ -14,7 +14,7 @@ NO_COLOR='\033[0m'
 
 printf "%bInstalling kube-prometheus-stack...%b\n" "$GREEN" "$NO_COLOR"
 # helm search repo prometheus-community/kube-prometheus-stack
-KUBE_PROMETHEUS_STACK_VERSION='15.2.1'
+KUBE_PROMETHEUS_STACK_VERSION='31.0.2'
 KUBE_PROMETHEUS_STACK_NAME='prom'
 KUBE_PROMETHEUS_STACK_NAMESPACE='kube-prometheus'
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
