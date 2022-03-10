@@ -808,8 +808,8 @@ github.com/miekg/dns v1.1.26/go.mod h1:bPDLeHnStXmXAq1m/Ch/hvfNHr14JKNPMBo3VZKju
 github.com/miekg/dns v1.1.41/go.mod h1:p6aan82bvRIyn+zDIv9xYNUpwa73JcSh9BKwknJysuI=
 github.com/miekg/pkcs11 v1.0.2/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
 github.com/miekg/pkcs11 v1.0.3/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
-github.com/mikefarah/yq/v4 v4.21.1 h1:R+vsN2X0PluKIrmH3jHyoKZxkhQQD9DH3vKtm8EhfrY=
-github.com/mikefarah/yq/v4 v4.21.1/go.mod h1:OvoxNuqFVuZoaKry0Mzxm1fba9kv8xk05udLP5shWqM=
+github.com/mikefarah/yq/v4 v4.22.1 h1:mW6TvfsiSN4xUuAuStWlQFxICvezXvUIi7uTOzuLN0U=
+github.com/mikefarah/yq/v4 v4.22.1/go.mod h1:OvoxNuqFVuZoaKry0Mzxm1fba9kv8xk05udLP5shWqM=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=
 github.com/mitchellh/cli v1.1.0/go.mod h1:xcISNoH86gajksDmfB23e/pu+B+GeFRMYmoHXxx3xhI=
 github.com/mitchellh/copystructure v1.0.0 h1:Laisrj+bAB6b/yJwB5Bt3ITZhGJdqmxquMKeZ+mmkFQ=
