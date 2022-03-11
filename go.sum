@@ -295,8 +295,8 @@ github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFP
 github.com/eclipse/paho.mqtt.golang v1.3.5 h1:sWtmgNxYM9P2sP+xEItMozsR3w0cqZFlqnNN1bdl41Y=
 github.com/eclipse/paho.mqtt.golang v1.3.5/go.mod h1:eTzb4gxwwyWpqBUHGQZ4ABAV7+Jgm1PklsYT/eo8Hcc=
 github.com/edsrzf/mmap-go v1.0.0/go.mod h1:YO35OhQPt3KJa3ryjFM5Bs14WD66h8eGKpfaBNrHW5M=
-github.com/elastic/crd-ref-docs v0.0.7 h1:usuQSnzJYmvNBA4tIarvoq1P2ZZEkORZmRbqlchjSwk=
-github.com/elastic/crd-ref-docs v0.0.7/go.mod h1:osieo9JUDPSestb0X9RsantkSvWqIvh6vvEngY5794Y=
+github.com/elastic/crd-ref-docs v0.0.8 h1:Sy0A24E+L5aCj/8BGTgxkumCSNeckg4650d96o7QHiU=
+github.com/elastic/crd-ref-docs v0.0.8/go.mod h1:Jd1XDGgrvHzd/+qCf4SwBnOnLl4RaFRjind0ORnHovo=
 github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153 h1:yUdfgN0XgIJw7foRItutHYUIhlcKzcSf5vDpdhQAKTc=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
