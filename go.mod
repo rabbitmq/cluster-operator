@@ -6,7 +6,7 @@ require (
 	github.com/cloudflare/cfssl v1.6.1
 	github.com/eclipse/paho.mqtt.golang v1.3.5
 	github.com/elastic/crd-ref-docs v0.0.8
-	github.com/go-logr/logr v1.2.0
+	github.com/go-logr/logr v1.2.3
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.12.0
 	github.com/mikefarah/yq/v4 v4.22.1
