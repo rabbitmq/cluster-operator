@@ -15,7 +15,7 @@ definitions.tls.versions.1 = tlsv1.2
 Check out `rabbitmq.yaml` as an example.
 
 Importing a very large definition cluster with several thousands of queues like in the example takes a good amount of memory and in general computation resources.
-For the example let's run it with a good amount of memory like 8GB and at leaste 2 cpu to be sure.
+For the example let's run it with a good amount of memory like 8GB and at least 2 cpu to be sure.
 
 Keep in mind that exported definitions contain all broker objects, including users. This means that the default-user credentials will be imported from the definitions, and will not be the one which is generated at the creation of the deployment as a kubernetes secret object.
 
