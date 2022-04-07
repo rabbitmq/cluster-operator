@@ -13,16 +13,14 @@ import (
 	"fmt"
 	"k8s.io/klog/v2"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"strconv"
 	"time"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -114,17 +112,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var clusterConfig *rest.Config
-	if kubeConfigPath := os.Getenv("KUBE_CONFIG"); kubeConfigPath != "" {
-		clusterConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigPath)
-	} else {
-		clusterConfig, err = rest.InClusterConfig()
-	}
-
-	if err != nil {
-		log.Error(err, "unable to get kubernetes cluster config")
-		os.Exit(1)
-	}
+	clusterConfig := config.GetConfigOrDie()
 
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client:                  mgr.GetClient(),
