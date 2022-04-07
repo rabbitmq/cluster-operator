@@ -1,0 +1,18 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: import-https-url-definitions 
+spec:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 2
+      memory: 8Gi
+    limits:
+      cpu: 2
+      memory: 8Gi
+  rabbitmq:
+    additionalConfig: |
+      definitions.import_backend = https
+      definitions.https.url = https://raw.githubusercontent.com/rabbitmq/sample-configs/main/lot-of-queues/5k-queues.json
+      definitions.tls.versions.1 = tlsv1.2
