@@ -6,7 +6,7 @@ platform := $(shell uname | tr A-Z a-z)
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-ENVTEST_K8S_VERSION = 1.20.2
+ENVTEST_K8S_VERSION ?= 1.22.1
 ARCHITECTURE = amd64
 LOCAL_TESTBIN = $(CURDIR)/testbin
 # "Control plane binaries (etcd and kube-apiserver) are loaded by default from /usr/local/kubebuilder/bin.
@@ -16,6 +16,9 @@ export KUBEBUILDER_ASSETS = $(LOCAL_TESTBIN)/k8s/$(ENVTEST_K8S_VERSION)-$(platfo
 
 $(KUBEBUILDER_ASSETS):
 	setup-envtest --os $(platform) --arch $(ARCHITECTURE) --bin-dir $(LOCAL_TESTBIN) use $(ENVTEST_K8S_VERSION)
+
+.PHONY: kubebuilder-assets
+kubebuilder-assets: $(KUBEBUILDER_ASSETS)
 
 .PHONY: unit-tests
 unit-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet manifests ## Run unit tests
