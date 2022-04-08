@@ -9,6 +9,9 @@ help:
 ENVTEST_K8S_VERSION = 1.20.2
 ARCHITECTURE = amd64
 LOCAL_TESTBIN = $(CURDIR)/testbin
+
+K8S_OPERATOR_NAMESPACE ?= rabbitmq-system
+
 # "Control plane binaries (etcd and kube-apiserver) are loaded by default from /usr/local/kubebuilder/bin.
 # This can be overridden by setting the KUBEBUILDER_ASSETS environment variable"
 # https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest
@@ -19,7 +22,7 @@ $(KUBEBUILDER_ASSETS):
 
 .PHONY: unit-tests
 unit-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet manifests ## Run unit tests
-	ginkgo -r --randomizeAllSpecs api/ internal/
+	ginkgo -r --randomize-all api/ internal/
 
 .PHONY: integration-tests
 integration-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet manifests ## Run integration tests
@@ -54,7 +57,7 @@ generate: install-tools api-reference
 
 # Build manager binary
 manager: generate fmt vet
-	go mod tidy
+	go mod download
 	go build -o bin/manager main.go
 
 deploy-manager:  ## Deploy manager
@@ -77,15 +80,14 @@ destroy: ## Cleanup all controller artefacts
 run: generate manifests fmt vet install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
 
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
-	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=rabbitmq-system go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel $(OPERATOR_ARGS)
+	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel $(OPERATOR_ARGS)
 
 delve: generate install deploy-namespace-rbac just-delve ## Deploys CRD, Namespace, RBACs and starts Delve debugger
 
 just-delve: install-tools ## Just starts Delve debugger
-	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=rabbitmq-system dlv debug
+	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) dlv debug
 
-# Install CRDs into a cluster
-install: manifests
+install: manifests ## Install CRDs into a cluster
 	kubectl apply -f config/crd/bases
 
 deploy-namespace-rbac:
@@ -161,7 +163,7 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
 
 system-tests: install-tools ## Run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
-	NAMESPACE="rabbitmq-system" ginkgo -nodes=3 -randomizeAllSpecs -r system_tests/
+	NAMESPACE="$(K8S_OPERATOR_NAMESPACE)" ginkgo -nodes=3 --randomize-all -r system_tests/
 
 kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
 	echo "running kubectl plugin tests"
@@ -169,7 +171,7 @@ kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
 
 tests: unit-tests integration-tests system-tests kubectl-plugin-tests
 
-docker-registry-secret: check-env-docker-credentials operator-namespace
+docker-registry-secret: check-env-docker-credentials
 	echo "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username="$$DOCKER_REGISTRY_USERNAME" --docker-password="$$DOCKER_REGISTRY_PASSWORD" || true
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
@@ -177,11 +179,6 @@ docker-registry-secret: check-env-docker-credentials operator-namespace
 install-tools:
 	go mod download
 	grep _ tools/tools.go | awk -F '"' '{print $$2}' | xargs -t go install
-
-operator-namespace:
-ifeq (, $(K8S_OPERATOR_NAMESPACE))
-K8S_OPERATOR_NAMESPACE=rabbitmq-system
-endif
 
 check-env-docker-repo: check-env-registry-server
 ifndef OPERATOR_IMAGE

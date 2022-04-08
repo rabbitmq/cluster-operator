@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -50,11 +51,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -76,7 +75,7 @@ func MustHaveEnv(name string) string {
 }
 
 func createClientSet() (*kubernetes.Clientset, error) {
-	config, err := createRestConfig()
+	config, err := controllerruntime.GetConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -87,23 +86,6 @@ func createClientSet() (*kubernetes.Clientset, error) {
 	}
 
 	return clientset, err
-}
-
-func createRestConfig() (*rest.Config, error) {
-	var config *rest.Config
-	var err error
-	var kubeconfig string
-
-	if len(os.Getenv("KUBECONFIG")) > 0 {
-		kubeconfig = os.Getenv("KUBECONFIG")
-	} else {
-		kubeconfig = filepath.Join(os.Getenv("HOME"), ".kube/config")
-	}
-	config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
 }
 
 func kubectlExec(namespace, podname, containerName string, args ...string) ([]byte, error) {

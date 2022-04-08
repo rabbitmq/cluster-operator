@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -309,7 +309,7 @@ CONSOLE_LOG=new`
 		})
 	})
 
-	Context("Persistence expansion", func() {
+	Context("Persistence expansion", Label("persistence_expansion"), func() {
 		var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 		AfterEach(func() {

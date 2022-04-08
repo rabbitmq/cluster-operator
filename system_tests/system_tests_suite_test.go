@@ -12,12 +12,13 @@ package system_tests
 import (
 	"context"
 	"k8s.io/utils/pointer"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"testing"
 
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/kubernetes"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,9 +46,9 @@ var _ = BeforeSuite(func() {
 	Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 	Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 
-	restConfig, err := createRestConfig()
-	Expect(err).NotTo(HaveOccurred())
+	restConfig := controllerruntime.GetConfigOrDie()
 
+	var err error
 	rmqClusterClient, err = client.New(restConfig, client.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
 	clientSet, err = createClientSet()
@@ -63,25 +64,22 @@ var _ = BeforeSuite(func() {
 		Provisioner:          "kubernetes.io/gce-pd",
 		AllowVolumeExpansion: pointer.BoolPtr(true),
 	}
-	err = rmqClusterClient.Create(context.TODO(), storageClass)
+	ctx := context.Background()
+	err = rmqClusterClient.Create(ctx, storageClass)
 	if apierrors.IsAlreadyExists(err) {
-		Expect(rmqClusterClient.Update(context.TODO(), storageClass)).To(Succeed())
+		Expect(rmqClusterClient.Update(ctx, storageClass)).To(Succeed())
 	} else {
 		Expect(err).NotTo(HaveOccurred())
 	}
 
-	Eventually(func() []byte {
-		output, err := kubectl(
-			"-n",
-			namespace,
-			"get",
-			"deployment",
-			"-l",
-			"app.kubernetes.io/name=rabbitmq-cluster-operator",
-		)
+	Eventually(func() int32 {
+		operatorDeployment, err := clientSet.AppsV1().Deployments(namespace).Get(ctx, "rabbitmq-cluster-operator", metav1.GetOptions{})
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		Expect(err).NotTo(HaveOccurred())
+		return operatorDeployment.Status.ReadyReplicas
+	}, 10, 1).Should(BeNumerically("==", 1), "Expected to have Operator Pod Ready")
+})
 
-		return output
-	}, 10, 1).Should(ContainSubstring("1/1"))
+var _ = AfterSuite(func() {
+	_ = clientSet.StorageV1().StorageClasses().Delete(context.TODO(), storageClassName, metav1.DeleteOptions{})
 })
