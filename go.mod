@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.12.0
-	github.com/mikefarah/yq/v4 v4.24.2
+	github.com/mikefarah/yq/v4 v4.24.4
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210811090309-627299932bac
