@@ -45,7 +45,8 @@ var (
 	client          runtimeClient.Client
 	clientSet       *kubernetes.Clientset
 	fakeExecutor    *fakePodExecutor
-	ctx             = context.Background()
+	ctx             context.Context
+	cancel          context.CancelFunc
 	updateWithRetry = func(cr *rabbitmqv1beta1.RabbitmqCluster, mutateFn func(r *rabbitmqv1beta1.RabbitmqCluster)) error {
 		return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			if err := client.Get(ctx, runtimeClient.ObjectKeyFromObject(cr), cr); err != nil {
@@ -64,6 +65,8 @@ func TestControllers(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
+
+	ctx, cancel = context.WithCancel(ctrl.SetupSignalHandler())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -101,7 +104,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
-		err = mgr.Start(ctrl.SetupSignalHandler())
+		err = mgr.Start(ctx)
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
@@ -110,6 +113,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	cancel()
 	By("tearing down the test environment")
 	Expect(testEnv.Stop()).To(Succeed())
 })
