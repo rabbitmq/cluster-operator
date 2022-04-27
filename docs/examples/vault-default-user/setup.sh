@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-RABBITMQ_NAMESPACE=${RABBITMQ_NAMESPACE:-'examples'}
+RABBITMQ_NAMESPACE=${RABBITMQ_NAMESPACE:-'default'}
 
 vault_exec () {
     kubectl exec vault-0 -c vault -- /bin/sh -c "$*"
