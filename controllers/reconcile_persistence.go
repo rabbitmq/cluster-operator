@@ -18,7 +18,7 @@ func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, rmq *rabbi
 	err := scaling.NewPersistenceScaler(r.Clientset).Scale(ctx, *rmq, desiredCapacity)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to scale PVCs: %s", err.Error())
-		logger.Error(fmt.Errorf("Hit an error while scaling PVC capacity: %w", err), msg)
+		logger.Error(fmt.Errorf("hit an error while scaling PVC capacity: %w", err), msg)
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", msg)
 	}
 	return err

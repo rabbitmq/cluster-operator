@@ -30,7 +30,7 @@ var _ = Describe("Scaling", func() {
 				Namespace: namespace,
 			},
 			Spec: appsv1.StatefulSetSpec{
-				VolumeClaimTemplates: []corev1.PersistentVolumeClaim{generatePVCTemplate(rmq, tenG)},
+				VolumeClaimTemplates: []corev1.PersistentVolumeClaim{generatePVCTemplate(tenG)},
 			},
 		}
 	})
