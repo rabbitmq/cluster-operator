@@ -201,7 +201,7 @@ func (matcher *UpdateActionMatcher) Match(actual interface{}) (bool, error) {
 	updatedObject := reflect.ValueOf(action.GetObject()).Elem()
 	objMeta, ok := updatedObject.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 	if !ok {
-		return false, fmt.Errorf("Object of action was not an object with ObjectMeta")
+		return false, fmt.Errorf("object of action was not an object with ObjectMeta")
 	}
 
 	// Check the object's Name, Namespace, resource type and the verb of the action first. If this fails, there's

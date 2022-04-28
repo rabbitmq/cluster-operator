@@ -34,7 +34,7 @@ func (p PersistenceScaler) Scale(ctx context.Context, rmq rabbitmqv1beta1.Rabbit
 
 	existingCapacity, err := p.existingCapacity(ctx, rmq)
 	if client.IgnoreNotFound(err) != nil {
-		logErr := fmt.Errorf("Failed to determine existing STS capactiy: %w", err)
+		logErr := fmt.Errorf("failed to determine existing STS capactiy: %w", err)
 		logger.Error(logErr, "Could not read sts")
 		return logErr
 	}
@@ -65,7 +65,7 @@ func (p PersistenceScaler) Scale(ctx context.Context, rmq rabbitmqv1beta1.Rabbit
 	logger.Info("Scaling up PVCs", "RabbitmqCluster", rmq.Name, "pvcsToBeScaled", pvcsToBeScaled)
 
 	if err := p.deleteSts(ctx, rmq); err != nil {
-		logErr := fmt.Errorf("Failed to delete Statefulset from Kubernetes API: %w", err)
+		logErr := fmt.Errorf("failed to delete Statefulset from Kubernetes API: %w", err)
 		logger.Error(logErr, "Could not delete existing sts")
 		return logErr
 	}
@@ -82,7 +82,7 @@ func (p PersistenceScaler) getClusterPVCs(ctx context.Context, rmq rabbitmqv1bet
 	for i = 0; i < pointer.Int32Deref(rmq.Spec.Replicas, 1); i++ {
 		pvc, err := p.Client.CoreV1().PersistentVolumeClaims(rmq.Namespace).Get(ctx, rmq.PVCName(int(i)), metav1.GetOptions{})
 		if client.IgnoreNotFound(err) != nil {
-			logErr := fmt.Errorf("Failed to get PVC from Kubernetes API: %w", err)
+			logErr := fmt.Errorf("failed to get PVC from Kubernetes API: %w", err)
 			logger.Error(logErr, "Could not read existing PVC")
 			return nil, logErr
 		}
@@ -137,7 +137,7 @@ func (p PersistenceScaler) deleteSts(ctx context.Context, rmq rabbitmqv1beta1.Ra
 
 	sts, err := p.getSts(ctx, rmq)
 	if client.IgnoreNotFound(err) != nil {
-		logErr := fmt.Errorf("Failed to get statefulset from Kubernetes API: %w", err)
+		logErr := fmt.Errorf("failed to get statefulset from Kubernetes API: %w", err)
 		logger.Error(logErr, "Could not read existing statefulset")
 		return logErr
 	}
@@ -174,7 +174,7 @@ func (p PersistenceScaler) scaleUpPVCs(ctx context.Context, rmq rabbitmqv1beta1.
 		// To minimise any timing windows, retrieve the latest version of this PVC before updating
 		pvc, err := p.Client.CoreV1().PersistentVolumeClaims(pvc.Namespace).Get(ctx, pvc.Name, metav1.GetOptions{})
 		if err != nil {
-			logErr := fmt.Errorf("Failed to get PVC from Kubernetes API: %w", err)
+			logErr := fmt.Errorf("failed to get PVC from Kubernetes API: %w", err)
 			logger.Error(logErr, "Could not read existing PVC")
 			return logErr
 		}

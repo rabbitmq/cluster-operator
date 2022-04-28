@@ -3,7 +3,7 @@ package metadata_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	internal_metadata "github.com/rabbitmq/cluster-operator/internal/metadata"
+	internalmetadata "github.com/rabbitmq/cluster-operator/internal/metadata"
 )
 
 var _ = Describe("Annotation", func() {
@@ -16,7 +16,7 @@ var _ = Describe("Annotation", func() {
 
 	DescribeTable("Reconcile annotations",
 		func(expectedAnnotations map[string]string, existingAnnotations map[string]string, defaultAnnotations ...map[string]string) {
-			reconciledAnnotations := internal_metadata.ReconcileAnnotations(existingAnnotations, defaultAnnotations...)
+			reconciledAnnotations := internalmetadata.ReconcileAnnotations(existingAnnotations, defaultAnnotations...)
 			Expect(reconciledAnnotations).To(Equal(expectedAnnotations))
 		},
 
@@ -55,7 +55,7 @@ var _ = Describe("Annotation", func() {
 
 	DescribeTable("Reconcile and filter annotations",
 		func(expectedAnnotations map[string]string, existingAnnotations map[string]string, defaultAnnotations ...map[string]string) {
-			reconciledAnnotations := internal_metadata.ReconcileAndFilterAnnotations(existingAnnotations, defaultAnnotations...)
+			reconciledAnnotations := internalmetadata.ReconcileAndFilterAnnotations(existingAnnotations, defaultAnnotations...)
 			Expect(reconciledAnnotations).To(Equal(expectedAnnotations))
 		},
 
