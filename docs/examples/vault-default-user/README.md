@@ -26,7 +26,15 @@ This example requires:
 4. The RabbitMQ admin credentials were already written to Vault to path `spec.secretBackend.vault.defaultUserPath` with keys `username` and `password` (by some cluster-operator external mechanism. The cluster-operator will never write admin credentials to Vault).
 5. Role `spec.secretBackend.vault.role` is configured in Vault with a policy to read from `defaultUserPath`.
 
-Run script [setup.sh](./setup.sh) to get started with a Vault server in [dev mode](https://www.vaultproject.io/docs/concepts/dev-server) fullfilling above requirements. (This script is not production-ready. It is only meant to get you started experiencing end-to-end how RabbitMQ integrates with Vault.)
+Run script [setup.sh](./setup.sh) to get started with a Vault server in [dev mode](https://www.vaultproject.io/docs/concepts/dev-server) fulfilling above requirements.
+[setup.sh](./setup.sh) assumes you are using namespace `examples`, which can be created by:
+
+```shell
+kubectl create ns examples
+```
+
+If you want to deploy this example in a different existing namespace, you can set environment variable `RABBITMQ_NAMESPACE` when you run the script.
+(This script is not production-ready. It is only meant to get you started experiencing end-to-end how RabbitMQ integrates with Vault.)
 
 You can deploy this example like this:
 

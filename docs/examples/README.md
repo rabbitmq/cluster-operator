@@ -37,3 +37,12 @@ The test and setup scripts can assume that [Cert Manager](https://cert-manager.i
 There is also a cluster issuer to produce self-signed certificates, named `selfsigned-issuer`. It is also
 acceptable to create local `Issuer`s when needed.
 
+### Namespace
+
+Some examples in this folder default to namespace `examples`, which can be created by:
+
+```shell
+kubectl create ns examples
+```
+
+You can also replace the namespace with any existing namespace in your environment.
