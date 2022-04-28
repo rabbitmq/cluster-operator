@@ -41,7 +41,7 @@ var (
 	ephemeralStorage  = k8sresource.MustParse("0")
 )
 
-func generatePVCTemplate(rmq rabbitmqv1beta1.RabbitmqCluster, size k8sresource.Quantity) corev1.PersistentVolumeClaim {
+func generatePVCTemplate(size k8sresource.Quantity) corev1.PersistentVolumeClaim {
 	return corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "persistence",
