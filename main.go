@@ -11,11 +11,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"k8s.io/klog/v2"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"strconv"
 	"time"
+
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/controllers"
@@ -44,7 +45,7 @@ func init() {
 func main() {
 	var (
 		metricsAddr             string
-		defaultRabbitmqImage    = "rabbitmq:3.9.13-management"
+		defaultRabbitmqImage    = "rabbitmq:3.10.1-management"
 		defaultUserUpdaterImage = "rabbitmqoperator/default-user-credential-updater:1.0.2"
 		defaultImagePullSecrets = ""
 	)
