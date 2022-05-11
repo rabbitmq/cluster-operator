@@ -53,8 +53,8 @@ jobs:
         - v1.21.1
         rabbitmq-image:
         - rabbitmq:3.8.8-management
-        - rabbitmq:3.8-management
         - rabbitmq:3.9-management
+        - rabbitmq:3.10-management
         - pivotalrabbitmq/rabbitmq:master-otp-min
         - pivotalrabbitmq/rabbitmq:master-otp-max
     steps:
