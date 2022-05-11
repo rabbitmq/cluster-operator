@@ -167,7 +167,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	if requeueAfter, err := r.updateStatus(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
+	if requeueAfter, err := r.updateStatusConditions(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
@@ -322,7 +322,7 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(logger logr.Logg
 	}
 }
 
-func (r *RabbitmqClusterReconciler) updateStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (time.Duration, error) {
+func (r *RabbitmqClusterReconciler) updateStatusConditions(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) (time.Duration, error) {
 	logger := ctrl.LoggerFrom(ctx)
 	childResources, err := r.getChildResources(ctx, rmq)
 	if err != nil {
