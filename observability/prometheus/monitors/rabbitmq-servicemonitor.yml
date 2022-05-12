@@ -15,7 +15,12 @@ spec:
     interval: 15s
     scrapeTimeout: 14s
     tlsConfig:
-      insecureSkipVerify: true
+      insecureSkipVerify: true # set to false and uncomment lines below to enable tls verification
+        # ca:
+        #   secret:
+        #     key: ca.crt
+        #     name: tls-secret # name of the secret containing the CA cert which signed the RabbitMQ Prometheus TLS cert
+        # serverName: '*.RABBITMQ-INSTANCE-NAME.NAMESPACE.svc.cluster.local'
   - port: prometheus
     scheme: http
     path: /metrics/detailed
