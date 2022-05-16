@@ -25,7 +25,7 @@ metadata:
 
 Given the `matchLabels` fields from the Prometheus spec above, you would need to add the label `release: my-prometheus` to the `PodMonitor` and `ServiceMonitor` objects.
 
-File [rabbitmq-servicemonitor.yml](./rabbitmq-servicemonitor.yml) contains scrape targets for RabbitMQ.
+File [rabbitmq-servicemonitor.yml](./rabbitmq-servicemonitor.yml) contains scrape targets for RabbitMQ. TLS verify will be skipped by default. To enable TLS verification for scraping, set `spec.endpoints[port=prometheus-tls].tlsConfig.insecureSkipVerify` to false and provide a Kubernetes Secret containing CA cert used for Prometheus.
 Metrics listed in [RabbitMQ metrics](https://github.com/rabbitmq/rabbitmq-server/blob/master/deps/rabbitmq_prometheus/metrics.md) will be scraped from all RabbitMQ nodes.
 Note that the ServiceMonitor object works only for RabbitMQ clusters deployed by [cluster-operator](https://github.com/rabbitmq/cluster-operator) `>v1.6.0`. If you run cluster-operator `<=v1.6.0` use a PodMonitor instead:
 
