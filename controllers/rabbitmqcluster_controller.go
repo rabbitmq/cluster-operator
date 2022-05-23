@@ -395,25 +395,7 @@ func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func addResourceToIndex(rawObj client.Object) []string {
 	switch resourceObject := rawObj.(type) {
-	case *appsv1.StatefulSet:
-		owner := metav1.GetControllerOf(resourceObject)
-		return validateAndGetOwner(owner)
-	case *corev1.ConfigMap:
-		owner := metav1.GetControllerOf(resourceObject)
-		return validateAndGetOwner(owner)
-	case *corev1.Service:
-		owner := metav1.GetControllerOf(resourceObject)
-		return validateAndGetOwner(owner)
-	case *rbacv1.Role:
-		owner := metav1.GetControllerOf(resourceObject)
-		return validateAndGetOwner(owner)
-	case *rbacv1.RoleBinding:
-		owner := metav1.GetControllerOf(resourceObject)
-		return validateAndGetOwner(owner)
-	case *corev1.ServiceAccount:
-		owner := metav1.GetControllerOf(resourceObject)
-		return validateAndGetOwner(owner)
-	case *corev1.Secret:
+	case *appsv1.StatefulSet, *corev1.ConfigMap, *corev1.Service, *rbacv1.Role, *rbacv1.RoleBinding, *corev1.ServiceAccount, *corev1.Secret:
 		owner := metav1.GetControllerOf(resourceObject)
 		return validateAndGetOwner(owner)
 	default:
