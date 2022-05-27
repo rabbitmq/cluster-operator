@@ -18,7 +18,7 @@ require (
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	gopkg.in/ini.v1 v1.66.4
 	k8s.io/api v0.24.0
-	k8s.io/apimachinery v0.24.0
+	k8s.io/apimachinery v0.24.1
 	k8s.io/client-go v0.24.0
 	k8s.io/klog/v2 v2.60.1
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
