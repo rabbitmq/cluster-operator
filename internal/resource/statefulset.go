@@ -326,16 +326,8 @@ func sortVolumeMounts(mounts []corev1.VolumeMount) {
 }
 
 func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[string]string) corev1.PodTemplateSpec {
-	// default pod annotations used for prometheus metrics
-	prometheusPort := "15692"
-	if builder.Instance.TLSEnabled() {
-		prometheusPort = "15691"
-	}
-
-	defaultPodAnnotations := map[string]string{
-		"prometheus.io/scrape": "true",
-		"prometheus.io/port":   prometheusPort,
-	}
+	// default pod annotations
+	defaultPodAnnotations := make(map[string]string, 0)
 
 	if builder.Instance.VaultEnabled() {
 		defaultPodAnnotations = appendVaultAnnotations(defaultPodAnnotations, builder.Instance)

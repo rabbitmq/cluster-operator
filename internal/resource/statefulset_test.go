@@ -405,9 +405,6 @@ var _ = Describe("StatefulSet", func() {
 
 				It("Adds the default annotations to the pod template", func() {
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-					Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("prometheus.io/scrape", "true"))
-					Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("prometheus.io/port", "15692"))
 				})
 			})
 
@@ -415,10 +412,7 @@ var _ = Describe("StatefulSet", func() {
 				It("updates Prometheus port", func() {
 					stsBuilder.Instance.Spec.TLS.SecretName = "tls-secret"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-					expectedPodAnnotations := map[string]string{
-						"prometheus.io/scrape": "true",
-						"prometheus.io/port":   "15691",
-					}
+					expectedPodAnnotations := make(map[string]string, 0)
 					Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedPodAnnotations))
 				})
 			})
@@ -1850,9 +1844,7 @@ default_pass = {{ .Data.data.password }}
 						"app.kubernetes.io/name":      "foo",
 					}))
 					Expect(statefulSet.Spec.Template.ObjectMeta.Annotations).To(Equal(map[string]string{
-						"my-key":               "my-value",
-						"prometheus.io/scrape": "true",
-						"prometheus.io/port":   "15692",
+						"my-key": "my-value",
 					}))
 				})
 
