@@ -23,10 +23,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	"gopkg.in/ini.v1"
 
@@ -416,6 +417,10 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 		},
 	}
 
+	if os.Getenv("ENVIRONMENT") == "openshift" {
+		overrideSecurityContextForOpenshift(cluster)
+	}
+
 	if image := os.Getenv("RABBITMQ_IMAGE"); image != "" {
 		cluster.Spec.Image = image
 	}
@@ -426,6 +431,27 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 	}
 
 	return cluster
+}
+
+func overrideSecurityContextForOpenshift(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+
+	cluster.Spec.Override = rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
+		StatefulSet: &rabbitmqv1beta1.StatefulSet{
+			Spec: &rabbitmqv1beta1.StatefulSetSpec{
+				Template: &rabbitmqv1beta1.PodTemplateSpec{
+					Spec: &corev1.PodSpec{
+						SecurityContext: &corev1.PodSecurityContext{},
+						Containers: []corev1.Container{
+							{
+								Name: "rabbitmq",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 }
 
 //the updateFn can change properties of the RabbitmqCluster CR
