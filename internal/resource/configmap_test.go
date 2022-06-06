@@ -162,9 +162,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		When("invalid userDefinedConfiguration is provided", func() {
 			It("errors", func() {
 				instance.Spec.Rabbitmq.AdditionalConfig = " = invalid"
-
-				Expect(configMapBuilder.Update(configMap)).To(MatchError(
-					"failed to append spec.rabbitmq.additionalConfig: error creating new key: empty key name"))
+				Expect(configMapBuilder.Update(configMap)).NotTo(Succeed())
 			})
 		})
 
