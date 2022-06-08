@@ -254,10 +254,10 @@ func updateProperty(configMapData map[string]string, key string, value string) {
 	}
 }
 
+const GiB int64 = 1073741824
 // The Erlang VM needs headroom above Rabbit to avoid being OOM killed
 // We set the headroom to be the smaller amount of 20% memory or 2GiB
 func removeHeadroom(memLimit int64) int64 {
-	const GiB int64 = 1073741824
 	if memLimit/5 > 2*GiB {
 		return memLimit - 2*GiB
 	}
