@@ -62,7 +62,7 @@ func (builder *ErlangCookieBuilder) Update(object client.Object) error {
 	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
 
 	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
+		return fmt.Errorf("failed setting controller reference: %w", err)
 	}
 
 	return nil
