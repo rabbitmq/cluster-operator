@@ -69,12 +69,12 @@ func (builder *ServiceBuilder) Update(object client.Object) error {
 
 	if builder.Instance.Spec.Override.Service != nil {
 		if err := applySvcOverride(service, builder.Instance.Spec.Override.Service); err != nil {
-			return fmt.Errorf("failed applying Service override: %v", err)
+			return fmt.Errorf("failed applying Service override: %w", err)
 		}
 	}
 
 	if err := controllerutil.SetControllerReference(builder.Instance, service, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
+		return fmt.Errorf("failed setting controller reference: %w", err)
 	}
 
 	return nil
