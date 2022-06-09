@@ -115,7 +115,7 @@ func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.Service) er
 func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.ServicePort {
 	servicePortsMap := make(map[string]corev1.ServicePort, 7)
 
-	if builder.Instance.DisableNonTLSListeners() == false {
+	if !builder.Instance.DisableNonTLSListeners() {
 		servicePortsMap["amqp"] = corev1.ServicePort{
 			Protocol:    corev1.ProtocolTCP,
 			Port:        5672,
