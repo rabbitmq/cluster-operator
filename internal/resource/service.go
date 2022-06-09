@@ -88,23 +88,23 @@ func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.Service) er
 	if override.Spec != nil {
 		originalSvcSpec, err := json.Marshal(svc.Spec)
 		if err != nil {
-			return fmt.Errorf("error marshalling Service Spec: %v", err)
+			return fmt.Errorf("error marshalling Service Spec: %w", err)
 		}
 
 		patch, err := json.Marshal(override.Spec)
 		if err != nil {
-			return fmt.Errorf("error marshalling Service Spec override: %v", err)
+			return fmt.Errorf("error marshalling Service Spec override: %w", err)
 		}
 
 		patchedJSON, err := strategicpatch.StrategicMergePatch(originalSvcSpec, patch, corev1.ServiceSpec{})
 		if err != nil {
-			return fmt.Errorf("error patching Service Spec: %v", err)
+			return fmt.Errorf("error patching Service Spec: %w", err)
 		}
 
 		patchedSvcSpec := corev1.ServiceSpec{}
 		err = json.Unmarshal(patchedJSON, &patchedSvcSpec)
 		if err != nil {
-			return fmt.Errorf("error unmarshalling patched Service Spec: %v", err)
+			return fmt.Errorf("error unmarshalling patched Service Spec: %w", err)
 		}
 		svc.Spec = patchedSvcSpec
 	}

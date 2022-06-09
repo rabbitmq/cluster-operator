@@ -51,7 +51,7 @@ func (builder *ServiceAccountBuilder) Update(object client.Object) error {
 	serviceAccount.Annotations = metadata.ReconcileAndFilterAnnotations(serviceAccount.GetAnnotations(), builder.Instance.Annotations)
 
 	if err := controllerutil.SetControllerReference(builder.Instance, serviceAccount, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
+		return fmt.Errorf("failed setting controller reference: %w", err)
 	}
 	return nil
 }
