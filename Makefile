@@ -25,7 +25,7 @@ kubebuilder-assets: $(KUBEBUILDER_ASSETS)
 
 .PHONY: unit-tests
 unit-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet manifests ## Run unit tests
-	ginkgo -r --randomize-all api/ internal/
+	ginkgo -r --randomize-all api/ internal/ pkg/
 
 .PHONY: integration-tests
 integration-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet manifests ## Run integration tests
