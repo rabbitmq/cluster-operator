@@ -51,7 +51,7 @@ jobs:
     strategy:
       matrix:
         k8s:
-        - ${{ env.K8S_VERSION }}
+        - v1.24.1
         rabbitmq-image:
         - rabbitmq:3.8.8-management
         - rabbitmq:3.9-management
@@ -97,5 +97,5 @@ jobs:
         export GOPATH=$HOME/go
         export PATH=$PATH:$GOPATH/bin
         make install-tools
-        kind create cluster --image kindest/node:"$K8S_VERSION"
+        kind create cluster --image kindest/node:"${{ env.K8S_VERSION }}"
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind kubectl-plugin-tests
