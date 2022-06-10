@@ -6,6 +6,7 @@ on:
 
 env:
   GO_VERSION: 1.17.x
+  K8S_VERSION: v1.24.1
 
 jobs:
 
@@ -36,7 +37,7 @@ jobs:
         export GOPATH=$HOME/go
         export PATH=$PATH:$GOPATH/bin
         make install-tools
-        kind create cluster --image kindest/node:v1.21.1
+        kind create cluster --image kindest/node:"${{ env.K8S_VERSION }}"
         kubectl create --validate=false -f https://github.com/jetstack/cert-manager/releases/latest/download/cert-manager.crds.yaml
         # Create CRD PodMonitor without running Prometheus operator
         curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/master/bundle.yaml | sed "s/replicas: 1$/replicas: 0/" | kubectl create -f -
@@ -50,7 +51,7 @@ jobs:
     strategy:
       matrix:
         k8s:
-        - v1.21.1
+        - ${{ env.K8S_VERSION }}
         rabbitmq-image:
         - rabbitmq:3.8.8-management
         - rabbitmq:3.9-management
@@ -92,8 +93,6 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
     - name: kubectl rabbitmq tests
-      env:
-        K8S_VERSION: v1.21.1
       run: |
         export GOPATH=$HOME/go
         export PATH=$PATH:$GOPATH/bin
