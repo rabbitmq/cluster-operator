@@ -34,7 +34,7 @@ var _ = BeforeSuite(func() {
 })
 
 func getFreePort() (string, error) {
-	addr, err := net.ResolveTCPAddr("tcp", ":0")
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", err
 	}
