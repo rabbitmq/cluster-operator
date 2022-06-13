@@ -33,6 +33,10 @@ var _ = BeforeSuite(func() {
 
 })
 
+var _ = AfterSuite(func() {
+	Expect(testenv.Stop()).To(Succeed())
+})
+
 func getFreePort() (string, error) {
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 	if err != nil {
