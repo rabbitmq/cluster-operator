@@ -11,6 +11,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/rabbitmq/cluster-operator/pkg/profiling"
 	"os"
 	"strconv"
 	"time"
@@ -111,6 +112,17 @@ func main() {
 	if err != nil {
 		log.Error(err, "unable to start manager")
 		os.Exit(1)
+	}
+
+	if enableDebugPprof, ok := os.LookupEnv("ENABLE_DEBUG_PPROF"); ok {
+		pprofEnabled, err := strconv.ParseBool(enableDebugPprof)
+		if err == nil && pprofEnabled {
+			mgr, err = profiling.AddDebugPprofEndpoints(mgr)
+			if err != nil {
+				log.Error(err, "unable to add debug endpoints to manager")
+				os.Exit(1)
+			}
+		}
 	}
 
 	clusterConfig := config.GetConfigOrDie()
