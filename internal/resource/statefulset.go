@@ -125,12 +125,12 @@ func (builder *StatefulSetBuilder) Update(object client.Object) error {
 
 	if builder.Instance.Spec.Override.StatefulSet != nil {
 		if err := applyStsOverride(builder.Instance, builder.Scheme, sts, builder.Instance.Spec.Override.StatefulSet); err != nil {
-			return fmt.Errorf("failed applying StatefulSet override: %v", err)
+			return fmt.Errorf("failed applying StatefulSet override: %w", err)
 		}
 	}
 
 	if err := controllerutil.SetControllerReference(builder.Instance, sts, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
+		return fmt.Errorf("failed setting controller reference: %w", err)
 	}
 	return nil
 }
@@ -177,7 +177,7 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 				pvcOverride[i].Namespace = sts.Namespace // PVC should always be in the same namespace as the Stateful Set
 				pvcOverride[i].Spec = volumeClaimTemplatesOverride[i].Spec
 				if err := controllerutil.SetControllerReference(instance, &pvcOverride[i], scheme); err != nil {
-					return fmt.Errorf("failed setting controller reference: %v", err)
+					return fmt.Errorf("failed setting controller reference: %w", err)
 				}
 				disableBlockOwnerDeletion(pvcOverride[i])
 			}
@@ -227,7 +227,7 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 	}
 
 	if err := controllerutil.SetControllerReference(instance, &pvc, scheme); err != nil {
-		return []corev1.PersistentVolumeClaim{}, fmt.Errorf("failed setting controller reference: %v", err)
+		return []corev1.PersistentVolumeClaim{}, fmt.Errorf("failed setting controller reference: %w", err)
 	}
 	disableBlockOwnerDeletion(pvc)
 
@@ -245,23 +245,23 @@ func disableBlockOwnerDeletion(pvc corev1.PersistentVolumeClaim) {
 func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, error) {
 	originalPodSpec, err := json.Marshal(podSpec)
 	if err != nil {
-		return corev1.PodSpec{}, fmt.Errorf("error marshalling statefulSet podSpec: %v", err)
+		return corev1.PodSpec{}, fmt.Errorf("error marshalling statefulSet podSpec: %w", err)
 	}
 
 	patch, err := json.Marshal(podSpecOverride)
 	if err != nil {
-		return corev1.PodSpec{}, fmt.Errorf("error marshalling statefulSet podSpec override: %v", err)
+		return corev1.PodSpec{}, fmt.Errorf("error marshalling statefulSet podSpec override: %w", err)
 	}
 
 	patchedJSON, err := strategicpatch.StrategicMergePatch(originalPodSpec, patch, corev1.PodSpec{})
 	if err != nil {
-		return corev1.PodSpec{}, fmt.Errorf("error patching podSpec: %v", err)
+		return corev1.PodSpec{}, fmt.Errorf("error patching podSpec: %w", err)
 	}
 
 	patchedPodSpec := corev1.PodSpec{}
 	err = json.Unmarshal(patchedJSON, &patchedPodSpec)
 	if err != nil {
-		return corev1.PodSpec{}, fmt.Errorf("error unmarshalling patched Stateful Set: %v", err)
+		return corev1.PodSpec{}, fmt.Errorf("error unmarshalling patched Stateful Set: %w", err)
 	}
 
 	rmqContainer := containerRabbitmq(podSpecOverride.Containers)

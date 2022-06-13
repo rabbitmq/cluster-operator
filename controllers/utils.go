@@ -73,7 +73,7 @@ func (r *RabbitmqClusterReconciler) statefulSetUID(ctx context.Context, rmq *rab
 	var sts *appsv1.StatefulSet
 	var ref *metav1.OwnerReference
 	if sts, err = r.statefulSet(ctx, rmq); err != nil {
-		return "", fmt.Errorf("failed to get statefulSet: %s", err.Error())
+		return "", fmt.Errorf("failed to get statefulSet: %w", err)
 	}
 	if ref = metav1.GetControllerOf(sts); ref == nil {
 		return "", fmt.Errorf("failed to get controller reference for statefulSet %s", sts.GetName())

@@ -116,7 +116,7 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Failed to make api request to url %s with err: %+v \n", url, err)
-		return responseBody, fmt.Errorf("failed with err: %v to api endpoint: %s", err, url)
+		return responseBody, fmt.Errorf("failed with err: %w to api endpoint: %s", err, url)
 	}
 	defer resp.Body.Close()
 	responseBody, err = ioutil.ReadAll(resp.Body)
@@ -753,7 +753,7 @@ func k8sCreateTLSSecret(secretName, secretNamespace, certPath, keyPath string) e
 	)
 
 	if err != nil {
-		return fmt.Errorf("Failed with error: %v\nOutput: %v\n", err.Error(), string(output))
+		return fmt.Errorf("Failed with error: %w\nOutput: %v\n", err, string(output))
 	}
 
 	return nil
@@ -769,7 +769,7 @@ func k8sDeleteSecret(secretName, secretNamespace string) error {
 	)
 
 	if err != nil {
-		return fmt.Errorf("Failed with error: %v\nOutput: %v\n", err.Error(), string(output))
+		return fmt.Errorf("Failed with error: %w\nOutput: %v\n", err, string(output))
 	}
 
 	return nil

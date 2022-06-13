@@ -89,7 +89,7 @@ func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	builder.updatePorts(secret)
 
 	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
+		return fmt.Errorf("failed setting controller reference: %w", err)
 	}
 
 	return nil

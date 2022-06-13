@@ -240,7 +240,7 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	updateProperty(configMap.Data, "rabbitmq-env.conf", rmqProperties.EnvConfig)
 
 	if err := controllerutil.SetControllerReference(builder.Instance, configMap, builder.Scheme); err != nil {
-		return fmt.Errorf("failed setting controller reference: %v", err)
+		return fmt.Errorf("failed setting controller reference: %w", err)
 	}
 
 	return nil
