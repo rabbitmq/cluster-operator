@@ -117,49 +117,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	if rabbitmqCluster.Spec.Image == "" {
-		rabbitmqCluster.Spec.Image = r.DefaultRabbitmqImage
-		if err = r.Update(ctx, rabbitmqCluster); err != nil {
-			if k8serrors.IsConflict(err) {
-				logger.Info("failed to update image because of conflict; requeueing...",
-					"namespace", rabbitmqCluster.Namespace,
-					"name", rabbitmqCluster.Name)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
-			}
-			return ctrl.Result{}, err
-		}
-	}
-
-	if rabbitmqCluster.Spec.ImagePullSecrets == nil {
-		// split the comma separated list of default image pull secrets from
-		// the 'DEFAULT_IMAGE_PULL_SECRETS' env var, but ignore empty strings.
-		for _, reference := range strings.Split(r.DefaultImagePullSecrets, ",") {
-			if len(reference) > 0 {
-				rabbitmqCluster.Spec.ImagePullSecrets = append(rabbitmqCluster.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: reference})
-			}
-		}
-		if err = r.Update(ctx, rabbitmqCluster); err != nil {
-			if k8serrors.IsConflict(err) {
-				logger.Info("failed to update image pull secrets because of conflict; requeueing...",
-					"namespace", rabbitmqCluster.Namespace,
-					"name", rabbitmqCluster.Name)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
-			}
-			return ctrl.Result{}, err
-		}
-	}
-
-	if rabbitmqCluster.UsesDefaultUserUpdaterImage() {
-		rabbitmqCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = &r.DefaultUserUpdaterImage
-		if err = r.Update(ctx, rabbitmqCluster); err != nil {
-			if k8serrors.IsConflict(err) {
-				logger.Info("failed to update image because of conflict; requeueing...",
-					"namespace", rabbitmqCluster.Namespace,
-					"name", rabbitmqCluster.Name)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
-			}
-			return ctrl.Result{}, err
-		}
+	if requeueAfter, err := r.reconcileOperatorDefaults(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 
 	// Ensure the resource have a deletion marker
