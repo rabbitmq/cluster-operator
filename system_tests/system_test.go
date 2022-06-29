@@ -400,7 +400,7 @@ CONSOLE_LOG=new`
 				Expect(err).NotTo(HaveOccurred())
 				nodes, err := rmqc.ListNodes()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(nodes).To(HaveLen(3))
+				Expect(nodes).To(HaveLen(2))
 			})
 		})
 	})

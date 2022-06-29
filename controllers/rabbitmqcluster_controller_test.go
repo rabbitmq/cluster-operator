@@ -493,7 +493,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Eventually(func() []corev1.LocalObjectReference {
 				sts := statefulSet(ctx, cluster)
 				return sts.Spec.Template.Spec.ImagePullSecrets
-			}, 3).Should(ConsistOf(corev1.LocalObjectReference{Name: "my-new-secret"}))
+			}, 3).Should(ConsistOf(corev1.LocalObjectReference{Name: "image-secret-3"}, corev1.LocalObjectReference{Name: "image-secret-2"}, corev1.LocalObjectReference{Name: "image-secret-1"}))
 		})
 
 		It("labels are updated", func() {
