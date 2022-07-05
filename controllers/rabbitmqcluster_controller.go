@@ -382,8 +382,6 @@ func (r *RabbitmqClusterReconciler) markForQueueRebalance(ctx context.Context, r
 	}
 
 	rmq.ObjectMeta.Annotations[queueRebalanceAnnotation] = time.Now().Format(time.RFC3339)
-	if err := r.Update(ctx, rmq); err != nil {
-		return err
-	}
-	return nil
+
+	return r.Update(ctx, rmq)
 }

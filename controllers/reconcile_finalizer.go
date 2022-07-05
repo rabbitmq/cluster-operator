@@ -31,11 +31,7 @@ func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, ra
 
 func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	controllerutil.RemoveFinalizer(rabbitmqCluster, deletionFinalizer)
-	if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
-		return err
-	}
-
-	return nil
+	return r.Client.Update(ctx, rabbitmqCluster)
 }
 
 func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
