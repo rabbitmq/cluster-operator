@@ -15,6 +15,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/mod/semver"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -394,8 +395,10 @@ CONSOLE_LOG=new`
 
 				// test https://github.com/rabbitmq/cluster-operator/issues/662 is fixed
 				By("clustering correctly")
-				if strings.Contains(cluster.Spec.Image, ":3.8.8") {
-					Skip(cluster.Spec.Image + " is known to not cluster consistently (fixed in v3.8.18)")
+				testRabbitmqVersion := "v" + runningRabbitmqVersion(cluster)
+				if semver.Compare(testRabbitmqVersion, "v3.8") >= 0 &&
+					semver.Compare(testRabbitmqVersion, "v3.8.18") < 0 {
+					Skip(testRabbitmqVersion + " is known to not cluster consistently (fixed in v3.8.18)")
 				}
 				rmqc, err := rabbithole.NewClient(fmt.Sprintf("http://%s:%s", hostname, port), username, password)
 				Expect(err).NotTo(HaveOccurred())

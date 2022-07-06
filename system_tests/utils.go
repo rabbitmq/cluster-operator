@@ -644,7 +644,18 @@ func hasFeatureEnabled(cluster *rabbitmqv1beta1.RabbitmqCluster, featureFlagName
 	return false
 }
 
-// asserts an event with reason: "TLSError", occurs for the cluster in it's namespace
+func runningRabbitmqVersion(cluster *rabbitmqv1beta1.RabbitmqCluster) string {
+	output, err := kubectlExec(cluster.Namespace,
+		statefulSetPodName(cluster, 0),
+		"rabbitmq",
+		"rabbitmqctl",
+		"version",
+	)
+	Expect(err).NotTo(HaveOccurred())
+	return strings.TrimSpace(string(output))
+}
+
+// asserts an event with reason: "TLSError", occurs for the cluster in its namespace
 func assertTLSError(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 	var err error
 
