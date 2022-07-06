@@ -16,7 +16,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -318,13 +317,15 @@ CONSOLE_LOG=new`
 
 		BeforeEach(func() {
 			// volume expansion is not supported in kinD which is use in github action
-			if os.Getenv("SUPPORT_VOLUME_EXPANSION") == "false" {
-				Skip("SUPPORT_VOLUME_EXPANSION is set to false; skipping volume expansion test")
+			if !volumeExpansionSupported(ctx, clientSet) {
+				Skip("default storageClass does not support volume expansion; skipping volume expansion test")
 			}
+
+			oldCapacity, _ := k8sresource.ParseQuantity("10Gi")
 
 			cluster = newRabbitmqCluster(namespace, "resize-rabbit")
 			cluster.Spec.Persistence = rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
-				StorageClassName: pointer.StringPtr(storageClassName),
+				Storage: &oldCapacity,
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
