@@ -56,6 +56,8 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 		return nil, err
 	}
 
+	url := fmt.Sprintf("amqp://%s:%s@%s", username, password, builder.Instance.ServiceSubDomain())
+
 	// Default user secret implements the service binding Provisioned Service
 	// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
 	secret := &corev1.Secret{
@@ -71,6 +73,7 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 			"provider":          []byte(bindingProvider),
 			"type":              []byte(bindingType),
 			"host":              []byte(builder.Instance.ServiceSubDomain()),
+			"url":               []byte(url),
 		},
 	}
 	builder.updatePorts(secret)
