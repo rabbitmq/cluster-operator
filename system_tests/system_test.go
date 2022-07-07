@@ -15,8 +15,8 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/mod/semver"
 	"io/ioutil"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -318,13 +318,15 @@ CONSOLE_LOG=new`
 
 		BeforeEach(func() {
 			// volume expansion is not supported in kinD which is use in github action
-			if os.Getenv("SUPPORT_VOLUME_EXPANSION") == "false" {
-				Skip("SUPPORT_VOLUME_EXPANSION is set to false; skipping volume expansion test")
+			if !volumeExpansionSupported(ctx, clientSet) {
+				Skip("default storageClass does not support volume expansion; skipping volume expansion test")
 			}
+
+			oldCapacity, _ := k8sresource.ParseQuantity("10Gi")
 
 			cluster = newRabbitmqCluster(namespace, "resize-rabbit")
 			cluster.Spec.Persistence = rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
-				StorageClassName: pointer.StringPtr(storageClassName),
+				Storage: &oldCapacity,
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
@@ -393,8 +395,10 @@ CONSOLE_LOG=new`
 
 				// test https://github.com/rabbitmq/cluster-operator/issues/662 is fixed
 				By("clustering correctly")
-				if strings.Contains(cluster.Spec.Image, ":3.8.8") {
-					Skip(cluster.Spec.Image + " is known to not cluster consistently (fixed in v3.8.18)")
+				testRabbitmqVersion := "v" + runningRabbitmqVersion(cluster)
+				if semver.Compare(testRabbitmqVersion, "v3.8") >= 0 &&
+					semver.Compare(testRabbitmqVersion, "v3.8.18") < 0 {
+					Skip(testRabbitmqVersion + " is known to not cluster consistently (fixed in v3.8.18)")
 				}
 				rmqc, err := rabbithole.NewClient(fmt.Sprintf("http://%s:%s", hostname, port), username, password)
 				Expect(err).NotTo(HaveOccurred())

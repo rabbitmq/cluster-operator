@@ -11,17 +11,14 @@ package system_tests
 
 import (
 	"context"
-	"k8s.io/utils/pointer"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"testing"
 
-	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/kubernetes"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -56,21 +53,7 @@ var _ = BeforeSuite(func() {
 
 	namespace = MustHaveEnv("NAMESPACE")
 
-	// Create or update the StorageClass used in persistence expansion test spec
-	storageClass := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: storageClassName,
-		},
-		Provisioner:          "kubernetes.io/gce-pd",
-		AllowVolumeExpansion: pointer.BoolPtr(true),
-	}
 	ctx := context.Background()
-	err = rmqClusterClient.Create(ctx, storageClass)
-	if apierrors.IsAlreadyExists(err) {
-		Expect(rmqClusterClient.Update(ctx, storageClass)).To(Succeed())
-	} else {
-		Expect(err).NotTo(HaveOccurred())
-	}
 
 	Eventually(func() int32 {
 		operatorDeployment, err := clientSet.AppsV1().Deployments(namespace).Get(ctx, "rabbitmq-cluster-operator", metav1.GetOptions{})
