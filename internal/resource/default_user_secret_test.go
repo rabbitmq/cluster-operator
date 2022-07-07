@@ -11,6 +11,8 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
@@ -55,6 +57,7 @@ var _ = Describe("DefaultUserSecret", func() {
 			var password []byte
 			var host []byte
 			var port []byte
+			var url []byte
 			var ok bool
 
 			obj, err := defaultUserSecretBuilder.Build()
@@ -98,6 +101,15 @@ var _ = Describe("DefaultUserSecret", func() {
 				port, ok = secret.Data["port"]
 				Expect(ok).To(BeTrue(), "Failed to find a key \"port\" in the generated Secret")
 				Expect(port).To(BeEquivalentTo("5672"))
+			})
+
+			By("Checking if the full URL matches", func() {
+				url, ok = secret.Data["url"]
+				usernameStr := string(username)
+				passStr := string(password)
+				hostStr := "a name.a namespace.svc"
+				Expect(ok).To(BeTrue(), "Failed to find a key \"url\" in the generated Secret")
+				Expect(string(url)).To(BeEquivalentTo(fmt.Sprintf("amqp://%s:%s@%s", usernameStr, passStr, hostStr)))
 			})
 
 			By("creating a default_user.conf file that contains the correct sysctl config format to be parsed by RabbitMQ", func() {
