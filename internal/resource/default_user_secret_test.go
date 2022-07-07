@@ -108,8 +108,9 @@ var _ = Describe("DefaultUserSecret", func() {
 				usernameStr := string(username)
 				passStr := string(password)
 				hostStr := "a name.a namespace.svc"
+				portStr := string(port)
 				Expect(ok).To(BeTrue(), "Failed to find a key \"url\" in the generated Secret")
-				Expect(string(url)).To(BeEquivalentTo(fmt.Sprintf("amqp://%s:%s@%s", usernameStr, passStr, hostStr)))
+				Expect(string(url)).To(BeEquivalentTo(fmt.Sprintf("amqp://%s:%s@%s:%s", usernameStr, passStr, hostStr, portStr)))
 			})
 
 			By("creating a default_user.conf file that contains the correct sysctl config format to be parsed by RabbitMQ", func() {
