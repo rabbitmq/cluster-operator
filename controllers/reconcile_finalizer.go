@@ -22,9 +22,7 @@ const deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
 func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
 		controllerutil.AddFinalizer(rabbitmqCluster, deletionFinalizer)
-		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
-			return err
-		}
+		return r.Client.Update(ctx, rabbitmqCluster)
 	}
 	return nil
 }
