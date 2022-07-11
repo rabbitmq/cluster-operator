@@ -113,6 +113,7 @@ func (r *RabbitmqClusterReconciler) runQueueRebalanceCommand(ctx context.Context
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcile", fmt.Sprintf("%s %s", msg, podName))
 		return fmt.Errorf("%s %s: %w", msg, podName, err)
 	}
+	logger.Info("successfully run queue rebalance")
 	return r.deleteAnnotation(ctx, rmq, queueRebalanceAnnotation)
 }
 
