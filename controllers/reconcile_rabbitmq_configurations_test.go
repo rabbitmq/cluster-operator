@@ -2,6 +2,7 @@ package controllers_test
 
 import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -20,7 +21,7 @@ var _ = Describe("Reconcile rabbitmq Configurations", func() {
 			// create rabbitmqcluster
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-" + testCase,
+					Name:      "rabbitmq-" + strings.ToLower(testCase),
 					Namespace: defaultNamespace,
 				},
 			}
@@ -36,13 +37,13 @@ var _ = Describe("Reconcile rabbitmq Configurations", func() {
 
 			// update rabbitmq server configurations
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				if testCase == "additional-config" {
+				if testCase == "additionalConfig" {
 					r.Spec.Rabbitmq.AdditionalConfig = "test_config=0"
 				}
-				if testCase == "advanced-config" {
+				if testCase == "advancedConfig" {
 					r.Spec.Rabbitmq.AdvancedConfig = "sample-advanced-config."
 				}
-				if testCase == "env-config" {
+				if testCase == "envConfig" {
 					r.Spec.Rabbitmq.EnvConfig = "some-env-variable"
 				}
 			})).To(Succeed())
@@ -72,9 +73,9 @@ var _ = Describe("Reconcile rabbitmq Configurations", func() {
 			Expect(client.Delete(ctx, cluster)).To(Succeed())
 			waitForClusterDeletion(ctx, cluster, client)
 		},
-
-		Entry("spec.rabbitmq.additionalConfig is updated", "additional-config"),
-		Entry("spec.rabbitmq.advancedConfig is updated", "advanced-config"),
-		Entry("spec.rabbitmq.envConfig is updated", "env-config"),
+		EntryDescription("spec.rabbitmq.%s is updated"),
+		Entry(nil, "additionalConfig"),
+		Entry(nil, "advancedConfig"),
+		Entry(nil, "envConfig"),
 	)
 })

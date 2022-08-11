@@ -229,7 +229,6 @@ var _ = Context("Services", func() {
 						instance.Spec.TLS.CaSecretName = "somecacertname"
 						Expect(serviceBuilder.Update(svc)).To(Succeed())
 						amqpsPort := corev1.ServicePort{
-
 							Name:        "amqps",
 							Protocol:    corev1.ProtocolTCP,
 							Port:        5671,
@@ -261,12 +260,13 @@ var _ = Context("Services", func() {
 						}
 						Expect(svc.Spec.Ports).To(ConsistOf(amqpsPort, managementTLSPort, prometheusTLSPort, expectedPort))
 					},
-					Entry("MQTT", "rabbitmq_mqtt", "mqtts", 8883, pointer.String("mqtts")),
-					Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt-tls", 15676, pointer.String("https")),
-					Entry("STOMP", "rabbitmq_stomp", "stomps", 61614, pointer.String("stomp.github.io/stomp-tls")),
-					Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp-tls", 15673, pointer.String("https")),
-					Entry("Stream", "rabbitmq_stream", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
-					Entry("OSR", "rabbitmq_multi_dc_replication", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
+					EntryDescription("%s plugin is enabled"),
+					Entry(nil, "rabbitmq_mqtt", "mqtts", 8883, pointer.String("mqtts")),
+					Entry(nil, "rabbitmq_web_mqtt", "web-mqtt-tls", 15676, pointer.String("https")),
+					Entry(nil, "rabbitmq_stomp", "stomps", 61614, pointer.String("stomp.github.io/stomp-tls")),
+					Entry(nil, "rabbitmq_web_stomp", "web-stomp-tls", 15673, pointer.String("https")),
+					Entry(nil, "rabbitmq_stream", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
+					Entry(nil, "rabbitmq_multi_dc_replication", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
 				)
 			})
 
@@ -546,12 +546,13 @@ var _ = Context("Services", func() {
 					}
 					Expect(svc.Spec.Ports).To(ContainElement(expectedPort))
 				},
-				Entry("MQTT", "rabbitmq_mqtt", "mqtt", 1883, pointer.String("mqtt")),
-				Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt", 15675, pointer.String("http")),
-				Entry("STOMP", "rabbitmq_stomp", "stomp", 61613, pointer.String("stomp.github.io/stomp")),
-				Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp", 15674, pointer.String("http")),
-				Entry("Stream", "rabbitmq_stream", "stream", 5552, pointer.String("rabbitmq.com/stream")),
-				Entry("OSR", "rabbitmq_multi_dc_replication", "stream", 5552, pointer.String("rabbitmq.com/stream")),
+				EntryDescription("%s plugin is enabled"),
+				Entry(nil, "rabbitmq_mqtt", "mqtt", 1883, pointer.String("mqtt")),
+				Entry(nil, "rabbitmq_web_mqtt", "web-mqtt", 15675, pointer.String("http")),
+				Entry(nil, "rabbitmq_stomp", "stomp", 61613, pointer.String("stomp.github.io/stomp")),
+				Entry(nil, "rabbitmq_web_stomp", "web-stomp", 15674, pointer.String("http")),
+				Entry(nil, "rabbitmq_stream", "stream", 5552, pointer.String("rabbitmq.com/stream")),
+				Entry(nil, "rabbitmq_multi_dc_replication", "stream", 5552, pointer.String("rabbitmq.com/stream")),
 			)
 
 			It("updates the service type from ClusterIP to NodePort", func() {
