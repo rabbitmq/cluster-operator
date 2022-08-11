@@ -811,12 +811,13 @@ var _ = Describe("StatefulSet", func() {
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 				Expect(container.Ports).To(ContainElement(expectedPort))
 			},
-			Entry("MQTT", "rabbitmq_mqtt", "mqtt", 1883),
-			Entry("MQTT-over-WebSockets", "rabbitmq_web_mqtt", "web-mqtt", 15675),
-			Entry("STOMP", "rabbitmq_stomp", "stomp", 61613),
-			Entry("STOMP-over-WebSockets", "rabbitmq_web_stomp", "web-stomp", 15674),
-			Entry("Stream", "rabbitmq_stream", "stream", 5552),
-			Entry("OSR", "rabbitmq_multi_dc_replication", "stream", 5552),
+			EntryDescription("%s plugin is enabled"),
+			Entry(nil, "rabbitmq_mqtt", "mqtt", 1883),
+			Entry(nil, "rabbitmq_web_mqtt", "web-mqtt", 15675),
+			Entry(nil, "rabbitmq_stomp", "stomp", 61613),
+			Entry(nil, "rabbitmq_web_stomp", "web-stomp", 15674),
+			Entry(nil, "rabbitmq_stream", "stream", 5552),
+			Entry(nil, "rabbitmq_multi_dc_replication", "stream", 5552),
 		)
 
 		It("uses required Environment Variables", func() {
