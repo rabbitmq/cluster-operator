@@ -60,7 +60,7 @@ var _ = Describe("Reconcile CLI", func() {
 					return sts.ObjectMeta.Annotations
 				}, 5).ShouldNot(HaveKey("rabbitmq.com/createdAt"))
 				Expect(fakeExecutor.ExecutedCommands()).To(ContainElement(command{"bash", "-c",
-					"set -eo pipefail; rabbitmqctl -s list_feature_flags name state stability | (grep 'disabled\\sstable$' || true) | cut -f 1 | xargs -r -n1 rabbitmqctl enable_feature_flag"}))
+					"rabbitmqctl enable_feature_flag all"}))
 			})
 		})
 	})
