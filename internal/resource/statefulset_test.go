@@ -911,7 +911,7 @@ default_pass = {{ .Data.data.password }}
 					})
 					It("overrides operator-set Vault annotations", func() {
 						a := statefulSet.Spec.Template.Annotations
-						// user overriden annotations
+						// user overridden annotations
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-init-first", "false"))
 						Expect(a).To(HaveKeyWithValue("mykey", "myval"))
 						// opererator-set annotations

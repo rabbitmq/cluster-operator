@@ -29,7 +29,7 @@ import (
 // RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this object
 // corresponds to a single RabbitMQ cluster.
 type RabbitmqCluster struct {
-	// Embedded metadata identifying a Kind and API Verison of an object.
+	// Embedded metadata identifying a Kind and API Version of an object.
 	// For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -307,7 +307,7 @@ type PodTemplateSpec struct {
 // It contains TypeMeta and a reduced ObjectMeta.
 // Field status is omitted.
 type PersistentVolumeClaim struct {
-	// Embedded metadata identifying a Kind and API Verison of an object.
+	// Embedded metadata identifying a Kind and API Version of an object.
 	// For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -446,7 +446,7 @@ func (cluster *RabbitmqCluster) ServiceSubDomain() string {
 
 // RabbitmqClusterList contains a list of RabbitmqClusters.
 type RabbitmqClusterList struct {
-	// Embedded metadata identifying a Kind and API Verison of an object.
+	// Embedded metadata identifying a Kind and API Version of an object.
 	// For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

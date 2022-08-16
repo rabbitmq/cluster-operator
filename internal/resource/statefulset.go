@@ -168,7 +168,7 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 		// where storage is set to 0 and yet there are PVCs with data
 		if instance.Spec.Persistence.Storage.Cmp(k8sresource.MustParse("0Gi")) == 0 {
 			logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
-			logger.Info(fmt.Sprintf("Warning: persistentVolumeClaim overrides are ignored for cluster \"%s\", becasue spec.persistence.storage is set to zero.", sts.GetName()))
+			logger.Info(fmt.Sprintf("Warning: persistentVolumeClaim overrides are ignored for cluster \"%s\", because spec.persistence.storage is set to zero.", sts.GetName()))
 		} else {
 			volumeClaimTemplatesOverride := stsOverride.Spec.VolumeClaimTemplates
 			pvcOverride := make([]corev1.PersistentVolumeClaim, len(volumeClaimTemplatesOverride))
