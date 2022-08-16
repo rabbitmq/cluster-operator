@@ -12,6 +12,7 @@ package resource_test
 import (
 	"bytes"
 	"fmt"
+	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -27,13 +28,14 @@ import (
 
 func defaultRabbitmqConf(instanceName string) string {
 	return iniString(`
-cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host               = kubernetes.default
-cluster_formation.k8s.address_type       = hostname
-cluster_partition_handling               = pause_minority
-queue_master_locator                     = min-masters
-disk_free_limit.absolute                 = 2GB
-cluster_name                             = ` + instanceName)
+queue_master_locator                       = min-masters
+disk_free_limit.absolute                   = 2GB
+cluster_partition_handling                 = pause_minority
+cluster_formation.peer_discovery_backend   = rabbit_peer_discovery_k8s
+cluster_formation.k8s.host                 = kubernetes.default
+cluster_formation.k8s.address_type         = hostname
+cluster_formation.target_cluster_size_hint = 1
+cluster_name                               = ` + instanceName)
 }
 
 var _ = Describe("GenerateServerConfigMap", func() {
@@ -141,6 +143,16 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			Expect(configMap.Data).To(HaveKeyWithValue("operatorDefaults.conf", expectedConfiguration))
+		})
+
+		It("sets cluster size hint", func() {
+			builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
+			builder.Instance.Spec.Replicas = pointer.Int32Ptr(100)
+
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			operatorDefaultConf, err := ini.Load([]byte(configMap.Data["operatorDefaults.conf"]))
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(operatorDefaultConf.Section("").KeysHash()).To(HaveKeyWithValue("cluster_formation.target_cluster_size_hint", "100"))
 		})
 
 		When("valid userDefinedConfiguration is provided", func() {
@@ -375,6 +387,7 @@ CONSOLE_LOG=new`
 						Name: "rabbit-tls",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas: pointer.Int32Ptr(1),
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:             "some-secret",
 							DisableNonTLSListeners: true,
@@ -406,6 +419,7 @@ CONSOLE_LOG=new`
 						Name: "rabbit-tls",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas: pointer.Int32Ptr(1),
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:             "some-secret",
 							DisableNonTLSListeners: true,
@@ -453,6 +467,7 @@ CONSOLE_LOG=new`
 						Name: "rabbit-tls",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+						Replicas: pointer.Int32Ptr(1),
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:             "some-secret",
 							CaSecretName:           "some-mutual-secret",
