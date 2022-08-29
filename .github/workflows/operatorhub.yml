@@ -31,7 +31,7 @@ jobs:
           wget -O- https://carvel.dev/install.sh > install.sh
           sudo bash install.sh
 
-      # Generate the OLM Bundle
+      # Generate the OLM Bundle for operatorhub and redhat openshift ecosystem
       - name: GenerateOLMBundle
         run: |
           git clone https://github.com/rabbitmq/OLM-Package-Repo
@@ -40,7 +40,9 @@ jobs:
           cp ./config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds/crds.yaml
           cd ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/
           python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml ${{ env.RELEASE_VERSION }} ./../../OLM2/rabbitmq-cluster-operator
-        
+          cp ./generators/cluster-service-version-generator-openshift.yml ./generators/cluster-service-version-generator.yml
+          python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml ${{ env.RELEASE_VERSION }} ./../../OLM2/rabbitmq-cluster-operator-openshift
+
       # Create the PR to OperatorHUB
       - name: CreateOperatorHubPR
         env:
@@ -49,9 +51,23 @@ jobs:
           git clone https://github.com/rabbitmq/community-operators
           mkdir -p community-operators/operators/rabbitmq-cluster-operator
           cd community-operators/operators/rabbitmq-cluster-operator
-          git branch rabbitmq-${{ env.RELEASE_VERSION }}
-          git checkout rabbitmq-${{ env.RELEASE_VERSION }}
+          git branch rabbitmq-cluster-operator-${{ env.RELEASE_VERSION }}
+          git checkout rabbitmq-cluster-operator-${{ env.RELEASE_VERSION }}
           cp -fR /home/runner/work/cluster-operator/cluster-operator/OLM-Package-Repo/OLM2/rabbitmq-cluster-operator/${{ env.RELEASE_VERSION }} .
           git add .
           git commit -s -m "RabbitMQ operator new release"
           git push https://DanielePalaia:"$TOKEN"@github.com/rabbitmq/community-operators
+
+      # Create the PR to redhat openshift ecosystem
+      - name: CreateOpenshiftEcosystemPR
+        env:
+          TOKEN: ${{ secrets.OPERATORHUB_TOKEN }}
+        run: |
+          git clone https://github.com/rabbitmq/community-operators-prod
+          cd community-operators-prod/operators/rabbitmq-cluster-operator
+          git branch rabbitmq-cluster-operator-${{ env.RELEASE_VERSION }}
+          git checkout rabbitmq-cluster-operator-${{ env.RELEASE_VERSION }}
+          cp -fR /home/runner/work/cluster-operator/cluster-operator/OLM-Package-Repo/OLM2/rabbitmq-cluster-operator-openshift/${{ env.RELEASE_VERSION }} .
+          git add .
+          git commit -s -m "RabbitMQ operator new release"
+          git push https://DanielePalaia:"$TOKEN"@github.com/rabbitmq/community-operators-prod
