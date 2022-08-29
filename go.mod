@@ -3,7 +3,7 @@ module github.com/rabbitmq/cluster-operator
 go 1.17
 
 require (
-	github.com/cloudflare/cfssl v1.6.1
+	github.com/cloudflare/cfssl v1.6.2
 	github.com/eclipse/paho.mqtt.golang v1.4.1
 	github.com/elastic/crd-ref-docs v0.0.8
 	github.com/go-logr/logr v1.2.3
@@ -168,7 +168,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
-	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
+	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20220712014510-0a85c31ab51e // indirect
