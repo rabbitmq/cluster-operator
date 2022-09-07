@@ -1,6 +1,6 @@
 module github.com/rabbitmq/cluster-operator
 
-go 1.17
+go 1.19
 
 require (
 	github.com/cloudflare/cfssl v1.6.2
