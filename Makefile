@@ -24,11 +24,11 @@ $(KUBEBUILDER_ASSETS):
 kubebuilder-assets: $(KUBEBUILDER_ASSETS)
 
 .PHONY: unit-tests
-unit-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet manifests ## Run unit tests
+unit-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet vuln manifests ## Run unit tests
 	ginkgo -r --randomize-all api/ internal/ pkg/
 
 .PHONY: integration-tests
-integration-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet manifests ## Run integration tests
+integration-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet vuln manifests ## Run integration tests
 	ginkgo -r controllers/
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
@@ -53,13 +53,17 @@ fmt:
 vet:
 	go vet ./...
 
+# Run govulncheck against code
+vuln:
+	govulncheck ./...
+
 # Generate code & docs
 generate: install-tools api-reference
 	controller-gen object:headerFile=./hack/NOTICE.go.txt paths=./api/...
 	controller-gen object:headerFile=./hack/NOTICE.go.txt paths=./internal/status/...
 
 # Build manager binary
-manager: generate fmt vet
+manager: generate fmt vet vuln
 	go mod download
 	go build -o bin/manager main.go
 
@@ -80,7 +84,7 @@ destroy: ## Cleanup all controller artefacts
 	kustomize build config/rbac/ | kubectl delete --ignore-not-found=true -f -
 	kustomize build config/namespace/base/ | kubectl delete --ignore-not-found=true -f -
 
-run: generate manifests fmt vet install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
+run: generate manifests fmt vet vuln install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
 
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
 	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel $(OPERATOR_ARGS)
@@ -182,6 +186,7 @@ docker-registry-secret: check-env-docker-credentials
 install-tools:
 	go mod download
 	grep _ tools/tools.go | awk -F '"' '{print $$2}' | xargs -t go install
+	go install "golang.org/x/vuln/cmd/govulncheck@latest"
 
 check-env-docker-repo: check-env-registry-server
 ifndef OPERATOR_IMAGE
