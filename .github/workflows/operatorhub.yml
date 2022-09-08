@@ -39,9 +39,9 @@ jobs:
           cp ./cluster-operator.yml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds
           cp ./config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds/crds.yaml
           cd ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/
-          python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml ${{ env.RELEASE_VERSION }} ./../../OLM2/rabbitmq-cluster-operator
+          python3 generate-olm-package.py ./manifests_crds/cluster-operator.yml ${{ env.RELEASE_VERSION }} ./../../OLM2/rabbitmq-cluster-operator
           cp ./generators/cluster-service-version-generator-openshift.yml ./generators/cluster-service-version-generator.yml
-          python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml ${{ env.RELEASE_VERSION }} ./../../OLM2/rabbitmq-cluster-operator-openshift
+          python3 generate-olm-package.py ./manifests_crds/cluster-operator.yml ${{ env.RELEASE_VERSION }} ./../../OLM2/rabbitmq-cluster-operator-openshift
 
       # Create the PR to OperatorHUB
       - name: CreateOperatorHubPR
