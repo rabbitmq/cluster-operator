@@ -453,7 +453,7 @@ func overrideSecurityContextForOpenshift(cluster *rabbitmqv1beta1.RabbitmqCluste
 	}
 }
 
-//the updateFn can change properties of the RabbitmqCluster CR
+// the updateFn can change properties of the RabbitmqCluster CR
 func updateRabbitmqCluster(ctx context.Context, client client.Client, name, namespace string, updateFn func(*rabbitmqv1beta1.RabbitmqCluster)) error {
 	var result rabbitmqv1beta1.RabbitmqCluster
 
