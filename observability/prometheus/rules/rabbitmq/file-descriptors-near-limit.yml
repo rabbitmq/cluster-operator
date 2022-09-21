@@ -14,7 +14,7 @@ spec:
       expr: |
         sum by(namespace, rabbitmq_cluster, pod, rabbitmq_node) (max_over_time(rabbitmq_process_open_fds[5m]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info)
         /
-        sum by(namespace, rabbitmq_cluster, pod, rabbitmq_node) (rabbitmq_process_max_tcp_sockets  * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info)
+        sum by(namespace, rabbitmq_cluster, pod, rabbitmq_node) (rabbitmq_process_max_fds  * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info)
         > 0.8
       for: 10m
       annotations:
