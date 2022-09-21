@@ -263,8 +263,8 @@ github.com/edsrzf/mmap-go v1.0.0/go.mod h1:YO35OhQPt3KJa3ryjFM5Bs14WD66h8eGKpfaB
 github.com/elastic/crd-ref-docs v0.0.8 h1:Sy0A24E+L5aCj/8BGTgxkumCSNeckg4650d96o7QHiU=
 github.com/elastic/crd-ref-docs v0.0.8/go.mod h1:Jd1XDGgrvHzd/+qCf4SwBnOnLl4RaFRjind0ORnHovo=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153 h1:yUdfgN0XgIJw7foRItutHYUIhlcKzcSf5vDpdhQAKTc=
-github.com/elliotchance/orderedmap v1.4.0 h1:wZtfeEONCbx6in1CZyE6bELEt/vFayMvsxqI5SgsR+A=
-github.com/elliotchance/orderedmap v1.4.0/go.mod h1:wsDwEaX5jEoyhbs7x93zk2H/qv0zwuhg4inXhDkYqys=
+github.com/elliotchance/orderedmap v1.5.0 h1:1IsExUsjv5XNBD3ZdC7jkAAqLWOOKdbPTmkHx63OsBg=
+github.com/elliotchance/orderedmap v1.5.0/go.mod h1:wsDwEaX5jEoyhbs7x93zk2H/qv0zwuhg4inXhDkYqys=
 github.com/emicklei/go-restful/v3 v3.8.0 h1:eCZ8ulSerjdAiaNpF7GxXIE7ZCMo1moN1qX+S609eVw=
 github.com/emicklei/go-restful/v3 v3.8.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/emirpasic/gods v1.12.0/go.mod h1:YfzfFFoVP/catgzJb4IKIqXjX78Ha8FMSDh3ymbK86o=
@@ -689,8 +689,8 @@ github.com/michaelklishin/rabbit-hole/v2 v2.12.0/go.mod h1:AN/3zyz7d++OHf+4WUo/L
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/miekg/pkcs11 v1.0.2/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
 github.com/miekg/pkcs11 v1.0.3/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
-github.com/mikefarah/yq/v4 v4.27.3 h1:i07Cla0Hqzkb6yfw8D0KqfYJ0+uA0IOjSfhlzTXch/I=
-github.com/mikefarah/yq/v4 v4.27.3/go.mod h1:bUnRs1NSeM504h5rCBCTmhKwR2g8ka6dEHBLdZ/p3GI=
+github.com/mikefarah/yq/v4 v4.27.5 h1:u1pzF6df2Ozaw7ko/+geyTnlIjH6sPMTIJyLeWnut38=
+github.com/mikefarah/yq/v4 v4.27.5/go.mod h1:jzkd8Ro++h/zwCdqCybwgYWOvQIyG3pe+wpqVA+HtM4=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=
 github.com/mitchellh/copystructure v1.0.0 h1:Laisrj+bAB6b/yJwB5Bt3ITZhGJdqmxquMKeZ+mmkFQ=
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
