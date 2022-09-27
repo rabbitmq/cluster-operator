@@ -58,7 +58,7 @@ jobs:
         - v1.24.1
         rabbitmq-image:
         - rabbitmq:3.9.9-management # minimum supported version
-        - rabbitmq:3.10-management
+        - rabbitmq:3.11-management
         - pivotalrabbitmq/rabbitmq:master-otp-min
         - pivotalrabbitmq/rabbitmq:master-otp-max
     steps:
