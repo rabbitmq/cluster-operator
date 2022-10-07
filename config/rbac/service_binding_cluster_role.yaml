@@ -5,20 +5,18 @@
 # This product is licensed to you under the Mozilla Public license, Version 2.0 (the "License").  You may not use this product except in compliance with the Mozilla Public License.
 #
 # This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
-#
 
-namespace: rabbitmq-system
-namePrefix: rabbitmq-cluster-
-
-resources:
-- service_account.yaml
-- role.yaml
-- role_binding.yaml
-- leader_election_role.yaml
-- leader_election_role_binding.yaml
-- service_binding_cluster_role.yaml
-
-patches:
-# the following patch file adds labels to the operator ClusterRole definition in role.yaml
-# role.yaml is a generated file, and adding labels directly to the file does not work.
-- role_labels_patch.yaml
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: service-binding-role
+  labels:
+    servicebinding.io/controller: "true"
+    app.kubernetes.io/name: rabbitmq-cluster-operator
+    app.kubernetes.io/component: rabbitmq-operator
+    app.kubernetes.io/part-of: rabbitmq
+rules:
+  - apiGroups: ["rabbitmq.com"]
+    resources: ["rabbitmqclusters"]
+    verbs: ["get", "list", "watch"]
