@@ -33,3 +33,7 @@ And once deployed, you can check check that TLS is enabled by:
       -CAfile /etc/rabbitmq-tls/ca.crt \
       -verify_return_error
 ```
+
+Note: Please refer to the official Vault documentation to understand how Vault manage certificate leases and follow the best pratices.
+https://www.vaultproject.io/docs/secrets/pki/setup.
+In particular based on your use case you may want to correctly tune parameters like -max-lease-ttl to manage certificate ttls
