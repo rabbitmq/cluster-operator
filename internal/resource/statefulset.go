@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -711,19 +712,20 @@ func setupContainer(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container 
 	//Init Container resources
 	cpuRequest := k8sresource.MustParse(initContainerCPU)
 	memoryRequest := k8sresource.MustParse(initContainerMemory)
-
+	command := []string{
+		"sh", "-c",
+		"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
+			"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
+			"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; " +
+			"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
+			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' %s >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
+			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf ; " +
+			"sleep " + strconv.Itoa(int(pointer.Int32Deref(instance.Spec.DelayStartSeconds, 30))),
+	}
 	setupContainer := corev1.Container{
-		Name:  "setup-container",
-		Image: instance.Spec.Image,
-		Command: []string{
-			"sh", "-c",
-			"cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie " +
-				"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
-				"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; " +
-				"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-				"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' %s >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
-				"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
-		},
+		Name:    "setup-container",
+		Image:   instance.Spec.Image,
+		Command: command,
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				"cpu":    cpuRequest,

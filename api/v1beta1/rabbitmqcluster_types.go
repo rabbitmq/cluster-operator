@@ -84,6 +84,16 @@ type RabbitmqClusterSpec struct {
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:default:=604800
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
+	// DelayStartSeconds is the time the init container (`setup-container`) will sleep before terminating.
+	// This effectively delays the time between starting the Pod and starting the `rabbitmq` container.
+	// RabbitMQ relies on up-to-date DNS entries early during peer discovery.
+	// The purpose of this artificial delay is to ensure that DNS entries are up-to-date when booting RabbitMQ.
+	// For more information, see https://github.com/kubernetes/kubernetes/issues/92559
+	// If your Kubernetes DNS backend is configured with a low DNS cache value or publishes not ready addresses
+	// promptly, you can decrase this value or set it to 0.
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:default:=30
+	DelayStartSeconds *int32 `json:"delayStartSeconds,omitempty"`
 	// Secret backend configuration for the RabbitmqCluster.
 	// Enables to fetch default user credentials and certificates from K8s external secret stores.
 	SecretBackend SecretBackend `json:"secretBackend,omitempty"`

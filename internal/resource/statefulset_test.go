@@ -936,7 +936,7 @@ default_pass = {{ .Data.data.password }}
 								"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; "+
 								"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf "+
 								"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /etc/rabbitmq/conf.d/11-default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf "+
-								"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
+								"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf ; sleep 30",
 						),
 						"VolumeMounts": Not(ContainElement([]corev1.VolumeMount{
 							{
@@ -1334,7 +1334,7 @@ default_pass = {{ .Data.data.password }}
 						"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; "+
 						"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf "+
 						"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf "+
-						"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf",
+						"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf ; sleep 30",
 				),
 				"VolumeMounts": ConsistOf([]corev1.VolumeMount{
 					{
@@ -2282,6 +2282,7 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 			Image:                         "rabbitmq-image-from-cr",
 			ImagePullSecrets:              []corev1.LocalObjectReference{{Name: "my-super-secret"}},
 			TerminationGracePeriodSeconds: pointer.Int64Ptr(604800),
+			DelayStartSeconds:             pointer.Int32Ptr(30),
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Type:        "this-is-a-service",
 				Annotations: map[string]string{},

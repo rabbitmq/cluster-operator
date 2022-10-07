@@ -377,6 +377,11 @@ func (in *RabbitmqClusterSpec) DeepCopyInto(out *RabbitmqClusterSpec) {
 		*out = new(int64)
 		**out = **in
 	}
+	if in.DelayStartSeconds != nil {
+		in, out := &in.DelayStartSeconds, &out.DelayStartSeconds
+		*out = new(int32)
+		**out = **in
+	}
 	in.SecretBackend.DeepCopyInto(&out.SecretBackend)
 }
 
