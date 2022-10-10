@@ -512,6 +512,7 @@ func generateRabbitmqClusterObject(clusterName string) *RabbitmqCluster {
 		Spec: RabbitmqClusterSpec{
 			Replicas:                      pointer.Int32Ptr(1),
 			TerminationGracePeriodSeconds: pointer.Int64Ptr(604800),
+			DelayStartSeconds:             pointer.Int32Ptr(30),
 			Service: RabbitmqClusterServiceSpec{
 				Type: "ClusterIP",
 			},

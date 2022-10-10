@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: 1.19.1
+  GO_VERSION: 1.19.2
   K8S_VERSION: v1.24.1
 
 jobs:
