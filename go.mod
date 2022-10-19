@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.12.0
-	github.com/mikefarah/yq/v4 v4.28.1
+	github.com/mikefarah/yq/v4 v4.28.2
 	github.com/onsi/ginkgo/v2 v2.3.1
 	github.com/onsi/gomega v1.22.1
 	github.com/rabbitmq/rabbitmq-stream-go-client v0.0.0-20210811090309-627299932bac
@@ -60,6 +60,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elliotchance/orderedmap v1.5.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
@@ -102,7 +103,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.2.1 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jhump/protoreflect v1.9.0 // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/jmoiron/sqlx v1.3.3 // indirect
@@ -135,7 +136,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
-	github.com/spf13/cobra v1.5.0 // indirect
+	github.com/spf13/cobra v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802 // indirect
 	github.com/urfave/cli v1.22.5 // indirect
