@@ -32,7 +32,7 @@ integration-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet vuln man
 	ginkgo -r controllers/
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
-	controller-gen crd rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
+	controller-gen crd:generateEmbeddedObjectMeta=true rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
 	./hack/remove-override-descriptions.sh
 	./hack/add-notice-to-yaml.sh config/rbac/role.yaml
 	./hack/add-notice-to-yaml.sh config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml

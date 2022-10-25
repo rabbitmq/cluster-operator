@@ -155,9 +155,8 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 	if stsOverride.Spec.Replicas != nil {
 		sts.Spec.Replicas = stsOverride.Spec.Replicas
 	}
-	if stsOverride.Spec.UpdateStrategy != nil {
-		sts.Spec.UpdateStrategy = *stsOverride.Spec.UpdateStrategy
-	}
+	sts.Spec.UpdateStrategy = stsOverride.Spec.UpdateStrategy
+
 	if stsOverride.Spec.PodManagementPolicy != "" {
 		sts.Spec.PodManagementPolicy = stsOverride.Spec.PodManagementPolicy
 	}
@@ -174,7 +173,7 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 			volumeClaimTemplatesOverride := stsOverride.Spec.VolumeClaimTemplates
 			pvcOverride := make([]corev1.PersistentVolumeClaim, len(volumeClaimTemplatesOverride))
 			for i := range volumeClaimTemplatesOverride {
-				copyObjectMeta(&pvcOverride[i].ObjectMeta, volumeClaimTemplatesOverride[i].EmbeddedObjectMeta)
+				copyObjectMeta(&pvcOverride[i].ObjectMeta, volumeClaimTemplatesOverride[i].ObjectMeta)
 				pvcOverride[i].Namespace = sts.Namespace // PVC should always be in the same namespace as the Stateful Set
 				pvcOverride[i].Spec = volumeClaimTemplatesOverride[i].Spec
 				if err := controllerutil.SetControllerReference(instance, &pvcOverride[i], scheme); err != nil {
@@ -186,19 +185,13 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 		}
 	}
 
-	if stsOverride.Spec.Template == nil {
-		return nil
+	copyObjectMeta(&sts.Spec.Template.ObjectMeta, stsOverride.Spec.Template.ObjectMeta)
+
+	patchedPodSpec, err := patchPodSpec(&sts.Spec.Template.Spec, &stsOverride.Spec.Template.Spec)
+	if err != nil {
+		return err
 	}
-	if stsOverride.Spec.Template.EmbeddedObjectMeta != nil {
-		copyObjectMeta(&sts.Spec.Template.ObjectMeta, *stsOverride.Spec.Template.EmbeddedObjectMeta)
-	}
-	if stsOverride.Spec.Template.Spec != nil {
-		patchedPodSpec, err := patchPodSpec(&sts.Spec.Template.Spec, stsOverride.Spec.Template.Spec)
-		if err != nil {
-			return err
-		}
-		sts.Spec.Template.Spec = patchedPodSpec
-	}
+	sts.Spec.Template.Spec = patchedPodSpec
 
 	return nil
 }
@@ -1046,7 +1039,7 @@ func copyLabelsAnnotations(base *metav1.ObjectMeta, override rabbitmqv1beta1.Emb
 
 // copyObjectMeta copies name, labels, and annotations from a given EmbeddedObjectMeta to a metav1.ObjectMeta
 // there is no need to copy the namespace because both PVCs and Pod have to be in the same namespace as its StatefulSet
-func copyObjectMeta(base *metav1.ObjectMeta, override rabbitmqv1beta1.EmbeddedObjectMeta) {
+func copyObjectMeta(base *metav1.ObjectMeta, override metav1.ObjectMeta) {
 	if override.Name != "" {
 		base.Name = override.Name
 	}

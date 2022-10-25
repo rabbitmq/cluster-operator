@@ -39,48 +39,6 @@ EmbeddedLabelsAnnotations is an embedded subset of the fields included in k8s.io
 |===
 
 
-[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta"]
-==== EmbeddedObjectMeta 
-
-EmbeddedObjectMeta is an embedded subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta. Only fields which are relevant to embedded resources are included.
-
-.Appears In:
-****
-- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-persistentvolumeclaim[$$PersistentVolumeClaim$$]
-- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-podtemplatespec[$$PodTemplateSpec$$]
-****
-
-[cols="25a,75a", options="header"]
-|===
-| Field | Description
-| *`name`* __string__ | Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/identifiers#names
-| *`namespace`* __string__ | Namespace defines the space within each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty. 
- Must be a DNS_LABEL. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/namespaces
-| *`labels`* __object (keys:string, values:string)__ | Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels
-| *`annotations`* __object (keys:string, values:string)__ | Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations
-|===
-
-
-[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-persistentvolumeclaim"]
-==== PersistentVolumeClaim 
-
-PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVolumeClaim. It contains TypeMeta and a reduced ObjectMeta. Field status is omitted.
-
-.Appears In:
-****
-- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulsetspec[$$StatefulSetSpec$$]
-****
-
-[cols="25a,75a", options="header"]
-|===
-| Field | Description
-| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | Embedded metadata identifying a Kind and API Version of an object. For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
-| *`metadata`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta[$$EmbeddedObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
-
-| *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#persistentvolumeclaimspec-v1-core[$$PersistentVolumeClaimSpec$$]__ | Spec defines the desired characteristics of a volume requested by a pod author. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
-|===
-
-
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-plugin"]
 ==== Plugin (string) 
 
@@ -91,25 +49,6 @@ A Plugin to enable on the RabbitmqCluster.
 - xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterconfigurationspec[$$RabbitmqClusterConfigurationSpec$$]
 ****
 
-
-
-[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-podtemplatespec"]
-==== PodTemplateSpec 
-
-PodTemplateSpec is an embedded version of k8s.io/api/core/v1.PodTemplateSpec. It contains a reduced ObjectMeta.
-
-.Appears In:
-****
-- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulsetspec[$$StatefulSetSpec$$]
-****
-
-[cols="25a,75a", options="header"]
-|===
-| Field | Description
-| *`metadata`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta[$$EmbeddedObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
-
-| *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#podspec-v1-core[$$PodSpec$$]__ | Specification of the desired behavior of the pod. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
-|===
 
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqcluster"]
@@ -385,30 +324,7 @@ Override configuration for the RabbitMQ StatefulSet. Allows for the manifest of 
 | Field | Description
 | *`metadata`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedlabelsannotations[$$EmbeddedLabelsAnnotations$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
 
-| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulsetspec[$$StatefulSetSpec$$]__ | Spec defines the desired identities of pods in this set.
-|===
-
-
-[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulsetspec"]
-==== StatefulSetSpec 
-
-StatefulSetSpec contains a subset of the fields included in k8s.io/api/apps/v1.StatefulSetSpec. Field RevisionHistoryLimit is omitted. Every field is made optional.
-
-.Appears In:
-****
-- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-statefulset[$$StatefulSet$$]
-****
-
-[cols="25a,75a", options="header"]
-|===
-| Field | Description
-| *`replicas`* __integer__ | replicas corresponds to the desired number of Pods in the StatefulSet. For more info, see https://pkg.go.dev/k8s.io/api/apps/v1#StatefulSetSpec
-| *`selector`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#labelselector-v1-meta[$$LabelSelector$$]__ | selector is a label query over pods that should match the replica count. It must match the pod template's labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
-| *`template`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-podtemplatespec[$$PodTemplateSpec$$]__ | template is the object that describes the pod that will be created if insufficient replicas are detected. Each pod stamped out by the StatefulSet will fulfill this Template, but have a unique identity from the rest of the StatefulSet.
-| *`volumeClaimTemplates`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-persistentvolumeclaim[$$PersistentVolumeClaim$$] array__ | volumeClaimTemplates is a list of claims that pods are allowed to reference. The StatefulSet controller is responsible for mapping network identities to claims in a way that maintains the identity of a pod. Every claim in this list must have at least one matching (by name) volumeMount in one container in the template. A claim in this list takes precedence over any volumes in the template, with the same name.
-| *`serviceName`* __string__ | serviceName is the name of the service that governs this StatefulSet. This service must exist before the StatefulSet, and is responsible for the network identity of the set. Pods get DNS/hostnames that follow the pattern: pod-specific-string.serviceName.default.svc.cluster.local where "pod-specific-string" is managed by the StatefulSet controller.
-| *`podManagementPolicy`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#podmanagementpolicytype-v1-apps[$$PodManagementPolicyType$$]__ | podManagementPolicy controls how pods are created during initial scale up, when replacing pods on nodes, or when scaling down. The default policy is `OrderedReady`, where pods are created in increasing order (pod-0, then pod-1, etc) and the controller will wait until each pod is ready before continuing. When scaling down, the pods are removed in the opposite order. The alternative policy is `Parallel` which will create pods in parallel to match the desired scale without waiting, and on scale down will delete all pods at once.
-| *`updateStrategy`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#statefulsetupdatestrategy-v1-apps[$$StatefulSetUpdateStrategy$$]__ | updateStrategy indicates the StatefulSetUpdateStrategy that will be employed to update Pods in the StatefulSet when a revision is made to Template.
+| *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#statefulsetspec-v1-apps[$$StatefulSetSpec$$]__ | Spec defines the desired identities of pods in this set.
 |===
 
 

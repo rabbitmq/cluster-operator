@@ -773,10 +773,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Replicas: pointer.Int32Ptr(10),
 					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
 						StatefulSet: &rabbitmqv1beta1.StatefulSet{
-							Spec: &rabbitmqv1beta1.StatefulSetSpec{
-								VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+							Spec: &appsv1.StatefulSetSpec{
+								VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 									{
-										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+										ObjectMeta: metav1.ObjectMeta{
 											Name:      "persistence",
 											Namespace: defaultNamespace,
 											Labels: map[string]string{
@@ -794,7 +794,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 										},
 									},
 									{
-										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+										ObjectMeta: metav1.ObjectMeta{
 											Name:      "disk-2",
 											Namespace: defaultNamespace,
 											Labels: map[string]string{
@@ -811,8 +811,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 										},
 									},
 								},
-								Template: &rabbitmqv1beta1.PodTemplateSpec{
-									Spec: &corev1.PodSpec{
+								Template: corev1.PodTemplateSpec{
+									Spec: corev1.PodSpec{
 										HostNetwork: false,
 										Volumes: []corev1.Volume{
 											{
@@ -832,6 +832,12 @@ var _ = Describe("RabbitmqClusterController", func() {
 												Image: "my-great-image",
 											},
 										},
+									},
+								},
+								// Selector is mandatory with v1 version of statefulsetspec
+								Selector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										"app.kubernetes.io/name": "rabbitmq-sts-override",
 									},
 								},
 							},

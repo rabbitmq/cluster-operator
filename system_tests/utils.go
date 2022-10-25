@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	storagev1 "k8s.io/api/storage/v1"
 	"log"
 	"net/http"
 	"os"
@@ -27,6 +26,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	storagev1 "k8s.io/api/storage/v1"
 
 	controllerruntime "sigs.k8s.io/controller-runtime"
 
@@ -49,8 +50,10 @@ import (
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/message"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 	"github.com/streadway/amqp"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
@@ -435,11 +438,12 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 }
 
 func overrideSecurityContextForOpenshift(cluster *rabbitmqv1beta1.RabbitmqCluster) {
+
 	cluster.Spec.Override = rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
 		StatefulSet: &rabbitmqv1beta1.StatefulSet{
-			Spec: &rabbitmqv1beta1.StatefulSetSpec{
-				Template: &rabbitmqv1beta1.PodTemplateSpec{
-					Spec: &corev1.PodSpec{
+			Spec: &appsv1.StatefulSetSpec{
+				Template: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
 						SecurityContext: &corev1.PodSecurityContext{},
 						Containers: []corev1.Container{
 							{

@@ -665,9 +665,22 @@ spec:
                           type: object
                         spec:
                           properties:
+                            minReadySeconds:
+                              format: int32
+                              type: integer
+                            persistentVolumeClaimRetentionPolicy:
+                              properties:
+                                whenDeleted:
+                                  type: string
+                                whenScaled:
+                                  type: string
+                              type: object
                             podManagementPolicy:
                               type: string
                             replicas:
+                              format: int32
+                              type: integer
+                            revisionHistoryLimit:
                               format: int32
                               type: integer
                             selector:
@@ -704,6 +717,10 @@ spec:
                                       additionalProperties:
                                         type: string
                                       type: object
+                                    finalizers:
+                                      items:
+                                        type: string
+                                      type: array
                                     labels:
                                       additionalProperties:
                                         type: string
@@ -3306,6 +3323,23 @@ spec:
                                               volumeClaimTemplate:
                                                 properties:
                                                   metadata:
+                                                    properties:
+                                                      annotations:
+                                                        additionalProperties:
+                                                          type: string
+                                                        type: object
+                                                      finalizers:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                      labels:
+                                                        additionalProperties:
+                                                          type: string
+                                                        type: object
+                                                      name:
+                                                        type: string
+                                                      namespace:
+                                                        type: string
                                                     type: object
                                                   spec:
                                                     properties:
@@ -3843,6 +3877,10 @@ spec:
                                         additionalProperties:
                                           type: string
                                         type: object
+                                      finalizers:
+                                        items:
+                                          type: string
+                                        type: array
                                       labels:
                                         additionalProperties:
                                           type: string
@@ -3934,8 +3972,61 @@ spec:
                                       volumeName:
                                         type: string
                                     type: object
+                                  status:
+                                    properties:
+                                      accessModes:
+                                        items:
+                                          type: string
+                                        type: array
+                                      allocatedResources:
+                                        additionalProperties:
+                                          anyOf:
+                                            - type: integer
+                                            - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                        type: object
+                                      capacity:
+                                        additionalProperties:
+                                          anyOf:
+                                            - type: integer
+                                            - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                        type: object
+                                      conditions:
+                                        items:
+                                          properties:
+                                            lastProbeTime:
+                                              format: date-time
+                                              type: string
+                                            lastTransitionTime:
+                                              format: date-time
+                                              type: string
+                                            message:
+                                              type: string
+                                            reason:
+                                              type: string
+                                            status:
+                                              type: string
+                                            type:
+                                              type: string
+                                          required:
+                                            - status
+                                            - type
+                                          type: object
+                                        type: array
+                                      phase:
+                                        type: string
+                                      resizeStatus:
+                                        type: string
+                                    type: object
                                 type: object
                               type: array
+                          required:
+                            - selector
+                            - serviceName
+                            - template
                           type: object
                       type: object
                   type: object

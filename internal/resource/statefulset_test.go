@@ -153,10 +153,10 @@ var _ = Describe("StatefulSet", func() {
 				builder.Instance.Spec.Persistence.Storage = &zero
 				// we shouldn't create the `persistence` PVC if storage==0, even if overrides are used
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+					Spec: &appsv1.StatefulSetSpec{
+						VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+								ObjectMeta: metav1.ObjectMeta{
 									Name:      "persistence",
 									Namespace: instance.Namespace,
 								},
@@ -182,7 +182,7 @@ var _ = Describe("StatefulSet", func() {
 		Context("Override", func() {
 			It("overrides statefulSet.spec.selector", func() {
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+					Spec: &appsv1.StatefulSetSpec{
 						Selector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
 								"my-label": "my-label",
@@ -199,7 +199,7 @@ var _ = Describe("StatefulSet", func() {
 
 			It("overrides statefulSet.spec.serviceName", func() {
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+					Spec: &appsv1.StatefulSetSpec{
 						ServiceName: "mysevice",
 					},
 				}
@@ -1503,10 +1503,10 @@ default_pass = {{ .Data.data.password }}
 			It("sets the default pvc to what's provided in override", func() {
 				seven := k8sresource.MustParse("7Gi")
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+					Spec: &appsv1.StatefulSetSpec{
+						VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+								ObjectMeta: metav1.ObjectMeta{
 									Name:      "persistence",
 									Namespace: instance.Namespace,
 								},
@@ -1598,7 +1598,7 @@ default_pass = {{ .Data.data.password }}
 
 			It("overrides statefulSet.spec.replicas", func() {
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+					Spec: &appsv1.StatefulSetSpec{
 						Replicas: pointer.Int32Ptr(10),
 					},
 				}
@@ -1610,7 +1610,7 @@ default_pass = {{ .Data.data.password }}
 
 			It("overrides statefulSet.spec.podManagementPolicy", func() {
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+					Spec: &appsv1.StatefulSetSpec{
 						PodManagementPolicy: "my-policy",
 					},
 				}
@@ -1622,8 +1622,8 @@ default_pass = {{ .Data.data.password }}
 
 			It("overrides statefulSet.spec.UpdateStrategy", func() {
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						UpdateStrategy: &appsv1.StatefulSetUpdateStrategy{
+					Spec: &appsv1.StatefulSetSpec{
+						UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
 							Type: "OnDelete",
 							RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
 								Partition: pointer.Int32Ptr(1),
@@ -1641,10 +1641,10 @@ default_pass = {{ .Data.data.password }}
 			It("overrides the PVC list", func() {
 				storageClass := "my-storage-class"
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+					Spec: &appsv1.StatefulSetSpec{
+						VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+								ObjectMeta: metav1.ObjectMeta{
 									Name:      "pert-1",
 									Namespace: instance.Namespace,
 								},
@@ -1658,7 +1658,7 @@ default_pass = {{ .Data.data.password }}
 								},
 							},
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+								ObjectMeta: metav1.ObjectMeta{
 									Name:      "pert-2",
 									Namespace: instance.Namespace,
 								},
@@ -1732,10 +1732,10 @@ default_pass = {{ .Data.data.password }}
 			It("successfully overrides PVC list even when namespace not specified", func() {
 				storageClass := "my-storage-class"
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+					Spec: &appsv1.StatefulSetSpec{
+						VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+								ObjectMeta: metav1.ObjectMeta{
 									Name: "pert-1",
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
@@ -1748,7 +1748,7 @@ default_pass = {{ .Data.data.password }}
 								},
 							},
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+								ObjectMeta: metav1.ObjectMeta{
 									Name: "pert-2",
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
@@ -1821,9 +1821,9 @@ default_pass = {{ .Data.data.password }}
 			Context("PodTemplateSpec", func() {
 				It("Overrides PodTemplateSpec objectMeta", func() {
 					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-						Spec: &rabbitmqv1beta1.StatefulSetSpec{
-							Template: &rabbitmqv1beta1.PodTemplateSpec{
-								EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
+						Spec: &appsv1.StatefulSetSpec{
+							Template: corev1.PodTemplateSpec{
+								ObjectMeta: metav1.ObjectMeta{
 									Name: "my-name",
 									Labels: map[string]string{
 										"my-label": "my-label",
@@ -1851,9 +1851,9 @@ default_pass = {{ .Data.data.password }}
 
 				It("Overrides PodSpec", func() {
 					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-						Spec: &rabbitmqv1beta1.StatefulSetSpec{
-							Template: &rabbitmqv1beta1.PodTemplateSpec{
-								Spec: &corev1.PodSpec{
+						Spec: &appsv1.StatefulSetSpec{
+							Template: corev1.PodTemplateSpec{
+								Spec: corev1.PodSpec{
 									TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
 										{
 											MaxSkew:           1,
@@ -2015,9 +2015,9 @@ default_pass = {{ .Data.data.password }}
 				})
 				It("can reset securityContext to default", func() {
 					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-						Spec: &rabbitmqv1beta1.StatefulSetSpec{
-							Template: &rabbitmqv1beta1.PodTemplateSpec{
-								Spec: &corev1.PodSpec{
+						Spec: &appsv1.StatefulSetSpec{
+							Template: corev1.PodTemplateSpec{
+								Spec: corev1.PodSpec{
 									SecurityContext: &corev1.PodSecurityContext{},
 									InitContainers: []corev1.Container{
 										{
@@ -2045,9 +2045,9 @@ default_pass = {{ .Data.data.password }}
 				Context("Rabbitmq Container volume mounts", func() {
 					It("Overrides the volume mounts list while making sure that '/var/lib/rabbitmq/' mounts before '/var/lib/rabbitmq/mnesia/' ", func() {
 						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-							Spec: &rabbitmqv1beta1.StatefulSetSpec{
-								Template: &rabbitmqv1beta1.PodTemplateSpec{
-									Spec: &corev1.PodSpec{
+							Spec: &appsv1.StatefulSetSpec{
+								Template: corev1.PodTemplateSpec{
+									Spec: corev1.PodSpec{
 										Containers: []corev1.Container{
 											{
 												Name: "rabbitmq",
@@ -2097,9 +2097,9 @@ default_pass = {{ .Data.data.password }}
 				Context("Rabbitmq Container EnvVar", func() {
 					It("Overrides the envVar list while making sure that 'MY_POD_NAME', 'MY_POD_NAMESPACE' and 'K8S_SERVICE_NAME' are always defined first", func() {
 						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-							Spec: &rabbitmqv1beta1.StatefulSetSpec{
-								Template: &rabbitmqv1beta1.PodTemplateSpec{
-									Spec: &corev1.PodSpec{
+							Spec: &appsv1.StatefulSetSpec{
+								Template: corev1.PodTemplateSpec{
+									Spec: corev1.PodSpec{
 										Containers: []corev1.Container{
 											{
 												Name: "rabbitmq",
@@ -2211,10 +2211,10 @@ default_pass = {{ .Data.data.password }}
 				instance.Spec.Replicas = pointer.Int32Ptr(2)
 
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+					Spec: &appsv1.StatefulSetSpec{
 						Replicas: pointer.Int32Ptr(4),
-						Template: &rabbitmqv1beta1.PodTemplateSpec{
-							Spec: &corev1.PodSpec{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
 								Containers: []corev1.Container{
 									{
 										Name:  "rabbitmq",
