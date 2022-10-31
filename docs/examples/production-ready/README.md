@@ -11,7 +11,10 @@ To deploy this RabbitMQ cluster, run the following:
 
 ```shell
 kubectl apply -f rabbitmq.yaml
+#k8s Version:<v1.25.3
 kubectl apply -f pod-disruption-budget.yaml
+#k8s Version:>=1.25.3
+kubectl apply -f pod-disruption-budget-1.25.3.yaml
 ```
 
 This example is a good starting point for a production RabbitMQ deployment and it may not be suitable for **your use-case**.
