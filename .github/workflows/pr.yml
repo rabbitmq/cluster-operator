@@ -59,8 +59,8 @@ jobs:
         rabbitmq-image:
         - rabbitmq:3.9.9-management # minimum supported version
         - rabbitmq:3.10-management
-        - pivotalrabbitmq/rabbitmq:master-otp-min
-        - pivotalrabbitmq/rabbitmq:master-otp-max
+        - pivotalrabbitmq/rabbitmq:main-otp-min-bazel
+        - pivotalrabbitmq/rabbitmq:main-otp-max-bazel
     steps:
     - name: Install Go
       uses: actions/setup-go@v2
