@@ -7,17 +7,17 @@ on:
     - observability/prometheus/rules/**/*.y*ml
 
 env:
-  GO_VERSION: 1.19.2
+  GO_VERSION: ~1.19.2
 
 jobs:
   rules:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Create Prometheus rule file
         run: |
           make install-tools
