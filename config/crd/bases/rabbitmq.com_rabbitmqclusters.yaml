@@ -665,6 +665,9 @@ spec:
                           type: object
                         spec:
                           properties:
+                            minReadySeconds:
+                              format: int32
+                              type: integer
                             podManagementPolicy:
                               type: string
                             replicas:
