@@ -449,8 +449,8 @@ func (cluster *RabbitmqCluster) ExternalSecretEnabled() bool {
 	return cluster.Spec.SecretBackend.ExternalSecret.Name != ""
 }
 
-func (cluster *RabbitmqCluster) UsesDefaultUserUpdaterImage() bool {
-	return cluster.VaultEnabled() && cluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage == nil
+func (cluster *RabbitmqCluster) UsesDefaultUserUpdaterImage(controlRabbitmqImage bool) bool {
+	return cluster.VaultEnabled() && (cluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage == nil || controlRabbitmqImage)
 }
 
 func (cluster *RabbitmqCluster) VaultDefaultUserSecretEnabled() bool {
