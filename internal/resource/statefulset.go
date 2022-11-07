@@ -83,6 +83,7 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 		if overrideSts.Spec.ServiceName != "" {
 			sts.Spec.ServiceName = overrideSts.Spec.ServiceName
 		}
+
 	}
 
 	return sts, nil
@@ -160,6 +161,10 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 	}
 	if stsOverride.Spec.PodManagementPolicy != "" {
 		sts.Spec.PodManagementPolicy = stsOverride.Spec.PodManagementPolicy
+	}
+
+	if stsOverride.Spec.MinReadySeconds != 0 {
+		sts.Spec.MinReadySeconds = stsOverride.Spec.MinReadySeconds
 	}
 
 	if len(stsOverride.Spec.VolumeClaimTemplates) != 0 {

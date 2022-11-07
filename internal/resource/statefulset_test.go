@@ -1608,6 +1608,18 @@ default_pass = {{ .Data.data.password }}
 				Expect(*statefulSet.Spec.Replicas).To(Equal(int32(10)))
 			})
 
+			It("overrides statefulSet.spec.MinReadySeconds", func() {
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						MinReadySeconds: 10,
+					},
+				}
+
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(statefulSet.Spec.MinReadySeconds).To(Equal(int32(10)))
+			})
+
 			It("overrides statefulSet.spec.podManagementPolicy", func() {
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
