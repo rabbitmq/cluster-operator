@@ -26,7 +26,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.13.0
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20220217024943-cfd92767d28e
 	sigs.k8s.io/controller-tools v0.10.0
-	sigs.k8s.io/kind v0.16.0
+	sigs.k8s.io/kind v0.17.0
 	sigs.k8s.io/kustomize/kustomize/v4 v4.5.7
 )
 
@@ -93,6 +93,7 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
+	github.com/google/safetext v0.0.0-20220905092116-b49f7bc46da2 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/trillian v1.4.0 // indirect
 	github.com/google/uuid v1.2.0 // indirect
