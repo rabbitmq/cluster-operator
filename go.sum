@@ -694,8 +694,8 @@ github.com/michaelklishin/rabbit-hole/v2 v2.12.0/go.mod h1:AN/3zyz7d++OHf+4WUo/L
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/miekg/pkcs11 v1.0.2/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
 github.com/miekg/pkcs11 v1.0.3/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
-github.com/mikefarah/yq/v4 v4.30.1 h1:OPrIzpykvhWmXMBBp88AlTonfTb77WILZjcskOI3Pzk=
-github.com/mikefarah/yq/v4 v4.30.1/go.mod h1:KBm6Ec5wLC5kiKJaDZfN4a7KWrJrf4rFPUZAmgleIAg=
+github.com/mikefarah/yq/v4 v4.30.2 h1:VPcd6pHSZkrlA1t/cGx5y1mpYTmk3+MOG0HCN9B/an4=
+github.com/mikefarah/yq/v4 v4.30.2/go.mod h1:KBm6Ec5wLC5kiKJaDZfN4a7KWrJrf4rFPUZAmgleIAg=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=
 github.com/mitchellh/copystructure v1.0.0 h1:Laisrj+bAB6b/yJwB5Bt3ITZhGJdqmxquMKeZ+mmkFQ=
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
