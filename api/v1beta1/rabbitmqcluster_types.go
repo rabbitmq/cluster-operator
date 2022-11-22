@@ -104,7 +104,8 @@ type RabbitmqClusterSpec struct {
 // Future secret backends could be Secrets Store CSI Driver.
 // If not configured, K8s Secrets will be used.
 type SecretBackend struct {
-	Vault *VaultSpec `json:"vault,omitempty"`
+	Vault          *VaultSpec `json:"vault,omitempty"`
+	ExternalSecret string     `json:"externalSecret,omitempty"`
 }
 
 // VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations)
@@ -441,6 +442,10 @@ func (cluster *RabbitmqCluster) StreamNeeded() bool {
 
 func (cluster *RabbitmqCluster) VaultEnabled() bool {
 	return cluster.Spec.SecretBackend.Vault != nil
+}
+
+func (cluster *RabbitmqCluster) ExternalSecretEnabled() bool {
+	return cluster.Spec.SecretBackend.ExternalSecret != ""
 }
 
 func (cluster *RabbitmqCluster) UsesDefaultUserUpdaterImage() bool {

@@ -419,8 +419,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 	}
 
-	if !builder.Instance.VaultDefaultUserSecretEnabled() {
-		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance)
+	if !builder.Instance.VaultDefaultUserSecretEnabled() && !builder.Instance.ExternalSecretEnabled() {
+		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance, "")
+	} else if builder.Instance.ExternalSecretEnabled() {
+		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance, builder.Instance.Spec.SecretBackend.ExternalSecret)
 	}
 
 	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" || builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
@@ -779,14 +781,19 @@ func setupContainer(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container 
 	return setupContainer
 }
 
-func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *rabbitmqv1beta1.RabbitmqCluster) {
+func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *rabbitmqv1beta1.RabbitmqCluster, secretName string) {
+
+	if secretName == "" {
+		secretName = instance.ChildResourceName(DefaultUserSecretName)
+	}
+
 	for _, value := range volumes {
 		if value.Name == "rabbitmq-confd" {
 			value.VolumeSource.Projected.Sources = append(value.VolumeSource.Projected.Sources,
 				corev1.VolumeProjection{
 					Secret: &corev1.SecretProjection{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: instance.ChildResourceName(DefaultUserSecretName),
+							Name: secretName,
 						},
 						Items: []corev1.KeyToPath{
 							{
