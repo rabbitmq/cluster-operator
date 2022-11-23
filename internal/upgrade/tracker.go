@@ -12,13 +12,17 @@ type UpgradeRolloutTracker struct {
 	plannedTimes  []time.Time
 }
 
-func NewUpgradeRolloutTracker(rolloutWindow time.Duration) UpgradeRolloutTracker {
-	return UpgradeRolloutTracker{
+func NewUpgradeRolloutTracker(rolloutWindow time.Duration) *UpgradeRolloutTracker {
+	return &UpgradeRolloutTracker{
 		rolloutWindow: rolloutWindow,
 	}
 }
 
 func (t *UpgradeRolloutTracker) PlanUpgrade(currentTime time.Time) time.Time {
+	if t.rolloutWindow == time.Duration(0) {
+		return currentTime
+	}
+
 	t.cleanupPlannedTimes(currentTime)
 	nextUpgradeTime := t.findNextUpgradeTime(currentTime)
 	t.AddUpgradeTime(nextUpgradeTime)

@@ -43,4 +43,13 @@ var _ = Describe("Tracker", func() {
 			startTime.Add(-20 * time.Minute),
 		}),
 	)
+	When("the upgrade window is 0 length", func() {
+		It("selects now as the time to upgrade", func() {
+			tracker := upgrade.NewUpgradeRolloutTracker(0 * time.Minute)
+			tracker.AddUpgradeTime(startTime)
+			tracker.AddUpgradeTime(startTime)
+			tracker.AddUpgradeTime(startTime)
+			Expect(tracker.PlanUpgrade(startTime)).To(Equal(startTime))
+		})
+	})
 })
