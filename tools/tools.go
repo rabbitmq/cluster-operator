@@ -1,3 +1,4 @@
+//go:build tools
 // +build tools
 
 package tools
@@ -11,4 +12,8 @@ import (
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	_ "sigs.k8s.io/kind"
 	_ "sigs.k8s.io/kustomize/kustomize/v4"
+	// These are required for the generated clients.
+	_ "k8s.io/client-go/discovery/fake"
+	_ "k8s.io/code-generator"
+	_ "k8s.io/kube-openapi/cmd/openapi-gen"
 )

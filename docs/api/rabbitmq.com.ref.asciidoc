@@ -11,14 +11,162 @@
 [id="{anchor_prefix}-rabbitmq-com-v1beta1"]
 == rabbitmq.com/v1beta1
 
-Package v1beta1 contains API Schema definitions for the rabbitmq v1beta1 API group
+Package v1beta1 contains API Schema definitions for the rabbitmq.com v1beta1 API group
 
 .Resource Types
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-binding[$$Binding$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-bindinglist[$$BindingList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchange[$$Exchange$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchangelist[$$ExchangeList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federation[$$Federation$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federationlist[$$FederationList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permission[$$Permission$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionlist[$$PermissionList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policy[$$Policy$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policylist[$$PolicyList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queue[$$Queue$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queuelist[$$QueueList$$]
 - xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqcluster[$$RabbitmqCluster$$]
 - xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterlist[$$RabbitmqClusterList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplication[$$SchemaReplication$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationlist[$$SchemaReplicationList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovel[$$Shovel$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovellist[$$ShovelList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermission[$$TopicPermission$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionlist[$$TopicPermissionList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-user[$$User$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userlist[$$UserList$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhost[$$Vhost$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhostlist[$$VhostList$$]
 
 
 === Definitions
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-binding"]
+==== Binding 
+
+Binding is the Schema for the bindings API
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-bindinglist[$$BindingList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `Binding`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-bindingspec[$$BindingSpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-bindingstatus[$$BindingStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-bindinglist"]
+==== BindingList 
+
+BindingList contains a list of Binding
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `BindingList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-binding[$$Binding$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-bindingspec"]
+==== BindingSpec 
+
+BindingSpec defines the desired state of Binding
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-binding[$$Binding$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`vhost`* __string__ | Default to vhost '/'; cannot be updated
+| *`source`* __string__ | Cannot be updated
+| *`destination`* __string__ | Cannot be updated
+| *`destinationType`* __string__ | Cannot be updated
+| *`routingKey`* __string__ | Cannot be updated
+| *`arguments`* __RawExtension__ | Cannot be updated
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that the binding will be created in. Required property.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-bindingstatus"]
+==== BindingStatus 
+
+BindingStatus defines the observed state of Binding
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-binding[$$Binding$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this Binding. It corresponds to the Binding's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition"]
+==== Condition 
+
+
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-bindingstatus[$$BindingStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchangestatus[$$ExchangeStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federationstatus[$$FederationStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionstatus[$$PermissionStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policystatus[$$PolicyStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queuestatus[$$QueueStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationstatus[$$SchemaReplicationStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovelstatus[$$ShovelStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionstatus[$$TopicPermissionStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userstatus[$$UserStatus$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhoststatus[$$VhostStatus$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`type`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-conditiontype[$$ConditionType$$]__ | Type indicates the scope of the custom resource status addressed by the condition.
+| *`status`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#conditionstatus-v1-core[$$ConditionStatus$$]__ | True, False, or Unknown
+| *`lastTransitionTime`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#time-v1-meta[$$Time$$]__ | The last time this Condition status changed.
+| *`reason`* __string__ | One word, camel-case reason for current status of the condition.
+| *`message`* __string__ | Full text reason for current status of the condition.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-conditiontype"]
+==== ConditionType (string) 
+
+
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$]
+****
+
+
 
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedlabelsannotations"]
 ==== EmbeddedLabelsAnnotations 
@@ -58,6 +206,259 @@ EmbeddedObjectMeta is an embedded subset of the fields included in k8s.io/apimac
  Must be a DNS_LABEL. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/namespaces
 | *`labels`* __object (keys:string, values:string)__ | Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels
 | *`annotations`* __object (keys:string, values:string)__ | Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchange"]
+==== Exchange 
+
+Exchange is the Schema for the exchanges API
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchangelist[$$ExchangeList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `Exchange`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchangespec[$$ExchangeSpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchangestatus[$$ExchangeStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchangelist"]
+==== ExchangeList 
+
+ExchangeList contains a list of Exchange
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `ExchangeList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchange[$$Exchange$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchangespec"]
+==== ExchangeSpec 
+
+ExchangeSpec defines the desired state of Exchange
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchange[$$Exchange$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`name`* __string__ | Required property; cannot be updated
+| *`vhost`* __string__ | Default to vhost '/'; cannot be updated
+| *`type`* __string__ | Cannot be updated
+| *`durable`* __boolean__ | Cannot be updated
+| *`autoDelete`* __boolean__ | Cannot be updated
+| *`arguments`* __xref:{anchor_prefix}-k8s-io-apimachinery-pkg-runtime-rawextension[$$RawExtension$$]__ | 
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that the exchange will be created in. Required property.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchangestatus"]
+==== ExchangeStatus 
+
+ExchangeStatus defines the observed state of Exchange
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchange[$$Exchange$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this Exchange. It corresponds to the Exchange's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federation"]
+==== Federation 
+
+Federation is the Schema for the federations API
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federationlist[$$FederationList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `Federation`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federationspec[$$FederationSpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federationstatus[$$FederationStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federationlist"]
+==== FederationList 
+
+FederationList contains a list of Federation
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `FederationList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federation[$$Federation$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federationspec"]
+==== FederationSpec 
+
+FederationSpec defines the desired state of Federation For how to configure federation upstreams, see: https://www.rabbitmq.com/federation-reference.html.
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federation[$$Federation$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`name`* __string__ | Required property; cannot be updated
+| *`vhost`* __string__ | Default to vhost '/'; cannot be updated
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that this federation upstream will be created in. Required property.
+| *`uriSecret`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | Secret contains the AMQP URI(s) for the upstream. The Secret must contain the key `uri` or operator will error. `uri` should be one or multiple uris separated by ','. Required property.
+| *`prefetch-count`* __integer__ | 
+| *`ackMode`* __string__ | 
+| *`expires`* __integer__ | 
+| *`messageTTL`* __integer__ | 
+| *`maxHops`* __integer__ | 
+| *`reconnectDelay`* __integer__ | 
+| *`trustUserId`* __boolean__ | 
+| *`exchange`* __string__ | 
+| *`queue`* __string__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federationstatus"]
+==== FederationStatus 
+
+FederationStatus defines the observed state of Federation
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federation[$$Federation$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this Federation. It corresponds to the Federation's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permission"]
+==== Permission 
+
+Permission is the Schema for the permissions API
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionlist[$$PermissionList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `Permission`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionspec[$$PermissionSpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionstatus[$$PermissionStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionlist"]
+==== PermissionList 
+
+PermissionList contains a list of Permission
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `PermissionList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permission[$$Permission$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionspec"]
+==== PermissionSpec 
+
+PermissionSpec defines the desired state of Permission
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permission[$$Permission$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`user`* __string__ | Name of an existing user; must provide user or userReference, else create/update will fail; cannot be updated
+| *`userReference`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | Reference to an existing user.rabbitmq.com object; must provide user or userReference, else create/update will fail; cannot be updated
+| *`vhost`* __string__ | Name of an existing vhost; required property; cannot be updated
+| *`permissions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhostpermissions[$$VhostPermissions$$]__ | Permissions to grant to the user in the specific vhost; required property. See RabbitMQ doc for more information: https://www.rabbitmq.com/access-control.html#user-management
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that both the provided user and vhost are. Required property.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionstatus"]
+==== PermissionStatus 
+
+PermissionStatus defines the observed state of Permission
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permission[$$Permission$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this Permission. It corresponds to the Permission's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
 |===
 
 
@@ -109,6 +510,172 @@ PodTemplateSpec is an embedded version of k8s.io/api/core/v1.PodTemplateSpec. It
 | *`metadata`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta[$$EmbeddedObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
 
 | *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#podspec-v1-core[$$PodSpec$$]__ | Specification of the desired behavior of the pod. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policy"]
+==== Policy 
+
+Policy is the Schema for the policies API
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policylist[$$PolicyList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `Policy`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policyspec[$$PolicySpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policystatus[$$PolicyStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policylist"]
+==== PolicyList 
+
+PolicyList contains a list of Policy
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `PolicyList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policy[$$Policy$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policyspec"]
+==== PolicySpec 
+
+PolicySpec defines the desired state of Policy https://www.rabbitmq.com/parameters.html#policies
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policy[$$Policy$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`name`* __string__ | Required property; cannot be updated
+| *`vhost`* __string__ | Default to vhost '/'; cannot be updated
+| *`pattern`* __string__ | Regular expression pattern used to match queues and exchanges, e.g. "^amq.". Required property.
+| *`applyTo`* __string__ | What this policy applies to: 'queues', 'exchanges', or 'all'. Default to 'all'.
+| *`priority`* __integer__ | Default to '0'. In the event that more than one policy can match a given exchange or queue, the policy with the greatest priority applies.
+| *`definition`* __xref:{anchor_prefix}-k8s-io-apimachinery-pkg-runtime-rawextension[$$RawExtension$$]__ | Policy definition. Required property.
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that the exchange will be created in. Required property.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policystatus"]
+==== PolicyStatus 
+
+PolicyStatus defines the observed state of Policy
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policy[$$Policy$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this Policy. It corresponds to the Policy's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queue"]
+==== Queue 
+
+Queue is the Schema for the queues API
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queuelist[$$QueueList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `Queue`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queuespec[$$QueueSpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queuestatus[$$QueueStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queuelist"]
+==== QueueList 
+
+QueueList contains a list of Queue
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `QueueList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queue[$$Queue$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queuespec"]
+==== QueueSpec 
+
+QueueSpec defines the desired state of Queue
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queue[$$Queue$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`name`* __string__ | Name of the queue; required property.
+| *`vhost`* __string__ | Default to vhost '/'
+| *`type`* __string__ | 
+| *`durable`* __boolean__ | When set to false queues does not survive server restart.
+| *`autoDelete`* __boolean__ | when set to true, queues that have had at least one consumer before are deleted after the last consumer unsubscribes.
+| *`arguments`* __xref:{anchor_prefix}-k8s-io-apimachinery-pkg-runtime-rawextension[$$RawExtension$$]__ | Queue arguments in the format of KEY: VALUE. e.g. x-delivery-limit: 10000. Configuring queues through arguments is not recommended because they cannot be updated once set; we recommend configuring queues through policies instead.
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that the queue will be created in. Required property.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queuestatus"]
+==== QueueStatus 
+
+QueueStatus defines the observed state of Queue
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queue[$$Queue$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this Queue. It corresponds to the Queue's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
 |===
 
 
@@ -228,6 +795,35 @@ The settings for the persistent storage desired for each Pod in the RabbitmqClus
 |===
 
 
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference"]
+==== RabbitmqClusterReference 
+
+
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-bindingspec[$$BindingSpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-exchangespec[$$ExchangeSpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-federationspec[$$FederationSpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionspec[$$PermissionSpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-policyspec[$$PolicySpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-queuespec[$$QueueSpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationspec[$$SchemaReplicationSpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovelspec[$$ShovelSpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionspec[$$TopicPermissionSpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userspec[$$UserSpec$$]
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhostspec[$$VhostSpec$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`name`* __string__ | The name of the RabbitMQ cluster to reference. Have to set either name or connectionSecret, but not both.
+| *`namespace`* __string__ | The namespace of the RabbitMQ cluster to reference. Defaults to the namespace of the requested resource if omitted.
+| *`connectionSecret`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | Secret contains the http management uri for the RabbitMQ cluster. The Secret must contain the key `uri`, `username` and `password` or operator will error. Have to set either name or connectionSecret, but not both.
+|===
+
+
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclustersecretreference"]
 ==== RabbitmqClusterSecretReference 
 
@@ -334,6 +930,120 @@ Status presents the observed state of RabbitmqCluster
 |===
 
 
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplication"]
+==== SchemaReplication 
+
+SchemaReplication is the Schema for the schemareplications API This feature requires Tanzu RabbitMQ with schema replication plugin. For more information, see: https://tanzu.vmware.com/rabbitmq and https://www.rabbitmq.com/definitions-standby.html.
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationlist[$$SchemaReplicationList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `SchemaReplication`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationspec[$$SchemaReplicationSpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationstatus[$$SchemaReplicationStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationlist"]
+==== SchemaReplicationList 
+
+SchemaReplicationList contains a list of SchemaReplication
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `SchemaReplicationList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplication[$$SchemaReplication$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationsecretbackend"]
+==== SchemaReplicationSecretBackend 
+
+SchemaReplicationSecretBackend configures a single secret backend. Today, only Vault exists as supported secret backend.
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationspec[$$SchemaReplicationSpec$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`vault`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationvaultspec[$$SchemaReplicationVaultSpec$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationspec"]
+==== SchemaReplicationSpec 
+
+SchemaReplicationSpec defines the desired state of SchemaReplication
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplication[$$SchemaReplication$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that schema replication would be set for. Must be an existing cluster.
+| *`upstreamSecret`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | Defines a Secret which contains credentials to be used for schema replication. The Secret must contain the keys `username` and `password` in its Data field, or operator will error. Have to set either secretBackend.vault.secretPath or spec.upstreamSecret, but not both.
+| *`endpoints`* __string__ | endpoints should be one or multiple endpoints separated by ','. Must provide either spec.endpoints or endpoints in spec.upstreamSecret. When endpoints are provided in both spec.endpoints and spec.upstreamSecret, spec.endpoints takes precedence.
+| *`secretBackend`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationsecretbackend[$$SchemaReplicationSecretBackend$$]__ | Set to fetch user credentials from K8s external secret stores to be used for schema replication.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationstatus"]
+==== SchemaReplicationStatus 
+
+SchemaReplicationStatus defines the observed state of SchemaReplication
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplication[$$SchemaReplication$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this Queue. It corresponds to the Queue's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationvaultspec"]
+==== SchemaReplicationVaultSpec 
+
+
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-schemareplicationsecretbackend[$$SchemaReplicationSecretBackend$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`secretPath`* __string__ | Path in Vault to access a KV (Key-Value) secret with the fields username and password to be used for replication. For example "secret/data/rabbitmq/config". Optional; if not provided, username and password will come from upstreamSecret instead. Have to set either secretBackend.vault.secretPath or upstreamSecret, but not both.
+|===
+
+
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-secretbackend"]
 ==== SecretBackend 
 
@@ -367,6 +1077,108 @@ Override configuration for the Service created to serve traffic to the cluster. 
 | *`metadata`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedlabelsannotations[$$EmbeddedLabelsAnnotations$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
 
 | *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#servicespec-v1-core[$$ServiceSpec$$]__ | Spec defines the behavior of a Service. https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovel"]
+==== Shovel 
+
+Shovel is the Schema for the shovels API
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovellist[$$ShovelList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `Shovel`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovelspec[$$ShovelSpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovelstatus[$$ShovelStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovellist"]
+==== ShovelList 
+
+ShovelList contains a list of Shovel
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `ShovelList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovel[$$Shovel$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovelspec"]
+==== ShovelSpec 
+
+ShovelSpec defines the desired state of Shovel For how to configure Shovel, see: https://www.rabbitmq.com/shovel.html.
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovel[$$Shovel$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`name`* __string__ | Required property; cannot be updated
+| *`vhost`* __string__ | Default to vhost '/'; cannot be updated
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that this Shovel will be created in. Required property.
+| *`uriSecret`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | Secret contains the AMQP URI(s) to configure Shovel destination and source. The Secret must contain the key `destUri` and `srcUri` or operator will error. Both fields should be one or multiple uris separated by ','. Required property.
+| *`ackMode`* __string__ | 
+| *`addForwardHeaders`* __boolean__ | 
+| *`deleteAfter`* __string__ | 
+| *`destAddForwardHeaders`* __boolean__ | 
+| *`destAddTimestampHeader`* __boolean__ | 
+| *`destAddress`* __string__ | 
+| *`destApplicationProperties`* __string__ | 
+| *`destExchange`* __string__ | 
+| *`destExchangeKey`* __string__ | 
+| *`destProperties`* __string__ | 
+| *`destProtocol`* __string__ | 
+| *`destPublishProperties`* __string__ | 
+| *`destQueue`* __string__ | 
+| *`prefetchCount`* __integer__ | 
+| *`reconnectDelay`* __integer__ | 
+| *`srcAddress`* __string__ | 
+| *`srcDeleteAfter`* __string__ | 
+| *`srcExchange`* __string__ | 
+| *`srcExchangeKey`* __string__ | 
+| *`srcPrefetchCount`* __integer__ | 
+| *`srcProtocol`* __string__ | 
+| *`srcQueue`* __string__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovelstatus"]
+==== ShovelStatus 
+
+ShovelStatus defines the observed state of Shovel
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-shovel[$$Shovel$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this Shovel. It corresponds to the Shovel's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
 |===
 
 
@@ -432,6 +1244,201 @@ Allows for the configuration of TLS certificates to be used by RabbitMQ. Also al
 |===
 
 
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermission"]
+==== TopicPermission 
+
+TopicPermission is the Schema for the topicpermissions API
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionlist[$$TopicPermissionList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `TopicPermission`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionspec[$$TopicPermissionSpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionstatus[$$TopicPermissionStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionconfig"]
+==== TopicPermissionConfig 
+
+
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionspec[$$TopicPermissionSpec$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`exchange`* __string__ | Name of a topic exchange; required property; cannot be updated.
+| *`read`* __string__ | 
+| *`write`* __string__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionlist"]
+==== TopicPermissionList 
+
+TopicPermissionList contains a list of TopicPermission
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `TopicPermissionList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermission[$$TopicPermission$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionspec"]
+==== TopicPermissionSpec 
+
+TopicPermissionSpec defines the desired state of TopicPermission
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermission[$$TopicPermission$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`user`* __string__ | Name of an existing user; must provide user or userReference, else create/update will fail; cannot be updated.
+| *`userReference`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | Reference to an existing user.rabbitmq.com object; must provide user or userReference, else create/update will fail; cannot be updated.
+| *`vhost`* __string__ | Name of an existing vhost; required property; cannot be updated.
+| *`permissions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionconfig[$$TopicPermissionConfig$$]__ | Permissions to grant to the user to a topic exchange; required property.
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that both the provided user and vhost are. Required property.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermissionstatus"]
+==== TopicPermissionStatus 
+
+TopicPermissionStatus defines the observed state of TopicPermission
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-topicpermission[$$TopicPermission$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this TopicPermission. It corresponds to the TopicPermission's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
+|===
+
+
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-user"]
+==== User 
+
+User is the Schema for the users API.
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userlist[$$UserList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `User`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userspec[$$UserSpec$$]__ | Spec configures the desired state of the User object.
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userstatus[$$UserStatus$$]__ | Status exposes the observed state of the User object.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userlist"]
+==== UserList 
+
+UserList contains a list of Users.
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `UserList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-user[$$User$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userspec"]
+==== UserSpec 
+
+UserSpec defines the desired state of User.
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-user[$$User$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`tags`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-usertag[$$UserTag$$] array__ | List of permissions tags to associate with the user. This determines the level of access to the RabbitMQ management UI granted to the user. Omitting this field will lead to a user than can still connect to the cluster through messaging protocols, but cannot perform any management actions. For more information, see https://www.rabbitmq.com/management.html#permissions.
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that the user will be created for. This cluster must exist for the User object to be created.
+| *`importCredentialsSecret`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | Defines a Secret used to pre-define the username and password set for this User. User objects created with this field set will not have randomly-generated credentials, and will instead import the username/password values from this Secret. The Secret must contain the keys `username` and `password` in its Data field, or the import will fail. Note that this import only occurs at creation time, and is ignored once a password has been set on a User.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userstatus"]
+==== UserStatus 
+
+UserStatus defines the observed state of User.
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-user[$$User$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this User. It corresponds to the User's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
+| *`credentials`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | Provides a reference to a Secret object containing the user credentials.
+| *`username`* __string__ | Provide rabbitmq Username
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-usertag"]
+==== UserTag (string) 
+
+UserTag defines the level of access to the management UI allocated to the user. For more information, see https://www.rabbitmq.com/management.html#permissions.
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-userspec[$$UserSpec$$]
+****
+
+
+
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaultspec"]
 ==== VaultSpec 
 
@@ -470,6 +1477,105 @@ VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platf
 | *`commonName`* __string__ | Specifies the requested certificate Common Name (CN). Defaults to <serviceName>.<namespace>.svc if not provided.
 | *`altNames`* __string__ | Specifies the requested Subject Alternative Names (SANs), in a comma-delimited list. These will be appended to the SANs added by the cluster-operator. The cluster-operator will add SANs: "<RabbitmqCluster name>-server-<index>.<RabbitmqCluster name>-nodes.<namespace>" for each pod, e.g. "myrabbit-server-0.myrabbit-nodes.default".
 | *`ipSans`* __string__ | Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhost"]
+==== Vhost 
+
+Vhost is the Schema for the vhosts API
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhostlist[$$VhostList$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `Vhost`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhostspec[$$VhostSpec$$]__ | 
+| *`status`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhoststatus[$$VhostStatus$$]__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhostlist"]
+==== VhostList 
+
+VhostList contains a list of Vhost
+
+
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
+| *`kind`* __string__ | `VhostList`
+| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | 
+| *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
+
+| *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhost[$$Vhost$$] array__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhostpermissions"]
+==== VhostPermissions 
+
+Set of RabbitMQ permissions: configure, read and write. By not setting a property (configure/write/read), it result in an empty string which does not not match any permission.
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-permissionspec[$$PermissionSpec$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`configure`* __string__ | 
+| *`write`* __string__ | 
+| *`read`* __string__ | 
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhostspec"]
+==== VhostSpec 
+
+VhostSpec defines the desired state of Vhost
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhost[$$Vhost$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`name`* __string__ | Name of the vhost; see https://www.rabbitmq.com/vhosts.html.
+| *`tracing`* __boolean__ | 
+| *`tags`* __string array__ | 
+| *`rabbitmqClusterReference`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterreference[$$RabbitmqClusterReference$$]__ | Reference to the RabbitmqCluster that the vhost will be created in. Required property.
+|===
+
+
+[id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhoststatus"]
+==== VhostStatus 
+
+VhostStatus defines the observed state of Vhost
+
+.Appears In:
+****
+- xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vhost[$$Vhost$$]
+****
+
+[cols="25a,75a", options="header"]
+|===
+| Field | Description
+| *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this Vhost. It corresponds to the Vhost's generation, which is updated on mutation by the API Server.
+| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-condition[$$Condition$$] array__ | 
 |===
 
 

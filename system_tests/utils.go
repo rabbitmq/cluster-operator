@@ -15,10 +15,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	storagev1 "k8s.io/api/storage/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/utils/pointer"
 	"log"
 	"net/http"
 	"os"
@@ -28,10 +32,9 @@ import (
 	"strings"
 	"time"
 
-	controllerruntime "sigs.k8s.io/controller-runtime"
-
 	"gopkg.in/ini.v1"
 
+	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
 	mgmtApi "github.com/michaelklishin/rabbit-hole/v2"
@@ -74,39 +77,6 @@ func MustHaveEnv(name string) string {
 		panic(fmt.Sprintf("Environment variable '%s' not found", name))
 	}
 	return value
-}
-
-func createClientSet() (*kubernetes.Clientset, error) {
-	config, err := controllerruntime.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatalf("[error] %s \n", err)
-	}
-
-	return clientset, err
-}
-
-func kubectlExec(namespace, podname, containerName string, args ...string) ([]byte, error) {
-	kubectlArgs := append([]string{
-		"-n",
-		namespace,
-		"exec",
-		podname,
-		"-c",
-		containerName,
-		"--",
-	}, args...)
-
-	return kubectl(kubectlArgs...)
-}
-
-func kubectl(args ...string) ([]byte, error) {
-	cmd := exec.Command("kubectl", args...)
-	return cmd.CombinedOutput()
 }
 
 func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, body []byte) (responseBody []byte, err error) {
@@ -374,24 +344,6 @@ func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPas
 
 type HealthcheckResponse struct {
 	Status string `json:"status"`
-}
-
-func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset, namespace, instanceName string) (string, string, error) {
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(ctx, fmt.Sprintf("%s-default-user", instanceName), metav1.GetOptions{})
-	if err != nil {
-		return "", "", err
-	}
-
-	username, ok := secret.Data["username"]
-	if !ok {
-		return "", "", fmt.Errorf("cannot find 'username' in %s-default-user", instanceName)
-	}
-
-	password, ok := secret.Data["password"]
-	if !ok {
-		return "", "", fmt.Errorf("cannot find 'password' in %s-default-user", instanceName)
-	}
-	return string(username), string(password), nil
 }
 
 func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
@@ -1106,4 +1058,205 @@ func volumeExpansionSupported(ctx context.Context, clientSet *kubernetes.Clients
 	Expect(clusterDefaultStorageClass).NotTo(BeNil(), "expected to find a default storageClass, but failed to find one")
 	return clusterDefaultStorageClass.AllowVolumeExpansion != nil &&
 		*clusterDefaultStorageClass.AllowVolumeExpansion == true
+}
+
+// Useful for small Openshift environment while updating status takes a long time
+const waitUpdatedStatusCondition = 20 * time.Second
+
+func createRestConfig() (*rest.Config, error) {
+	var config *rest.Config
+	var err error
+	var kubeconfig string
+
+	if len(os.Getenv("KUBECONFIG")) > 0 {
+		kubeconfig = os.Getenv("KUBECONFIG")
+	} else {
+		kubeconfig = filepath.Join(os.Getenv("HOME"), ".kube/config")
+	}
+	config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func createClientSet() (*kubernetes.Clientset, error) {
+	config, err := createRestConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatalf("[error] %s \n", err)
+	}
+
+	return clientset, err
+}
+
+func kubectl(args ...string) ([]byte, error) {
+	cmd := exec.Command("kubectl", args...)
+	return cmd.CombinedOutput()
+}
+
+func kubectlExec(namespace, podname, containerName string, args ...string) ([]byte, error) {
+	kubectlArgs := append([]string{
+		"-n",
+		namespace,
+		"exec",
+		podname,
+		"-c",
+		containerName,
+		"--",
+	}, args...)
+
+	return kubectl(kubectlArgs...)
+}
+
+func generateRabbitClient(ctx context.Context, clientSet *kubernetes.Clientset, namespace, name string) (*rabbithole.Client, error) {
+	endpoint, err := managementEndpoint(ctx, clientSet, namespace, name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get management endpoint: %w", err)
+	}
+
+	username, password, err := getUsernameAndPassword(ctx, clientSet, namespace, name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get username and password: %v", err)
+	}
+
+	rabbitClient, err := rabbithole.NewClient(endpoint, username, password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate rabbit client: %v", err)
+	}
+
+	return rabbitClient, nil
+}
+
+func getUsernameAndPassword(ctx context.Context, clientSet *kubernetes.Clientset, namespace, name string) (string, string, error) {
+	secretName := fmt.Sprintf("%s-default-user", name)
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		return "", "", err
+	}
+	username, ok := secret.Data["username"]
+	if !ok {
+		return "", "", fmt.Errorf("cannot find 'username' in %s", secretName)
+	}
+	password, ok := secret.Data["password"]
+	if !ok {
+		return "", "", fmt.Errorf("cannot find 'password' in %s", secretName)
+	}
+	return string(username), string(password), nil
+}
+
+func managementEndpoint(ctx context.Context, clientSet *kubernetes.Clientset, namespace, name string) (string, error) {
+	uri, err := managementURI(ctx, clientSet, namespace, name)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("http://%s", uri), nil
+}
+
+func managementURI(ctx context.Context, clientSet *kubernetes.Clientset, namespace, name string) (string, error) {
+	nodeIp := kubernetesNodeIp(ctx, clientSet)
+	if nodeIp == "" {
+		return "", errors.New("failed to get kubernetes Node IP")
+	}
+
+	nodePort := managementNodePort(ctx, clientSet, namespace, name)
+	if nodePort == "" {
+		return "", errors.New("failed to get NodePort for management")
+	}
+
+	return fmt.Sprintf("%s:%s", nodeIp, nodePort), nil
+}
+
+func managementNodePort(ctx context.Context, clientSet *kubernetes.Clientset, namespace, name string) string {
+	svc, err := clientSet.CoreV1().Services(namespace).
+		Get(ctx, name, metav1.GetOptions{})
+
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	for _, port := range svc.Spec.Ports {
+		if port.Name == "management" {
+			return strconv.Itoa(int(port.NodePort))
+		}
+	}
+	return ""
+}
+
+func basicTestRabbitmqCluster(name, namespace string) *rabbitmqv1beta1.RabbitmqCluster {
+	cluster := &rabbitmqv1beta1.RabbitmqCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+			Replicas: pointer.Int32Ptr(1),
+			Resources: &corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceMemory: k8sresource.MustParse("100Mi"),
+				},
+			},
+			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+				Type: corev1.ServiceTypeNodePort,
+			},
+			Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
+				AdditionalPlugins: []rabbitmqv1beta1.Plugin{"rabbitmq_federation", "rabbitmq_shovel", "rabbitmq_stream"},
+			},
+		},
+	}
+
+	if os.Getenv("ENVIRONMENT") == "openshift" {
+		overrideSecurityContextForOpenshift(cluster)
+	}
+
+	if image := os.Getenv("RABBITMQ_IMAGE"); image != "" {
+		cluster.Spec.Image = image
+	}
+	if secret := os.Getenv("RABBITMQ_IMAGE_PULL_SECRET"); secret != "" {
+		cluster.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
+			{Name: secret},
+		}
+	}
+
+	return cluster
+}
+
+func setupTestRabbitmqCluster(rmqClusterClient client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) {
+	// setup a RabbitmqCluster used for system tests
+	Expect(rmqClusterClient.Create(context.Background(), rabbitmqCluster)).To(Succeed())
+	Eventually(func() string {
+		output, err := kubectl(
+			"-n",
+			rabbitmqCluster.Namespace,
+			"get",
+			"rabbitmqclusters",
+			rabbitmqCluster.Name,
+			"-ojsonpath='{.status.conditions[?(@.type==\"AllReplicasReady\")].status}'",
+		)
+		if err != nil {
+			Expect(string(output)).To(ContainSubstring("NotFound"))
+		}
+		return string(output)
+	}, 120, 10).Should(Equal("'True'"))
+	Expect(rmqClusterClient.Get(context.Background(), types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, rabbitmqCluster)).To(Succeed())
+}
+
+func updateTestRabbitmqCluster(rmqClusterClient client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) {
+	// update a RabbitmqCluster used for system tests
+	Expect(rmqClusterClient.Update(context.Background(), rabbitmqCluster)).To(Succeed())
+	Eventually(func() string {
+		output, err := kubectl(
+			"-n",
+			rabbitmqCluster.Namespace,
+			"get",
+			"rabbitmqclusters",
+			rabbitmqCluster.Name,
+			"-ojsonpath='{.status.conditions[?(@.type==\"AllReplicasReady\")].status}'",
+		)
+		if err != nil {
+			Expect(string(output)).To(ContainSubstring("NotFound"))
+		}
+		return string(output)
+	}, 120, 10).Should(Equal("'True'"))
 }

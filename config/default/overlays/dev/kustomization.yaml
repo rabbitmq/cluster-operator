@@ -8,7 +8,7 @@
 namespace: rabbitmq-system
 
 resources:
-- ../../base
+- ../cert-manager
 
 patches:
 - manager_image_patch.yaml

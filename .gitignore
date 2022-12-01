@@ -3,6 +3,7 @@ cover.out
 **/*.yaml-e
 .idea/
 .envrc
+tmp/
 tags
 releases/
 testbin/

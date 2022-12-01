@@ -32,7 +32,7 @@ integration-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet vuln man
 	ginkgo -r controllers/
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
-	controller-gen crd rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
+	controller-gen crd rbac:roleName=operator-role webhook paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
 	./hack/remove-override-descriptions.sh
 	./hack/add-notice-to-yaml.sh config/rbac/role.yaml
 	./hack/add-notice-to-yaml.sh config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml
@@ -72,7 +72,6 @@ deploy-manager:  ## Deploy manager
 	kustomize build config/default/base | kubectl apply -f -
 
 deploy-manager-dev:
-	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/dev | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
 deploy-sample: ## Deploy RabbitmqCluster defined in config/sample/base
@@ -137,25 +136,29 @@ docker-build-dev: check-env-docker-repo  git-commit-sha
 	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 
-CERT_MANAGER_VERSION ?= 1.2.0
-CERT_MANAGER_HELM_RELEASE := cert-manager
-CERT_MANAGER_NAMESPACE := cert-manager
-cert-manager:
-	@echo "Installing Cert Manager"
-	helm repo add jetstack https://charts.jetstack.io
-	helm upgrade $(CERT_MANAGER_HELM_RELEASE) jetstack/$(@) \
-		--install \
-		--namespace $(CERT_MANAGER_NAMESPACE) --create-namespace \
-		--version $(CERT_MANAGER_VERSION) \
-		--set installCRDs=true \
-		--wait
+################
+# Cert Manager #
+################
+LOCAL_TMP := $(CURDIR)/tmp
+$(LOCAL_TMP):
+	mkdir -p -v $(@)
+CERT_MANAGER_VERSION ?= v1.7.0
+CERT_MANAGER_MANIFEST ?= https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml
 
-cert-manager-rm:
-	@echo "Deleting Cert Manager"
-	helm uninstall $(CERT_MANAGER_HELM_RELEASE) \
-		--namespace $(CERT_MANAGER_NAMESPACE)
-	kubectl delete namespace $(CERT_MANAGER_NAMESPACE)
-	helm repo remove jetstack
+CMCTL = $(LOCAL_TESTBIN)/cmctl
+.PHONY: cmctl
+cmctl: | $(CMCTL)
+$(CMCTL): | $(LOCAL_BIN) $(LOCAL_TMP)
+	curl -sSL -o $(LOCAL_TMP)/cmctl.tar.gz https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cmctl-$(platform)-$(shell go env GOARCH).tar.gz
+	tar -C $(LOCAL_TMP) -xzf $(LOCAL_TMP)/cmctl.tar.gz
+	mv $(LOCAL_TMP)/cmctl $(CMCTL)
+
+cert-manager: | $(CMCTL) ## Deploys Cert Manager from JetStack repo. Use CERT_MANAGER_VERSION to customise version e.g. v1.2.0
+	kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml
+	$(CMCTL) check api --wait=2m
+
+destroy-cert-manager: ## Deletes Cert Manager deployment created by 'make cert-manager'
+	kubectl delete -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services
 	# Note that created LoadBalancer services will have an unreachable external IP
@@ -170,7 +173,7 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
 
 system-tests: install-tools ## Run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
-	NAMESPACE="$(K8S_OPERATOR_NAMESPACE)" ginkgo -nodes=3 --randomize-all -r system_tests/
+	NAMESPACE="$(K8S_OPERATOR_NAMESPACE)" ginkgo --nodes 3 --randomize-all -r system_tests/
 
 kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
 	echo "running kubectl plugin tests"
@@ -182,6 +185,17 @@ docker-registry-secret: check-env-docker-credentials
 	echo "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username="$$DOCKER_REGISTRY_USERNAME" --docker-password="$$DOCKER_REGISTRY_PASSWORD" || true
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
+
+define get_mod_code_generator
+@echo "Only go get & mod k8s.io/code-generator, but do not install it"
+@echo "⚠️  Keep it at the same version as captured in go.mod, otherwise we may end up with version inconsistencies"
+awk '/k8s.io\/code-generator/ { system("go get -d " $$1 "@" $$2) }' go.mod
+endef
+
+generate-client-set:
+	$(get_mod_code_generator)
+	go mod vendor
+	./hack/update-codegen.sh
 
 install-tools:
 	go mod download

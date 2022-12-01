@@ -1,0 +1,14 @@
+spec:
+  template:
+    spec:
+      containers:
+      - name: operator
+        volumeMounts:
+        - mountPath: /etc/ssl/certs/testca.crt
+          name: test-ca
+          subPath: tls.crt
+      volumes:
+      - name: test-ca
+        secret:
+          defaultMode: 420
+          secretName: %s

@@ -10,9 +10,13 @@ kind: Kustomization
 
 namespace: rabbitmq-system
 resources:
+- ../../crd
 - ../../manager
-# [CERTMANAGER] Uncomment next line to enable cert-manager
-#- ../certmanager
+- ../../webhook
+
+patches:
+- manager_webhook_patch.yaml
+- webhookcainjection_patch.yaml
 
 images:
 - name: rabbitmqoperator/cluster-operator-dev
