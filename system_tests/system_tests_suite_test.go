@@ -90,12 +90,12 @@ var _ = SynchronizedBeforeSuite(func() {
 
 	// setup a RabbitmqCluster used for system tests
 	rmq = basicTestRabbitmqCluster(fmt.Sprintf("system-test-node-%d", GinkgoParallelProcess()), namespace)
-	// setupTestRabbitmqCluster(rmqClusterClient, rmq)
+	setupTestRabbitmqCluster(rmqClusterClient, rmq)
 
-	// rabbitClient, err = generateRabbitClient(context.Background(), clientSet, namespace, rmq.Name)
-	// Expect(err).NotTo(HaveOccurred())
+	rabbitClient, err = generateRabbitClient(context.Background(), clientSet, namespace, rmq.Name)
+	Expect(err).NotTo(HaveOccurred())
 })
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
-	//Expect(rmqClusterClient.Delete(context.Background(), &rabbitmqv1beta1.RabbitmqCluster{ObjectMeta: metav1.ObjectMeta{Name: rmq.Name, Namespace: rmq.Namespace}})).ToNot(HaveOccurred())
+	Expect(rmqClusterClient.Delete(context.Background(), &rabbitmqv1beta1.RabbitmqCluster{ObjectMeta: metav1.ObjectMeta{Name: rmq.Name, Namespace: rmq.Namespace}})).ToNot(HaveOccurred())
 })

@@ -648,8 +648,23 @@ func createTLSSecret(secretName, secretNamespace, hostname string) (string, []by
 	// generate and write cert and key to file
 	caCert, caKey, err := createCertificateChain(hostname, caCertFile, serverCertFile, serverKeyFile)
 	ExpectWithOffset(1, err).To(Succeed())
+
+	tmpfile, err := os.CreateTemp("", "ca.key")
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	defer os.Remove(tmpfile.Name())
+
+	_, err = tmpfile.Write(caKey)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	err = tmpfile.Close()
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 	// create k8s tls secret
 	ExpectWithOffset(1, k8sCreateTLSSecret(secretName, secretNamespace, serverCertPath, serverKeyPath)).To(Succeed())
+
+	// create CA tls secret
+	ExpectWithOffset(1, k8sCreateTLSSecret(secretName+"-ca", secretNamespace, caCertPath, tmpfile.Name())).To(Succeed())
 
 	// remove cert files
 	ExpectWithOffset(1, os.Remove(serverKeyPath)).To(Succeed())
