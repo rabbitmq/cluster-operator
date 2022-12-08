@@ -116,6 +116,20 @@ func (r *RabbitmqClusterReconciler) runQueueRebalanceCommand(ctx context.Context
 	return r.deleteAnnotation(ctx, rmq, queueRebalanceAnnotation)
 }
 
+func (r *RabbitmqClusterReconciler) runForceBootCommand(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+	logger := ctrl.LoggerFrom(ctx)
+	podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
+	cmd := "rabbitmqctl force_boot"
+	stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", cmd)
+	if err != nil {
+		msg := "failed to run force boot on pod"
+		logger.Error(err, msg, "pod", podName, "command", cmd, "stdout", stdout, "stderr", stderr)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcile", fmt.Sprintf("%s %s", msg, podName))
+		return fmt.Errorf("%s %s: %v", msg, podName, err)
+	}
+	return nil
+}
+
 func statefulSetNeedsQueueRebalance(sts *appsv1.StatefulSet, rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
 	return statefulSetBeingUpdated(sts) &&
 		!rmq.Spec.SkipPostDeploySteps &&

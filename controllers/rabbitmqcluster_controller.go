@@ -11,10 +11,12 @@ This product may include a number of subcomponents with separate copyright notic
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"time"
@@ -71,6 +73,7 @@ type RabbitmqClusterReconciler struct {
 
 // the rbac rule requires an empty row at the end to render
 // +kubebuilder:rbac:groups="",resources=pods/exec,verbs=create
+// +kubebuilder:rbac:groups="",resources=pods/log,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=update;get;list;watch
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;watch;list
@@ -145,6 +148,22 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if sts != nil && statefulSetNeedsQueueRebalance(sts, rabbitmqCluster) {
 		if err := r.markForQueueRebalance(ctx, rabbitmqCluster); err != nil {
 			return ctrl.Result{}, err
+		}
+	}
+
+	// force boot rabbitmq pod because mnesia tables times out
+	podName := fmt.Sprintf("%s-0", rabbitmqCluster.ChildResourceName("server"))
+	pod, err := r.pod(ctx, rabbitmqCluster, podName)
+	if err == nil && pod != nil {
+		podLog, err := r.getPodLogs(ctx, pod)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if strings.Contains(podLog, "Error while waiting for Mnesia tables: {timeout_waiting_for_tables") {
+			logger.Info("pod log", pod.Name, podLog)
+			if err := r.runForceBootCommand(ctx, rabbitmqCluster); err != nil {
+				return ctrl.Result{RequeueAfter: 120 * time.Second}, err
+			}
 		}
 	}
 
@@ -331,6 +350,24 @@ func (r *RabbitmqClusterReconciler) setReconcileSuccess(ctx context.Context, rab
 			"namespace", rabbitmqCluster.Namespace,
 			"name", rabbitmqCluster.Name)
 	}
+}
+func (r *RabbitmqClusterReconciler) getPodLogs(ctx context.Context, pod *corev1.Pod) (string, error) {
+	podLogOpts := corev1.PodLogOptions{}
+	req := r.Clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
+	podLogs, err := req.Stream(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "", err
+	}
+	str := buf.String()
+
+	return str, nil
 }
 
 func (r *RabbitmqClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {

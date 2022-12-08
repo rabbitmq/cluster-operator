@@ -91,3 +91,11 @@ func (r *RabbitmqClusterReconciler) configMap(ctx context.Context, rmq *rabbitmq
 	}
 	return configMap, nil
 }
+
+func (r *RabbitmqClusterReconciler) pod(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, name string) (*corev1.Pod, error) {
+	pod := &corev1.Pod{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: rmq.Namespace, Name: name}, pod); err != nil {
+		return nil, err
+	}
+	return pod, nil
+}
