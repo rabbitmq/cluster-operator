@@ -219,8 +219,8 @@ jobs:
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
-        workload_identity_provider: ${{ env.GCP_IDENTITY_PROVIDER }}
-        service_account: ${{ env.GCP_SA }}
+        workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
+        service_account: ${{ secrets.GCP_SA }}
     - id: 'get-credentials'
       uses: 'google-github-actions/get-gke-credentials@v1'
       with:
@@ -261,8 +261,8 @@ jobs:
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
-        workload_identity_provider: ${{ env.GCP_IDENTITY_PROVIDER }}
-        service_account: ${{ env.GCP_SA }}
+        workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
+        service_account: ${{ secrets.GCP_SA }}
     - id: 'get-credentials'
       uses: 'google-github-actions/get-gke-credentials@v1'
       with:
