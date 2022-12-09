@@ -161,10 +161,8 @@ jobs:
     needs: build_operator
     strategy:
       matrix:
-        k8s:
-        - ${{ env.K8S_VERSION }}
         rabbitmq-image:
-        - rabbitmq:${{ env.MIN_RABBITMQ_VERSION }}-management
+        - rabbitmq:3.9.9-management
         - rabbitmq:management
         - pivotalrabbitmq/rabbitmq:main-otp-min-bazel
         - pivotalrabbitmq/rabbitmq:main-otp-max-bazel
@@ -178,7 +176,7 @@ jobs:
       uses: actions/checkout@v3
     - name: System tests
       env:
-        K8S_VERSION: ${{ matrix.k8s }}
+        K8S_VERSION: ${{ env.K8S_VERSION }}
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
       run: |
         export GOPATH=$HOME/go
