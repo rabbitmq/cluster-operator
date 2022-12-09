@@ -113,7 +113,8 @@ deploy-kind: check-env-docker-repo git-commit-sha manifests deploy-namespace-rba
 
 YTT_VERSION ?= v0.44.1
 YTT = $(LOCAL_TESTBIN)/ytt
-$(YTT): | $(LOCAL_TESTBIN)
+$(YTT):
+	mkdir -p $(LOCAL_TESTBIN)
 	curl -sSL -o $(YTT) https://github.com/vmware-tanzu/carvel-ytt/releases/download/$(YTT_VERSION)/ytt-$(platform)-$(shell go env GOARCH)
 	chmod +x $(YTT)
 
