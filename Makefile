@@ -123,7 +123,7 @@ QUAY_IO_OPERATOR_IMAGE ?= quay.io/rabbitmqoperator/cluster-operator:latest
 generate-installation-manifest: | $(YTT)
 	mkdir -p releases
 	kustomize build config/installation/ > releases/rabbitmq-cluster-operator.yaml
-	ytt -f releases/rabbitmq-cluster-operator.yaml -f config/ytt/overlay-manager-image.yaml --data-value operator_image=$(QUAY_IO_OPERATOR_IMAGE) > releases/rabbitmq-cluster-operator-quay-io.yaml
+	$(YTT) -f releases/rabbitmq-cluster-operator.yaml -f config/ytt/overlay-manager-image.yaml --data-value operator_image=$(QUAY_IO_OPERATOR_IMAGE) > releases/rabbitmq-cluster-operator-quay-io.yaml
 
 # Build the docker image
 docker-build: check-env-docker-repo git-commit-sha
