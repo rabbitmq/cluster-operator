@@ -156,6 +156,7 @@ jobs:
   system_tests_local:
     name: Local system tests (using KinD)
     runs-on: ubuntu-latest
+    container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name == 'pull_request' }}
     needs: build_operator
     strategy:
@@ -197,6 +198,7 @@ jobs:
   system_tests:
     name: System tests (using GKE ci-bunny-1)
     runs-on: ubuntu-latest
+    container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name != 'pull_request' }}
     concurrency: ${{ env.GKE_TEST_CLUSTER_1 }}
     needs: build_operator
@@ -250,6 +252,7 @@ jobs:
   test_doc_examples:
     name: Documented example tests (using GKE ci-bunny-2)
     runs-on: ubuntu-latest
+    container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name != 'pull_request' }}
     concurrency: ${{ env.GKE_TEST_CLUSTER_2 }}
     needs: build_operator
