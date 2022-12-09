@@ -198,12 +198,12 @@ jobs:
     runs-on: ubuntu-latest
     container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name != 'pull_request' }}
-    concurrency: ${{ env.GKE_TEST_CLUSTER_1 }}
+    concurrency: ci-bunny-1
     needs: build_operator
     strategy:
       matrix:
         rabbitmq-image:
-        - rabbitmq:${{ env.MIN_RABBITMQ_VERSION }}-management
+        - rabbitmq:3.9.9-management
         - rabbitmq:management
         - pivotalrabbitmq/rabbitmq:main-otp-min-bazel
         - pivotalrabbitmq/rabbitmq:main-otp-max-bazel
@@ -252,7 +252,7 @@ jobs:
     runs-on: ubuntu-latest
     container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name != 'pull_request' }}
-    concurrency: ${{ env.GKE_TEST_CLUSTER_2 }}
+    concurrency: ci-bunny-2
     needs: build_operator
     steps:
     - name: Install Go
