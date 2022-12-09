@@ -142,9 +142,10 @@ jobs:
         export GOPATH=$HOME/go
         export PATH=$PATH:$GOPATH/bin
         make install-tools
+        pushd config/installation
         kustomize edit set image \
         rabbitmqoperator/cluster-operator-dev=rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
-        cd -
+        popd
         make generate-installation-manifest QUAY_IO_OPERATOR_IMAGE=quay.io/rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
     - name: Upload operator manifests
       if: github.event_name != 'pull_request'
@@ -215,21 +216,16 @@ jobs:
         check-latest: true
     - name: Check out code into the Go module directory
       uses: actions/checkout@v3
-    # Setup gcloud CLI
-    - uses: google-github-actions/setup-gcloud@v1
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
       with:
-        service_account_key: ${{ secrets.GKE_SA_KEY }}
-        project_id: ${{ secrets.GKE_PROJECT }}
-    # Configure Docker to use the gcloud command-line tool as a credential
-    # helper for authentication
-    - run: |-
-        gcloud --quiet auth configure-docker
-    # Get the GKE credentials, so we can deploy to the cluster
-    - uses: google-github-actions/get-gke-credentials@v1
+        workload_identity_provider: ${{ env.GCP_IDENTITY_PROVIDER }}
+        service_account: ${{ env.GCP_SA }}
+    - id: 'get-credentials'
+      uses: 'google-github-actions/get-gke-credentials@v1'
       with:
-        cluster_name: ${{ env.GKE_TEST_CLUSTER_1 }}
-        location: ${{ env.GKE_REGION }}
-        credentials: ${{ secrets.GKE_SA_KEY }}
+        cluster_name: ci-bunny-1
+        location: europe-west1
     - name: Get operator manifest
       uses: actions/download-artifact@v3
       with:
@@ -262,21 +258,16 @@ jobs:
         check-latest: true
     - name: Check out code into the Go module directory
       uses: actions/checkout@v3
-    # Setup gcloud CLI
-    - uses: google-github-actions/setup-gcloud@v1
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
       with:
-        service_account_key: ${{ secrets.GKE_SA_KEY }}
-        project_id: ${{ secrets.GKE_PROJECT }}
-    # Configure Docker to use the gcloud command-line tool as a credential
-    # helper for authentication
-    - run: |-
-        gcloud --quiet auth configure-docker
-    # Get the GKE credentials, so we can deploy to the cluster
-    - uses: google-github-actions/get-gke-credentials@v1
+        workload_identity_provider: ${{ env.GCP_IDENTITY_PROVIDER }}
+        service_account: ${{ env.GCP_SA }}
+    - id: 'get-credentials'
+      uses: 'google-github-actions/get-gke-credentials@v1'
       with:
-        cluster_name: ${{ env.GKE_TEST_CLUSTER_2 }}
-        location: ${{ env.GKE_REGION }}
-        credentials: ${{ secrets.GKE_SA_KEY }}
+        cluster_name: ci-bunny-2
+        location: europe-west1
     - name: Get operator manifest
       uses: actions/download-artifact@v3
       with:
