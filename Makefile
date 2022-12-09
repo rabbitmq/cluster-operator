@@ -111,9 +111,15 @@ deploy-kind: check-env-docker-repo git-commit-sha manifests deploy-namespace-rba
 	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/kind | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
+YTT_VERSION ?= v0.44.1
+YTT = $(LOCAL_TESTBIN)/ytt
+$(YTT): | $(LOCAL_TESTBIN)
+	curl -sSL -o $(YTT) https://github.com/vmware-tanzu/carvel-ytt/releases/download/$(YTT_VERSION)/ytt-$(platform)-$(shell go env GOARCH)
+	chmod +x $(YTT)
+
 QUAY_IO_OPERATOR_IMAGE ?= quay.io/rabbitmqoperator/cluster-operator:latest
 # Builds a single-file installation manifest to deploy the Operator
-generate-installation-manifest:
+generate-installation-manifest: | $(YTT)
 	mkdir -p releases
 	kustomize build config/installation/ > releases/rabbitmq-cluster-operator.yaml
 	ytt -f releases/rabbitmq-cluster-operator.yaml -f config/ytt/overlay-manager-image.yaml --data-value operator_image=$(QUAY_IO_OPERATOR_IMAGE) > releases/rabbitmq-cluster-operator-quay-io.yaml
