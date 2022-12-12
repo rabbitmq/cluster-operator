@@ -229,14 +229,14 @@ jobs:
         name: operator-manifests
     - name: Install Operator build
       run: |
+        make install-tools
+        make destroy
         kubectl apply -f cluster-operator.yml
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
     - name: System tests
       env:
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
       run: |
-        make install-tools
-        make destroy
         make system-tests
   test_doc_examples:
     name: Documented example tests (using GKE ci-bunny-2)

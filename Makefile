@@ -9,6 +9,12 @@ help:
 ENVTEST_K8S_VERSION ?= 1.22.1
 ARCHITECTURE = amd64
 LOCAL_TESTBIN = $(CURDIR)/testbin
+$(LOCAL_TESTBIN):
+	mkdir -p $@
+
+LOCAL_TMP := $(CURDIR)/tmp
+$(LOCAL_TMP):
+	mkdir -p $@
 
 K8S_OPERATOR_NAMESPACE ?= rabbitmq-system
 
@@ -113,7 +119,7 @@ deploy-kind: check-env-docker-repo git-commit-sha manifests deploy-namespace-rba
 
 YTT_VERSION ?= v0.44.1
 YTT = $(LOCAL_TESTBIN)/ytt
-$(YTT):
+$(YTT): | $(LOCAL_TESTBIN)
 	mkdir -p $(LOCAL_TESTBIN)
 	curl -sSL -o $(YTT) https://github.com/vmware-tanzu/carvel-ytt/releases/download/$(YTT_VERSION)/ytt-$(platform)-$(shell go env GOARCH)
 	chmod +x $(YTT)
@@ -144,25 +150,23 @@ docker-build-dev: check-env-docker-repo  git-commit-sha
 	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 
-CERT_MANAGER_VERSION ?= 1.2.0
-CERT_MANAGER_HELM_RELEASE := cert-manager
-CERT_MANAGER_NAMESPACE := cert-manager
-cert-manager:
-	@echo "Installing Cert Manager"
-	helm repo add jetstack https://charts.jetstack.io
-	helm upgrade $(CERT_MANAGER_HELM_RELEASE) jetstack/$(@) \
-		--install \
-		--namespace $(CERT_MANAGER_NAMESPACE) --create-namespace \
-		--version $(CERT_MANAGER_VERSION) \
-		--set installCRDs=true \
-		--wait
+CMCTL = $(LOCAL_TESTBIN)/cmctl
+$(CMCTL): | $(LOCAL_TMP) $(LOCAL_TESTBIN)
+	curl -sSL -o $(LOCAL_TMP)/cmctl.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cmctl-$(platform)-$(shell go env GOARCH).tar.gz
+	tar -C $(LOCAL_TMP) -xzf $(LOCAL_TMP)/cmctl.tar.gz
+	mv $(LOCAL_TMP)/cmctl $(CMCTL)
 
+CERT_MANAGER_VERSION ?= 1.9.2
+.PHONY: cert-manager
+cert-manager: | $(CMCTL) ## Setup cert-manager
+	@echo "Installing Cert Manager"
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml
+	$(CMCTL) check api --wait=5m
+
+.PHONY: cert-manager-rm
 cert-manager-rm:
 	@echo "Deleting Cert Manager"
-	helm uninstall $(CERT_MANAGER_HELM_RELEASE) \
-		--namespace $(CERT_MANAGER_NAMESPACE)
-	kubectl delete namespace $(CERT_MANAGER_NAMESPACE)
-	helm repo remove jetstack
+	kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml --ignore-not-found
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services
 	# Note that created LoadBalancer services will have an unreachable external IP
