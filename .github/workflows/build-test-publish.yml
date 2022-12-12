@@ -148,8 +148,9 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: operator-manifests
-        path: release-manifest/cluster-operator*.yml
+        path: releases/cluster-operator*.yml
         retention-days: 2
+        if-no-files-found: fail
   system_tests_local:
     name: Local system tests (using KinD)
     runs-on: ubuntu-latest
@@ -229,7 +230,7 @@ jobs:
         name: operator-manifests
     - name: Install Operator build
       run: |
-        kubectl apply -f release-manifest/cluster-operator.yml
+        kubectl apply -f releases/cluster-operator.yml
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
     - name: System tests
       env:
@@ -273,7 +274,7 @@ jobs:
         name: operator-manifests
     - name: Install Operator build
       run: |
-        kubectl apply -f release-manifest/cluster-operator.yml
+        kubectl apply -f releases/cluster-operator.yml
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
     - name: System tests
       env:
@@ -299,7 +300,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
-          release-manifest/cluster-operator.yml
-          release-manifest/cluster-operator-quay-io.yml
+          releases/cluster-operator.yml
+          releases/cluster-operator-quay-io.yml
         generate_release_notes: true
         fail_on_unmatched_files: true
