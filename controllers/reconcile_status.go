@@ -41,7 +41,7 @@ func (r *RabbitmqClusterReconciler) reconcileStatus(ctx context.Context, rmq *ra
 			}
 		} else {
 			binding = &corev1.LocalObjectReference{
-				Name: rmq.Spec.SecretBackend.ExternalSecret,
+				Name: rmq.Spec.SecretBackend.ExternalSecret.Name,
 			}
 
 		}

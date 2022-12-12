@@ -875,7 +875,7 @@ var _ = Describe("StatefulSet", func() {
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 				})
 				BeforeEach(func() {
-					instance.Spec.SecretBackend.ExternalSecret = "my-secret"
+					instance.Spec.SecretBackend.ExternalSecret.Name = "my-secret"
 				})
 
 				It("does not project default user secret to rabbitmq-confd volume", func() {

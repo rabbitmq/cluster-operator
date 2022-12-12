@@ -16,6 +16,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -104,8 +105,8 @@ type RabbitmqClusterSpec struct {
 // Future secret backends could be Secrets Store CSI Driver.
 // If not configured, K8s Secrets will be used.
 type SecretBackend struct {
-	Vault          *VaultSpec `json:"vault,omitempty"`
-	ExternalSecret string     `json:"externalSecret,omitempty"`
+	Vault          *VaultSpec              `json:"vault,omitempty"`
+	ExternalSecret v1.LocalObjectReference `json:"externalSecret,omitempty"`
 }
 
 // VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations)
@@ -445,7 +446,7 @@ func (cluster *RabbitmqCluster) VaultEnabled() bool {
 }
 
 func (cluster *RabbitmqCluster) ExternalSecretEnabled() bool {
-	return cluster.Spec.SecretBackend.ExternalSecret != ""
+	return cluster.Spec.SecretBackend.ExternalSecret.Name != ""
 }
 
 func (cluster *RabbitmqCluster) UsesDefaultUserUpdaterImage() bool {

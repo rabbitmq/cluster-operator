@@ -422,7 +422,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	if !builder.Instance.VaultDefaultUserSecretEnabled() && !builder.Instance.ExternalSecretEnabled() {
 		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance, "")
 	} else if builder.Instance.ExternalSecretEnabled() {
-		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance, builder.Instance.Spec.SecretBackend.ExternalSecret)
+		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance, builder.Instance.Spec.SecretBackend.ExternalSecret.Name)
 	}
 
 	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" || builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
