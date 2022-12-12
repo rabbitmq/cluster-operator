@@ -869,6 +869,25 @@ var _ = Describe("StatefulSet", func() {
 			Expect(container.Env).To(ConsistOf(requiredEnvVariables))
 		})
 
+		Context("ExternalSecret", func() {
+			When("SecretBackend.ExternalSecret is set", func() {
+				JustBeforeEach(func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				})
+				BeforeEach(func() {
+					instance.Spec.SecretBackend.ExternalSecret.Name = "my-secret"
+				})
+
+				It("does not project default user secret to rabbitmq-confd volume", func() {
+					rabbitmqConfdVolume := extractVolume(statefulSet.Spec.Template.Spec.Volumes, "rabbitmq-confd")
+					defaultUserSecret := extractProjectedSecret(rabbitmqConfdVolume, "foo-default-user")
+					Expect(defaultUserSecret.Secret).To(BeNil())
+				})
+
+			})
+
+		})
+
 		Context("Vault", func() {
 			BeforeEach(func() {
 				instance.Spec.SecretBackend.Vault = &rabbitmqv1beta1.VaultSpec{

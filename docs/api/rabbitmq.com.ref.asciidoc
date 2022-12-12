@@ -348,6 +348,7 @@ SecretBackend configures a single secret backend. Today, only Vault exists as su
 |===
 | Field | Description
 | *`vault`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-vaultspec[$$VaultSpec$$]__ | 
+| *`externalSecret`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | 
 |===
 
 
