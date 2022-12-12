@@ -139,8 +139,7 @@ jobs:
       run: |
         make install-tools
         pushd config/installation
-        kustomize edit set image \
-        rabbitmqoperator/cluster-operator-dev=rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
+        kustomize edit set image rabbitmqoperator/cluster-operator-dev=rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
         popd
         make generate-installation-manifest QUAY_IO_OPERATOR_IMAGE=quay.io/rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
     - name: Upload operator manifests
