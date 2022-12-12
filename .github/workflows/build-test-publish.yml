@@ -157,7 +157,6 @@ jobs:
   system_tests_local:
     name: Local system tests (using KinD)
     runs-on: ubuntu-latest
-    container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name == 'pull_request' }}
     needs: build_operator
     strategy:
