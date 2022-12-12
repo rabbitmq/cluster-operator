@@ -2,7 +2,7 @@ name: Build, Test, Publish Image & Manifest
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "migrate-concourse-ci" ]
     paths-ignore:
     - 'docs/**'
     - '*.md'
