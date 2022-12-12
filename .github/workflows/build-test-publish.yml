@@ -39,8 +39,6 @@ jobs:
       uses: actions/checkout@v3
     - name: kubectl rabbitmq tests
       run: |
-        export GOPATH=$HOME/go
-        export PATH=$PATH:$GOPATH/bin
         make install-tools
         kind create cluster --image kindest/node:"${{ env.K8S_VERSION }}"
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind kubectl-plugin-tests
@@ -139,8 +137,6 @@ jobs:
       env:
         RELEASE_VERSION: ${{ steps.single-arch-meta.outputs.version }}
       run: |
-        export GOPATH=$HOME/go
-        export PATH=$PATH:$GOPATH/bin
         make install-tools
         pushd config/installation
         kustomize edit set image \
@@ -180,8 +176,6 @@ jobs:
         K8S_VERSION: ${{ env.K8S_VERSION }}
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
       run: |
-        export GOPATH=$HOME/go
-        export PATH=$PATH:$GOPATH/bin
         make install-tools
         kind create cluster --image kindest/node:"$K8S_VERSION"
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
@@ -238,8 +232,6 @@ jobs:
       env:
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
       run: |
-        export GOPATH=$HOME/go
-        export PATH=$PATH:$GOPATH/bin
         make install-tools
         make destroy
         make system-tests
@@ -280,8 +272,6 @@ jobs:
       env:
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
       run: |
-        export GOPATH=$HOME/go
-        export PATH=$PATH:$GOPATH/bin
         make install-tools
         make destroy
         make system-tests
