@@ -178,6 +178,7 @@ jobs:
         make install-tools
         kind create cluster --image kindest/node:"$K8S_VERSION"
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
+        make cert-manager
         SUPPORT_VOLUME_EXPANSION=false make system-tests
     - name: Dry-run example YAMLs
       run: |
