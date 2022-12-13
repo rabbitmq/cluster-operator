@@ -360,7 +360,6 @@ func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPas
 
 	resp, err := client.Do(req)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	Expect(resp).To(HaveHTTPStatus(http.StatusOK))
 
 	defer resp.Body.Close()
 	b, err := ioutil.ReadAll(resp.Body)
