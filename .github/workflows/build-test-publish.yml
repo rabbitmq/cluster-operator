@@ -193,7 +193,6 @@ jobs:
     runs-on: ubuntu-latest
     container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name != 'pull_request' }}
-    concurrency: ci-bunny-1
     # Add "id-token" with the intended permissions.
     permissions:
       contents: 'read'
@@ -237,6 +236,7 @@ jobs:
     - name: System tests
       env:
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
+        NAMESPACE: test-${{ github.run_attempt }}-${{ matrix.rabbitmq-image }}
       run: |
         make system-tests
   test_doc_examples:

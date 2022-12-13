@@ -90,12 +90,12 @@ func createClientSet() (*kubernetes.Clientset, error) {
 	return clientset, err
 }
 
-func kubectlExec(namespace, podname, containerName string, args ...string) ([]byte, error) {
+func kubectlExec(namespace, podName, containerName string, args ...string) ([]byte, error) {
 	kubectlArgs := append([]string{
 		"-n",
 		namespace,
 		"exec",
-		podname,
+		podName,
 		"-c",
 		containerName,
 		"--",
