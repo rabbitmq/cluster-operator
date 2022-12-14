@@ -195,7 +195,7 @@ jobs:
     if: ${{ github.event_name != 'pull_request' }}
     # Add "id-token" with the intended permissions.
     permissions:
-      contents: 'read'
+      contents: 'write'
       id-token: 'write'
     needs: build_operator
     strategy:
@@ -215,10 +215,6 @@ jobs:
         - rabbitmq-image: pivotalrabbitmq/rabbitmq:main-otp-max-bazel
           gke-cluster: ci-bunny-2
     steps:
-    - name: Acquire lock for ${{ matrix.gke-cluster }}
-      uses: ben-z/gh-action-mutex@9709ba4d8596ad4f9f8bbe8e0f626ae249b1b3ac
-      with:
-        branch: lock-${{ matrix.gke-cluster }}
     - name: Install Go
       uses: actions/setup-go@v3
       with:
@@ -226,6 +222,10 @@ jobs:
         check-latest: true
     - name: Check out code into the Go module directory
       uses: actions/checkout@v3
+    - name: Acquire lock for ${{ matrix.gke-cluster }}
+      uses: ben-z/gh-action-mutex@9709ba4d8596ad4f9f8bbe8e0f626ae249b1b3ac
+      with:
+        branch: lock-${{ matrix.gke-cluster }}
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
@@ -259,14 +259,10 @@ jobs:
     concurrency: ci-bunny-2
     # Add "id-token" with the intended permissions.
     permissions:
-      contents: 'read'
+      contents: 'write'
       id-token: 'write'
     needs: build_operator
     steps:
-    - name: Acquire lock for ci-bunny-2
-      uses: ben-z/gh-action-mutex@9709ba4d8596ad4f9f8bbe8e0f626ae249b1b3ac
-      with:
-        branch: lock-ci-bunny-2
     - name: Install Go
       uses: actions/setup-go@v3
       with:
@@ -274,6 +270,10 @@ jobs:
         check-latest: true
     - name: Check out code into the Go module directory
       uses: actions/checkout@v3
+    - name: Acquire lock for ci-bunny-2
+      uses: ben-z/gh-action-mutex@9709ba4d8596ad4f9f8bbe8e0f626ae249b1b3ac
+      with:
+        branch: lock-ci-bunny-2
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
