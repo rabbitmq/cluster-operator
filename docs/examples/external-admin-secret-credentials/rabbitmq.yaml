@@ -1,0 +1,9 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: external-secret-user
+spec:
+  replicas: 1
+  secretBackend:
+    externalSecret: 
+      name: "my-secret"
