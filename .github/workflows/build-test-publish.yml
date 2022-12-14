@@ -132,7 +132,7 @@ jobs:
     - name: Build manifest
       if: github.event_name != 'pull_request'
       env:
-        RELEASE_VERSION: ${{ steps.single-arch-meta.outputs.version }}
+        RELEASE_VERSION: ${{ steps.meta.outputs.version }}
       run: |
         make install-tools
         pushd config/installation
