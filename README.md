@@ -53,6 +53,11 @@ This project follows the typical GitHub pull request model. Before starting any 
 
 Please read [contribution guidelines](CONTRIBUTING.md) if you are interested in contributing to this project.
 
+## Releasing
+
+To release a new version of the Cluster Operator, create a versioned tag (e.g. `v1.2.3`) of the repo, and the release pipeline will
+generate a new draft release, alongside release artefacts.
+
 ## License
 
 [Licensed under the MPL](LICENSE.txt), same as RabbitMQ server.
