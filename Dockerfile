@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.19 as builder
+FROM --platform=$BUILDPLATFORM golang:1.19 as builder
 
 WORKDIR /workspace
 
@@ -16,7 +16,11 @@ COPY internal/ internal/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -tags timetzdata -o manager main.go
+ARG TARGETOS
+ARG TARGETARCH
+ENV GOOS $TARGETOS
+ENV GOARCH $TARGETARCH
+RUN CGO_ENABLED=0 GO111MODULE=on go build -a -tags timetzdata -o manager main.go
 
 # ---------------------------------------
 FROM alpine:latest as etc-builder
