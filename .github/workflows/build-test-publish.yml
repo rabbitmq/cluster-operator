@@ -189,7 +189,7 @@ jobs:
         kubectl create namespace examples --dry-run=client -o yaml | kubectl  apply -f -
         kubectl --namespace=examples apply --dry-run=server $manifest_path
   system_tests:
-    name: System tests (using GKE ci-bunny-1)
+    name: System tests
     runs-on: ubuntu-latest
     container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name != 'pull_request' }}
@@ -205,7 +205,20 @@ jobs:
         - rabbitmq:management
         - pivotalrabbitmq/rabbitmq:main-otp-min-bazel
         - pivotalrabbitmq/rabbitmq:main-otp-max-bazel
+        include:
+        - rabbitmq-image: rabbitmq:3.9.9-management
+          gke-cluster: ci-bunny-1
+        - rabbitmq-image: rabbitmq:management
+          gke-cluster: ci-bunny-1
+        - rabbitmq-image: pivotalrabbitmq/rabbitmq:main-otp-min-bazel
+          gke-cluster: ci-bunny-2
+        - rabbitmq-image: pivotalrabbitmq/rabbitmq:main-otp-max-bazel
+          gke-cluster: ci-bunny-2
     steps:
+    - name: Acquire lock for ${{ matrix.gke-cluster }}
+      uses: ben-z/gh-action-mutex@9709ba4d8596ad4f9f8bbe8e0f626ae249b1b3ac
+      with:
+        branch: lock-${{ matrix.gke-cluster }}
     - name: Install Go
       uses: actions/setup-go@v3
       with:
@@ -221,7 +234,7 @@ jobs:
     - id: 'get-credentials'
       uses: 'google-github-actions/get-gke-credentials@v1'
       with:
-        cluster_name: ci-bunny-1
+        cluster_name: ${{ matrix.gke-cluster }}
         location: europe-west1
     - name: Get operator manifest
       uses: actions/download-artifact@v3
@@ -236,11 +249,10 @@ jobs:
     - name: System tests
       env:
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
-        NAMESPACE: test-${{ github.run_attempt }}-${{ matrix.rabbitmq-image }}
       run: |
         make system-tests
   test_doc_examples:
-    name: Documented example tests (using GKE ci-bunny-2)
+    name: Documented example tests
     runs-on: ubuntu-latest
     container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name != 'pull_request' }}
@@ -251,6 +263,10 @@ jobs:
       id-token: 'write'
     needs: build_operator
     steps:
+    - name: Acquire lock for ci-bunny-2
+      uses: ben-z/gh-action-mutex@9709ba4d8596ad4f9f8bbe8e0f626ae249b1b3ac
+      with:
+        branch: lock-ci-bunny-2
     - name: Install Go
       uses: actions/setup-go@v3
       with:
