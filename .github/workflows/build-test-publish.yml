@@ -148,12 +148,15 @@ jobs:
         path: releases/cluster-operator*.yml
         retention-days: 2
         if-no-files-found: error
+    - name: Rename manifest for GCS
+      if: github.event_name != 'pull_request'
+      run: mv releases/cluster-operator.yml cluster-operator-${{ steps.meta.outputs.version }}.yml
     - name: Upload manifests to GCS
       if: github.event_name != 'pull_request'
       uses: 'google-github-actions/upload-cloud-storage@v1'
       with:
-        path: releases/cluster-operator.yml
-        destination: operator-manifests-dev/cluster-operator-${{ steps.meta.outputs.version }}.yml
+        path: cluster-operator-${{ steps.meta.outputs.version }}.yml
+        destination: operator-manifests-dev
   system_tests_local:
     name: Local system tests (using KinD)
     runs-on: ubuntu-latest
