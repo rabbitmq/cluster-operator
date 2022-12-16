@@ -151,6 +151,11 @@ jobs:
     - name: Rename manifest for GCS
       if: github.event_name != 'pull_request'
       run: mv releases/cluster-operator.yml cluster-operator-${{ steps.meta.outputs.version }}.yml
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
+        service_account: ${{ secrets.GCP_SA }}
     - name: Upload manifests to GCS
       if: github.event_name != 'pull_request'
       uses: 'google-github-actions/upload-cloud-storage@v1'
