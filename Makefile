@@ -9,8 +9,15 @@ help:
 ENVTEST_K8S_VERSION ?= 1.22.1
 ARCHITECTURE = amd64
 LOCAL_TESTBIN = $(CURDIR)/testbin
+$(LOCAL_TESTBIN):
+	mkdir -p $@
+
+LOCAL_TMP := $(CURDIR)/tmp
+$(LOCAL_TMP):
+	mkdir -p $@
 
 K8S_OPERATOR_NAMESPACE ?= rabbitmq-system
+SYSTEM_TEST_NAMESPACE ?= rabbitmq-system
 
 # "Control plane binaries (etcd and kube-apiserver) are loaded by default from /usr/local/kubebuilder/bin.
 # This can be overridden by setting the KUBEBUILDER_ASSETS environment variable"
@@ -106,21 +113,28 @@ deploy: manifests deploy-namespace-rbac deploy-manager ## Deploy operator in the
 deploy-dev: check-env-docker-credentials docker-build-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
 
 deploy-kind: check-env-docker-repo git-commit-sha manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
-	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
+	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	kind load docker-image $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/kind | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
+YTT_VERSION ?= v0.44.1
+YTT = $(LOCAL_TESTBIN)/ytt
+$(YTT): | $(LOCAL_TESTBIN)
+	mkdir -p $(LOCAL_TESTBIN)
+	curl -sSL -o $(YTT) https://github.com/vmware-tanzu/carvel-ytt/releases/download/$(YTT_VERSION)/ytt-$(platform)-$(shell go env GOARCH)
+	chmod +x $(YTT)
+
 QUAY_IO_OPERATOR_IMAGE ?= quay.io/rabbitmqoperator/cluster-operator:latest
 # Builds a single-file installation manifest to deploy the Operator
-generate-installation-manifest:
+generate-installation-manifest: | $(YTT)
 	mkdir -p releases
-	kustomize build config/installation/ > releases/rabbitmq-cluster-operator.yaml
-	ytt -f releases/rabbitmq-cluster-operator.yaml -f config/ytt/overlay-manager-image.yaml --data-value operator_image=$(QUAY_IO_OPERATOR_IMAGE) > releases/rabbitmq-cluster-operator-quay-io.yaml
+	kustomize build config/installation/ > releases/cluster-operator.yml
+	$(YTT) -f releases/cluster-operator.yml -f config/ytt/overlay-manager-image.yaml --data-value operator_image=$(QUAY_IO_OPERATOR_IMAGE) > releases/cluster-operator-quay-io.yml
 
 # Build the docker image
 docker-build: check-env-docker-repo git-commit-sha
-	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):latest .
+	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):latest .
 
 # Push the docker image
 docker-push: check-env-docker-repo
@@ -134,28 +148,26 @@ GIT_COMMIT=$(shell git rev-parse --short HEAD)-
 endif
 
 docker-build-dev: check-env-docker-repo  git-commit-sha
-	docker build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
+	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 
-CERT_MANAGER_VERSION ?= 1.2.0
-CERT_MANAGER_HELM_RELEASE := cert-manager
-CERT_MANAGER_NAMESPACE := cert-manager
-cert-manager:
-	@echo "Installing Cert Manager"
-	helm repo add jetstack https://charts.jetstack.io
-	helm upgrade $(CERT_MANAGER_HELM_RELEASE) jetstack/$(@) \
-		--install \
-		--namespace $(CERT_MANAGER_NAMESPACE) --create-namespace \
-		--version $(CERT_MANAGER_VERSION) \
-		--set installCRDs=true \
-		--wait
+CMCTL = $(LOCAL_TESTBIN)/cmctl
+$(CMCTL): | $(LOCAL_TMP) $(LOCAL_TESTBIN)
+	curl -sSL -o $(LOCAL_TMP)/cmctl.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cmctl-$(platform)-$(shell go env GOARCH).tar.gz
+	tar -C $(LOCAL_TMP) -xzf $(LOCAL_TMP)/cmctl.tar.gz
+	mv $(LOCAL_TMP)/cmctl $(CMCTL)
 
+CERT_MANAGER_VERSION ?= 1.9.2
+.PHONY: cert-manager
+cert-manager: | $(CMCTL) ## Setup cert-manager
+	@echo "Installing Cert Manager"
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml
+	$(CMCTL) check api --wait=5m
+
+.PHONY: cert-manager-rm
 cert-manager-rm:
 	@echo "Deleting Cert Manager"
-	helm uninstall $(CERT_MANAGER_HELM_RELEASE) \
-		--namespace $(CERT_MANAGER_NAMESPACE)
-	kubectl delete namespace $(CERT_MANAGER_NAMESPACE)
-	helm repo remove jetstack
+	kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml --ignore-not-found
 
 kind-prepare: ## Prepare KIND to support LoadBalancer services
 	# Note that created LoadBalancer services will have an unreachable external IP
@@ -170,7 +182,7 @@ kind-unprepare:  ## Remove KIND support for LoadBalancer services
 	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
 
 system-tests: install-tools ## Run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
-	NAMESPACE="$(K8S_OPERATOR_NAMESPACE)" ginkgo -nodes=3 --randomize-all -r system_tests/
+	NAMESPACE="$(SYSTEM_TEST_NAMESPACE)" K8S_OPERATOR_NAMESPACE="$(K8S_OPERATOR_NAMESPACE)" ginkgo -nodes=3 --randomize-all -r system_tests/
 
 kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
 	echo "running kubectl plugin tests"

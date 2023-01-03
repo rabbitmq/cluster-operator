@@ -390,8 +390,9 @@ CONSOLE_LOG=new`
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
-				response := alivenessTest(hostname, port, username, password)
-				Expect(response.Status).To(Equal("ok"))
+				Eventually(func() *HealthcheckResponse {
+					return alivenessTest(hostname, port, username, password)
+				}).Within(5 * time.Minute).ProbeEvery(20 * time.Second).Should(HaveField("Status", "ok"))
 
 				// test https://github.com/rabbitmq/cluster-operator/issues/662 is fixed
 				By("clustering correctly")

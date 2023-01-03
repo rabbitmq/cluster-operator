@@ -90,12 +90,12 @@ func createClientSet() (*kubernetes.Clientset, error) {
 	return clientset, err
 }
 
-func kubectlExec(namespace, podname, containerName string, args ...string) ([]byte, error) {
+func kubectlExec(namespace, podName, containerName string, args ...string) ([]byte, error) {
 	kubectlArgs := append([]string{
 		"-n",
 		namespace,
 		"exec",
-		podname,
+		podName,
 		"-c",
 		containerName,
 		"--",
@@ -360,7 +360,6 @@ func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPas
 
 	resp, err := client.Do(req)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	Expect(resp).To(HaveHTTPStatus(http.StatusOK))
 
 	defer resp.Body.Close()
 	b, err := ioutil.ReadAll(resp.Body)

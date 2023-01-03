@@ -52,11 +52,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	namespace = MustHaveEnv("NAMESPACE")
+	operatorNamespace := MustHaveEnv("K8S_OPERATOR_NAMESPACE")
 
 	ctx := context.Background()
 
 	Eventually(func() int32 {
-		operatorDeployment, err := clientSet.AppsV1().Deployments(namespace).Get(ctx, "rabbitmq-cluster-operator", metav1.GetOptions{})
+		operatorDeployment, err := clientSet.AppsV1().Deployments(operatorNamespace).Get(ctx, "rabbitmq-cluster-operator", metav1.GetOptions{})
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		return operatorDeployment.Status.ReadyReplicas
