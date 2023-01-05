@@ -17,7 +17,7 @@ env:
   # Taken from https://github.com/kubernetes-sigs/kind/releases/tag/v0.17.0
   # The image here should be listed under 'Images built for this release' for the version of kind in go.mod
   KIND_NODE_IMAGE: "kindest/node:v1.25.3@sha256:f52781bc0d7a19fb6c405c2af83abfeb311f130707a0e219175677e366cc45d1"
-  BASELINE_UPGRADE_VERSION: v1.12.0
+  BASELINE_UPGRADE_VERSION: v2.1.0
 
 jobs:
   kubectl_tests:
