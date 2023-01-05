@@ -1,8 +1,8 @@
-name: Release
+name: Release Kubectl to Krew
 on:
-  push:
-    tags:
-    - 'v*.*.*'
+  release:
+    types:
+    - published
 
 jobs:
   kubectl_rabbitmq:
