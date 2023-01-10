@@ -47,6 +47,7 @@ func main() {
 	var (
 		metricsAddr             string
 		defaultRabbitmqImage    = "rabbitmq:3.10.2-management"
+		controlRabbitmqImage    = false
 		defaultUserUpdaterImage = "rabbitmqoperator/default-user-credential-updater:1.0.2"
 		defaultImagePullSecrets = ""
 	)
@@ -78,6 +79,17 @@ func main() {
 
 	if configuredDefaultUserUpdaterImage, ok := os.LookupEnv("DEFAULT_USER_UPDATER_IMAGE"); ok {
 		defaultUserUpdaterImage = configuredDefaultUserUpdaterImage
+	}
+
+	// EXPERIMENTAL: If the environment variable CONTROL_RABBITMQ_IMAGE is set to `true`, the operator will 
+	// automatically set the default image tags. (DEFAULT_RABBITMQ_IMAGE and DEFAULT_USER_UPDATER_IMAGE)
+	// No safety checks!
+	if configuredControlRabbitmqImage, ok := os.LookupEnv("CONTROL_RABBITMQ_IMAGE"); ok {
+		var err error
+		if controlRabbitmqImage, err = strconv.ParseBool(configuredControlRabbitmqImage); err != nil {
+			log.Error(err, "unable to start manager")
+			os.Exit(1)
+		}
 	}
 
 	if configuredDefaultImagePullSecrets, ok := os.LookupEnv("DEFAULT_IMAGE_PULL_SECRETS"); ok {
@@ -138,6 +150,7 @@ func main() {
 		DefaultRabbitmqImage:    defaultRabbitmqImage,
 		DefaultUserUpdaterImage: defaultUserUpdaterImage,
 		DefaultImagePullSecrets: defaultImagePullSecrets,
+		ControlRabbitmqImage:    controlRabbitmqImage,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		log.Error(err, "unable to create controller", controllerName)

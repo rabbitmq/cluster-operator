@@ -98,6 +98,7 @@ var _ = BeforeSuite(func() {
 		Clientset:               clientSet,
 		PodExecutor:             fakeExecutor,
 		DefaultRabbitmqImage:    defaultRabbitmqImage,
+		ControlRabbitmqImage:    false,
 		DefaultUserUpdaterImage: defaultUserUpdaterImage,
 		DefaultImagePullSecrets: defaultImagePullSecrets,
 	}).SetupWithManager(mgr)
