@@ -668,6 +668,13 @@ spec:
                             minReadySeconds:
                               format: int32
                               type: integer
+                            persistenVolumeClaimRetentionPolicy:
+                              properties:
+                                whenDeleted:
+                                  type: string
+                                whenScaled:
+                                  type: string
+                              type: object
                             podManagementPolicy:
                               type: string
                             replicas:

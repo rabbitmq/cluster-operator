@@ -252,6 +252,11 @@ type StatefulSetSpec struct {
 	// is ready).
 	// +optional
 	MinReadySeconds int32 `json:"minReadySeconds,omitempty" protobuf:"varint,4,opt,name=minReadySeconds"`
+
+	// StatefulSetPersistentVolumeClaimRetentionPolicy describes the policy used for PVCs
+	// created from the StatefulSet VolumeClaimTemplates.
+	// +optional
+	PersistentVolumeClaimRetentionPolicy *appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy `json:"persistenVolumeClaimRetentionPolicy,omitempty" protobuf:"bytes,10,opt,name=persistentVolumeClaimRetentionPolicy"`
 }
 
 // EmbeddedLabelsAnnotations is an embedded subset of the fields included in k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta.
