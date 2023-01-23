@@ -191,6 +191,10 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 		}
 	}
 
+	if stsOverride.Spec.PersistentVolumeClaimRetentionPolicy != nil {
+		sts.Spec.PersistentVolumeClaimRetentionPolicy = stsOverride.Spec.PersistentVolumeClaimRetentionPolicy
+	}
+
 	if stsOverride.Spec.Template == nil {
 		return nil
 	}

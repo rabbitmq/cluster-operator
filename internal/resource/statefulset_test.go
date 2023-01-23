@@ -1669,6 +1669,22 @@ default_pass = {{ .Data.data.password }}
 				Expect(*statefulSet.Spec.UpdateStrategy.RollingUpdate.Partition).To(Equal(int32(1)))
 			})
 
+			It("overrides statefulSet.spec.persistentVolumeClaimRetentionPolicy", func() {
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+							WhenDeleted: "Retain",
+							WhenScaled:  "Delete",
+						},
+					},
+				}
+
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(string(statefulSet.Spec.PersistentVolumeClaimRetentionPolicy.WhenScaled)).To(Equal("Delete"))
+				Expect(string(statefulSet.Spec.PersistentVolumeClaimRetentionPolicy.WhenDeleted)).To(Equal("Retain"))
+			})
+
 			It("overrides the PVC list", func() {
 				storageClass := "my-storage-class"
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
