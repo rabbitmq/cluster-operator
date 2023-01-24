@@ -668,7 +668,7 @@ spec:
                             minReadySeconds:
                               format: int32
                               type: integer
-                            persistenVolumeClaimRetentionPolicy:
+                            persistentVolumeClaimRetentionPolicy:
                               properties:
                                 whenDeleted:
                                   type: string
