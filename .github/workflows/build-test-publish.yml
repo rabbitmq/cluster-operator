@@ -113,7 +113,7 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
     - name: OCI Metadata for single-arch image
-      if: startsWith(github.ref, 'refs/tags/v')
+      #if: startsWith(github.ref, 'refs/tags/v')
       id: single-arch-meta
       uses: docker/metadata-action@v4
       with:
@@ -126,7 +126,7 @@ jobs:
         tags: |
           type=semver,pattern={{version}},suffix=-amd64,latest=false
     - name: Build and push single-arch image
-      if: startsWith(github.ref, 'refs/tags/v')
+      #if: startsWith(github.ref, 'refs/tags/v')
       uses: docker/build-push-action@v3
       with:
         context: .
