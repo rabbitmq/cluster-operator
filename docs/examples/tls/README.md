@@ -17,7 +17,7 @@ will enable TLS for the deployed nodes.
 
 As a first step, create a Secret which will contain the public certificate and private key to be used for TLS on the RabbitMQ nodes.
 
-This example assumes you have obtained (or [generated a self-signed](https://github.com/michaelklishin/tls-gen)) a server certificate/key pair
+This example assumes you have obtained (or [generated a self-signed](https://github.com/rabbitmq/tls-gen)) a server certificate/key pair
 accessible as `server.pem` and `server-key.pem`, respectively. Create a Secret by running:
 
 ```shell
