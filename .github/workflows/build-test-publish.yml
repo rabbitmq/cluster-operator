@@ -154,7 +154,7 @@ jobs:
         if-no-files-found: error
     - name: Rename manifest for GCS
       if: github.event_name != 'pull_request'
-      run: mv releases/cluster-operator.yml cluster-operator-${{ steps.meta.outputs.version }}.yml
+      run: mv releases/cluster-operator.yml cluster-operator-${{ steps.meta.outputs.version }}.yaml
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
@@ -164,7 +164,7 @@ jobs:
       if: github.event_name != 'pull_request'
       uses: 'google-github-actions/upload-cloud-storage@v1'
       with:
-        path: cluster-operator-${{ steps.meta.outputs.version }}.yml
+        path: cluster-operator-${{ steps.meta.outputs.version }}.yaml
         destination: operator-manifests-dev
   system_tests_local:
     name: Local system tests (using KinD)
