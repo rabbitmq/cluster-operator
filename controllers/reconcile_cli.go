@@ -38,7 +38,7 @@ func (r *RabbitmqClusterReconciler) runRabbitmqCLICommandsIfAnnotated(ctx contex
 		// plugins configMap was updated very recently
 		// give StatefulSet controller some time to trigger restart of StatefulSet if necessary
 		// otherwise, there would be race conditions where we exec into containers losing the connection due to pods being terminated
-		logger.Info("requeuing request to set plugins")
+		logger.V(1).Info("requeuing request to set plugins")
 		return 2 * time.Second, nil
 	}
 
@@ -113,6 +113,7 @@ func (r *RabbitmqClusterReconciler) runQueueRebalanceCommand(ctx context.Context
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcile", fmt.Sprintf("%s %s", msg, podName))
 		return fmt.Errorf("%s %s: %w", msg, podName, err)
 	}
+	logger.Info("successfully rebalanced queues")
 	return r.deleteAnnotation(ctx, rmq, queueRebalanceAnnotation)
 }
 
