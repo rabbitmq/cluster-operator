@@ -149,13 +149,13 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
+	logger.Info("Start reconciling")
+
 	instanceSpec, err := json.Marshal(rabbitmqCluster.Spec)
 	if err != nil {
 		logger.Error(err, "Failed to marshal cluster spec")
 	}
-
-	logger.Info("Start reconciling",
-		"spec", string(instanceSpec))
+	logger.V(1).Info("RabbitmqCluster", "spec", string(instanceSpec))
 
 	resourceBuilder := resource.RabbitmqResourceBuilder{
 		Instance: rabbitmqCluster,
