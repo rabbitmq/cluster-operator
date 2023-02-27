@@ -163,7 +163,7 @@ jobs:
       if: github.event_name != 'pull_request'
       uses: 'google-github-actions/upload-cloud-storage@v1'
       with:
-        path: cluster-operator-${{ steps.meta.outputs.version }}.yaml
+        path: cluster-operator-${{ steps.meta.outputs.version }}.yml
         destination: operator-manifests-dev
   system_tests_local:
     name: Local system tests (using KinD)
