@@ -81,7 +81,6 @@ jobs:
           quay.io/rabbitmqoperator/cluster-operator
         # generate Docker tags based on the following events/attributes
         tags: |
-          type=edge
           type=sha
           type=ref,event=pr
           type=semver,pattern={{version}}
@@ -154,7 +153,7 @@ jobs:
         if-no-files-found: error
     - name: Rename manifest for GCS
       if: github.event_name != 'pull_request'
-      run: mv releases/cluster-operator.yml cluster-operator-${{ steps.meta.outputs.version }}.yaml
+      run: mv releases/cluster-operator.yml cluster-operator-${{ steps.meta.outputs.version }}.yml
     - id: 'auth'
       uses: 'google-github-actions/auth@v1'
       with:
