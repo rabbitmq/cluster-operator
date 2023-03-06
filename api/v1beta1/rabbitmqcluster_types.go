@@ -441,9 +441,11 @@ func (cluster *RabbitmqCluster) AdditionalPluginEnabled(plugin Plugin) bool {
 	return false
 }
 
-// the OSR plugin `rabbitmq_multi_dc_replication` enables `rabbitmq_stream` as a dependency
+// StreamNeeded returns true when stream or plugins that auto enable stream are turned on
 func (cluster *RabbitmqCluster) StreamNeeded() bool {
-	return cluster.AdditionalPluginEnabled("rabbitmq_stream") || cluster.AdditionalPluginEnabled("rabbitmq_multi_dc_replication")
+	return cluster.AdditionalPluginEnabled("rabbitmq_stream") ||
+		cluster.AdditionalPluginEnabled("rabbitmq_stream_management") ||
+		cluster.AdditionalPluginEnabled("rabbitmq_multi_dc_replication")
 }
 
 func (cluster *RabbitmqCluster) VaultEnabled() bool {

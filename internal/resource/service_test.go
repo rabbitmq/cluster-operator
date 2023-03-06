@@ -194,6 +194,22 @@ var _ = Context("Services", func() {
 				})
 			})
 
+			When("stream_management is enabled", func() {
+				It("opens port for streams", func() {
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_stream_management"}
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
+						{
+							Name:        "streams",
+							Protocol:    corev1.ProtocolTCP,
+							Port:        5551,
+							TargetPort:  intstr.FromInt(5551),
+							AppProtocol: pointer.String("rabbitmq.com/stream-tls"),
+						},
+					}))
+				})
+			})
+
 			When("DisableNonTLSListeners is set to true", func() {
 				It("only exposes tls ports in the service", func() {
 					instance.Spec.TLS.DisableNonTLSListeners = true
@@ -267,6 +283,7 @@ var _ = Context("Services", func() {
 					Entry(nil, "rabbitmq_web_stomp", "web-stomp-tls", 15673, pointer.String("https")),
 					Entry(nil, "rabbitmq_stream", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
 					Entry(nil, "rabbitmq_multi_dc_replication", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
+					Entry(nil, "rabbitmq_stream_management", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
 				)
 			})
 
@@ -553,6 +570,7 @@ var _ = Context("Services", func() {
 				Entry(nil, "rabbitmq_web_stomp", "web-stomp", 15674, pointer.String("http")),
 				Entry(nil, "rabbitmq_stream", "stream", 5552, pointer.String("rabbitmq.com/stream")),
 				Entry(nil, "rabbitmq_multi_dc_replication", "stream", 5552, pointer.String("rabbitmq.com/stream")),
+				Entry(nil, "rabbitmq_stream_management", "stream", 5552, pointer.String("rabbitmq.com/stream")),
 			)
 
 			It("updates the service type from ClusterIP to NodePort", func() {
