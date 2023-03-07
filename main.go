@@ -81,7 +81,7 @@ func main() {
 		defaultUserUpdaterImage = configuredDefaultUserUpdaterImage
 	}
 
-	// EXPERIMENTAL: If the environment variable CONTROL_RABBITMQ_IMAGE is set to `true`, the operator will 
+	// EXPERIMENTAL: If the environment variable CONTROL_RABBITMQ_IMAGE is set to `true`, the operator will
 	// automatically set the default image tags. (DEFAULT_RABBITMQ_IMAGE and DEFAULT_USER_UPDATER_IMAGE)
 	// No safety checks!
 	if configuredControlRabbitmqImage, ok := os.LookupEnv("CONTROL_RABBITMQ_IMAGE"); ok {
