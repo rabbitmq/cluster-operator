@@ -14,13 +14,13 @@ spec:
       # The 2nd condition ensures that data points are available until 24 hours ago such that no false positive alerts are triggered for newly created RabbitMQ clusters.
       expr: |
         (
-          predict_linear(rabbitmq_disk_space_available_bytes[24h], 60*60*24) * on (instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info
+          predict_linear(rabbitmq_disk_space_available_bytes[24h], 60*60*24) * on (instance, pod) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info
           <
-          rabbitmq_disk_space_available_limit_bytes * on (instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info
+          rabbitmq_disk_space_available_limit_bytes * on (instance, pod) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info
         )
         and
         (
-          count_over_time(rabbitmq_disk_space_available_limit_bytes[2h] offset 22h) * on (instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info
+          count_over_time(rabbitmq_disk_space_available_limit_bytes[2h] offset 22h) * on (instance, pod) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info
           >
           0
         )
