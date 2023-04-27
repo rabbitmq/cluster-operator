@@ -12,7 +12,7 @@ require (
 	github.com/mikefarah/yq/v4 v4.33.3
 	github.com/onsi/ginkgo/v2 v2.9.2
 	github.com/onsi/gomega v1.27.6
-	github.com/rabbitmq/rabbitmq-stream-go-client v1.1.1
+	github.com/rabbitmq/rabbitmq-stream-go-client v1.1.2
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	github.com/streadway/amqp v1.0.0
 	golang.org/x/mod v0.10.0
@@ -79,7 +79,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.3 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.16.3 // indirect
+	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
