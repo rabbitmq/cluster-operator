@@ -7,4 +7,4 @@ metadata:
     grafana_dashboard: "true"
 data:
   # https://grafana.com/grafana/dashboards/10991
-  rabbitmq-overview-dashboard.json.url: https://grafana.com/api/dashboards/10991/revisions/11/download
+  rabbitmq-overview-dashboard.json.url: "https://github.com/rabbitmq/rabbitmq-server/raw/e57c579d1a71b283469defdd0d6d45313e6d6daf/deps/rabbitmq_prometheus/docker/grafana/dashboards/RabbitMQ-Overview.json"

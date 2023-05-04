@@ -4,7 +4,7 @@ kind: ConfigMap
 metadata:
   name: rabbitmq-queue-grafana-dashboard
   labels:
-    grafana_dashboard: "1"
+    grafana_dashboard: "true"
 data:
   rabbitmq-queue-grafana-dashboard.json: |-
     {
