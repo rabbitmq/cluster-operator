@@ -40,4 +40,4 @@ spec:
     additionalPlugins:
       - rabbitmq_message_timestamp
     envConfig: |
-      PLUGINS_DIR=/opt/rabbitmq/plugins:/opt/rabbitmq/community-plugins
+      RABBITMQ_PLUGINS_DIR=/opt/rabbitmq/plugins:/opt/rabbitmq/community-plugins:/opt/bitnami/rabbitmq/plugins
