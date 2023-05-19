@@ -21,7 +21,7 @@ spec:
               - command:
                   - sh
                   - -c
-                  - curl -L -v https://github.com/rabbitmq/rabbitmq-message-timestamp/releases/download/v3.8.0/rabbitmq_message_timestamp-3.8.0.ez --output /community-plugins/rabbitmq_message_timestamp-3.8.0.ez
+                  - curl -L -v https://github.com/rabbitmq/rabbitmq-message-timestamp/releases/download/v3.11.2/rabbitmq_message_timestamp-v3.11.x.ez --output /community-plugins/rabbitmq_message_timestamp-v3.11.x.ez
                 image: curlimages/curl
                 imagePullPolicy: IfNotPresent
                 name: copy-community-plugins
