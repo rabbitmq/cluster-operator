@@ -300,8 +300,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.2 h1:hAHbPm5IJGijwng3PWk09
 github.com/matttproud/golang_protobuf_extensions v1.0.2/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/michaelklishin/rabbit-hole/v2 v2.15.0 h1:asuENwbu5UsgPBHKgOzHY6VVrjNePurjJoE+8+EWeLA=
 github.com/michaelklishin/rabbit-hole/v2 v2.15.0/go.mod h1:o0k0caEjRjboLEylRXVR7aOkuI2vZ6gLXZ78JyonVkA=
-github.com/mikefarah/yq/v4 v4.33.3 h1:cu6JxWAL82bpLCJTLYP3ILZ/3gXF1YfvYBCMRdnY/xA=
-github.com/mikefarah/yq/v4 v4.33.3/go.mod h1:ajAKq75gdANZHzkWu5shY2QZHpg8HOHVSyscC1+OAIs=
+github.com/mikefarah/yq/v4 v4.34.1 h1:7W+SZXvu1yOxpVXS7Hi5a34nU/gdYPjWMNQqoSlfbxo=
+github.com/mikefarah/yq/v4 v4.34.1/go.mod h1:B2JxXiGKqEaU+GTcNwOZ/RQFelq9e6TFIDLRVVFHAu4=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/mapstructure v1.4.3 h1:OVowDSCllw/YjdLkam3/sm7wEtOy59d8ndGgCcyj8cs=
