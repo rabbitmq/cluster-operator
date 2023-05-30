@@ -74,7 +74,8 @@ PersistentVolumeClaim is an embedded version of k8s.io/api/core/v1.PersistentVol
 [cols="25a,75a", options="header"]
 |===
 | Field | Description
-| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | Embedded metadata identifying a Kind and API Version of an object. For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
+| *`kind`* __string__ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+| *`apiVersion`* __string__ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
 | *`metadata`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-embeddedobjectmeta[$$EmbeddedObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
 
 | *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#persistentvolumeclaimspec-v1-core[$$PersistentVolumeClaimSpec$$]__ | Spec defines the desired characteristics of a volume requested by a pod author. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
@@ -127,7 +128,8 @@ RabbitmqCluster is the Schema for the RabbitmqCluster API. Each instance of this
 | Field | Description
 | *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
 | *`kind`* __string__ | `RabbitmqCluster`
-| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | Embedded metadata identifying a Kind and API Version of an object. For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
+| *`kind`* __string__ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+| *`apiVersion`* __string__ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
 | *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta[$$ObjectMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
 
 | *`spec`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqclusterspec[$$RabbitmqClusterSpec$$]__ | Spec is the desired state of the RabbitmqCluster Custom Resource.
@@ -185,7 +187,8 @@ RabbitmqClusterList contains a list of RabbitmqClusters.
 | Field | Description
 | *`apiVersion`* __string__ | `rabbitmq.com/v1beta1`
 | *`kind`* __string__ | `RabbitmqClusterList`
-| *`TypeMeta`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#typemeta-v1-meta[$$TypeMeta$$]__ | Embedded metadata identifying a Kind and API Version of an object. For more info, see: https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta
+| *`kind`* __string__ | Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+| *`apiVersion`* __string__ | APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
 | *`metadata`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#listmeta-v1-meta[$$ListMeta$$]__ | Refer to Kubernetes API documentation for fields of `metadata`.
 
 | *`items`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-api-v1beta1-rabbitmqcluster[$$RabbitmqCluster$$] array__ | Array of RabbitmqCluster resources.
