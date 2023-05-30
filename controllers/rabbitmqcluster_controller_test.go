@@ -726,7 +726,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 			}
-			cluster.Spec.Replicas = pointer.Int32Ptr(1)
+			cluster.Spec.Replicas = pointer.Int32(1)
 		})
 
 		It("exposes ReconcileSuccess condition", func() {
@@ -770,7 +770,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: pointer.Int32Ptr(10),
+					Replicas: pointer.Int32(10),
 					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
 						StatefulSet: &rabbitmqv1beta1.StatefulSet{
 							Spec: &rabbitmqv1beta1.StatefulSetSpec{
@@ -1012,7 +1012,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 		It("updates", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				cluster.Spec.Override.StatefulSet.Spec.Replicas = pointer.Int32Ptr(15)
+				cluster.Spec.Override.StatefulSet.Spec.Replicas = pointer.Int32(15)
 				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.Containers = []corev1.Container{
 					{
 						Name:  "additional-container-2",
