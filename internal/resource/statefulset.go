@@ -103,7 +103,7 @@ func (builder *StatefulSetBuilder) Update(object client.Object) error {
 	//Update Strategy
 	sts.Spec.UpdateStrategy = appsv1.StatefulSetUpdateStrategy{
 		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-			Partition: pointer.Int32Ptr(0),
+			Partition: pointer.Int32(0),
 		},
 		Type: appsv1.RollingUpdateStatefulSetStrategyType,
 	}
@@ -248,7 +248,7 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 func disableBlockOwnerDeletion(pvc corev1.PersistentVolumeClaim) {
 	refs := pvc.OwnerReferences
 	for i := range refs {
-		refs[i].BlockOwnerDeletion = pointer.BoolPtr(false)
+		refs[i].BlockOwnerDeletion = pointer.Bool(false)
 	}
 }
 
@@ -505,7 +505,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		})
 
 		secretEnforced := true
-		filePermissions := pointer.Int32Ptr(400)
+		filePermissions := pointer.Int32(400)
 		tlsProjectedVolume := corev1.Volume{
 			Name: "rabbitmq-tls",
 			VolumeSource: corev1.VolumeSource{
@@ -865,7 +865,7 @@ default_pass = {{ .Data.data.password }}
 func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 	altNames := ""
 	var i int32
-	for i = 0; i < pointer.Int32PtrDerefOr(instance.Spec.Replicas, 1); i++ {
+	for i = 0; i < pointer.Int32Deref(instance.Spec.Replicas, 1); i++ {
 		altNames += fmt.Sprintf(",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace))
 	}
 	return strings.TrimPrefix(altNames, ",")

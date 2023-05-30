@@ -39,14 +39,14 @@ var _ = Describe("Cluster scale down", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: pointer.Int32Ptr(5),
+					Replicas: pointer.Int32(5),
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
 
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				r.Spec.Replicas = pointer.Int32Ptr(3)
+				r.Spec.Replicas = pointer.Int32(3)
 			})).To(Succeed())
 			Consistently(func() int32 {
 				sts, err := clientSet.AppsV1().StatefulSets(defaultNamespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})

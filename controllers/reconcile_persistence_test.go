@@ -31,7 +31,7 @@ var _ = Describe("Persistence", func() {
 				Namespace: defaultNamespace,
 			},
 			Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-				Replicas: pointer.Int32Ptr(5),
+				Replicas: pointer.Int32(5),
 			},
 		}
 		Expect(client.Create(ctx, cluster)).To(Succeed())

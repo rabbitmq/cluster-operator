@@ -57,11 +57,11 @@ var _ = Describe("Reconcile TLS", func() {
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: "tls-secret",
 										},
-										Optional: pointer.BoolPtr(true),
+										Optional: pointer.Bool(true),
 									},
 								},
 							},
-							DefaultMode: pointer.Int32Ptr(400),
+							DefaultMode: pointer.Int32(400),
 						},
 					},
 				}))

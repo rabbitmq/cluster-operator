@@ -30,7 +30,7 @@ var _ = Describe("RabbitmqCluster", func() {
 	Context("RabbitmqClusterSpec", func() {
 		It("can be created with a single replica", func() {
 			created := generateRabbitmqClusterObject("rabbit1")
-			created.Spec.Replicas = pointer.Int32Ptr(1)
+			created.Spec.Replicas = pointer.Int32(1)
 			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
@@ -40,7 +40,7 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("can be created with three replicas", func() {
 			created := generateRabbitmqClusterObject("rabbit2")
-			created.Spec.Replicas = pointer.Int32Ptr(3)
+			created.Spec.Replicas = pointer.Int32(3)
 			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
@@ -50,7 +50,7 @@ var _ = Describe("RabbitmqCluster", func() {
 
 		It("can be created with five replicas", func() {
 			created := generateRabbitmqClusterObject("rabbit3")
-			created.Spec.Replicas = pointer.Int32Ptr(5)
+			created.Spec.Replicas = pointer.Int32(5)
 			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
 
 			fetched := &RabbitmqCluster{}
@@ -124,7 +124,7 @@ var _ = Describe("RabbitmqCluster", func() {
 		It("is validated", func() {
 			By("checking the replica count", func() {
 				invalidReplica := generateRabbitmqClusterObject("rabbit4")
-				invalidReplica.Spec.Replicas = pointer.Int32Ptr(-1)
+				invalidReplica.Spec.Replicas = pointer.Int32(-1)
 				Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalidReplica))).To(BeTrue())
 				Expect(k8sClient.Create(context.Background(), invalidReplica)).To(MatchError(ContainSubstring("spec.replicas in body should be greater than or equal to 0")))
 			})
@@ -180,10 +180,10 @@ var _ = Describe("RabbitmqCluster", func() {
 							Namespace: "default",
 						},
 						Spec: RabbitmqClusterSpec{
-							Replicas:                      pointer.Int32Ptr(3),
+							Replicas:                      pointer.Int32(3),
 							Image:                         "rabbitmq-image-from-cr",
 							ImagePullSecrets:              []corev1.LocalObjectReference{{Name: "my-super-secret"}},
-							TerminationGracePeriodSeconds: pointer.Int64Ptr(0),
+							TerminationGracePeriodSeconds: pointer.Int64(0),
 							Service: RabbitmqClusterServiceSpec{
 								Type: "NodePort",
 								Annotations: map[string]string{
@@ -510,9 +510,9 @@ func generateRabbitmqClusterObject(clusterName string) *RabbitmqCluster {
 			Namespace: "default",
 		},
 		Spec: RabbitmqClusterSpec{
-			Replicas:                      pointer.Int32Ptr(1),
-			TerminationGracePeriodSeconds: pointer.Int64Ptr(604800),
-			DelayStartSeconds:             pointer.Int32Ptr(30),
+			Replicas:                      pointer.Int32(1),
+			TerminationGracePeriodSeconds: pointer.Int64(604800),
+			DelayStartSeconds:             pointer.Int32(30),
 			Service: RabbitmqClusterServiceSpec{
 				Type: "ClusterIP",
 			},

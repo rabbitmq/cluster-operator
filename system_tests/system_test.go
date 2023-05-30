@@ -373,7 +373,7 @@ CONSOLE_LOG=new`
 
 			BeforeEach(func() {
 				cluster = newRabbitmqCluster(namespace, "ha-rabbit")
-				cluster.Spec.Replicas = pointer.Int32Ptr(3)
+				cluster.Spec.Replicas = pointer.Int32(3)
 
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
