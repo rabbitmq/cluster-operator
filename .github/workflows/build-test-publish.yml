@@ -17,6 +17,7 @@ env:
   # Taken from https://github.com/kubernetes-sigs/kind/releases/tag/v0.18.0
   # The image here should be listed under 'Images built for this release' for the version of kind in go.mod
   KIND_NODE_IMAGE: "kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f"
+  KIND_OLDEST_NODE_IMAGE: "kindest/node:v1.19.16@sha256:81f552397c1e6c1f293f967ecb1344d8857613fb978f963c30e907c32f598467"
   BASELINE_UPGRADE_VERSION: v2.1.0
 
 jobs:
@@ -225,6 +226,34 @@ jobs:
         # The examples are assumed to run in the 'examples' namespace, create if it doesn't exist
         kubectl create namespace examples --dry-run=client -o yaml | kubectl  apply -f -
         kubectl --namespace=examples apply --dry-run=server $manifest_path
+  system_tests_119:
+    name: Local system tests (using KinD)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    needs: build_operator
+    strategy:
+      matrix:
+        rabbitmq-image:
+        - rabbitmq:3.9.9-management
+        - rabbitmq:management
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        check-latest: true
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v3
+    - name: System tests
+      env:
+        KIND_NODE_IMAGE: ${{ env.KIND_OLDEST_NODE_IMAGE }}
+        RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
+      run: |
+        make install-tools
+        kind create cluster --image "$KIND_NODE_IMAGE"
+        DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
+        make cert-manager
+        SUPPORT_VOLUME_EXPANSION=false make system-tests
   system_tests:
     name: System tests
     runs-on: ubuntu-latest
