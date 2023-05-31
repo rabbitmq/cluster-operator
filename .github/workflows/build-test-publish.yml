@@ -13,7 +13,7 @@ on:
     branches: [ "main" ]
 
 env:
-  GO_VERSION: ~1.19
+  GO_VERSION: ~1.20
   # Taken from https://github.com/kubernetes-sigs/kind/releases/tag/v0.18.0
   # The image here should be listed under 'Images built for this release' for the version of kind in go.mod
   KIND_NODE_IMAGE: "kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f"
