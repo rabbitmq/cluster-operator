@@ -282,8 +282,8 @@ github.com/prometheus/procfs v0.9.0 h1:wzCHvIvM5SxWqYvwgVL7yJY8Lz3PKn49KQtpgMYJf
 github.com/prometheus/procfs v0.9.0/go.mod h1:+pB4zwohETzFnmlpe6yd2lSc+0/46IYZRB/chUwxUZY=
 github.com/rabbitmq/amqp091-go v1.8.1 h1:RejT1SBUim5doqcL6s7iN6SBmsQqyTgXb1xMlH0h1hA=
 github.com/rabbitmq/amqp091-go v1.8.1/go.mod h1:+jPrT9iY2eLjRaMSRHUhc3z14E/l85kv/f+6luSD3pc=
-github.com/rabbitmq/rabbitmq-stream-go-client v1.1.2 h1:svqNOlfehfD4Ru5Cf8Fm7vMIQSVb4hie8Ognx957Mg4=
-github.com/rabbitmq/rabbitmq-stream-go-client v1.1.2/go.mod h1:zxyTjagrlRuUaoZoWFpWiW/viQ6W/eyuXj9IOAvAZOo=
+github.com/rabbitmq/rabbitmq-stream-go-client v1.2.0 h1:JvmF+OHbz3ZpHjtUxnKHkpp5m2vZdd2zWL2efaRcjis=
+github.com/rabbitmq/rabbitmq-stream-go-client v1.2.0/go.mod h1:zxyTjagrlRuUaoZoWFpWiW/viQ6W/eyuXj9IOAvAZOo=
 github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
