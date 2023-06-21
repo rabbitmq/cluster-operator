@@ -12,9 +12,9 @@ require (
 	github.com/mikefarah/yq/v4 v4.34.1
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.8
+	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.2.0
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
-	github.com/streadway/amqp v1.0.0
 	golang.org/x/mod v0.11.0
 	golang.org/x/net v0.11.0
 	gopkg.in/ini.v1 v1.67.0
