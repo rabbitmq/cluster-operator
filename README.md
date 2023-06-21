@@ -64,6 +64,6 @@ generate a new draft release, alongside release artefacts.
 
 ## Copyright
 
-Copyright 2020-2022 VMware, Inc. All Rights Reserved.
+Copyright 2020-2023 VMware, Inc. All Rights Reserved.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/rabbitmq/cluster-operator)](https://goreportcard.com/report/github.com/rabbitmq/cluster-operator)
