@@ -1,0 +1,12 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: priority-class
+spec:
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers: []
+            priorityClassName: high-priority
