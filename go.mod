@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.15.0
-	github.com/mikefarah/yq/v4 v4.34.1
+	github.com/mikefarah/yq/v4 v4.34.2
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.8
 	github.com/rabbitmq/amqp091-go v1.8.1
@@ -96,7 +96,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
-	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.15.1 // indirect
