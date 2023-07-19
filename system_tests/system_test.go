@@ -15,12 +15,13 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/mod/semver"
 	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
 
+	"golang.org/x/mod/semver"
+	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -374,6 +375,14 @@ CONSOLE_LOG=new`
 			BeforeEach(func() {
 				cluster = newRabbitmqCluster(namespace, "ha-rabbit")
 				cluster.Spec.Replicas = pointer.Int32(3)
+				cluster.Spec.Resources = &corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+					},
+				}
 
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
@@ -429,6 +438,14 @@ CONSOLE_LOG=new`
 				cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
 					"rabbitmq_mqtt",
 					"rabbitmq_stomp",
+				}
+				cluster.Spec.Resources = &corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+					},
 				}
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 				waitForRabbitmqRunning(cluster)
@@ -570,6 +587,14 @@ CONSOLE_LOG=new`
 				"rabbitmq_web_mqtt",
 				"rabbitmq_stomp",
 				"rabbitmq_stream",
+			}
+			cluster.Spec.Resources = &corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+				},
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
