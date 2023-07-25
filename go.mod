@@ -1,4 +1,4 @@
-module github.com/rabbitmq/cluster-operator
+module github.com/rabbitmq/cluster-operator/v2
 
 go 1.20
 

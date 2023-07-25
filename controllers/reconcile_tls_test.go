@@ -3,11 +3,11 @@ package controllers_test
 import (
 	"context"
 	"fmt"
-	"github.com/rabbitmq/cluster-operator/internal/status"
+	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	"k8s.io/utils/pointer"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

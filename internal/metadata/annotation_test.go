@@ -3,7 +3,7 @@ package metadata_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	internalmetadata "github.com/rabbitmq/cluster-operator/internal/metadata"
+	internalmetadata "github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 )
 
 var _ = Describe("Annotation", func() {

@@ -21,8 +21,8 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/rabbitmq/cluster-operator/internal/resource"
-	"github.com/rabbitmq/cluster-operator/internal/status"
+	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
+	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -38,7 +38,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
