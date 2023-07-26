@@ -17,12 +17,12 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/rabbitmq/cluster-operator/internal/metadata"
+	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/rabbitmq/cluster-operator/api/v1beta1"
+	"github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 )
 
 const (

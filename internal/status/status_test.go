@@ -6,7 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	. "github.com/rabbitmq/cluster-operator/internal/status"
+	. "github.com/rabbitmq/cluster-operator/v2/internal/status"
 )
 
 var _ = Describe("Status", func() {

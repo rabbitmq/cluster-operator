@@ -16,14 +16,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rabbitmq/cluster-operator/pkg/profiling"
+	"github.com/rabbitmq/cluster-operator/v2/pkg/profiling"
 
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
-	"github.com/rabbitmq/cluster-operator/controllers"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
+	"github.com/rabbitmq/cluster-operator/v2/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"

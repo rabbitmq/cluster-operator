@@ -4,8 +4,8 @@ import (
 	"context"
 	"reflect"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
-	"github.com/rabbitmq/cluster-operator/internal/resource"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
+	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 )
 

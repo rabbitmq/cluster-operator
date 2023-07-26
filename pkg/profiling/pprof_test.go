@@ -5,7 +5,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/rabbitmq/cluster-operator/pkg/profiling"
+	"github.com/rabbitmq/cluster-operator/v2/pkg/profiling"
 	"io"
 	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"

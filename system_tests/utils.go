@@ -45,7 +45,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/go-stomp/stomp"
 	amqp "github.com/rabbitmq/amqp091-go"
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	streamamqp "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/message"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
