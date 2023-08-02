@@ -11,7 +11,7 @@ require (
 	github.com/michaelklishin/rabbit-hole/v2 v2.15.0
 	github.com/mikefarah/yq/v4 v4.34.2
 	github.com/onsi/ginkgo/v2 v2.11.0
-	github.com/onsi/gomega v1.27.8
+	github.com/onsi/gomega v1.27.10
 	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.2.0
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
