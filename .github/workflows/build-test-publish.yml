@@ -106,7 +106,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         context: .
-        platforms: linux/amd64, linux/arm64
+        platforms: linux/amd64, linux/arm64, linux/ppc64le
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
@@ -155,7 +155,30 @@ jobs:
         platforms: linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.single-arch-meta-arm64.outputs.tags }}
-        labels: ${{ steps.single-arch-meta-arm64.outputs.labels }}     
+        labels: ${{ steps.single-arch-meta-arm64.outputs.labels }}  
+    - name: OCI Metadata for single-arch ppc64le image
+      #if: startsWith(github.ref, 'refs/tags/v')
+      id: single-arch-meta-ppc64le
+      uses: docker/metadata-action@v4
+      with:
+        # list of Docker images to use as base name for tags
+        images: |
+          rabbitmqoperator/cluster-operator
+        flavor: |
+          latest=false
+        # generate Docker tags based on the following events/attributes
+        tags: |
+          type=semver,pattern={{version}},suffix=-ppc64le,latest=false
+          type=sha,suffix=-ppc64le,latest=false
+    - name: Build and push single-arch ppc64le image
+      #if: startsWith(github.ref, 'refs/tags/v')
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        platforms: linux/ppc64le
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.single-arch-meta-ppc64le.outputs.tags }}
+        labels: ${{ steps.single-arch-meta-ppc64le.outputs.labels }}   
     - name: Build manifest
       if: github.event_name != 'pull_request'
       env:
