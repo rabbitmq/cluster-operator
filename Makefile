@@ -8,7 +8,7 @@ help:
 
 ENVTEST_K8S_VERSION ?= 1.22.1
 ARCHITECTURE ?= amd64
-PLATFORMS ?= linux/amd64,linux/s390x
+PLATFORMS ?= linux/amd64
 LOCAL_TESTBIN = $(CURDIR)/testbin
 $(LOCAL_TESTBIN):
 	mkdir -p $@
