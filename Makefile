@@ -7,8 +7,7 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 ENVTEST_K8S_VERSION ?= 1.22.1
-ARCHITECTURE ?= amd64
-PLATFORMS ?= linux/amd64
+ARCHITECTURE = amd64
 LOCAL_TESTBIN = $(CURDIR)/testbin
 $(LOCAL_TESTBIN):
 	mkdir -p $@
