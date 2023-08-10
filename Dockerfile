@@ -23,7 +23,7 @@ ENV GOARCH $TARGETARCH
 RUN CGO_ENABLED=0 GO111MODULE=on go build -a -tags timetzdata -o manager main.go
 
 # ---------------------------------------
-FROM --platform=$BUILDPLATFORM alpine:latest as etc-builder
+FROM alpine:latest as etc-builder
 
 RUN echo "rabbitmq-cluster-operator:x:1000:" > /etc/group && \
     echo "rabbitmq-cluster-operator:x:1000:1000::/home/rabbitmq-cluster-operator:/usr/sbin/nologin" > /etc/passwd
@@ -31,7 +31,7 @@ RUN echo "rabbitmq-cluster-operator:x:1000:" > /etc/group && \
 RUN apk add -U --no-cache ca-certificates
 
 # ---------------------------------------
-FROM --platform=$BUILDPLATFORM scratch
+FROM scratch
 
 ARG GIT_COMMIT
 LABEL GitCommit=$GIT_COMMIT
