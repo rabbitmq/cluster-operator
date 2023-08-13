@@ -3,7 +3,7 @@ kind: RabbitmqCluster
 metadata:
   name: import-https-url-definitions 
 spec:
-  replicas: 1
+  replicas: 3
   resources:
     requests:
       cpu: 2
@@ -16,3 +16,4 @@ spec:
       definitions.import_backend = https
       definitions.https.url = https://raw.githubusercontent.com/rabbitmq/sample-configs/main/queues/1k-quorum-queues.json
       definitions.tls.versions.1 = tlsv1.2
+      queue_leader_locator = balanced
