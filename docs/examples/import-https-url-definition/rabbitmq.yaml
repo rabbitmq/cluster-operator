@@ -14,5 +14,5 @@ spec:
   rabbitmq:
     additionalConfig: |
       definitions.import_backend = https
-      definitions.https.url = https://raw.githubusercontent.com/rabbitmq/sample-configs/main/lot-of-queues/5k-queues.json
+      definitions.https.url = https://raw.githubusercontent.com/rabbitmq/sample-configs/main/queues/1k-quorum-queues.json
       definitions.tls.versions.1 = tlsv1.2
