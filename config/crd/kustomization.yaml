@@ -14,7 +14,7 @@ resources:
 - bases/rabbitmq.com_rabbitmqclusters.yaml
 # +kubebuilder:scaffold:kustomizeresource
 
-patches:
+patchesStrategicMerge:
 - patches/crd_labels_patch.yaml
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.
