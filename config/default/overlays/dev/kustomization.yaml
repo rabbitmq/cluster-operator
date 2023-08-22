@@ -10,5 +10,5 @@ namespace: rabbitmq-system
 resources:
 - ../../base
 
-patches:
+patchesStrategicMerge:
 - manager_image_patch.yaml
