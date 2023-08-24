@@ -1,13 +1,29 @@
 SHELL := bash
 platform := $(shell uname | tr A-Z a-z)
+ARCHITECTURE := $(shell uname -m)
+
+ifeq ($(ARCHITECTURE),x86_64)
+	ARCHITECTURE=amd64
+endif
 
 .DEFAULT_GOAL = help
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-ENVTEST_K8S_VERSION ?= 1.22.1
-ARCHITECTURE = amd64
+### Helper functions
+### https://stackoverflow.com/questions/10858261/how-to-abort-makefile-if-variable-not-set
+check_defined = \
+    $(strip $(foreach 1,$1, \
+        $(call __check_defined,$1,$(strip $(value 2)))))
+__check_defined = \
+    $(if $(value $1),, \
+        $(error Undefined $1$(if $2, ($2))$(if $(value @), \
+                required by target '$@')))
+###
+
+# The latest 1.25 available for envtest
+ENVTEST_K8S_VERSION ?= 1.25.0
 LOCAL_TESTBIN = $(CURDIR)/testbin
 $(LOCAL_TESTBIN):
 	mkdir -p $@
@@ -25,10 +41,14 @@ SYSTEM_TEST_NAMESPACE ?= rabbitmq-system
 export KUBEBUILDER_ASSETS = $(LOCAL_TESTBIN)/k8s/$(ENVTEST_K8S_VERSION)-$(platform)-$(ARCHITECTURE)
 
 $(KUBEBUILDER_ASSETS):
-	setup-envtest --os $(platform) --arch $(ARCHITECTURE) --bin-dir $(LOCAL_TESTBIN) use $(ENVTEST_K8S_VERSION)
+	setup-envtest -v info --os $(platform) --arch $(ARCHITECTURE) --bin-dir $(LOCAL_TESTBIN) use $(ENVTEST_K8S_VERSION)
 
 .PHONY: kubebuilder-assets
 kubebuilder-assets: $(KUBEBUILDER_ASSETS)
+
+.PHONY: kubebuilder-assets-rm
+kubebuilder-assets-rm:
+	setup-envtest -v debug --os $(platform) --arch $(ARCHITECTURE) --bin-dir $(LOCAL_TESTBIN) cleanup
 
 .PHONY: unit-tests
 unit-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet vuln manifests ## Run unit tests
@@ -52,6 +72,11 @@ api-reference: install-tools ## Generate API reference documentation
 		--output-path ./docs/api/rabbitmq.com.ref.asciidoc \
 		--max-depth 30
 
+.PHONY: checks
+checks::fmt ## Runs fmt + vet +govulncheck against the current code
+checks::vet
+checks::vuln
+
 # Run go fmt against code
 fmt:
 	go fmt ./...
@@ -70,7 +95,7 @@ generate: install-tools api-reference
 	controller-gen object:headerFile=./hack/NOTICE.go.txt paths=./internal/status/...
 
 # Build manager binary
-manager: generate fmt vet vuln
+manager: generate checks
 	go mod download
 	go build -o bin/manager main.go
 
@@ -79,6 +104,8 @@ deploy-manager:  ## Deploy manager
 	kustomize build config/default/base | kubectl apply -f -
 
 deploy-manager-dev:
+	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
+	@$(call check_defined, DOCKER_REGISTRY_SERVER, URL of docker registry containing the Operator image e.g. registry.my-company.com)
 	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/dev | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
@@ -91,12 +118,22 @@ destroy: ## Cleanup all controller artefacts
 	kustomize build config/rbac/ | kubectl delete --ignore-not-found=true -f -
 	kustomize build config/namespace/base/ | kubectl delete --ignore-not-found=true -f -
 
-run: generate manifests fmt vet vuln install deploy-namespace-rbac just-run ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
+.PHONY: run
+run::generate ## Run operator binary locally against the configured Kubernetes cluster in ~/.kube/config
+run::manifests
+run::checks
+run::install
+run::deploy-namespace-rbac
+run::just-run
 
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
 	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel $(OPERATOR_ARGS)
 
-delve: generate install deploy-namespace-rbac just-delve ## Deploys CRD, Namespace, RBACs and starts Delve debugger
+.PHONY: delve
+delve::generate ## Deploys CRD, Namespace, RBACs and starts Delve debugger
+delve::install
+delve::deploy-namespace-rbac
+delve::just-delve
 
 just-delve: install-tools ## Just starts Delve debugger
 	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) dlv debug
@@ -108,17 +145,28 @@ deploy-namespace-rbac:
 	kustomize build config/namespace/base | kubectl apply -f -
 	kustomize build config/rbac | kubectl apply -f -
 
-deploy: manifests deploy-namespace-rbac deploy-manager ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config
+.PHONY: deploy
+deploy::manifests ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config
+deploy::deploy-namespace-rbac
+deploy::deploy-manager
 
-deploy-dev: check-env-docker-credentials docker-build-dev manifests deploy-namespace-rbac docker-registry-secret deploy-manager-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
+.PHONY: deploy-dev
+deploy-dev::docker-build-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
+deploy-dev::manifests
+deploy-dev::deploy-namespace-rbac
+deploy-dev::docker-registry-secret
+deploy-dev::deploy-manager-dev
 
-deploy-kind: check-env-docker-repo git-commit-sha manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
+GIT_COMMIT := $(shell git rev-parse --short HEAD)
+deploy-kind: manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
+	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
+	@$(call check_defined, DOCKER_REGISTRY_SERVER, URL of docker registry containing the Operator image e.g. registry.my-company.com)
 	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	kind load docker-image $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/kind | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
-YTT_VERSION ?= v0.44.1
+YTT_VERSION ?= v0.45.3
 YTT = $(LOCAL_TESTBIN)/ytt
 $(YTT): | $(LOCAL_TESTBIN)
 	mkdir -p $(LOCAL_TESTBIN)
@@ -132,22 +180,19 @@ generate-installation-manifest: | $(YTT)
 	kustomize build config/installation/ > releases/cluster-operator.yml
 	$(YTT) -f releases/cluster-operator.yml -f config/ytt/overlay-manager-image.yaml --data-value operator_image=$(QUAY_IO_OPERATOR_IMAGE) > releases/cluster-operator-quay-io.yml
 
-# Build the docker image
-docker-build: check-env-docker-repo git-commit-sha
+docker-build: ## Build the docker image with tag `latest`
+	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
+	@$(call check_defined, DOCKER_REGISTRY_SERVER, URL of docker registry containing the Operator image e.g. registry.my-company.com)
 	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):latest .
 
-# Push the docker image
-docker-push: check-env-docker-repo
+docker-push: ## Push the docker image with tag `latest`
+	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
+	@$(call check_defined, DOCKER_REGISTRY_SERVER, URL of docker registry containing the Operator image e.g. registry.my-company.com)
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):latest
 
-git-commit-sha:
-ifeq ("", git diff --stat)
-GIT_COMMIT=$(shell git rev-parse --short HEAD)
-else
-GIT_COMMIT=$(shell git rev-parse --short HEAD)-
-endif
-
-docker-build-dev: check-env-docker-repo  git-commit-sha
+docker-build-dev:
+	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
+	@$(call check_defined, DOCKER_REGISTRY_SERVER, URL of docker registry containing the Operator image e.g. registry.my-company.com)
 	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 
@@ -159,7 +204,7 @@ $(CMCTL): | $(LOCAL_TMP) $(LOCAL_TESTBIN)
 
 CERT_MANAGER_VERSION ?= 1.9.2
 .PHONY: cert-manager
-cert-manager: | $(CMCTL) ## Setup cert-manager
+cert-manager: | $(CMCTL) ## Setup cert-manager. Use CERT_MANAGER_VERSION to customise the version e.g. CERT_MANAGER_VERSION="1.9.2"
 	@echo "Installing Cert Manager"
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml
 	$(CMCTL) check api --wait=5m
@@ -169,54 +214,28 @@ cert-manager-rm:
 	@echo "Deleting Cert Manager"
 	kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml --ignore-not-found
 
-kind-prepare: ## Prepare KIND to support LoadBalancer services
-	# Note that created LoadBalancer services will have an unreachable external IP
-	@kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
-	@kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
-	@kubectl apply -f config/metallb/config.yaml
-	@kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(shell openssl rand -base64 128)"
-
-kind-unprepare:  ## Remove KIND support for LoadBalancer services
-	# remove MetalLB
-	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
-	@kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
-
 system-tests: install-tools ## Run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
 	NAMESPACE="$(SYSTEM_TEST_NAMESPACE)" K8S_OPERATOR_NAMESPACE="$(K8S_OPERATOR_NAMESPACE)" ginkgo -nodes=3 --randomize-all -r system_tests/
 
 kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
-	echo "running kubectl plugin tests"
+	@echo "running kubectl plugin tests"
 	PATH=$(PWD)/bin:$$PATH ./bin/kubectl-rabbitmq.bats
 
-tests: unit-tests integration-tests system-tests kubectl-plugin-tests
+.PHONY: tests
+tests::unit-tests ## Runs all test suites: unit, integration, system and kubectl-plugin
+tests::integration-tests
+tests::system-tests
+tests::kubectl-plugin-tests
 
-docker-registry-secret: check-env-docker-credentials
-	echo "creating registry secret and patching default service account"
+docker-registry-secret:
+	@$(call check_defined, DOCKER_REGISTRY_SERVER, URL of docker registry containing the Operator image e.g. registry.my-company.com)
+	@$(call check_defined, DOCKER_REGISTRY_USERNAME, Username for accessing the docker registry e.g. robot-123)
+	@$(call check_defined, DOCKER_REGISTRY_PASSWORD, Password for accessing the docker registry e.g. password)
+	@$(call check_defined, DOCKER_REGISTRY_SECRET, Name of Kubernetes secret in which to store the Docker registry username and password)
+	@printf "creating registry secret and patching default service account"
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) create secret docker-registry $(DOCKER_REGISTRY_SECRET) --docker-server='$(DOCKER_REGISTRY_SERVER)' --docker-username="$$DOCKER_REGISTRY_USERNAME" --docker-password="$$DOCKER_REGISTRY_PASSWORD" || true
 	@kubectl -n $(K8S_OPERATOR_NAMESPACE) patch serviceaccount rabbitmq-cluster-operator -p '{"imagePullSecrets": [{"name": "$(DOCKER_REGISTRY_SECRET)"}]}'
 
+.PHONY: install-tools
 install-tools:
-	go mod download
-	grep _ tools/tools.go | awk -F '"' '{print $$2}' | xargs -t go install
-	go install "golang.org/x/vuln/cmd/govulncheck@latest"
-
-check-env-docker-repo: check-env-registry-server
-ifndef OPERATOR_IMAGE
-	$(error OPERATOR_IMAGE is undefined: path to the Operator image within the registry specified in DOCKER_REGISTRY_SERVER (e.g. rabbitmq/cluster-operator - without leading slash))
-endif
-
-check-env-docker-credentials: check-env-registry-server
-ifndef DOCKER_REGISTRY_USERNAME
-	$(error DOCKER_REGISTRY_USERNAME is undefined: Username for accessing the docker registry)
-endif
-ifndef DOCKER_REGISTRY_PASSWORD
-	$(error DOCKER_REGISTRY_PASSWORD is undefined: Password for accessing the docker registry)
-endif
-ifndef DOCKER_REGISTRY_SECRET
-	$(error DOCKER_REGISTRY_SECRET is undefined: Name of Kubernetes secret in which to store the Docker registry username and password)
-endif
-
-check-env-registry-server:
-ifndef DOCKER_REGISTRY_SERVER
-	$(error DOCKER_REGISTRY_SERVER is undefined: URL of docker registry containing the Operator image (e.g. registry.my-company.com))
-endif
+	grep _ tools/tools.go | awk -F '"' '{print $$2}' | xargs -t go install -mod=mod
