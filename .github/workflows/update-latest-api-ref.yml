@@ -11,11 +11,11 @@ jobs:
 
     steps:
       - name: Checkout operator codebase
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: cluster-operator
       - name: Checkout wiki codebase
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}.wiki
           path: wiki
