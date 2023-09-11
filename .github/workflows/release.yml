@@ -11,7 +11,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
     - name: Update new version in krew-index
-      uses: rajatjindal/krew-release-bot@v0.0.38
+      uses: rajatjindal/krew-release-bot@v0.0.46
       with:
         krew_template_file: hack/rabbitmq.yaml
     - uses: 8398a7/action-slack@v3
