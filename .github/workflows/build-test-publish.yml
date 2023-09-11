@@ -103,7 +103,7 @@ jobs:
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_ROBOT_TOKEN }}
     - name: Build and push
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v4
       with:
         context: .
         platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
@@ -126,7 +126,7 @@ jobs:
           type=sha,suffix=-amd64,latest=false
     - name: Build and push single-arch amd64 image
       #if: startsWith(github.ref, 'refs/tags/v')
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v4
       with:
         context: .
         platforms: linux/amd64
@@ -149,7 +149,7 @@ jobs:
           type=sha,suffix=-arm64,latest=false
     - name: Build and push single-arch arm64 image
       #if: startsWith(github.ref, 'refs/tags/v')
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v4
       with:
         context: .
         platforms: linux/arm64
