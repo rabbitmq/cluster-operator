@@ -13,3 +13,7 @@ updates:
       versions: ["0.19.x"]
     - dependency-name: "github.com/go-logr/logr"
       versions: ["0.2.x"]
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
