@@ -20,7 +20,7 @@ require (
 	golang.org/x/vuln v1.0.1
 	gopkg.in/ini.v1 v1.67.0
 	k8s.io/api v0.28.1
-	k8s.io/apimachinery v0.28.1
+	k8s.io/apimachinery v0.28.2
 	k8s.io/client-go v0.28.1
 	k8s.io/klog/v2 v2.100.1
 	k8s.io/utils v0.0.0-20230505201702-9f6742963106
