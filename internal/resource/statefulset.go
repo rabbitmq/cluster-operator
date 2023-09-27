@@ -41,6 +41,10 @@ const (
 	DeletionMarker      string = "skipPreStopChecks"
 )
 
+var (
+	ipFamily string = "IPv4"
+)
+
 type StatefulSetBuilder struct {
 	*RabbitmqResourceBuilder
 }
@@ -85,6 +89,8 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 		}
 
 	}
+
+	ipFamily = builder.Instance.Spec.IPFamily
 
 	return sts, nil
 }
@@ -423,6 +429,15 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		},
 	}
 
+	if ipFamily == "IPv6" {
+		volumes = append(volumes, corev1.Volume{
+			Name: "ipv6-conf",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+	}
+
 	if !builder.Instance.VaultDefaultUserSecretEnabled() && !builder.Instance.ExternalSecretEnabled() {
 		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance, "")
 	} else if builder.Instance.ExternalSecretEnabled() {
@@ -476,6 +491,13 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			Name:      "pod-info",
 			MountPath: "/etc/pod-info/",
 		},
+	}
+
+	if ipFamily == "IPv6" {
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name:      "ipv6-conf",
+			MountPath: "/ipv6",
+		})
 	}
 
 	if !builder.Instance.VaultDefaultUserSecretEnabled() {
@@ -633,6 +655,19 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		},
 	}
+
+	if ipFamily == "IPv6" {
+		podTemplateSpec.Spec.Containers[0].Env = append(podTemplateSpec.Spec.Containers[0].Env, []corev1.EnvVar{
+			{
+				Name:  "RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS",
+				Value: "-kernel inetrc '/ipv6/erl_inetrc' -proto_dist inet6_tcp",
+			},
+			{
+				Name:  "RABBITMQ_CTL_ERL_ARGS",
+				Value: "-proto_dist inet6_tcp",
+			}}...)
+	}
+
 	if builder.Instance.VaultDefaultUserSecretEnabled() &&
 		builder.Instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage != nil &&
 		*builder.Instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage != "" {
@@ -729,6 +764,7 @@ func setupContainer(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container 
 			"&& chmod 600 /var/lib/rabbitmq/.erlang.cookie ; " +
 			"cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; " +
 			"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
+			getIPv6Cmd(ipFamily) +
 			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' %s >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf ; " +
 			"sleep " + strconv.Itoa(int(pointer.Int32Deref(instance.Spec.DelayStartSeconds, 30))),
@@ -769,6 +805,13 @@ func setupContainer(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container 
 				MountPath: "/var/lib/rabbitmq/mnesia/",
 			},
 		},
+	}
+
+	if ipFamily == "IPv6" {
+		setupContainer.VolumeMounts = append(setupContainer.VolumeMounts, corev1.VolumeMount{
+			Name:      "ipv6-conf",
+			MountPath: "/ipv6",
+		})
 	}
 
 	if instance.VaultDefaultUserSecretEnabled() {
@@ -1096,4 +1139,11 @@ func containerRabbitmq(containers []corev1.Container) corev1.Container {
 		}
 	}
 	return corev1.Container{}
+}
+
+func getIPv6Cmd(ipFamily string) string {
+	if ipFamily == "IPv6" {
+		return "&& echo '{inet6, true}.' > /ipv6/erl_inetrc"
+	}
+	return ""
 }

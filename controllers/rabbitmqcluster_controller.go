@@ -68,6 +68,7 @@ type RabbitmqClusterReconciler struct {
 	DefaultUserUpdaterImage string
 	DefaultImagePullSecrets string
 	ControlRabbitmqImage    bool
+	DefaultIPFamily         string
 }
 
 // the rbac rule requires an empty row at the end to render

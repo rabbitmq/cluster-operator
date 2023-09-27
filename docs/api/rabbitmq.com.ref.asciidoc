@@ -314,6 +314,7 @@ Spec is the desired state of the RabbitmqCluster Custom Resource.
 | *`terminationGracePeriodSeconds`* __integer__ | TerminationGracePeriodSeconds is the timeout that each rabbitmqcluster pod will have to terminate gracefully. It defaults to 604800 seconds ( a week long) to ensure that the container preStop lifecycle hook can finish running. For more information, see: https://github.com/rabbitmq/cluster-operator/blob/main/docs/design/20200520-graceful-pod-termination.md
 | *`delayStartSeconds`* __integer__ | DelayStartSeconds is the time the init container (`setup-container`) will sleep before terminating. This effectively delays the time between starting the Pod and starting the `rabbitmq` container. RabbitMQ relies on up-to-date DNS entries early during peer discovery. The purpose of this artificial delay is to ensure that DNS entries are up-to-date when booting RabbitMQ. For more information, see https://github.com/kubernetes/kubernetes/issues/92559 If your Kubernetes DNS backend is configured with a low DNS cache value or publishes not ready addresses promptly, you can decrase this value or set it to 0.
 | *`secretBackend`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-v2-api-v1beta1-secretbackend[$$SecretBackend$$]__ | Secret backend configuration for the RabbitmqCluster. Enables to fetch default user credentials and certificates from K8s external secret stores.
+| *`ipFamily`* __string__ | IPFamily represents the IP Family (IPv4 or IPv6), default IPv4
 |===
 
 

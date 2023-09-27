@@ -53,6 +53,7 @@ func main() {
 		controlRabbitmqImage    = false
 		defaultUserUpdaterImage = "rabbitmqoperator/default-user-credential-updater:1.0.2"
 		defaultImagePullSecrets = ""
+		defaultIPFamily         = "IPv4"
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":9782", "The address the metric endpoint binds to.")
@@ -159,6 +160,7 @@ func main() {
 		DefaultUserUpdaterImage: defaultUserUpdaterImage,
 		DefaultImagePullSecrets: defaultImagePullSecrets,
 		ControlRabbitmqImage:    controlRabbitmqImage,
+		DefaultIPFamily:         defaultIPFamily,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		log.Error(err, "unable to create controller", controllerName)

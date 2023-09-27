@@ -3,12 +3,13 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"strings"
-	"time"
 )
 
 // reconcileOperatorDefaults updates current rabbitmqCluster with operator defaults from the Reconciler
@@ -38,6 +39,13 @@ func (r *RabbitmqClusterReconciler) reconcileOperatorDefaults(ctx context.Contex
 	if rabbitmqCluster.UsesDefaultUserUpdaterImage(r.ControlRabbitmqImage) {
 		rabbitmqCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = &r.DefaultUserUpdaterImage
 		if requeue, err := r.updateRabbitmqCluster(ctx, rabbitmqCluster, "default user image"); err != nil {
+			return requeue, err
+		}
+	}
+
+	if rabbitmqCluster.Spec.IPFamily == "" {
+		rabbitmqCluster.Spec.IPFamily = r.DefaultIPFamily
+		if requeue, err := r.updateRabbitmqCluster(ctx, rabbitmqCluster, "ipFamily"); err != nil {
 			return requeue, err
 		}
 	}

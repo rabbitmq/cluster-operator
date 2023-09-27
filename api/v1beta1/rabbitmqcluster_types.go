@@ -98,6 +98,8 @@ type RabbitmqClusterSpec struct {
 	// Secret backend configuration for the RabbitmqCluster.
 	// Enables to fetch default user credentials and certificates from K8s external secret stores.
 	SecretBackend SecretBackend `json:"secretBackend,omitempty"`
+	// IPFamily represents the IP Family (IPv4 or IPv6), default IPv4
+	IPFamily string `json:"ipFamily,omitempty"`
 }
 
 // SecretBackend configures a single secret backend.
