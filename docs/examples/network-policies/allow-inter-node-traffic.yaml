@@ -18,6 +18,8 @@ spec:
           app.kubernetes.io/name: network-policies
     ports:
     - port: 4369  # epmd
+    - port: 6000  # stream replication, if streams are being used
+      endPort: 6500 # if your cluster version is below 1.22 (see below) you should use a helm loop or something similar
     - port: 25672 # clustering
     - port: 35672 # CLI tooling
     - port: 35673 # CLI tooling
@@ -41,6 +43,8 @@ spec:
           app.kubernetes.io/name: network-policies
     ports:
     - port: 4369  # epmd
+    - port: 6000  # stream replication, if streams are being used
+      endPort: 6500 # if your cluster version is below 1.22 (see below) you should use a helm loop or something similar
     - port: 25672 # clustering
     - port: 35672 # CLI tooling
     - port: 35673 # CLI tooling
