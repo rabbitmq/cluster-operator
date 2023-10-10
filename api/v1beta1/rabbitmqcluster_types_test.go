@@ -137,6 +137,17 @@ var _ = Describe("RabbitmqCluster", func() {
 			})
 		})
 
+		It("can be created with Erlang configuration", func() {
+			created := generateRabbitmqClusterObject("erlang-configuration")
+			erlangConfig := "{some_config, 123}."
+			created.Spec.Rabbitmq.ErlangInetConfig = erlangConfig
+			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
+
+			got := &RabbitmqCluster{}
+			Expect(k8sClient.Get(context.Background(), getKey(created), got)).To(Succeed())
+			Expect(got.Spec.Rabbitmq.ErlangInetConfig).To(Equal(erlangConfig))
+		})
+
 		Describe("ChildResourceName", func() {
 			It("prefixes the passed string with the name of the RabbitmqCluster name", func() {
 				resource := generateRabbitmqClusterObject("iam")

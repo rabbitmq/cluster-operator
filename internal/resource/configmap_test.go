@@ -183,7 +183,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 				Expect(configMap.Data).To(HaveKeyWithValue("advanced.config", "[my-awesome-config]."))
 			})
 
-			It("does set data.advancedConfig when empty", func() {
+			It("does not set data.advancedConfig when empty", func() {
 				instance.Spec.Rabbitmq.AdvancedConfig = ""
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).ToNot(HaveKey("advanced.config"))
@@ -558,6 +558,26 @@ CONSOLE_LOG=new`
 			}
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			Expect(configMap.Annotations).To(BeEmpty())
+		})
+
+		Context("Erlang INET configuration", func() {
+			It("sets erlangInetRc key", func() {
+				instance.Spec.Rabbitmq.ErlangInetConfig = "{any-config, is-set}."
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("erl_inetrc", "{any-config, is-set}."))
+			})
+
+			When("erlangInetRc is removed", func() {
+				It("deletes the key", func() {
+					instance.Spec.Rabbitmq.ErlangInetConfig = "any string is set, rabbit will do validation"
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMap.Data).To(HaveKey("erl_inetrc"))
+
+					instance.Spec.Rabbitmq.ErlangInetConfig = ""
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMap.Data).ToNot(HaveKey("erl_inetrc"))
+				})
+			})
 		})
 	})
 

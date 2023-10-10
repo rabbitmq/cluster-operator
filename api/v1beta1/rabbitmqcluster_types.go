@@ -385,6 +385,10 @@ type RabbitmqClusterConfigurationSpec struct {
 	// For more information on env config, see https://www.rabbitmq.com/man/rabbitmq-env.conf.5.html
 	// +kubebuilder:validation:MaxLength:=100000
 	EnvConfig string `json:"envConfig,omitempty"`
+	// Erlang Inet configuration to apply to the Erlang VM running rabbit.
+	// See also: https://www.erlang.org/doc/apps/erts/inet_cfg.html
+	// +kubebuilder:validation:MaxLength:=2000
+	ErlangInetConfig string `json:"ErlangInetConfig,omitempty"`
 }
 
 // The settings for the persistent storage desired for each Pod in the RabbitmqCluster.

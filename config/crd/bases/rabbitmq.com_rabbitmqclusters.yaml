@@ -10,7 +10,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: rabbitmqclusters.rabbitmq.com
 spec:
   group: rabbitmq.com
@@ -4106,6 +4106,10 @@ spec:
                 rabbitmq:
                   description: Configuration options for RabbitMQ Pods created in the cluster.
                   properties:
+                    ErlangInetConfig:
+                      description: 'Erlang Inet configuration to apply to the Erlang VM running rabbit. See also: https://www.erlang.org/doc/apps/erts/inet_cfg.html'
+                      maxLength: 2000
+                      type: string
                     additionalConfig:
                       description: Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime. For more information on this config, see https://www.rabbitmq.com/configure.html#config-file
                       maxLength: 2000

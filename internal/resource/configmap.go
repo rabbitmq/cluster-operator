@@ -98,7 +98,7 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		return err
 	}
 
-	userConfiguration := ini.Empty(ini.LoadOptions{})
+	userConfiguration := ini.Empty()
 	userConfigurationSection := userConfiguration.Section("")
 
 	if builder.Instance.TLSEnabled() {
@@ -241,6 +241,7 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 
 	updateProperty(configMap.Data, "advanced.config", rmqProperties.AdvancedConfig)
 	updateProperty(configMap.Data, "rabbitmq-env.conf", rmqProperties.EnvConfig)
+	updateProperty(configMap.Data, "erl_inetrc", rmqProperties.ErlangInetConfig)
 
 	if err := controllerutil.SetControllerReference(builder.Instance, configMap, builder.Scheme); err != nil {
 		return fmt.Errorf("failed setting controller reference: %w", err)

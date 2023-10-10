@@ -1140,10 +1140,11 @@ default_pass = {{ .Data.data.password }}
 
 		Context("Rabbitmq container volume mounts", func() {
 			DescribeTable("Volume mounts depending on spec configuration and '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' ",
-				func(rabbitmqEnv, advancedConfig string) {
+				func(rabbitmqEnv, advancedConfig, erlInet string) {
 					stsBuilder := builder.StatefulSet()
 					stsBuilder.Instance.Spec.Rabbitmq.EnvConfig = rabbitmqEnv
 					stsBuilder.Instance.Spec.Rabbitmq.AdvancedConfig = advancedConfig
+					stsBuilder.Instance.Spec.Rabbitmq.ErlangInetConfig = erlInet
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					expectedVolumeMounts := []corev1.VolumeMount{
@@ -1166,6 +1167,11 @@ default_pass = {{ .Data.data.password }}
 							Name: "server-conf", MountPath: "/etc/rabbitmq/advanced.config", SubPath: "advanced.config"})
 					}
 
+					if erlInet != "" {
+						expectedVolumeMounts = append(expectedVolumeMounts, corev1.VolumeMount{
+							Name: "server-conf", MountPath: "/etc/rabbitmq/erl_inetrc", SubPath: "erl_inetrc"})
+					}
+
 					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 					Expect(container.VolumeMounts).To(ConsistOf(expectedVolumeMounts))
 					Expect(container.VolumeMounts[0]).To(Equal(corev1.VolumeMount{
@@ -1177,18 +1183,23 @@ default_pass = {{ .Data.data.password }}
 						MountPath: "/var/lib/rabbitmq/mnesia/",
 					}))
 				},
-				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
-				Entry("Only env config is set", "rabbitmq-env-is-set", ""),
-				Entry("Only advanced config is set", "", "advanced-config-is-set"),
-				Entry("No configs are set", "", ""),
+				Entry("All env + advanced + erl-inet configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", "erl-inet-rc-is-set"),
+				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", ""),
+				Entry("Both advanced and erl-inet configs are set", "", "advanced-config-is-set", "erl-inet-rc-is-set"),
+				Entry("Both env and erl-inet configs are set", "rabbitmq-env-is-set", "", "erl-inet-rc-is-set"),
+				Entry("Only env config is set", "rabbitmq-env-is-set", "", ""),
+				Entry("Only advanced config is set", "", "advanced-config-is-set", ""),
+				Entry("Only erl-inet config is set", "", "", "erl-inet-rc-is-set"),
+				Entry("No configs are set", "", "", ""),
 			)
 		})
 
 		Context("Volumes", func() {
-			DescribeTable("Volumes based on user configuration", func(rabbitmqEnv, advancedConfig string) {
+			DescribeTable("Volumes based on user configuration", func(rabbitmqEnv, advancedConfig, erlInetRc string) {
 				stsBuilder := builder.StatefulSet()
 				stsBuilder.Instance.Spec.Rabbitmq.EnvConfig = rabbitmqEnv
 				stsBuilder.Instance.Spec.Rabbitmq.AdvancedConfig = advancedConfig
+				stsBuilder.Instance.Spec.Rabbitmq.ErlangInetConfig = erlInetRc
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				expectedVolumes := []corev1.Volume{
@@ -1279,7 +1290,7 @@ default_pass = {{ .Data.data.password }}
 					},
 				}
 
-				if rabbitmqEnv != "" || advancedConfig != "" {
+				if rabbitmqEnv != "" || advancedConfig != "" || erlInetRc != "" {
 					expectedVolumes = append(expectedVolumes, corev1.Volume{
 						Name: "server-conf",
 						VolumeSource: corev1.VolumeSource{
@@ -1292,10 +1303,14 @@ default_pass = {{ .Data.data.password }}
 				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolumes))
 
 			},
-				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set"),
-				Entry("Only env config is set", "rabbitmq-env-is-set", ""),
-				Entry("Only advanced config is set", "", "advanced-config-is-set"),
-				Entry("No configs are set", "", ""),
+				Entry("All env + advanced + erl-inet configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", "erl-inet-rc-is-set"),
+				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", ""),
+				Entry("Both advanced and erl-inet configs are set", "", "advanced-config-is-set", "erl-inet-rc-is-set"),
+				Entry("Both env and erl-inet configs are set", "rabbitmq-env-is-set", "", "erl-inet-rc-is-set"),
+				Entry("Only env config is set", "rabbitmq-env-is-set", "", ""),
+				Entry("Only advanced config is set", "", "advanced-config-is-set", ""),
+				Entry("Only erl-inet config is set", "", "", "erl-inet-rc-is-set"),
+				Entry("No configs are set", "", "", ""),
 			)
 
 			It("defines an emptyDir volume when storage == 0", func() {
