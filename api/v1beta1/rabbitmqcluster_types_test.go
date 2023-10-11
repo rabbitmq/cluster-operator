@@ -135,6 +135,13 @@ var _ = Describe("RabbitmqCluster", func() {
 				Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalidService))).To(BeTrue())
 				Expect(k8sClient.Create(context.Background(), invalidService)).To(MatchError(ContainSubstring("supported values: \"ClusterIP\", \"LoadBalancer\", \"NodePort\"")))
 			})
+
+			By("checking the IP family policy", func() {
+				invalidSvc := generateRabbitmqClusterObject("madeup-family-policy")
+				policy := corev1.IPFamilyPolicy("my-awesome-policy")
+				invalidSvc.Spec.Service.IPFamilyPolicy = &policy
+				Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalidSvc))).To(BeTrue())
+			})
 		})
 
 		It("can be created with Erlang configuration", func() {

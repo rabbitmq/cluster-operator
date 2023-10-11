@@ -59,17 +59,18 @@ func (builder *HeadlessServiceBuilder) Update(object client.Object) error {
 			{
 				Protocol:   corev1.ProtocolTCP,
 				Port:       4369,
-				TargetPort: intstr.FromInt(4369),
+				TargetPort: intstr.FromInt32(4369),
 				Name:       "epmd",
 			},
 			{
 				Protocol:   corev1.ProtocolTCP,
 				Port:       25672,
-				TargetPort: intstr.FromInt(25672),
+				TargetPort: intstr.FromInt32(25672),
 				Name:       "cluster-rpc", // aka distribution port
 			},
 		},
 		PublishNotReadyAddresses: true,
+		IPFamilyPolicy:           builder.Instance.Spec.Service.IPFamilyPolicy,
 	}
 
 	if err := controllerutil.SetControllerReference(builder.Instance, service, builder.Scheme); err != nil {
