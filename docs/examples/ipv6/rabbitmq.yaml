@@ -1,0 +1,30 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rabbits
+  labels:
+    app: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbit-ipv6
+  namespace: rabbits
+  labels:
+    app: rabbitmq
+spec:
+  resources:
+    requests: {}
+    limits: {}
+  rabbitmq:
+    erlangInetConfig: |
+      {inet6, true}.
+    envConfig: |
+        SERVER_ADDITIONAL_ERL_ARGS="-kernel inetrc '/etc/rabbitmq/erl_inetrc'  -proto_dist inet6_tcp"
+        RABBITMQ_CTL_ERL_ARGS="-proto_dist inet6_tcp"
+    additionalConfig: |
+      cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+  replicas: 3
+  service:
+    ipFamilyPolicy: "PreferDualStack"
