@@ -385,6 +385,10 @@ type RabbitmqClusterConfigurationSpec struct {
 	// For more information on env config, see https://www.rabbitmq.com/man/rabbitmq-env.conf.5.html
 	// +kubebuilder:validation:MaxLength:=100000
 	EnvConfig string `json:"envConfig,omitempty"`
+	// Erlang Inet configuration to apply to the Erlang VM running rabbit.
+	// See also: https://www.erlang.org/doc/apps/erts/inet_cfg.html
+	// +kubebuilder:validation:MaxLength:=2000
+	ErlangInetConfig string `json:"erlangInetConfig,omitempty"`
 }
 
 // The settings for the persistent storage desired for each Pod in the RabbitmqCluster.
@@ -407,6 +411,10 @@ type RabbitmqClusterServiceSpec struct {
 	Type corev1.ServiceType `json:"type,omitempty"`
 	// Annotations to add to the Service.
 	Annotations map[string]string `json:"annotations,omitempty"`
+	// IPFamilyPolicy represents the dual-stack-ness requested or required by a Service
+	// See also: https://pkg.go.dev/k8s.io/api/core/v1#IPFamilyPolicy
+	// +kubebuilder:validation:Enum=SingleStack;PreferDualStack;RequireDualStack
+	IPFamilyPolicy *corev1.IPFamilyPolicy `json:"ipFamilyPolicy,omitempty"`
 }
 
 func (cluster *RabbitmqCluster) TLSEnabled() bool {

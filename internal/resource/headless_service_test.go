@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("HeadlessService", func() {
@@ -170,11 +171,11 @@ var _ = Describe("HeadlessService", func() {
 					},
 				},
 			}
-			err := serviceBuilder.Update(service)
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("sets the required Spec", func() {
+			Expect(serviceBuilder.Update(service)).To(Succeed())
+
 			expectedSpec := corev1.ServiceSpec{
 				Type:      corev1.ServiceTypeClusterIP,
 				ClusterIP: "None",
@@ -198,7 +199,38 @@ var _ = Describe("HeadlessService", func() {
 				},
 				PublishNotReadyAddresses: true,
 			}
+			Expect(service.Spec).To(Equal(expectedSpec))
+		})
 
+		It("sets the IP family", func() {
+			dualStack := ptr.To(corev1.IPFamilyPolicyPreferDualStack)
+			instance.Spec.Service.IPFamilyPolicy = dualStack
+			Expect(serviceBuilder.Update(service)).To(Succeed())
+
+			expectedSpec := corev1.ServiceSpec{
+				Type:      corev1.ServiceTypeClusterIP,
+				ClusterIP: "None",
+				Selector: map[string]string{
+					"app.kubernetes.io/name": "rabbit-spec",
+				},
+				SessionAffinity: corev1.ServiceAffinityNone,
+				Ports: []corev1.ServicePort{
+					{
+						Protocol:   corev1.ProtocolTCP,
+						Port:       4369,
+						TargetPort: intstr.FromInt32(4369),
+						Name:       "epmd",
+					},
+					{
+						Protocol:   corev1.ProtocolTCP,
+						Port:       25672,
+						TargetPort: intstr.FromInt32(25672),
+						Name:       "cluster-rpc",
+					},
+				},
+				PublishNotReadyAddresses: true,
+				IPFamilyPolicy:           dualStack,
+			}
 			Expect(service.Spec).To(Equal(expectedSpec))
 		})
 	})

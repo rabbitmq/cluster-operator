@@ -58,6 +58,7 @@ func (builder *ServiceBuilder) Update(object client.Object) error {
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	service.Spec.Type = builder.Instance.Spec.Service.Type
 	service.Spec.Selector = metadata.LabelSelector(builder.Instance.Name)
+	service.Spec.IPFamilyPolicy = builder.Instance.Spec.Service.IPFamilyPolicy
 
 	service.Spec.Ports = builder.updatePorts(service.Spec.Ports)
 

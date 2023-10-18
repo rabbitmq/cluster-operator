@@ -337,7 +337,7 @@ func sortVolumeMounts(mounts []corev1.VolumeMount) {
 
 func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[string]string) corev1.PodTemplateSpec {
 	// default pod annotations
-	defaultPodAnnotations := make(map[string]string, 0)
+	defaultPodAnnotations := make(map[string]string)
 
 	if builder.Instance.VaultEnabled() {
 		defaultPodAnnotations = appendVaultAnnotations(defaultPodAnnotations, builder.Instance)
@@ -429,7 +429,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		appendDefaultUserSecretVolumeProjection(volumes, builder.Instance, builder.Instance.Spec.SecretBackend.ExternalSecret.Name)
 	}
 
-	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" || builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
+	if builder.rabbitmqConfigurationIsSet() {
 		volumes = append(volumes, corev1.Volume{
 			Name: "server-conf",
 			VolumeSource: corev1.VolumeSource{
@@ -493,6 +493,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	if builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" {
 		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 			Name: "server-conf", MountPath: "/etc/rabbitmq/advanced.config", SubPath: "advanced.config",
+		})
+	}
+
+	if builder.Instance.Spec.Rabbitmq.ErlangInetConfig != "" {
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name: "server-conf", MountPath: "/etc/rabbitmq/erl_inetrc", SubPath: "erl_inetrc",
 		})
 	}
 
@@ -640,6 +646,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			defaultUserCredentialUpdater(builder.Instance))
 	}
 	return podTemplateSpec
+}
+
+func (builder *StatefulSetBuilder) rabbitmqConfigurationIsSet() bool {
+	return builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" ||
+		builder.Instance.Spec.Rabbitmq.EnvConfig != "" ||
+		builder.Instance.Spec.Rabbitmq.ErlangInetConfig != ""
 }
 
 func defaultUserCredentialUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {

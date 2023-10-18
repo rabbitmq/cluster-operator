@@ -105,12 +105,20 @@ func main() {
 		LeaderElection:          true,
 		LeaderElectionNamespace: operatorNamespace,
 		LeaderElectionID:        "rabbitmq-cluster-operator-leader-election",
-		Namespace:               operatorScopeNamespace,
+		// Namespace is deprecated. Advice is to use Cache.Namespaces instead
 	}
 
-	if strings.Contains(operatorScopeNamespace, ",") {
-		options.Namespace = ""
-		options.NewCache = cache.MultiNamespacedCacheBuilder(strings.Split(operatorScopeNamespace, ","))
+	if operatorScopeNamespace != "" {
+		if strings.Contains(operatorScopeNamespace, ",") {
+			namespaces := strings.Split(operatorScopeNamespace, ",")
+			options.Cache.Namespaces = namespaces
+			log.Info("limiting watch to specific namespaces for RabbitMQ resources", "namespaces", namespaces)
+		} else {
+			options.Cache = cache.Options{
+				Namespaces: []string{operatorScopeNamespace},
+			}
+			log.Info("limiting watch to one namespace", "namespace", operatorScopeNamespace)
+		}
 	}
 
 	if leaseDuration := getEnvInDuration("LEASE_DURATION"); leaseDuration != 0 {

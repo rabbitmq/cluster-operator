@@ -151,6 +151,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	logger.Info("Start reconciling")
 
+	// FIXME: marshalling is expensive. We are marshalling only for the sake of logging.
+	// 	Implement Stringer interface instead
 	instanceSpec, err := json.Marshal(rabbitmqCluster.Spec)
 	if err != nil {
 		logger.Error(err, "Failed to marshal cluster spec")
@@ -290,6 +292,7 @@ func (r *RabbitmqClusterReconciler) updateStatusConditions(ctx context.Context, 
 
 	if !reflect.DeepEqual(rmq.Status.Conditions, oldConditions) {
 		if err = r.Status().Update(ctx, rmq); err != nil {
+			// FIXME: must fetch again to avoid the conflict
 			if k8serrors.IsConflict(err) {
 				logger.Info("failed to update status because of conflict; requeueing...",
 					"namespace", rmq.Namespace,

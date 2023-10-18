@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 var _ = Context("Services", func() {
@@ -691,6 +692,31 @@ var _ = Context("Services", func() {
 					Expect(svc.Spec.Ports).To(ContainElement(expectedServicePort))
 					Expect(svc.Spec.Type).To(BeEmpty())
 				})
+			})
+		})
+
+		Context("IP family policy", func() {
+			var (
+				svc            *corev1.Service
+				serviceBuilder *resource.ServiceBuilder
+			)
+
+			BeforeEach(func() {
+				serviceBuilder = builder.Service()
+				instance = generateRabbitmqCluster()
+
+				svc = &corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rabbit-service-type-update-service",
+						Namespace: "foo-namespace",
+					},
+				}
+			})
+
+			It("sets the IP family policy", func() {
+				instance.Spec.Service.IPFamilyPolicy = ptr.To(corev1.IPFamilyPolicyPreferDualStack)
+				Expect(serviceBuilder.Update(svc)).To(Succeed())
+				Expect(svc.Spec.IPFamilyPolicy).To(BeEquivalentTo(ptr.To("PreferDualStack")))
 			})
 		})
 

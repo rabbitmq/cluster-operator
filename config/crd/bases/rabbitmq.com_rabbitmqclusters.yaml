@@ -10,7 +10,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: rabbitmqclusters.rabbitmq.com
 spec:
   group: rabbitmq.com
@@ -4127,6 +4127,10 @@ spec:
                       description: Modify to add to the rabbitmq-env.conf file. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime. For more information on env config, see https://www.rabbitmq.com/man/rabbitmq-env.conf.5.html
                       maxLength: 100000
                       type: string
+                    erlangInetConfig:
+                      description: 'Erlang Inet configuration to apply to the Erlang VM running rabbit. See also: https://www.erlang.org/doc/apps/erts/inet_cfg.html'
+                      maxLength: 2000
+                      type: string
                   type: object
                 replicas:
                   default: 1
@@ -4233,6 +4237,13 @@ spec:
                         type: string
                       description: Annotations to add to the Service.
                       type: object
+                    ipFamilyPolicy:
+                      description: 'IPFamilyPolicy represents the dual-stack-ness requested or required by a Service See also: https://pkg.go.dev/k8s.io/api/core/v1#IPFamilyPolicy'
+                      enum:
+                        - SingleStack
+                        - PreferDualStack
+                        - RequireDualStack
+                      type: string
                     type:
                       default: ClusterIP
                       description: 'Type of Service to create for the cluster. Must be one of: ClusterIP, LoadBalancer, NodePort. For more info see https://pkg.go.dev/k8s.io/api/core/v1#ServiceType'

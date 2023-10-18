@@ -13,6 +13,7 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/ptr"
 	"time"
 
 	"k8s.io/utils/pointer"
@@ -338,6 +339,23 @@ var _ = Describe("RabbitmqClusterController", func() {
 			clientSvc := service(ctx, cluster, "")
 			Expect(clientSvc.Spec.Type).Should(Equal(corev1.ServiceTypeLoadBalancer))
 			Expect(clientSvc.Annotations).Should(HaveKeyWithValue("annotations", "cr-annotation"))
+		})
+
+		It("creates the service with the expected IP family policy", func() {
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "rabbit-with-ip-family", Namespace: defaultNamespace},
+			}
+			cluster.Spec.Service.IPFamilyPolicy = ptr.To(corev1.IPFamilyPolicyPreferDualStack)
+
+			Expect(client.Create(ctx, cluster)).To(Succeed())
+
+			clientSvc := service(ctx, cluster, "")
+			Expect(clientSvc.Spec.IPFamilyPolicy).ToNot(BeNil())
+			Expect(clientSvc.Spec.IPFamilyPolicy).To(BeEquivalentTo(ptr.To("PreferDualStack")))
+
+			headlessSvc := service(ctx, cluster, "nodes")
+			Expect(headlessSvc.Spec.IPFamilyPolicy).ToNot(BeNil())
+			Expect(headlessSvc.Spec.IPFamilyPolicy).To(BeEquivalentTo(ptr.To("PreferDualStack")))
 		})
 	})
 
