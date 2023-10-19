@@ -19,12 +19,12 @@ require (
 	golang.org/x/net v0.17.0
 	golang.org/x/vuln v1.0.1
 	gopkg.in/ini.v1 v1.67.0
-	k8s.io/api v0.28.1
-	k8s.io/apimachinery v0.28.2
-	k8s.io/client-go v0.28.1
+	k8s.io/api v0.28.3
+	k8s.io/apimachinery v0.28.3
+	k8s.io/client-go v0.28.3
 	k8s.io/klog/v2 v2.100.1
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
-	sigs.k8s.io/controller-runtime v0.15.1
+	sigs.k8s.io/controller-runtime v0.16.3
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20220217024943-cfd92767d28e
 	sigs.k8s.io/controller-tools v0.13.0
 	sigs.k8s.io/kind v0.20.0
@@ -44,7 +44,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/elliotchance/orderedmap v1.5.0 // indirect
-	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
+	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.15.0 // indirect
@@ -108,10 +108,10 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20210511125630-18f1e0152cfc // indirect
 	github.com/zmap/zlint/v3 v3.1.0 // indirect
 	go.starlark.net v0.0.0-20230814145427-12f4cb8177e4 // indirect
-	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
+	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
@@ -120,15 +120,15 @@ require (
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
-	gomodules.xyz/jsonpatch/v2 v2.3.0 // indirect
+	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.28.0 // indirect
-	k8s.io/component-base v0.28.0 // indirect
+	k8s.io/apiextensions-apiserver v0.28.3 // indirect
+	k8s.io/component-base v0.28.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20230816210353-14e408962443 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.14.0 // indirect
