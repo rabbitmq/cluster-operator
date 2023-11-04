@@ -39,6 +39,6 @@ data:
 kind: Secret
 metadata:
   name: my-secret 
-  namespace: rabbitmq-system
+  namespace: default // Should be the same as the one in which rabbitmq cluster server pods are running
 type: Opaque
 ```
