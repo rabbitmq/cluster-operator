@@ -26,3 +26,5 @@ kubectl apply -f rabbitmq-certificate.yaml
 # Create a configuration file for Erlang Distribution
 kubectl create configmap mtls-inter-node-tls-config --from-file=inter_node_tls.config
 
+# Deploy the RabbitMQ cluster
+kubectl apply -f rabbitmq.yaml

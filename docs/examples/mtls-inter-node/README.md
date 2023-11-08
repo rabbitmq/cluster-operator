@@ -41,7 +41,7 @@ You need to replace all occurrences with your desired namespace. `dnsNames` valu
 
 ```shell
 # install Cert Manager
-kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.0.4/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
 # deploy the example
 ./setup.sh
 ```
