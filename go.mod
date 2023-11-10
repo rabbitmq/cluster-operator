@@ -11,7 +11,7 @@ require (
 	github.com/michaelklishin/rabbit-hole/v2 v2.15.0
 	github.com/mikefarah/yq/v4 v4.35.2
 	github.com/onsi/ginkgo/v2 v2.13.0
-	github.com/onsi/gomega v1.28.0
+	github.com/onsi/gomega v1.30.0
 	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.2.1
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
@@ -64,7 +64,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/google/safetext v0.0.0-20220905092116-b49f7bc46da2 // indirect
