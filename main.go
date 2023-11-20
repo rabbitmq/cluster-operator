@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"strconv"
 	"strings"
 	"time"
@@ -100,8 +101,10 @@ func main() {
 	}
 
 	options := ctrl.Options{
-		Scheme:                  scheme,
-		MetricsBindAddress:      metricsAddr,
+		Scheme: scheme,
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+		},
 		LeaderElection:          true,
 		LeaderElectionNamespace: operatorNamespace,
 		LeaderElectionID:        "rabbitmq-cluster-operator-leader-election",
@@ -111,11 +114,17 @@ func main() {
 	if operatorScopeNamespace != "" {
 		if strings.Contains(operatorScopeNamespace, ",") {
 			namespaces := strings.Split(operatorScopeNamespace, ",")
-			options.Cache.Namespaces = namespaces
+			// https://github.com/kubernetes-sigs/controller-runtime/blob/main/designs/cache_options.md#only-cache-namespaced-objects-in-the-foo-and-bar-namespace
+			// Sometimes I wish that controller-runtime graduated to 1.x
+			// This changed in 0.15, and again in 0.16 🤦
+			options.Cache.DefaultNamespaces = make(map[string]cache.Config)
+			for _, namespace := range namespaces {
+				options.Cache.DefaultNamespaces[namespace] = cache.Config{}
+			}
 			log.Info("limiting watch to specific namespaces for RabbitMQ resources", "namespaces", namespaces)
 		} else {
 			options.Cache = cache.Options{
-				Namespaces: []string{operatorScopeNamespace},
+				DefaultNamespaces: map[string]cache.Config{operatorScopeNamespace: {}},
 			}
 			log.Info("limiting watch to one namespace", "namespace", operatorScopeNamespace)
 		}
@@ -136,21 +145,22 @@ func main() {
 		options.RetryPeriod = &retryPeriod
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
-	if err != nil {
-		log.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
-
 	if enableDebugPprof, ok := os.LookupEnv("ENABLE_DEBUG_PPROF"); ok {
 		pprofEnabled, err := strconv.ParseBool(enableDebugPprof)
 		if err == nil && pprofEnabled {
-			mgr, err = profiling.AddDebugPprofEndpoints(mgr)
+			o, err := profiling.AddDebugPprofEndpoints(&options)
 			if err != nil {
 				log.Error(err, "unable to add debug endpoints to manager")
 				os.Exit(1)
 			}
+			options = *o
 		}
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+	if err != nil {
+		log.Error(err, "unable to start manager")
+		os.Exit(1)
 	}
 
 	clusterConfig := config.GetConfigOrDie()

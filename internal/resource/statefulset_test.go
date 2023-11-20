@@ -412,7 +412,7 @@ var _ = Describe("StatefulSet", func() {
 				It("updates Prometheus port", func() {
 					stsBuilder.Instance.Spec.TLS.SecretName = "tls-secret"
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-					expectedPodAnnotations := make(map[string]string, 0)
+					expectedPodAnnotations := make(map[string]string)
 					Expect(statefulSet.Spec.Template.Annotations).To(Equal(expectedPodAnnotations))
 				})
 			})
