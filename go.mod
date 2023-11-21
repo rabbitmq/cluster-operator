@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.3.0
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.15.0
-	github.com/mikefarah/yq/v4 v4.35.2
+	github.com/mikefarah/yq/v4 v4.40.2
 	github.com/onsi/ginkgo/v2 v2.13.1
 	github.com/onsi/gomega v1.30.0
 	github.com/rabbitmq/amqp091-go v1.9.0
@@ -43,11 +43,11 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
-	github.com/elliotchance/orderedmap v1.5.0 // indirect
+	github.com/elliotchance/orderedmap v1.5.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
-	github.com/fatih/color v1.15.0 // indirect
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-logr/zapr v1.2.4 // indirect
@@ -83,7 +83,7 @@ require (
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -101,10 +101,11 @@ require (
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
-	github.com/spf13/cobra v1.7.0 // indirect
+	github.com/spf13/cobra v1.8.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/weppos/publicsuffix-go v0.15.1-0.20210511084619-b1f36a2d6c0b // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
+	github.com/yuin/gopher-lua v1.1.0 // indirect
 	github.com/zmap/zcrypto v0.0.0-20210511125630-18f1e0152cfc // indirect
 	github.com/zmap/zlint/v3 v3.1.0 // indirect
 	go.starlark.net v0.0.0-20230814145427-12f4cb8177e4 // indirect
