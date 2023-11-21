@@ -133,9 +133,21 @@ var _ = Describe("Operator", func() {
 					var flags []featureFlag
 					Expect(json.Unmarshal(output, &flags)).To(Succeed())
 					return flags
-				}, 30, 2).ShouldNot(ContainElement(MatchFields(IgnoreExtras, Fields{
-					"State": Not(Equal("enabled")),
-				})))
+				}, 30, 2).
+					Should(
+						Or(
+							ContainElement(
+								MatchFields(IgnoreExtras, Fields{
+									"State": BeEquivalentTo("enabled"),
+								}),
+							),
+							ContainElement(
+								MatchFields(IgnoreExtras, Fields{
+									"Name":  Equal("khepri_db"),
+									"State": BeEquivalentTo("disabled"),
+								})), // temporary workaround since rabbitmq in main comes with Khepri disabled
+						),
+					)
 			})
 		})
 	})

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var _ = Describe("Pprof", func() {
@@ -23,11 +24,12 @@ var _ = Describe("Pprof", func() {
 	BeforeEach(func() {
 		metricsEndpoint, err = getFreePort()
 		opts = ctrl.Options{
-			MetricsBindAddress: metricsEndpoint,
+			Metrics: server.Options{BindAddress: metricsEndpoint},
 		}
+		var o *ctrl.Options
+		o, err = profiling.AddDebugPprofEndpoints(&opts)
 		mgr, err = ctrl.NewManager(cfg, opts)
-		Expect(err).NotTo(HaveOccurred())
-		mgr, err = profiling.AddDebugPprofEndpoints(mgr)
+		opts = *o
 		Expect(err).NotTo(HaveOccurred())
 
 	})

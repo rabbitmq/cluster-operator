@@ -6,7 +6,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func AddDebugPprofEndpoints(mgr ctrl.Manager) (ctrl.Manager, error) {
+func AddDebugPprofEndpoints(managerOpts *ctrl.Options) (*ctrl.Options, error) {
 	pprofEndpoints := map[string]http.HandlerFunc{
 		"/debug/pprof":              http.HandlerFunc(pprof.Index),
 		"/debug/pprof/allocs":       http.HandlerFunc(pprof.Index),
@@ -20,11 +20,11 @@ func AddDebugPprofEndpoints(mgr ctrl.Manager) (ctrl.Manager, error) {
 		"/debug/pprof/threadcreate": http.HandlerFunc(pprof.Index),
 		"/debug/pprof/trace":        http.HandlerFunc(pprof.Trace),
 	}
-	for path, handler := range pprofEndpoints {
-		err := mgr.AddMetricsExtraHandler(path, handler)
-		if err != nil {
-			return mgr, err
-		}
+	if managerOpts.Metrics.ExtraHandlers == nil {
+		managerOpts.Metrics.ExtraHandlers = make(map[string]http.Handler)
 	}
-	return mgr, nil
+	for path, handler := range pprofEndpoints {
+		managerOpts.Metrics.ExtraHandlers[path] = handler
+	}
+	return managerOpts, nil
 }
