@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/cloudflare/cfssl v1.6.4
 	github.com/eclipse/paho.mqtt.golang v1.4.3
-	github.com/elastic/crd-ref-docs v0.0.9
+	github.com/elastic/crd-ref-docs v0.0.10
 	github.com/go-logr/logr v1.3.0
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.15.0
