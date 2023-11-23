@@ -267,7 +267,7 @@ create() {
             ;;
         "--image-pull-secret")
             shift 1
-            echo "  imagePullSecret: $1" >>"$rabbitmq_manifest_file"
+            echo "  imagePullSecrets: [ name: $1 ]" >>"$rabbitmq_manifest_file"
             shift 1
             ;;
         "--unlimited")
