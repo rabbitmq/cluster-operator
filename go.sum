@@ -41,8 +41,8 @@ github.com/dimchansky/utfbom v1.1.1 h1:vV6w1AhK4VMnhBno/TPVCoK9U/LP0PkLCS9tbxHdi
 github.com/dimchansky/utfbom v1.1.1/go.mod h1:SxdoEBH5qIqFocHMyGOXVAybYJdr71b1Q/j0mACtrfE=
 github.com/eclipse/paho.mqtt.golang v1.4.3 h1:2kwcUGn8seMUfWndX0hGbvH8r7crgcJguQNCyp70xik=
 github.com/eclipse/paho.mqtt.golang v1.4.3/go.mod h1:CSYvoAlsMkhYOXh/oKyxa8EcBci6dVkLCbo5tTC1RIE=
-github.com/elastic/crd-ref-docs v0.0.9 h1:fkkjFPQMIH2U75Ma5AxQkW7NIydxx2tY2uo/A4+xPO0=
-github.com/elastic/crd-ref-docs v0.0.9/go.mod h1:k7DCVDJCqaEozDFcnfhTQd/Foxd8Ip18qKNPAgMpzyo=
+github.com/elastic/crd-ref-docs v0.0.10 h1:FAc9oCxxY4+rMCLSLtTGrEaPyuxmp3LNlQ+dZfG9Ujc=
+github.com/elastic/crd-ref-docs v0.0.10/go.mod h1:zha4djxzWirfx+c4fl/Kmk9Rc7Fv7XBoOi9CL9kne+M=
 github.com/elliotchance/orderedmap v1.5.1 h1:G1X4PYlljzimbdQ3RXmtIZiQ9d6aRQ3sH1nzjq5mECE=
 github.com/elliotchance/orderedmap v1.5.1/go.mod h1:wsDwEaX5jEoyhbs7x93zk2H/qv0zwuhg4inXhDkYqys=
 github.com/emicklei/go-restful/v3 v3.11.0 h1:rAQeMHw1c7zTmncogyy8VvRZwtkmkZ4FxERmMY4rD+g=
