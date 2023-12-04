@@ -197,8 +197,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.4 h1:mmDVorXM7PCGKw94cs5zk
 github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/michaelklishin/rabbit-hole/v2 v2.15.0 h1:asuENwbu5UsgPBHKgOzHY6VVrjNePurjJoE+8+EWeLA=
 github.com/michaelklishin/rabbit-hole/v2 v2.15.0/go.mod h1:o0k0caEjRjboLEylRXVR7aOkuI2vZ6gLXZ78JyonVkA=
-github.com/mikefarah/yq/v4 v4.40.3 h1:pSJua3IGua3O+HFXp5LkMheqEOHMRQAkkCcgVhqi4VY=
-github.com/mikefarah/yq/v4 v4.40.3/go.mod h1:TSqdLNAFlwmIGQBQYIzeOX+wDWkCTWfRGWDrxQwGCaQ=
+github.com/mikefarah/yq/v4 v4.40.4 h1:xLoMgs3ORN9Qqiq63q86lPZf6VXyPXTuXFhyWaKImFM=
+github.com/mikefarah/yq/v4 v4.40.4/go.mod h1:yCG9Y1pdzkpPqWWooozMTcbVb67rslEVaDnigLPhuqg=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=
