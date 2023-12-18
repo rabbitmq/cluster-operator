@@ -309,7 +309,7 @@ jobs:
         cluster_name: ${{ matrix.gke-cluster }}
         location: europe-west1
     - name: Get operator manifest
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: operator-manifests
     - name: Install Operator build
@@ -356,7 +356,7 @@ jobs:
         cluster_name: ci-bunny-2
         location: europe-west1
     - name: Get operator manifest
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: operator-manifests
     - name: Install Operator build
@@ -400,7 +400,7 @@ jobs:
         cluster_name: ci-bunny-1
         location: europe-west1
     - name: Get operator manifest
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: operator-manifests
     - name: Test upgrade rollout
@@ -422,11 +422,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Get operator manifest
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: operator-manifests
     - name: Get release header
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: release-header
     - name: Release
