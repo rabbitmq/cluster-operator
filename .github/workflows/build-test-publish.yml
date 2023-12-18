@@ -172,7 +172,7 @@ jobs:
         make generate-installation-manifest QUAY_IO_OPERATOR_IMAGE=quay.io/rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
     - name: Upload operator manifests
       if: github.event_name != 'pull_request'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: operator-manifests
         path: releases/cluster-operator*.yml
@@ -407,7 +407,7 @@ jobs:
       run: hack/test-upgrade.sh https://github.com/rabbitmq/cluster-operator/releases/download/${{ env.BASELINE_UPGRADE_VERSION }}/cluster-operator.yml cluster-operator.yml release-header.md
     - name: Upload release header
       if: github.event_name != 'pull_request'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: release-header
         path: release-header.md
