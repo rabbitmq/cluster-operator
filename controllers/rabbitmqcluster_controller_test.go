@@ -13,10 +13,9 @@ package controllers_test
 import (
 	"context"
 	"fmt"
-	"k8s.io/utils/ptr"
 	"time"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -744,7 +743,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 			}
-			cluster.Spec.Replicas = pointer.Int32(1)
+			cluster.Spec.Replicas = ptr.To(int32(1))
 		})
 
 		It("exposes ReconcileSuccess condition", func() {
@@ -788,7 +787,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: pointer.Int32(10),
+					Replicas: ptr.To(int32(10)),
 					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
 						StatefulSet: &rabbitmqv1beta1.StatefulSet{
 							Spec: &rabbitmqv1beta1.StatefulSetSpec{
@@ -1030,7 +1029,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 		It("updates", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				cluster.Spec.Override.StatefulSet.Spec.Replicas = pointer.Int32(15)
+				cluster.Spec.Override.StatefulSet.Spec.Replicas = ptr.To(int32(15))
 				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.Containers = []corev1.Container{
 					{
 						Name:  "additional-container-2",
@@ -1130,21 +1129,21 @@ var _ = Describe("RabbitmqClusterController", func() {
 					Port:        5672,
 					Protocol:    corev1.ProtocolTCP,
 					TargetPort:  amqpTargetPort,
-					AppProtocol: pointer.String("amqp"),
+					AppProtocol: ptr.To("amqp"),
 				},
 				corev1.ServicePort{
 					Name:        "management",
 					Port:        15672,
 					Protocol:    corev1.ProtocolTCP,
 					TargetPort:  managementTargetPort,
-					AppProtocol: pointer.String("http"),
+					AppProtocol: ptr.To("http"),
 				},
 				corev1.ServicePort{
 					Name:        "prometheus",
 					Port:        15692,
 					Protocol:    corev1.ProtocolTCP,
 					TargetPort:  prometheusTargetPort,
-					AppProtocol: pointer.String("prometheus.io/metrics"),
+					AppProtocol: ptr.To("prometheus.io/metrics"),
 				},
 				corev1.ServicePort{
 					Protocol:   corev1.ProtocolTCP,

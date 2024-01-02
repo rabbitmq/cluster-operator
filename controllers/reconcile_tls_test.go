@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
@@ -57,11 +57,11 @@ var _ = Describe("Reconcile TLS", func() {
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: "tls-secret",
 										},
-										Optional: pointer.Bool(true),
+										Optional: ptr.To(true),
 									},
 								},
 							},
-							DefaultMode: pointer.Int32(400),
+							DefaultMode: ptr.To(int32(400)),
 						},
 					},
 				}))

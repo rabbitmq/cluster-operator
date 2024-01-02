@@ -13,7 +13,7 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -32,7 +32,7 @@ var _ = Describe("Persistence", func() {
 				Namespace: defaultNamespace,
 			},
 			Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-				Replicas: pointer.Int32(5),
+				Replicas: ptr.To(int32(5)),
 				Persistence: rabbitmqv1beta1.RabbitmqClusterPersistenceSpec{
 					Storage: &zeroGi,
 				},

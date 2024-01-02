@@ -14,7 +14,7 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -79,7 +79,7 @@ func (p PersistenceScaler) getClusterPVCs(ctx context.Context, rmq rabbitmqv1bet
 	var pvcs []*corev1.PersistentVolumeClaim
 
 	var i int32
-	for i = 0; i < pointer.Int32Deref(rmq.Spec.Replicas, 1); i++ {
+	for i = 0; i < ptr.Deref(rmq.Spec.Replicas, 1); i++ {
 		pvc, err := p.Client.CoreV1().PersistentVolumeClaims(rmq.Namespace).Get(ctx, rmq.PVCName(int(i)), metav1.GetOptions{})
 		if client.IgnoreNotFound(err) != nil {
 			logErr := fmt.Errorf("failed to get PVC from Kubernetes API: %w", err)

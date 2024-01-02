@@ -12,7 +12,7 @@ package resource_test
 import (
 	"bytes"
 	"fmt"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -147,7 +147,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 		It("sets cluster size hint", func() {
 			builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
-			builder.Instance.Spec.Replicas = pointer.Int32(100)
+			builder.Instance.Spec.Replicas = ptr.To(int32(100))
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			operatorDefaultConf, err := ini.Load([]byte(configMap.Data["operatorDefaults.conf"]))
@@ -387,7 +387,7 @@ CONSOLE_LOG=new`
 						Name: "rabbit-tls",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: pointer.Int32(1),
+						Replicas: ptr.To(int32(1)),
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:             "some-secret",
 							DisableNonTLSListeners: true,
@@ -419,7 +419,7 @@ CONSOLE_LOG=new`
 						Name: "rabbit-tls",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: pointer.Int32(1),
+						Replicas: ptr.To(int32(1)),
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:             "some-secret",
 							DisableNonTLSListeners: true,
@@ -467,7 +467,7 @@ CONSOLE_LOG=new`
 						Name: "rabbit-tls",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: pointer.Int32(1),
+						Replicas: ptr.To(int32(1)),
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:             "some-secret",
 							CaSecretName:           "some-mutual-secret",

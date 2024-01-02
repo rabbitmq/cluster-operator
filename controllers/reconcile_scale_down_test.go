@@ -11,7 +11,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -39,14 +39,14 @@ var _ = Describe("Cluster scale down", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: pointer.Int32(5),
+					Replicas: ptr.To(int32(5)),
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
 
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				r.Spec.Replicas = pointer.Int32(3)
+				r.Spec.Replicas = ptr.To(int32(3))
 			})).To(Succeed())
 			Consistently(func() int32 {
 				sts, err := clientSet.AppsV1().StatefulSets(defaultNamespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})

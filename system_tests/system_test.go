@@ -31,7 +31,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("Operator", func() {
@@ -386,7 +386,7 @@ CONSOLE_LOG=new`
 
 			BeforeEach(func() {
 				cluster = newRabbitmqCluster(namespace, "ha-rabbit")
-				cluster.Spec.Replicas = pointer.Int32(3)
+				cluster.Spec.Replicas = ptr.To(int32(3))
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceMemory: k8sresource.MustParse("700Mi"),

@@ -13,7 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -122,7 +122,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        5672,
 			TargetPort:  intstr.FromInt(5672),
 			Name:        "amqp",
-			AppProtocol: pointer.String("amqp"),
+			AppProtocol: ptr.To("amqp"),
 		}
 
 		servicePortsMap["management"] = corev1.ServicePort{
@@ -130,7 +130,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        15672,
 			TargetPort:  intstr.FromInt(15672),
 			Name:        "management",
-			AppProtocol: pointer.String("http"),
+			AppProtocol: ptr.To("http"),
 		}
 
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
@@ -139,7 +139,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        1883,
 				TargetPort:  intstr.FromInt(1883),
 				Name:        "mqtt",
-				AppProtocol: pointer.String("mqtt"),
+				AppProtocol: ptr.To("mqtt"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
@@ -148,7 +148,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15675,
 				TargetPort:  intstr.FromInt(15675),
 				Name:        "web-mqtt",
-				AppProtocol: pointer.String("http"),
+				AppProtocol: ptr.To("http"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
@@ -157,7 +157,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        61613,
 				TargetPort:  intstr.FromInt(61613),
 				Name:        "stomp",
-				AppProtocol: pointer.String("stomp.github.io/stomp"),
+				AppProtocol: ptr.To("stomp.github.io/stomp"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
@@ -166,7 +166,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15674,
 				TargetPort:  intstr.FromInt(15674),
 				Name:        "web-stomp",
-				AppProtocol: pointer.String("http"),
+				AppProtocol: ptr.To("http"),
 			}
 		}
 
@@ -176,7 +176,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        5552,
 				TargetPort:  intstr.FromInt(5552),
 				Name:        "stream",
-				AppProtocol: pointer.String("rabbitmq.com/stream"),
+				AppProtocol: ptr.To("rabbitmq.com/stream"),
 			}
 		}
 	}
@@ -187,14 +187,14 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        5671,
 			TargetPort:  intstr.FromInt(5671),
 			Name:        "amqps",
-			AppProtocol: pointer.String("amqps"),
+			AppProtocol: ptr.To("amqps"),
 		}
 		servicePortsMap["management-tls"] = corev1.ServicePort{
 			Protocol:    corev1.ProtocolTCP,
 			Port:        15671,
 			TargetPort:  intstr.FromInt(15671),
 			Name:        "management-tls",
-			AppProtocol: pointer.String("https"),
+			AppProtocol: ptr.To("https"),
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
 			servicePortsMap["stomps"] = corev1.ServicePort{
@@ -202,7 +202,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        61614,
 				Name:        "stomps",
 				TargetPort:  intstr.FromInt(61614),
-				AppProtocol: pointer.String("stomp.github.io/stomp-tls"),
+				AppProtocol: ptr.To("stomp.github.io/stomp-tls"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
@@ -211,7 +211,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        8883,
 				Name:        "mqtts",
 				TargetPort:  intstr.FromInt(8883),
-				AppProtocol: pointer.String("mqtts"),
+				AppProtocol: ptr.To("mqtts"),
 			}
 		}
 		if builder.Instance.StreamNeeded() {
@@ -220,7 +220,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        5551,
 				Name:        "streams",
 				TargetPort:  intstr.FromInt(5551),
-				AppProtocol: pointer.String("rabbitmq.com/stream-tls"),
+				AppProtocol: ptr.To("rabbitmq.com/stream-tls"),
 			}
 		}
 
@@ -234,7 +234,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        15691,
 			TargetPort:  intstr.FromInt(15691),
 			Name:        "prometheus-tls",
-			AppProtocol: pointer.String("prometheus.io/metric-tls"),
+			AppProtocol: ptr.To("prometheus.io/metric-tls"),
 		}
 	} else {
 		servicePortsMap["prometheus"] = corev1.ServicePort{
@@ -242,7 +242,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        15692,
 			TargetPort:  intstr.FromInt(15692),
 			Name:        "prometheus",
-			AppProtocol: pointer.String("prometheus.io/metrics"),
+			AppProtocol: ptr.To("prometheus.io/metrics"),
 		}
 	}
 
@@ -253,7 +253,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15673,
 				Name:        "web-stomp-tls",
 				TargetPort:  intstr.FromInt(15673),
-				AppProtocol: pointer.String("https"),
+				AppProtocol: ptr.To("https"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
@@ -262,7 +262,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15676,
 				Name:        "web-mqtt-tls",
 				TargetPort:  intstr.FromInt(15676),
-				AppProtocol: pointer.String("https"),
+				AppProtocol: ptr.To("https"),
 			}
 		}
 	}
