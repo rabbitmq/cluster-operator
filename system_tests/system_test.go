@@ -15,7 +15,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -525,7 +525,7 @@ CONSOLE_LOG=new`
 					var err error
 					cfg := new(tls.Config)
 					cfg.RootCAs = x509.NewCertPool()
-					ca, err := ioutil.ReadFile(caFilePath)
+					ca, err := os.ReadFile(caFilePath)
 					Expect(err).NotTo(HaveOccurred())
 
 					cfg.RootCAs.AppendCertsFromPEM(ca)
@@ -536,7 +536,7 @@ CONSOLE_LOG=new`
 					var err error
 					cfg := new(tls.Config)
 					cfg.RootCAs = x509.NewCertPool()
-					ca, err := ioutil.ReadFile(caFilePath)
+					ca, err := os.ReadFile(caFilePath)
 					Expect(err).NotTo(HaveOccurred())
 
 					cfg.RootCAs.AppendCertsFromPEM(ca)
