@@ -284,7 +284,8 @@ func publishToQueueAMQPS(message, username, password, hostname, amqpsPort, caFil
 		return err
 	}
 
-	err = ch.Publish(
+	err = ch.PublishWithContext(
+		context.TODO(),
 		"",     // exchange
 		q.Name, // routing key
 		false,  // mandatory
