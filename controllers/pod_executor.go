@@ -3,6 +3,7 @@ package controllers
 import (
 	"bufio"
 	"bytes"
+	"context"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -42,7 +43,7 @@ func (p *rabbitmqPodExecutor) Exec(clientset *kubernetes.Clientset, clusterConfi
 	stdOut := bytes.Buffer{}
 	stdErr := bytes.Buffer{}
 
-	err = exec.Stream(remotecommand.StreamOptions{
+	err = exec.StreamWithContext(context.TODO(), remotecommand.StreamOptions{
 		Stdout: bufio.NewWriter(&stdOut),
 		Stderr: bufio.NewWriter(&stdErr),
 		Stdin:  nil,
