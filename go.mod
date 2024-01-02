@@ -19,6 +19,7 @@ require (
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	golang.org/x/mod v0.14.0
 	golang.org/x/net v0.19.0
+	golang.org/x/text v0.14.0
 	golang.org/x/vuln v1.0.1
 	gopkg.in/ini.v1 v1.67.0
 	k8s.io/api v0.28.4
@@ -119,7 +120,6 @@ require (
 	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
