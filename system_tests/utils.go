@@ -1104,5 +1104,5 @@ func volumeExpansionSupported(ctx context.Context, clientSet *kubernetes.Clients
 	clusterDefaultStorageClass := defaultStorageClass(ctx, clientSet)
 	Expect(clusterDefaultStorageClass).NotTo(BeNil(), "expected to find a default storageClass, but failed to find one")
 	return clusterDefaultStorageClass.AllowVolumeExpansion != nil &&
-		*clusterDefaultStorageClass.AllowVolumeExpansion == true
+		*clusterDefaultStorageClass.AllowVolumeExpansion
 }
