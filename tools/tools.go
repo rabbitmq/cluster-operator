@@ -5,7 +5,6 @@ package tools
 
 import (
 	_ "github.com/elastic/crd-ref-docs"
-	_ "github.com/mikefarah/yq/v4"
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "github.com/sclevine/yj"
 	_ "golang.org/x/vuln/cmd/govulncheck"

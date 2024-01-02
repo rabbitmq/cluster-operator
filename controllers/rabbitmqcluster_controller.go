@@ -16,10 +16,11 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
@@ -266,16 +267,17 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(logger logr.Logg
 		operation = "update"
 	}
 
+	caser := cases.Title(language.English)
 	if err == nil {
 		msg := fmt.Sprintf("%sd resource %s of Type %T", operation, resource.(metav1.Object).GetName(), resource.(metav1.Object))
 		logger.Info(msg)
-		r.Recorder.Event(rmq, corev1.EventTypeNormal, fmt.Sprintf("Successful%s", strings.Title(operation)), msg)
+		r.Recorder.Event(rmq, corev1.EventTypeNormal, fmt.Sprintf("Successful%s", caser.String(operation)), msg)
 	}
 
 	if err != nil {
 		msg := fmt.Sprintf("failed to %s resource %s of Type %T", operation, resource.(metav1.Object).GetName(), resource.(metav1.Object))
 		logger.Error(err, msg)
-		r.Recorder.Event(rmq, corev1.EventTypeWarning, fmt.Sprintf("Failed%s", strings.Title(operation)), msg)
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, fmt.Sprintf("Failed%s", caser.String(operation)), msg)
 	}
 }
 

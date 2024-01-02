@@ -228,7 +228,7 @@ The settings for the persistent storage desired for each Pod in the RabbitmqClus
 |===
 | Field | Description
 | *`storageClassName`* __string__ | The name of the StorageClass to claim a PersistentVolume from.
-| *`storage`* __Quantity__ | The requested size of the persistent volume attached to each Pod in the RabbitmqCluster. The format of this field matches that defined by kubernetes/apimachinery. See https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity for more info on the format of this field.
+| *`storage`* __xref:{anchor_prefix}-k8s-io-apimachinery-pkg-api-resource-quantity[$$Quantity$$]__ | The requested size of the persistent volume attached to each Pod in the RabbitmqCluster. The format of this field matches that defined by kubernetes/apimachinery. See https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity for more info on the format of this field.
 |===
 
 
@@ -332,7 +332,7 @@ Status presents the observed state of RabbitmqCluster
 [cols="25a,75a", options="header"]
 |===
 | Field | Description
-| *`conditions`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-v2-internal-status-rabbitmqclustercondition[$$RabbitmqClusterCondition$$] array__ | Set of Conditions describing the current state of the RabbitmqCluster
+| *`conditions`* __RabbitmqClusterCondition array__ | Set of Conditions describing the current state of the RabbitmqCluster
 | *`defaultUser`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-v2-api-v1beta1-rabbitmqclusterdefaultuser[$$RabbitmqClusterDefaultUser$$]__ | Identifying information on internal resources
 | *`binding`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#localobjectreference-v1-core[$$LocalObjectReference$$]__ | Binding exposes a secret containing the binding information for this RabbitmqCluster. It implements the service binding Provisioned Service duck type. See: https://github.com/servicebinding/spec#provisioned-service
 | *`observedGeneration`* __integer__ | observedGeneration is the most recent successful generation observed for this RabbitmqCluster. It corresponds to the RabbitmqCluster's generation, which is updated on mutation by the API Server.

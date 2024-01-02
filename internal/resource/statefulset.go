@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -103,7 +103,7 @@ func (builder *StatefulSetBuilder) Update(object client.Object) error {
 	//Update Strategy
 	sts.Spec.UpdateStrategy = appsv1.StatefulSetUpdateStrategy{
 		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-			Partition: pointer.Int32(0),
+			Partition: ptr.To(int32(0)),
 		},
 		Type: appsv1.RollingUpdateStatefulSetStrategyType,
 	}
@@ -248,7 +248,7 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 func disableBlockOwnerDeletion(pvc corev1.PersistentVolumeClaim) {
 	refs := pvc.OwnerReferences
 	for i := range refs {
-		refs[i].BlockOwnerDeletion = pointer.Bool(false)
+		refs[i].BlockOwnerDeletion = ptr.To(false)
 	}
 }
 
@@ -511,7 +511,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		})
 
 		secretEnforced := true
-		filePermissions := pointer.Int32(400)
+		filePermissions := ptr.To(int32(400))
 		tlsProjectedVolume := corev1.Volume{
 			Name: "rabbitmq-tls",
 			VolumeSource: corev1.VolumeSource{
@@ -565,13 +565,13 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 				},
 			},
 			SecurityContext: &corev1.PodSecurityContext{
-				FSGroup:   pointer.Int64(0),
+				FSGroup:   ptr.To(int64(0)),
 				RunAsUser: &rabbitmqUID,
 			},
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
 			TerminationGracePeriodSeconds: builder.Instance.Spec.TerminationGracePeriodSeconds,
 			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
-			AutomountServiceAccountToken:  pointer.Bool(true),
+			AutomountServiceAccountToken:  ptr.To(true),
 			Affinity:                      builder.Instance.Spec.Affinity,
 			Tolerations:                   builder.Instance.Spec.Tolerations,
 			InitContainers:                []corev1.Container{setupContainer(builder.Instance)},
@@ -743,7 +743,7 @@ func setupContainer(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container 
 			"echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 			"&& sed -e 's/default_user/username/' -e 's/default_pass/password/' %s >> /var/lib/rabbitmq/.rabbitmqadmin.conf " +
 			"&& chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf ; " +
-			"sleep " + strconv.Itoa(int(pointer.Int32Deref(instance.Spec.DelayStartSeconds, 30))),
+			"sleep " + strconv.Itoa(int(ptr.Deref(instance.Spec.DelayStartSeconds, 30))),
 	}
 	setupContainer := corev1.Container{
 		Name:    "setup-container",
@@ -877,7 +877,7 @@ default_pass = {{ .Data.data.password }}
 func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 	altNames := ""
 	var i int32
-	for i = 0; i < pointer.Int32Deref(instance.Spec.Replicas, 1); i++ {
+	for i = 0; i < ptr.Deref(instance.Spec.Replicas, 1); i++ {
 		altNames += fmt.Sprintf(",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace))
 	}
 	return strings.TrimPrefix(altNames, ",")

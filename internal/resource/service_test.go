@@ -20,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
 )
 
@@ -98,21 +97,21 @@ var _ = Context("Services", func() {
 						Protocol:    corev1.ProtocolTCP,
 						Port:        5671,
 						TargetPort:  intstr.FromInt(5671),
-						AppProtocol: pointer.String("amqps"),
+						AppProtocol: ptr.To("amqps"),
 					},
 					{
 						Name:        "management-tls",
 						Protocol:    corev1.ProtocolTCP,
 						Port:        15671,
 						TargetPort:  intstr.FromInt(15671),
-						AppProtocol: pointer.String("https"),
+						AppProtocol: ptr.To("https"),
 					},
 					{
 						Name:        "prometheus-tls",
 						Protocol:    corev1.ProtocolTCP,
 						Port:        15691,
 						TargetPort:  intstr.FromInt(15691),
-						AppProtocol: pointer.String("prometheus.io/metric-tls"),
+						AppProtocol: ptr.To("prometheus.io/metric-tls"),
 					},
 				}))
 				Expect(svc.Spec.Ports).ToNot(ContainElement(corev1.ServicePort{
@@ -120,7 +119,7 @@ var _ = Context("Services", func() {
 					Protocol:    corev1.ProtocolTCP,
 					Port:        15692,
 					TargetPort:  intstr.FromInt(15692),
-					AppProtocol: pointer.String("prometheus.io/metric"),
+					AppProtocol: ptr.To("prometheus.io/metric"),
 				},
 				))
 			})
@@ -135,21 +134,21 @@ var _ = Context("Services", func() {
 							Protocol:    corev1.ProtocolTCP,
 							Port:        8883,
 							TargetPort:  intstr.FromInt(8883),
-							AppProtocol: pointer.String("mqtts"),
+							AppProtocol: ptr.To("mqtts"),
 						},
 						{
 							Name:        "stomps",
 							Protocol:    corev1.ProtocolTCP,
 							Port:        61614,
 							TargetPort:  intstr.FromInt(61614),
-							AppProtocol: pointer.String("stomp.github.io/stomp-tls"),
+							AppProtocol: ptr.To("stomp.github.io/stomp-tls"),
 						},
 						{
 							Name:        "streams",
 							Protocol:    corev1.ProtocolTCP,
 							Port:        5551,
 							TargetPort:  intstr.FromInt(5551),
-							AppProtocol: pointer.String("rabbitmq.com/stream-tls"),
+							AppProtocol: ptr.To("rabbitmq.com/stream-tls"),
 						},
 					}))
 				})
@@ -166,14 +165,14 @@ var _ = Context("Services", func() {
 							Protocol:    corev1.ProtocolTCP,
 							Port:        15676,
 							TargetPort:  intstr.FromInt(15676),
-							AppProtocol: pointer.String("https"),
+							AppProtocol: ptr.To("https"),
 						},
 						{
 							Name:        "web-stomp-tls",
 							Protocol:    corev1.ProtocolTCP,
 							Port:        15673,
 							TargetPort:  intstr.FromInt(15673),
-							AppProtocol: pointer.String("https"),
+							AppProtocol: ptr.To("https"),
 						},
 					}))
 				})
@@ -189,7 +188,7 @@ var _ = Context("Services", func() {
 							Protocol:    corev1.ProtocolTCP,
 							Port:        5551,
 							TargetPort:  intstr.FromInt(5551),
-							AppProtocol: pointer.String("rabbitmq.com/stream-tls"),
+							AppProtocol: ptr.To("rabbitmq.com/stream-tls"),
 						},
 					}))
 				})
@@ -205,7 +204,7 @@ var _ = Context("Services", func() {
 							Protocol:    corev1.ProtocolTCP,
 							Port:        5551,
 							TargetPort:  intstr.FromInt(5551),
-							AppProtocol: pointer.String("rabbitmq.com/stream-tls"),
+							AppProtocol: ptr.To("rabbitmq.com/stream-tls"),
 						},
 					}))
 				})
@@ -221,21 +220,21 @@ var _ = Context("Services", func() {
 							Protocol:    corev1.ProtocolTCP,
 							Port:        5671,
 							TargetPort:  intstr.FromInt(5671),
-							AppProtocol: pointer.String("amqps"),
+							AppProtocol: ptr.To("amqps"),
 						},
 						{
 							Name:        "management-tls",
 							Protocol:    corev1.ProtocolTCP,
 							Port:        15671,
 							TargetPort:  intstr.FromInt(15671),
-							AppProtocol: pointer.String("https"),
+							AppProtocol: ptr.To("https"),
 						},
 						{
 							Name:        "prometheus-tls",
 							Protocol:    corev1.ProtocolTCP,
 							Port:        15691,
 							TargetPort:  intstr.FromInt(15691),
-							AppProtocol: pointer.String("prometheus.io/metric-tls"),
+							AppProtocol: ptr.To("prometheus.io/metric-tls"),
 						},
 					}))
 				})
@@ -250,7 +249,7 @@ var _ = Context("Services", func() {
 							Protocol:    corev1.ProtocolTCP,
 							Port:        5671,
 							TargetPort:  intstr.FromInt(5671),
-							AppProtocol: pointer.String("amqps"),
+							AppProtocol: ptr.To("amqps"),
 						}
 						managementTLSPort := corev1.ServicePort{
 
@@ -258,7 +257,7 @@ var _ = Context("Services", func() {
 							Protocol:    corev1.ProtocolTCP,
 							Port:        15671,
 							TargetPort:  intstr.FromInt(15671),
-							AppProtocol: pointer.String("https"),
+							AppProtocol: ptr.To("https"),
 						}
 						prometheusTLSPort := corev1.ServicePort{
 
@@ -266,7 +265,7 @@ var _ = Context("Services", func() {
 							Protocol:    corev1.ProtocolTCP,
 							Port:        15691,
 							TargetPort:  intstr.FromInt(15691),
-							AppProtocol: pointer.String("prometheus.io/metric-tls"),
+							AppProtocol: ptr.To("prometheus.io/metric-tls"),
 						}
 						expectedPort := corev1.ServicePort{
 							Name:        servicePortName,
@@ -278,13 +277,13 @@ var _ = Context("Services", func() {
 						Expect(svc.Spec.Ports).To(ConsistOf(amqpsPort, managementTLSPort, prometheusTLSPort, expectedPort))
 					},
 					EntryDescription("%s plugin is enabled"),
-					Entry(nil, "rabbitmq_mqtt", "mqtts", 8883, pointer.String("mqtts")),
-					Entry(nil, "rabbitmq_web_mqtt", "web-mqtt-tls", 15676, pointer.String("https")),
-					Entry(nil, "rabbitmq_stomp", "stomps", 61614, pointer.String("stomp.github.io/stomp-tls")),
-					Entry(nil, "rabbitmq_web_stomp", "web-stomp-tls", 15673, pointer.String("https")),
-					Entry(nil, "rabbitmq_stream", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
-					Entry(nil, "rabbitmq_multi_dc_replication", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
-					Entry(nil, "rabbitmq_stream_management", "streams", 5551, pointer.String("rabbitmq.com/stream-tls")),
+					Entry(nil, "rabbitmq_mqtt", "mqtts", 8883, ptr.To("mqtts")),
+					Entry(nil, "rabbitmq_web_mqtt", "web-mqtt-tls", 15676, ptr.To("https")),
+					Entry(nil, "rabbitmq_stomp", "stomps", 61614, ptr.To("stomp.github.io/stomp-tls")),
+					Entry(nil, "rabbitmq_web_stomp", "web-stomp-tls", 15673, ptr.To("https")),
+					Entry(nil, "rabbitmq_stream", "streams", 5551, ptr.To("rabbitmq.com/stream-tls")),
+					Entry(nil, "rabbitmq_multi_dc_replication", "streams", 5551, ptr.To("rabbitmq.com/stream-tls")),
+					Entry(nil, "rabbitmq_stream_management", "streams", 5551, ptr.To("rabbitmq.com/stream-tls")),
 				)
 			})
 
@@ -297,14 +296,14 @@ var _ = Context("Services", func() {
 						{
 							Name:        "web-mqtt-tls",
 							Protocol:    corev1.ProtocolTCP,
-							AppProtocol: pointer.String("https"),
+							AppProtocol: ptr.To("https"),
 							Port:        15676,
 							TargetPort:  intstr.FromInt(15676),
 						},
 						{
 							Name:        "mqtts",
 							Protocol:    corev1.ProtocolTCP,
-							AppProtocol: pointer.String("mqtts"),
+							AppProtocol: ptr.To("mqtts"),
 							Port:        8883,
 							TargetPort:  intstr.FromInt(8883),
 						},
@@ -321,14 +320,14 @@ var _ = Context("Services", func() {
 						{
 							Name:        "web-stomp-tls",
 							Protocol:    corev1.ProtocolTCP,
-							AppProtocol: pointer.String("https"),
+							AppProtocol: ptr.To("https"),
 							Port:        15673,
 							TargetPort:  intstr.FromInt(15673),
 						},
 						{
 							Name:        "stomps",
 							Protocol:    corev1.ProtocolTCP,
-							AppProtocol: pointer.String("stomp.github.io/stomp-tls"),
+							AppProtocol: ptr.To("stomp.github.io/stomp-tls"),
 							Port:        61614,
 							TargetPort:  intstr.FromInt(61614),
 						},
@@ -531,21 +530,21 @@ var _ = Context("Services", func() {
 					Port:        5672,
 					TargetPort:  intstr.FromInt(5672),
 					Protocol:    corev1.ProtocolTCP,
-					AppProtocol: pointer.String("amqp"),
+					AppProtocol: ptr.To("amqp"),
 				}
 				managementPort := corev1.ServicePort{
 					Name:        "management",
 					Port:        15672,
 					TargetPort:  intstr.FromInt(15672),
 					Protocol:    corev1.ProtocolTCP,
-					AppProtocol: pointer.String("http"),
+					AppProtocol: ptr.To("http"),
 				}
 				prometheusPort := corev1.ServicePort{
 					Name:        "prometheus",
 					Port:        15692,
 					TargetPort:  intstr.FromInt(15692),
 					Protocol:    corev1.ProtocolTCP,
-					AppProtocol: pointer.String("prometheus.io/metrics"),
+					AppProtocol: ptr.To("prometheus.io/metrics"),
 				}
 				Expect(svc.Spec.Ports).To(ConsistOf(amqpPort, managementPort, prometheusPort))
 			})
@@ -565,13 +564,13 @@ var _ = Context("Services", func() {
 					Expect(svc.Spec.Ports).To(ContainElement(expectedPort))
 				},
 				EntryDescription("%s plugin is enabled"),
-				Entry(nil, "rabbitmq_mqtt", "mqtt", 1883, pointer.String("mqtt")),
-				Entry(nil, "rabbitmq_web_mqtt", "web-mqtt", 15675, pointer.String("http")),
-				Entry(nil, "rabbitmq_stomp", "stomp", 61613, pointer.String("stomp.github.io/stomp")),
-				Entry(nil, "rabbitmq_web_stomp", "web-stomp", 15674, pointer.String("http")),
-				Entry(nil, "rabbitmq_stream", "stream", 5552, pointer.String("rabbitmq.com/stream")),
-				Entry(nil, "rabbitmq_multi_dc_replication", "stream", 5552, pointer.String("rabbitmq.com/stream")),
-				Entry(nil, "rabbitmq_stream_management", "stream", 5552, pointer.String("rabbitmq.com/stream")),
+				Entry(nil, "rabbitmq_mqtt", "mqtt", 1883, ptr.To("mqtt")),
+				Entry(nil, "rabbitmq_web_mqtt", "web-mqtt", 15675, ptr.To("http")),
+				Entry(nil, "rabbitmq_stomp", "stomp", 61613, ptr.To("stomp.github.io/stomp")),
+				Entry(nil, "rabbitmq_web_stomp", "web-stomp", 15674, ptr.To("http")),
+				Entry(nil, "rabbitmq_stream", "stream", 5552, ptr.To("rabbitmq.com/stream")),
+				Entry(nil, "rabbitmq_multi_dc_replication", "stream", 5552, ptr.To("rabbitmq.com/stream")),
+				Entry(nil, "rabbitmq_stream_management", "stream", 5552, ptr.To("rabbitmq.com/stream")),
 			)
 
 			It("updates the service type from ClusterIP to NodePort", func() {
@@ -593,7 +592,7 @@ var _ = Context("Services", func() {
 						TargetPort:  intstr.FromInt(5672),
 						Name:        "amqp",
 						NodePort:    12345,
-						AppProtocol: pointer.String("amqp"),
+						AppProtocol: ptr.To("amqp"),
 					},
 					{
 						Protocol:    corev1.ProtocolTCP,
@@ -615,7 +614,7 @@ var _ = Context("Services", func() {
 					Port:        5672,
 					TargetPort:  intstr.FromInt(5672),
 					NodePort:    12345,
-					AppProtocol: pointer.String("amqp"),
+					AppProtocol: ptr.To("amqp"),
 				}
 				expectedManagementServicePort := corev1.ServicePort{
 					Protocol:    corev1.ProtocolTCP,
@@ -623,7 +622,7 @@ var _ = Context("Services", func() {
 					Name:        "management",
 					TargetPort:  intstr.FromInt(15672),
 					NodePort:    1234,
-					AppProtocol: pointer.String("http"),
+					AppProtocol: ptr.To("http"),
 				}
 
 				Expect(svc.Spec.Ports).To(ContainElement(expectedAmqpServicePort))
@@ -655,7 +654,7 @@ var _ = Context("Services", func() {
 						Port:        5672,
 						TargetPort:  intstr.FromInt(5672),
 						NodePort:    0,
-						AppProtocol: pointer.String("amqp"),
+						AppProtocol: ptr.To("amqp"),
 					}
 
 					Expect(svc.Spec.Ports).To(ContainElement(expectedServicePort))
@@ -686,7 +685,7 @@ var _ = Context("Services", func() {
 						Port:        5672,
 						TargetPort:  intstr.FromInt(5672),
 						NodePort:    0,
-						AppProtocol: pointer.String("amqp"),
+						AppProtocol: ptr.To("amqp"),
 					}
 
 					Expect(svc.Spec.Ports).To(ContainElement(expectedServicePort))
@@ -772,7 +771,7 @@ var _ = Context("Services", func() {
 								Port:        12345,
 								TargetPort:  intstr.FromInt(12345),
 								Name:        "my-new-port",
-								AppProtocol: pointer.String("my.company.com/protocol"),
+								AppProtocol: ptr.To("my.company.com/protocol"),
 							},
 						},
 						Selector: map[string]string{
@@ -802,28 +801,28 @@ var _ = Context("Services", func() {
 						Port:        5672,
 						TargetPort:  intstr.FromInt(5672),
 						Protocol:    corev1.ProtocolTCP,
-						AppProtocol: pointer.String("amqp"),
+						AppProtocol: ptr.To("amqp"),
 					},
 					corev1.ServicePort{
 						Name:        "management",
 						Port:        15672,
 						TargetPort:  intstr.FromInt(15672),
 						Protocol:    corev1.ProtocolTCP,
-						AppProtocol: pointer.String("http"),
+						AppProtocol: ptr.To("http"),
 					},
 					corev1.ServicePort{
 						Name:        "prometheus",
 						Port:        15692,
 						TargetPort:  intstr.FromInt(15692),
 						Protocol:    corev1.ProtocolTCP,
-						AppProtocol: pointer.String("prometheus.io/metrics"),
+						AppProtocol: ptr.To("prometheus.io/metrics"),
 					},
 					corev1.ServicePort{
 						Protocol:    corev1.ProtocolUDP,
 						Port:        12345,
 						TargetPort:  intstr.FromInt(12345),
 						Name:        "my-new-port",
-						AppProtocol: pointer.String("my.company.com/protocol"),
+						AppProtocol: ptr.To("my.company.com/protocol"),
 					},
 				))
 				Expect(svc.Spec.Selector).To(Equal(map[string]string{"a-selector": "a-label", "app.kubernetes.io/name": "foo"}))

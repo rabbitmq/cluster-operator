@@ -17,8 +17,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
-	storagev1 "k8s.io/api/storage/v1"
 	"log"
 	"net/http"
 	"os"
@@ -27,6 +25,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	storagev1 "k8s.io/api/storage/v1"
 
 	controllerruntime "sigs.k8s.io/controller-runtime"
 
@@ -120,7 +120,7 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 		return responseBody, fmt.Errorf("failed with err: %w to api endpoint: %s", err, url)
 	}
 	defer resp.Body.Close()
-	responseBody, err = ioutil.ReadAll(resp.Body)
+	responseBody, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return responseBody, err
 	}
@@ -207,7 +207,7 @@ func connectHTTPS(username, password, hostname, httpsNodePort, caFilePath string
 	// create TLS config for https request
 	cfg := new(tls.Config)
 	cfg.RootCAs = x509.NewCertPool()
-	ca, err := ioutil.ReadFile(caFilePath)
+	ca, err := os.ReadFile(caFilePath)
 	if err != nil {
 		return err
 	}
@@ -229,7 +229,7 @@ func connectAMQPS(username, password, hostname, port, caFilePath string) (conn *
 	// create TLS config for amqps request
 	cfg := new(tls.Config)
 	cfg.RootCAs = x509.NewCertPool()
-	ca, err := ioutil.ReadFile(caFilePath)
+	ca, err := os.ReadFile(caFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +284,8 @@ func publishToQueueAMQPS(message, username, password, hostname, amqpsPort, caFil
 		return err
 	}
 
-	err = ch.Publish(
+	err = ch.PublishWithContext(
+		context.TODO(),
 		"",     // exchange
 		q.Name, // routing key
 		false,  // mandatory
@@ -362,7 +363,7 @@ func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPas
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	defer resp.Body.Close()
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	healthcheckResponse := &HealthcheckResponse{}
@@ -716,7 +717,7 @@ func updateTLSSecret(secretName, secretNamespace, hostname string, caCert, caKey
 }
 
 func createCertFile(offset int, fileName string) (string, *os.File) {
-	tmpDir, err := ioutil.TempDir("", "certs")
+	tmpDir, err := os.MkdirTemp("", "certs")
 	ExpectWithOffset(offset, err).ToNot(HaveOccurred())
 	path := filepath.Join(tmpDir, fileName)
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0755)
@@ -1104,5 +1105,5 @@ func volumeExpansionSupported(ctx context.Context, clientSet *kubernetes.Clients
 	clusterDefaultStorageClass := defaultStorageClass(ctx, clientSet)
 	Expect(clusterDefaultStorageClass).NotTo(BeNil(), "expected to find a default storageClass, but failed to find one")
 	return clusterDefaultStorageClass.AllowVolumeExpansion != nil &&
-		*clusterDefaultStorageClass.AllowVolumeExpansion == true
+		*clusterDefaultStorageClass.AllowVolumeExpansion
 }

@@ -1,6 +1,8 @@
 module github.com/rabbitmq/cluster-operator/v2
 
-go 1.20
+go 1.21
+
+toolchain go1.21.5
 
 require (
 	github.com/cloudflare/cfssl v1.6.4
@@ -9,7 +11,6 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.15.0
-	github.com/mikefarah/yq/v4 v4.40.5
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
 	github.com/rabbitmq/amqp091-go v1.9.0
@@ -17,6 +18,7 @@ require (
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	golang.org/x/mod v0.14.0
 	golang.org/x/net v0.19.0
+	golang.org/x/text v0.14.0
 	golang.org/x/vuln v1.0.1
 	gopkg.in/ini.v1 v1.67.0
 	k8s.io/api v0.28.4
@@ -117,7 +119,6 @@ require (
 	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
