@@ -135,7 +135,7 @@ var _ = Describe("StatefulSet", func() {
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.ResourceRequirements{
+						Resources: corev1.VolumeResourceRequirements{
 							Requests: map[corev1.ResourceName]k8sresource.Quantity{
 								corev1.ResourceStorage: q,
 							},
@@ -161,7 +161,7 @@ var _ = Describe("StatefulSet", func() {
 									Namespace: instance.Namespace,
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: k8sresource.MustParse("10Gi"),
 										},
@@ -1535,7 +1535,7 @@ default_pass = {{ .Data.data.password }}
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.ResourceRequirements{
+						Resources: corev1.VolumeResourceRequirements{
 							Requests: map[corev1.ResourceName]k8sresource.Quantity{
 								corev1.ResourceStorage: defaultCapacity,
 							},
@@ -1562,7 +1562,7 @@ default_pass = {{ .Data.data.password }}
 									Namespace: instance.Namespace,
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: seven,
 										},
@@ -1728,7 +1728,7 @@ default_pass = {{ .Data.data.password }}
 									Namespace: instance.Namespace,
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
 										},
@@ -1742,7 +1742,7 @@ default_pass = {{ .Data.data.password }}
 									Namespace: instance.Namespace,
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
 										},
@@ -1773,7 +1773,7 @@ default_pass = {{ .Data.data.password }}
 							},
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
+							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
 								},
@@ -1797,7 +1797,7 @@ default_pass = {{ .Data.data.password }}
 							},
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
+							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
 								},
@@ -1818,7 +1818,7 @@ default_pass = {{ .Data.data.password }}
 									Name: "pert-1",
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
 										},
@@ -1831,7 +1831,7 @@ default_pass = {{ .Data.data.password }}
 									Name: "pert-2",
 								},
 								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.ResourceRequirements{
+									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
 										},
@@ -1862,7 +1862,7 @@ default_pass = {{ .Data.data.password }}
 							},
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
+							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
 								},
@@ -1886,7 +1886,7 @@ default_pass = {{ .Data.data.password }}
 							},
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{
-							Resources: corev1.ResourceRequirements{
+							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
 								},

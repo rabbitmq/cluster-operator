@@ -48,7 +48,7 @@ func generatePVCTemplate(size k8sresource.Quantity) corev1.PersistentVolumeClaim
 			Namespace: namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: size,
 				},
@@ -65,7 +65,7 @@ func generatePVC(rmq rabbitmqv1beta1.RabbitmqCluster, index int, size k8sresourc
 			Namespace: namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: size,
 				},

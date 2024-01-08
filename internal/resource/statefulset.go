@@ -226,7 +226,7 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 			Annotations: metadata.ReconcileAndFilterAnnotations(map[string]string{}, instance.Annotations),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: *instance.Spec.Persistence.Storage,
 				},
