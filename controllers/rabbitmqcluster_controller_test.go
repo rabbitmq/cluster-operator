@@ -803,7 +803,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 										},
 										Spec: corev1.PersistentVolumeClaimSpec{
 											AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-											Resources: corev1.ResourceRequirements{
+											Resources: corev1.VolumeResourceRequirements{
 												Requests: map[corev1.ResourceName]k8sresource.Quantity{
 													corev1.ResourceStorage: q,
 												},
@@ -819,7 +819,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 											},
 										},
 										Spec: corev1.PersistentVolumeClaimSpec{
-											Resources: corev1.ResourceRequirements{
+											Resources: corev1.VolumeResourceRequirements{
 												Requests: corev1.ResourceList{
 													corev1.ResourceStorage: myStorage,
 												},
@@ -895,7 +895,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 					VolumeMode:  &volumeMode,
-					Resources: corev1.ResourceRequirements{
+					Resources: corev1.VolumeResourceRequirements{
 						Requests: map[corev1.ResourceName]k8sresource.Quantity{
 							corev1.ResourceStorage: q,
 						},
@@ -913,7 +913,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				corev1.PersistentVolumeClaimSpec{
 					VolumeMode:       &volumeMode,
 					StorageClassName: &storageClassName,
-					Resources: corev1.ResourceRequirements{
+					Resources: corev1.VolumeResourceRequirements{
 						Requests: map[corev1.ResourceName]k8sresource.Quantity{
 							corev1.ResourceStorage: myStorage,
 						},
