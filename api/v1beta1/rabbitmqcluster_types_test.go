@@ -427,6 +427,31 @@ var _ = Describe("RabbitmqCluster", func() {
 					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeFalse())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeFalse())
 					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.RootCAEnabled()).To(BeFalse())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeTrue())
+				})
+			})
+			When("only TLS is configured and root CA path is specified", func() {
+				It("sets vault configuration correctly", func() {
+					rabbit := generateRabbitmqClusterObject("rabbit-vault-tls")
+					rabbit.Spec.SecretBackend.Vault = &VaultSpec{
+						Role: "test-role",
+						TLS: VaultTLSSpec{
+							PKIIssuerPath: "pki/issue/hashicorp-com",
+							PKIRootPath: "pki-root/certs/ca",
+						},
+					}
+					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())
+					fetchedRabbit := &RabbitmqCluster{}
+					Expect(k8sClient.Get(context.Background(), getKey(rabbit), fetchedRabbit)).To(Succeed())
+
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.Role).To(Equal("test-role"))
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLS.PKIRootPath).To(Equal("pki-root/certs/ca"))
+					Expect(fetchedRabbit.VaultEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeFalse())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeFalse())
+					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.RootCAEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeTrue())
 				})
 			})
