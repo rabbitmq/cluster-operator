@@ -160,6 +160,9 @@ type VaultTLSSpec struct {
 func (spec *VaultSpec) TLSEnabled() bool {
 	return spec.TLS.PKIIssuerPath != ""
 }
+func (spec *VaultSpec) RootCAEnabled() bool {
+	return spec.TLS.PKIRootPath != ""
+}
 func (spec *VaultSpec) DefaultUserSecretEnabled() bool {
 	return spec.DefaultUserPath != ""
 }
