@@ -1116,6 +1116,7 @@ default_pass = {{ .Data.data.password }}
 						instance.Spec.SecretBackend.Vault.TLS.CommonName = "myrabbit.com"
 						instance.Spec.SecretBackend.Vault.TLS.AltNames = "alt1,alt2"
 						instance.Spec.SecretBackend.Vault.TLS.IpSans = "9.9.9.9"
+						instance.Spec.SecretBackend.Vault.TLS.PKIRootPath = "pki-root/certs/ca"
 						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 					})
 
@@ -1130,7 +1131,7 @@ default_pass = {{ .Data.data.password }}
 {{ .Data.private_key }}
 {{- end }}`))
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-ca.crt", `
-{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
+{{- with secret "pki-root/certs/ca" -}}
 {{ .Data.issuing_ca }}
 {{- end }}`))
 					})
