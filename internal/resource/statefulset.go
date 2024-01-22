@@ -864,7 +864,7 @@ default_pass = {{ .Data.data.password }}
 
 		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+tlsKeyFilename] = certDir
 		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+tlsKeyFilename] = pathCert
-		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+tlsKeyFilename] = generateVaultTLSTemplate(commonName, altNames, vault, "private_key")
+		vaultAnnotations["vault.hashicorp.com/agent-inject-template-"+tlsKeyFilename] = generateVaultTLSTemplate(commonName, altNames, vault.TLS.PKIIssuerPath, "private_key")
 
 		vaultAnnotations["vault.hashicorp.com/secret-volume-path-"+caCertFilename] = certDir
 		vaultAnnotations["vault.hashicorp.com/agent-inject-secret-"+caCertFilename] = pathCert
@@ -883,11 +883,11 @@ func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 	return strings.TrimPrefix(altNames, ",")
 }
 
-func generateVaultTLSTemplate(commonName, altNames string, vault *rabbitmqv1beta1.VaultSpec, tlsAttribute string) string {
+func generateVaultTLSTemplate(commonName, altNames string, vaultPath string, tlsAttribute string) string {
 	return fmt.Sprintf(`
 {{- with secret "%s" "common_name=%s" "alt_names=%s" "ip_sans=%s" -}}
 {{ .Data.%s }}
-{{- end }}`, vault.TLS.PKIIssuerPath, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
+{{- end }}`, vaultPath, commonName, altNames, vault.TLS.IpSans, tlsAttribute)
 }
 
 func generateVaultCATemplate(commonName, altNames string, vault *rabbitmqv1beta1.VaultSpec) string {
