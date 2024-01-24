@@ -19,7 +19,7 @@ require (
 	golang.org/x/mod v0.14.0
 	golang.org/x/net v0.20.0
 	golang.org/x/text v0.14.0
-	golang.org/x/vuln v1.0.2
+	golang.org/x/vuln v1.0.3
 	gopkg.in/ini.v1 v1.67.0
 	k8s.io/api v0.29.0
 	k8s.io/apimachinery v0.29.1
