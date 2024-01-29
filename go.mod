@@ -19,14 +19,14 @@ require (
 	golang.org/x/mod v0.14.0
 	golang.org/x/net v0.20.0
 	golang.org/x/text v0.14.0
-	golang.org/x/vuln v1.0.2
+	golang.org/x/vuln v1.0.3
 	gopkg.in/ini.v1 v1.67.0
 	k8s.io/api v0.29.0
 	k8s.io/apimachinery v0.29.1
 	k8s.io/client-go v0.29.0
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
-	sigs.k8s.io/controller-runtime v0.16.3
+	sigs.k8s.io/controller-runtime v0.17.0
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20220217024943-cfd92767d28e
 	sigs.k8s.io/controller-tools v0.14.0
 	sigs.k8s.io/kind v0.20.0
@@ -44,7 +44,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.1 // indirect
 	github.com/evanphx/json-patch v5.7.0+incompatible // indirect
-	github.com/evanphx/json-patch/v5 v5.7.0 // indirect
+	github.com/evanphx/json-patch/v5 v5.8.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
