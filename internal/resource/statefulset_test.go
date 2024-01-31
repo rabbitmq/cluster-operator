@@ -1098,9 +1098,17 @@ default_pass = {{ .Data.data.password }}
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-ca.crt", instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath))
 
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.crt", `
-{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
 {{ .Data.certificate }}
-{{- end }}`))
+{{- if .Data.ca_chain -}}
+{{- $lastintermediatecertindex := len .Data.ca_chain | subtract 1 -}}
+{{ range $index, $cacert := .Data.ca_chain }}
+{{ if (lt $index $lastintermediatecertindex) }}
+{{ $cacert }}
+{{ end }}
+{{ end }}
+{{- end -}}
+{{- end -}}`))
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.key", `
 {{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
 {{ .Data.private_key }}
@@ -1125,7 +1133,15 @@ default_pass = {{ .Data.data.password }}
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.crt", `
 {{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
 {{ .Data.certificate }}
-{{- end }}`))
+{{- if .Data.ca_chain -}}
+{{- $lastintermediatecertindex := len .Data.ca_chain | subtract 1 -}}
+{{ range $index, $cacert := .Data.ca_chain }}
+{{ if (lt $index $lastintermediatecertindex) }}
+{{ $cacert }}
+{{ end }}
+{{ end }}
+{{- end -}}
+{{- end -}}`))
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.key", `
 {{- with secret "pki/issue/vmware-com" "common_name=myrabbit.com" "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace,alt1,alt2" "ip_sans=9.9.9.9" -}}
 {{ .Data.private_key }}
