@@ -127,7 +127,7 @@ run::deploy-namespace-rbac
 run::just-run
 
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
-	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel $(OPERATOR_ARGS)
+	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) ENABLE_DEBUG_PPROF=true go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel $(OPERATOR_ARGS)
 
 .PHONY: delve
 delve::generate ## Deploys CRD, Namespace, RBACs and starts Delve debugger
