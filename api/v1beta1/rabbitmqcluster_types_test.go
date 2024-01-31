@@ -433,7 +433,7 @@ var _ = Describe("RabbitmqCluster", func() {
 			})
 			When("only TLS is configured and root CA path is specified", func() {
 				It("sets vault configuration correctly", func() {
-					rabbit := generateRabbitmqClusterObject("rabbit-vault-tls")
+					rabbit := generateRabbitmqClusterObject("rabbit-vault-tls-ca")
 					rabbit.Spec.SecretBackend.Vault = &VaultSpec{
 						Role: "test-role",
 						TLS: VaultTLSSpec{
