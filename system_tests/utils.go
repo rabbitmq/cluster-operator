@@ -766,6 +766,19 @@ func k8sCreateTLSSecret(secretName, secretNamespace, certPath, keyPath string) e
 		return fmt.Errorf("Failed with error: %w\nOutput: %v\n", err, string(output))
 	}
 
+	output, err = kubectl(
+		"-n",
+		secretNamespace,
+		"label",
+		"secrets",
+		secretName,
+		"app.kubernetes.io/part-of=rabbitmq",
+	)
+
+	if err != nil {
+		return fmt.Errorf("Failed with error: %w\nOutput: %v\n", err, string(output))
+	}
+
 	return nil
 }
 
