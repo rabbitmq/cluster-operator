@@ -1098,7 +1098,7 @@ default_pass = {{ .Data.data.password }}
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-secret-ca.crt", instance.Spec.SecretBackend.Vault.TLS.PKIIssuerPath))
 
 						Expect(a).To(HaveKeyWithValue("vault.hashicorp.com/agent-inject-template-tls.crt", `
-{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc "alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
+{{- with secret "pki/issue/vmware-com" "common_name=myrabbit.foo-namespace.svc" alt_names=myrabbit-server-0.myrabbit-nodes.foo-namespace" "ip_sans=" -}}
 {{ .Data.certificate }}
 {{- if .Data.ca_chain -}}
 {{- $lastintermediatecertindex := len .Data.ca_chain | subtract 1 -}}
