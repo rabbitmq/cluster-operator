@@ -451,7 +451,7 @@ var _ = Describe("RabbitmqCluster", func() {
 					Expect(fetchedRabbit.VaultDefaultUserSecretEnabled()).To(BeFalse())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.DefaultUserSecretEnabled()).To(BeFalse())
 					Expect(fetchedRabbit.VaultTLSEnabled()).To(BeTrue())
-					Expect(fetchedRabbit.SecretBackend.Vault.RootCAEnabled()).To(BeTrue())
+					Expect(fetchedRabbit.Spec.SecretBackend.Vault.RootCAEnabled()).To(BeTrue())
 					Expect(fetchedRabbit.Spec.SecretBackend.Vault.TLSEnabled()).To(BeTrue())
 				})
 			})
