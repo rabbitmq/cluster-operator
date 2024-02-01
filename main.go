@@ -194,6 +194,7 @@ func main() {
 
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client:                  mgr.GetClient(),
+		APIReader:               mgr.GetAPIReader(),
 		Scheme:                  mgr.GetScheme(),
 		Recorder:                mgr.GetEventRecorderFor(controllerName),
 		Namespace:               operatorNamespace,

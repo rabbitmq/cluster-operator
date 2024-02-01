@@ -39,9 +39,10 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 	secretName := rabbitmqCluster.Spec.TLS.SecretName
 	logger.V(1).Info("TLS enabled, looking for secret", "secret", secretName)
 
-	// check if secret exists
+	// check if secret exists - we need to use the APIReader because if the Secret doesn't have
+	// "app.kubernetes.io/part-of" label set to "rabbitmq", it's not cached by the controller
 	secret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
+	if err := r.APIReader.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
 		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
 			fmt.Sprintf("Failed to get TLS secret %s in namespace %s: %v", secretName, rabbitmqCluster.Namespace, err.Error()))
 		logger.Error(err, "Error setting up TLS")
@@ -65,7 +66,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 
 			// check if secret exists
 			secret = &corev1.Secret{}
-			if err := r.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
+			if err := r.APIReader.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: secretName}, secret); err != nil {
 				r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError",
 					fmt.Sprintf("Failed to get CA certificate secret %v in namespace %v: %v", secretName, rabbitmqCluster.Namespace, err.Error()))
 				logger.Error(err, "Error setting up TLS")

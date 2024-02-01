@@ -59,6 +59,7 @@ const (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
+	APIReader               client.Reader
 	Scheme                  *runtime.Scheme
 	Namespace               string
 	Recorder                record.EventRecorder
