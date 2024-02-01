@@ -289,7 +289,11 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(logger logr.Logg
 	}
 
 	if err != nil {
-		msg := fmt.Sprintf("failed to %s resource %s of Type %T", operation, resource.(metav1.Object).GetName(), resource.(metav1.Object))
+		var msg string
+		if operation != "unchanged" {
+			msg = fmt.Sprintf("failed to %s resource %s of Type %T: ", operation, resource.(metav1.Object).GetName(), resource.(metav1.Object))
+		}
+		msg = fmt.Sprintf("%s%s", msg, err)
 		logger.Error(err, msg)
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, fmt.Sprintf("Failed%s", caser.String(operation)), msg)
 	}
