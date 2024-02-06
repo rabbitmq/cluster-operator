@@ -152,10 +152,16 @@ type VaultTLSSpec struct {
 	// Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
 	// +optional
 	IpSans string `json:"ipSans,omitempty"`
+	// Specifies an optional path to retrieve the root CA from vault.  Useful if certificates are issued by an intermediate CA
+	// +optional
+	PKIRootPath string `json:"pkiRootPath,omitempty"`
 }
 
 func (spec *VaultSpec) TLSEnabled() bool {
 	return spec.TLS.PKIIssuerPath != ""
+}
+func (spec *VaultSpec) RootCAEnabled() bool {
+	return spec.TLS.PKIRootPath != ""
 }
 func (spec *VaultSpec) DefaultUserSecretEnabled() bool {
 	return spec.DefaultUserPath != ""
