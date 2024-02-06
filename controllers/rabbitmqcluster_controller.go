@@ -22,6 +22,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
+	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -59,6 +60,7 @@ const (
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
 type RabbitmqClusterReconciler struct {
 	client.Client
+	APIReader               client.Reader
 	Scheme                  *runtime.Scheme
 	Namespace               string
 	Recorder                record.EventRecorder
@@ -137,6 +139,17 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	} else if tlsErr != nil {
 		return ctrl.Result{}, tlsErr
+	}
+
+	// if the secret already exists, ensure it has the labels necessary for being in the controller's cache
+	// otherwise, our attempt to create it will fail (CreateOrUpdate only checks for the existence of the resource in the cache)
+	defaultUserSecret := &corev1.Secret{}
+	err = r.APIReader.Get(ctx, types.NamespacedName{Namespace: rabbitmqCluster.Namespace, Name: rabbitmqCluster.ChildResourceName("default-user")}, defaultUserSecret)
+	if err == nil {
+		if v, ok := defaultUserSecret.Labels["app.kubernetes.io/part-of"]; !ok || v != "rabbitmq" {
+			defaultUserSecret.Labels = metadata.GetLabels(rabbitmqCluster.Name, rabbitmqCluster.Labels)
+			r.Client.Update(ctx, defaultUserSecret)
+		}
 	}
 
 	sts, err := r.statefulSet(ctx, rabbitmqCluster)
@@ -262,9 +275,10 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(logger logr.Logg
 	var operation string
 	if operationResult == controllerutil.OperationResultCreated {
 		operation = "create"
-	}
-	if operationResult == controllerutil.OperationResultUpdated {
+	} else if operationResult == controllerutil.OperationResultUpdated {
 		operation = "update"
+	} else {
+		operation = string(operationResult)
 	}
 
 	caser := cases.Title(language.English)
@@ -275,7 +289,11 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(logger logr.Logg
 	}
 
 	if err != nil {
-		msg := fmt.Sprintf("failed to %s resource %s of Type %T", operation, resource.(metav1.Object).GetName(), resource.(metav1.Object))
+		var msg string
+		if operation != "unchanged" {
+			msg = fmt.Sprintf("failed to %s resource %s of Type %T: ", operation, resource.(metav1.Object).GetName(), resource.(metav1.Object))
+		}
+		msg = fmt.Sprintf("%s%s", msg, err)
 		logger.Error(err, msg)
 		r.Recorder.Event(rmq, corev1.EventTypeWarning, fmt.Sprintf("Failed%s", caser.String(operation)), msg)
 	}

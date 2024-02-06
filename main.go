@@ -12,12 +12,18 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"strconv"
 	"strings"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
 	"github.com/rabbitmq/cluster-operator/v2/pkg/profiling"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -25,7 +31,9 @@ import (
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/controllers"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -130,6 +138,25 @@ func main() {
 		}
 	}
 
+	rmqLabel, err := labels.NewRequirement("app.kubernetes.io/part-of", selection.Equals, []string{"rabbitmq"})
+	if err != nil {
+		log.Error(err, "unable to create a label filter")
+		os.Exit(1)
+	}
+	rmqSelector := labels.NewSelector().Add(*rmqLabel)
+
+	options.Cache.ByObject = map[client.Object]cache.ByObject{
+		&rabbitmqv1beta1.RabbitmqCluster{}: {},
+		&appsv1.StatefulSet{}:              {Label: rmqSelector},
+		&corev1.Service{}:                  {Label: rmqSelector},
+		&corev1.ConfigMap{}:                {Label: rmqSelector},
+		&corev1.Secret{}:                   {Label: rmqSelector},
+		&corev1.ServiceAccount{}:           {Label: rmqSelector},
+		&corev1.Endpoints{}:                {Label: rmqSelector},
+		&rbacv1.Role{}:                     {Label: rmqSelector},
+		&rbacv1.RoleBinding{}:              {Label: rmqSelector},
+	}
+
 	if leaseDuration := getEnvInDuration("LEASE_DURATION"); leaseDuration != 0 {
 		log.Info("manager configured with lease duration", "seconds", int(leaseDuration.Seconds()))
 		options.LeaseDuration = &leaseDuration
@@ -167,6 +194,7 @@ func main() {
 
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client:                  mgr.GetClient(),
+		APIReader:               mgr.GetAPIReader(),
 		Scheme:                  mgr.GetScheme(),
 		Recorder:                mgr.GetEventRecorderFor(controllerName),
 		Namespace:               operatorNamespace,

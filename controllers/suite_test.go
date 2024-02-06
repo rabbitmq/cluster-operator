@@ -13,8 +13,9 @@ package controllers_test
 import (
 	"context"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"testing"
+
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"k8s.io/client-go/util/retry"
 
@@ -95,6 +96,7 @@ var _ = BeforeSuite(func() {
 	fakeExecutor = &fakePodExecutor{}
 	err = (&controllers.RabbitmqClusterReconciler{
 		Client:                  mgr.GetClient(),
+		APIReader:               mgr.GetAPIReader(),
 		Scheme:                  mgr.GetScheme(),
 		Recorder:                mgr.GetEventRecorderFor(controllerName),
 		Namespace:               "rabbitmq-system",
