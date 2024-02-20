@@ -1,0 +1,156 @@
+# action to test our operator lifecycle manager bundle
+name: test-OLM
+
+on:
+    push:
+      # Pattern matched against refs/tags
+      branches:
+        - "testing_olm"
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+env:
+  GO_VERSION: ~1.21
+
+
+jobs:
+    build-image:
+        name: Build an image of this operator to be used by the OLM packaging
+        runs-on: ubuntu-latest
+        permissions:
+          contents: 'read'
+          id-token: 'write'
+        steps:
+        - uses: actions/checkout@v4
+          # for tkgi we would store the binary in the repo to avoid downloading it from tanzunet            
+        - name: Auth to Google Cloud
+          id: auth
+          uses: 'google-github-actions/auth@v2'
+          with:
+            token_format: access_token
+            workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
+            service_account: ${{ secrets.GCP_SA }}
+
+        - name: Login to Docker Hub
+          if: github.event_name != 'pull_request'
+          uses: docker/login-action@v3
+          with:
+              username: ${{ secrets.DOCKERHUB_USERNAME }}
+              password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+        - name: OCI Metadata for multi-arch image
+          id: meta
+          uses: docker/metadata-action@v5
+          with:
+            # list of Docker images to use as base name for tags
+            images: |
+                rabbitmqoperator/rabbitmq-for-kubernetes-dev-olm
+            tags: |
+                0.0.0
+        - name: Set up QEMU
+          uses: docker/setup-qemu-action@v3
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
+
+        - name: Build and push
+          uses: docker/build-push-action@v5
+          with:
+            context: .
+            platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
+            push: ${{ github.event_name != 'pull_request' }}
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+
+    create-olm-package:
+        name: Create the OLM Packaging
+        runs-on: ubuntu-latest
+        needs: build-image
+        container: 
+            image: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci-olm
+            options: --privileged
+        permissions:
+            contents: 'write'
+            id-token: 'write'
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: create-olm-package
+          env:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+          run: |   
+            
+            sed '/mount_program =/s/^#//' -i /etc/containers/storage.conf
+            podman login -u $username -p $password
+            export DOCKER_REGISTRY_SERVER=docker.io/rabbitmqoperator
+            export OLM_IMAGE=rabbitmq-for-kubernetes-olm
+            export OLM_INDEX_IMAGE=rabbitmq-for-kubernetes-olm-index
+            git config --global --add safe.directory /__w/cluster-operator/cluster-operator
+            git clone https://github.com/rabbitmq/OLM-Package-Repo -b using_dockerhub_instead_of_gcr
+            make generate-installation-manifest
+            cp ./config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds/crds.yaml
+            cp ./releases/cluster-operator.yml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds/cluster-operator.yaml
+            cp OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/generators/cluster-service-version-generator-test.yml OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/generators/cluster-service-version-generator.yml 
+            cd ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/
+            python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml 0.0.0 ./
+            sed -i -e 's/rabbitmqoperator\/cluster-operator:.*/rabbitmqoperator\/rabbitmq-for-kubernetes-dev-olm:0.0.0/g' ./0.0.0/manifests/rabbitmq.clusterserviceversion.yaml
+            opm alpha bundle build -c stable -d ./0.0.0/manifests -t $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:0.0.0 -p rabbitmq-cluster-operator --image-builder podman
+            echo "y" | gcloud auth configure-docker         
+            podman push $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:0.0.0
+            opm index add -b $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:0.0.0 -t $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:0.0.0 -c podman
+            podman push $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:0.0.0
+            cd ../..
+    test-olm-package:
+        name: Tests the OLM packaging
+        runs-on: ubuntu-latest
+        needs: create-olm-package
+        container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci-olm
+   
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Get Openshift connection info kubeconf from infrastructure repo
+          env:
+            GITHUB_ACCESS_TOKEN: ${{ secrets.GIT_HUB_ACCESS_TOKEN }}
+          run: |
+            git clone https://oauth2:"$GITHUB_ACCESS_TOKEN"@github.com/rabbitmq/infrastructure
+
+        #- name: Protect access to the cluster with a mutex
+        #  uses: ben-z/gh-action-mutex@v1.0-alpha-8
+        #  with:
+        #    repo-token: ${{ secrets.GIT_HUB_ACCESS_TOKEN }}
+        #    repository: https://github.com/rabbitmq-pro/tanzu-carvel-package-repo
+        #    branch: lock-openshift
+            
+        - name: Connect to the Openshift cluster and deploy the operators through OLM
+          run: |   
+            git clone https://github.com/rabbitmq/OLM-Package-Repo -b using_dockerhub_instead_of_gcr
+            export KUBECONFIG=./infrastructure/k8s/okd/admin-kubeconfig.yaml
+            mkdir $HOME/.kube
+            cp ./infrastructure/k8s/okd/admin-kubeconfig.yaml $HOME/.kube/config
+            export KUBECONFIG=$HOME/.kube/config
+            export ENVIRONMENT=openshift
+            kubectl config use-context admin
+            kubectl create -f ./OLM-Package-Repo/testfiles/catalogsource-openshift.yaml
+            kubectl create ns rabbitmq-system-olm
+            kubectl create -f ./OLM-Package-Repo/testfiles/og.yaml
+            kubectl create -f ./OLM-Package-Repo/testfiles/sub_devopstales-catalog-openshift.yaml
+            export K8S_OPERATOR_NAMESPACE=rabbitmq-system-olm
+            export SYSTEM_TEST_NAMESPACE=rabbitmq-system-olm 
+            make system-tests
+
+        #- name: Clean up
+        #  if: always()
+        #  run: | 
+        #    export KUBECONFIG=./infrastructure/k8s/okd/admin-kubeconfig.yaml
+        #    kubectl config use-context admin
+        #    kubectl delete csv rabbitmq-cluster-operator.v0.0.0 -n rabbitmq-system-olm
+        #    kubectl delete -f ./OLM-Package-Repo/testfiles/sub_devopstales-catalog-openshift.yaml
+        #    kubectl delete -f ./OLM-Package-Repo/testfiles/og.yaml
+        #    kubectl delete ns rabbitmq-system-olm
+        #    kubectl delete -f ./OLM-Package-Repo/testfiles/catalogsource-openshift.yaml
