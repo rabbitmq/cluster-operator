@@ -475,7 +475,7 @@ CONSOLE_LOG=new`
 				waitForRabbitmqUpdate(cluster)
 
 				var err error
-				username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", "tls-test-rabbit")
+				username, password, err = getUsernameAndPassword(ctx, clientSet, namespace, "tls-test-rabbit")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -615,7 +615,7 @@ CONSOLE_LOG=new`
 
 			hostname = kubernetesNodeIp(ctx, clientSet)
 			var err error
-			username, password, err = getUsernameAndPassword(ctx, clientSet, "rabbitmq-system", instanceName)
+			username, password, err = getUsernameAndPassword(ctx, clientSet, namespace, instanceName)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
