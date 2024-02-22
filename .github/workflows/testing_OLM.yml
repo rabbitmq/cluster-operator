@@ -12,7 +12,10 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 env:
-  GO_VERSION: ~1.21
+  # registry information where we want to store the operator image and the operator index image
+  DOCKER_REGISTRY_SERVER: docker.io/rabbitmqoperator
+  OLM_IMAGE: rabbitmq-for-kubernetes-olm
+  OLM_INDEX_IMAGE: rabbitmq-for-kubernetes-olm-index
 
 
 jobs:
@@ -81,14 +84,13 @@ jobs:
           env:
             username: ${{ secrets.DOCKERHUB_USERNAME }}
             password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
+            DOCKER_REGISTRY_SERVER: ${{ env.DOCKER_REGISTRY_SERVER }}
+            OLM_IMAGE: ${{ env.OLM_IMAGE }}
+            OLM_INDEX_IMAGE: ${{ env.OLM_INDEX_IMAGE }}
           run: |   
             
             sed '/mount_program =/s/^#//' -i /etc/containers/storage.conf
             podman login -u $username -p $password
-            export DOCKER_REGISTRY_SERVER=docker.io/rabbitmqoperator
-            export OLM_IMAGE=rabbitmq-for-kubernetes-olm
-            export OLM_INDEX_IMAGE=rabbitmq-for-kubernetes-olm-index
             git config --global --add safe.directory /__w/cluster-operator/cluster-operator
             git clone https://github.com/rabbitmq/OLM-Package-Repo -b using_dockerhub_instead_of_gcr
             make generate-installation-manifest
@@ -119,38 +121,23 @@ jobs:
             GITHUB_ACCESS_TOKEN: ${{ secrets.GIT_HUB_ACCESS_TOKEN }}
           run: |
             git clone https://oauth2:"$GITHUB_ACCESS_TOKEN"@github.com/rabbitmq/infrastructure
-
-        #- name: Protect access to the cluster with a mutex
-        #  uses: ben-z/gh-action-mutex@v1.0-alpha-8
-        #  with:
-        #    repo-token: ${{ secrets.GIT_HUB_ACCESS_TOKEN }}
-        #    repository: https://github.com/rabbitmq-pro/tanzu-carvel-package-repo
-        #    branch: lock-openshift
             
         - name: Connect to the Openshift cluster and deploy the operators through OLM
           run: |   
             git clone https://github.com/rabbitmq/OLM-Package-Repo -b using_dockerhub_instead_of_gcr
-            export KUBECONFIG=./infrastructure/k8s/okd/admin-kubeconfig.yaml
             mkdir $HOME/.kube
             cp ./infrastructure/k8s/okd/admin-kubeconfig.yaml $HOME/.kube/config
             export KUBECONFIG=$HOME/.kube/config
             export ENVIRONMENT=openshift
             kubectl config use-context admin
-            kubectl create -f ./OLM-Package-Repo/testfiles/catalogsource-openshift.yaml
-            kubectl create ns rabbitmq-system-olm
-            kubectl create -f ./OLM-Package-Repo/testfiles/og.yaml
-            kubectl create -f ./OLM-Package-Repo/testfiles/sub_devopstales-catalog-openshift.yaml
+            ./OLM-Package-Repo/testfiles/install-rabbitmq-cluster-operator.sh
             export K8S_OPERATOR_NAMESPACE=rabbitmq-system-olm
             export SYSTEM_TEST_NAMESPACE=rabbitmq-system-olm 
             make system-tests
 
-        #- name: Clean up
-        #  if: always()
-        #  run: | 
-        #    export KUBECONFIG=./infrastructure/k8s/okd/admin-kubeconfig.yaml
-        #    kubectl config use-context admin
-        #    kubectl delete csv rabbitmq-cluster-operator.v0.0.0 -n rabbitmq-system-olm
-        #    kubectl delete -f ./OLM-Package-Repo/testfiles/sub_devopstales-catalog-openshift.yaml
-        #    kubectl delete -f ./OLM-Package-Repo/testfiles/og.yaml
-        #    kubectl delete ns rabbitmq-system-olm
-        #    kubectl delete -f ./OLM-Package-Repo/testfiles/catalogsource-openshift.yaml
+        - name: Clean up
+          if: always()
+          run: | 
+            export KUBECONFIG=./infrastructure/k8s/okd/admin-kubeconfig.yaml
+            kubectl config use-context admin
+            ./OLM-Package-Repo/testfiles/uninstall-rabbitmq-cluster-operator.sh
