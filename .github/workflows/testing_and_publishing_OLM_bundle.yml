@@ -1,5 +1,6 @@
 # action to test our operator lifecycle manager bundle
-name: test-OLM
+# See https://github.com/rabbitmq/OLM-Package-Repo for more info.
+name: test-and-publish-OLM-bundle
 
 on:
     push:
@@ -16,11 +17,12 @@ env:
   DOCKER_REGISTRY_SERVER: docker.io/rabbitmqoperator
   OLM_IMAGE: rabbitmq-for-kubernetes-olm
   OLM_INDEX_IMAGE: rabbitmq-for-kubernetes-olm-index
+  OLM_IMAGE_TAG: 0.0.0
 
 
 jobs:
     build-image:
-        name: Build an image of this operator to be used by the OLM packaging
+        name: Build operator image
         runs-on: ubuntu-latest
         permissions:
           contents: 'read'
@@ -51,7 +53,7 @@ jobs:
             images: |
                 rabbitmqoperator/rabbitmq-for-kubernetes-dev-olm
             tags: |
-                0.0.0
+              ${{ env.OLM_IMAGE_TAG }}
         - name: Set up QEMU
           uses: docker/setup-qemu-action@v3
         - name: Set up Docker Buildx
@@ -87,8 +89,8 @@ jobs:
             DOCKER_REGISTRY_SERVER: ${{ env.DOCKER_REGISTRY_SERVER }}
             OLM_IMAGE: ${{ env.OLM_IMAGE }}
             OLM_INDEX_IMAGE: ${{ env.OLM_INDEX_IMAGE }}
+            OLM_IMAGE_TAG: ${{ env.OLM_IMAGE_TAG }}
           run: |   
-            
             sed '/mount_program =/s/^#//' -i /etc/containers/storage.conf
             podman login -u $username -p $password
             git config --global --add safe.directory /__w/cluster-operator/cluster-operator
@@ -98,14 +100,24 @@ jobs:
             cp ./releases/cluster-operator.yml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds/cluster-operator.yaml
             cp OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/generators/cluster-service-version-generator-test.yml OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/generators/cluster-service-version-generator.yml 
             cd ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/
-            python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml 0.0.0 ./
-            sed -i -e 's/rabbitmqoperator\/cluster-operator:.*/rabbitmqoperator\/rabbitmq-for-kubernetes-dev-olm:0.0.0/g' ./0.0.0/manifests/rabbitmq.clusterserviceversion.yaml
-            opm alpha bundle build -c stable -d ./0.0.0/manifests -t $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:0.0.0 -p rabbitmq-cluster-operator --image-builder podman
+            python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml $OLM_IMAGE_TAG ./
+            sed -i -e "s/rabbitmqoperator\/cluster-operator:.*/rabbitmqoperator\/rabbitmq-for-kubernetes-dev-olm:$OLM_IMAGE_TAG/g" ./$OLM_IMAGE_TAG/manifests/rabbitmq.clusterserviceversion.yaml
+            opm alpha bundle build -c stable -d ./$OLM_IMAGE_TAG/manifests -t $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$OLM_IMAGE_TAG -p rabbitmq-cluster-operator --image-builder podman
             echo "y" | gcloud auth configure-docker         
-            podman push $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:0.0.0
-            opm index add -b $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:0.0.0 -t $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:0.0.0 -c podman
-            podman push $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:0.0.0
-            cd ../..
+            podman push $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$OLM_IMAGE_TAG
+            opm index add -b $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$OLM_IMAGE_TAG -t $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:$OLM_IMAGE_TAG -c podman
+            podman push $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:$OLM_IMAGE_TAG
+            mkdir upload
+            mv "$OLM_IMAGE_TAG" ./upload
+            cp ./generators/cluster-service-version-generator-openshift.yml ./generators/cluster-service-version-generator.yml
+            python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml "$OLM_IMAGE_TAG" ./
+            mv "$OLM_IMAGE_TAG" ./upload/$OLM_IMAGE_TAG-openshift
+        - name: upload-olm-package
+          uses: actions/upload-artifact@master
+          with:
+            name: olm-artifact
+            path: "/home/runner/work/cluster-operator/cluster-operator/OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/upload/"
+
     test-olm-package:
         name: Tests the OLM packaging
         runs-on: ubuntu-latest
@@ -141,3 +153,50 @@ jobs:
             export KUBECONFIG=./infrastructure/k8s/okd/admin-kubeconfig.yaml
             kubectl config use-context admin
             ./OLM-Package-Repo/testfiles/uninstall-rabbitmq-cluster-operator.sh
+
+    publish-bundle:
+        name: Publish on OperatorHub and Openshift market-place
+        runs-on: ubuntu-latest
+        # if: startsWith(github.ref, 'refs/tags/v')
+        needs: test-olm-package
+        container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci-olm
+        # Create the PR to OperatorHUB
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: download olm-artifact from previous step
+          uses: actions/download-artifact@master
+          with:
+            name: olm-artifact
+        - name: CreateOperatorHubPR
+          env:
+            TOKEN: ${{ secrets.OPERATORHUB_TOKEN }}
+            OLM_IMAGE_TAG: ${{ env.OLM_IMAGE_TAG }}
+          run: |
+            git config --global user.name "DanielePalaia"
+            git config --global user.email "dpalaia@vmware.com"
+            git clone https://github.com/rabbitmq/community-operators
+            mkdir -p community-operators/operators/rabbitmq-cluster-operator
+            cd community-operators/operators/rabbitmq-cluster-operator
+            git branch rabbitmq-cluster-operator-$OLM_IMAGE_TAG
+            git checkout rabbitmq-cluster-operator-$OLM_IMAGE_TAG
+            cp -fR ./../../../$OLM_IMAGE_TAG .
+            git add .
+            git commit -s -m "RabbitMQ operator new release"
+            git push https://DanielePalaia:"$TOKEN"@github.com/rabbitmq/community-operators
+            cd ./../../..
+        
+        # Create the PR to redhat openshift ecosystem
+        - name: CreateOpenshiftEcosystemPR
+          env:
+            TOKEN: ${{ secrets.OPERATORHUB_TOKEN }}
+            OLM_IMAGE_TAG: ${{ env.OLM_IMAGE_TAG }}
+          run: |
+            git clone https://github.com/rabbitmq/community-operators-prod
+            cd community-operators-prod/operators/rabbitmq-cluster-operator
+            git branch rabbitmq-cluster-operator-$OLM_IMAGE_TAG
+            git checkout rabbitmq-cluster-operator-$OLM_IMAGE_TAG
+            cp -fR ./../../../$OLM_IMAGE_TAG-openshift .
+            git add .
+            git commit -s -m "RabbitMQ operator new release"
+            git push https://DanielePalaia:"$TOKEN"@github.com/rabbitmq/community-operators-prod  
