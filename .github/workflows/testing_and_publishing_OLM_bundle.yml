@@ -94,6 +94,11 @@ jobs:
             GITHUB_ACCESS_TOKEN: ${{ secrets.GIT_HUB_ACCESS_TOKEN }}
           run: |
             git clone https://oauth2:"$GITHUB_ACCESS_TOKEN"@github.com/rabbitmq/infrastructure
+
+        - name: Protect access to the cluster with a mutex
+          uses: ben-z/gh-action-mutex@v1.0-alpha-8
+          with:
+            branch: openshift-lock
             
         - name: Connect to the Openshift cluster and deploy the operators through OLM
           env:
