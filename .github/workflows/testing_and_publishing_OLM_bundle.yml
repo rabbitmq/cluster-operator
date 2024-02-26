@@ -3,11 +3,10 @@
 name: test-and-publish-OLM-bundle
 
 on:
-    push:
-      # Pattern matched against refs/tags
-      branches:
-        - "testing_olm"
-    workflow_dispatch:
+  release:
+    types: [published]
+    
+  workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
@@ -63,8 +62,7 @@ jobs:
             cp OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/generators/cluster-service-version-generator-test.yml OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/generators/cluster-service-version-generator.yml 
             cd ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/
             python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml $BUNDLE_VERSION ./
-            opm alpha bundle build -c stable -d ./$BUNDLE_VERSION/manifests -t $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION -p rabbitmq-cluster-operator --image-builder podman
-            echo "y" | gcloud auth configure-docker         
+            opm alpha bundle build -c stable -d ./$BUNDLE_VERSION/manifests -t $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION -p rabbitmq-cluster-operator --image-builder podman     
             podman push $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION
             opm index add -b $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION -t $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:$BUNDLE_VERSION -c podman
             podman push $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:$BUNDLE_VERSION
