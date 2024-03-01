@@ -3,8 +3,10 @@
 name: test-and-publish-OLM-bundle
 
 on:
-  release:
-    types: [published]
+  push:
+    # Pattern matched against refs/tags
+    branches:
+      - "testing_olm"
     
   workflow_dispatch:
 
@@ -14,8 +16,8 @@ concurrency:
 env:
   # registry information where we want to store the operator image and the operator index image
   DOCKER_REGISTRY_SERVER: docker.io/rabbitmqoperator
-  OLM_IMAGE: rabbitmq-for-kubernetes-olm
-  OLM_INDEX_IMAGE: rabbitmq-for-kubernetes-olm-index
+  OLM_IMAGE: rabbitmq-for-kubernetes-olm-cluster-operator
+  OLM_INDEX_IMAGE: rabbitmq-for-kubernetes-olm-cluster-operator-index
 
 jobs:
     create-olm-package:
@@ -76,6 +78,7 @@ jobs:
           with:
             name: olm-artifact
             path: "/home/runner/work/cluster-operator/cluster-operator/OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/upload/"
+            retention-days: 2
 
     test-olm-package:
         name: Tests the OLM packaging
