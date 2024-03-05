@@ -92,7 +92,7 @@ jobs:
 
         - name: Get Openshift connection info kubeconf from infrastructure repo
           env:
-            GITHUB_ACCESS_TOKEN: ${{ secrets.GIT_HUB_ACCESS_TOKEN }}
+            GITHUB_ACCESS_TOKEN: ${{ secrets.GIT_HUB_INFRA_REPO_ACCESS_TOKEN }}
           run: |
             git clone https://oauth2:"$GITHUB_ACCESS_TOKEN"@github.com/rabbitmq/infrastructure
 
