@@ -3,10 +3,8 @@
 name: test-and-publish-OLM-bundle
 
 on:
-  push:
-    # Pattern matched against refs/tags
-    branches:
-      - "testing_olm"
+  release:
+    types: [published]
     
   workflow_dispatch:
 
@@ -57,7 +55,7 @@ jobs:
             sed '/mount_program =/s/^#//' -i /etc/containers/storage.conf
             podman login -u $username -p $password
             git config --global --add safe.directory /__w/cluster-operator/cluster-operator
-            git clone https://github.com/rabbitmq/OLM-Package-Repo -b using_dockerhub_instead_of_gcr
+            git clone https://github.com/rabbitmq/OLM-Package-Repo
             make generate-installation-manifest
             cp ./config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds/crds.yaml
             cp ./releases/cluster-operator.yml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds/cluster-operator.yaml
@@ -106,7 +104,7 @@ jobs:
             TOKEN: ${{ secrets.OPERATORHUB_TOKEN }}
             BUNDLE_VERSION: ${{ env.BUNDLE_VERSION }}
           run: |   
-            git clone https://github.com/rabbitmq/OLM-Package-Repo -b using_dockerhub_instead_of_gcr
+            git clone https://github.com/rabbitmq/OLM-Package-Repo
             mkdir $HOME/.kube
             cp ./infrastructure/k8s/okd/admin-kubeconfig.yaml $HOME/.kube/config
             export KUBECONFIG=$HOME/.kube/config
