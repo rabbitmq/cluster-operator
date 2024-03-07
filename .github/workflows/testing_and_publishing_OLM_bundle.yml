@@ -1,0 +1,203 @@
+# action to test our operator lifecycle manager bundle
+# See https://github.com/rabbitmq/OLM-Package-Repo for more info.
+name: test-and-publish-OLM-bundle
+
+on:
+  release:
+    types: [published]
+    
+  workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+  # registry information where we want to store the operator image and the operator index image
+  DOCKER_REGISTRY_SERVER: quay.io/rabbitmqoperator
+  OLM_IMAGE: rabbitmq-for-kubernetes-olm-cluster-operator
+  OLM_INDEX_IMAGE: rabbitmq-for-kubernetes-olm-cluster-operator-index
+
+jobs:
+    create-olm-package:
+        name: Create the OLM Packaging
+        runs-on: ubuntu-latest
+        container: 
+            image: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci-olm
+            options: --privileged
+        permissions:
+            contents: 'write'
+            id-token: 'write'
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: Checkout OLM-Package-Repo
+          uses: actions/checkout@v4
+          with:
+            repository: rabbitmq/OLM-Package-Repo
+            path: ./OLM-Package-Repo
+
+        - name: Set tag image for tagged version
+          if: startsWith(github.ref, 'refs/tags/v')
+          run: | 
+            BUNDLE_VERSION=${GITHUB_REF#refs/*/} 
+            echo "BUNDLE_VERSION=${BUNDLE_VERSION:1}" >> $GITHUB_ENV
+
+        - name: Set tag image for test version
+          if: startsWith(github.ref, 'refs/tags/v') == false
+          run: | 
+              echo "BUNDLE_VERSION=0.0.0" >> $GITHUB_ENV
+            
+        - name: create-olm-package
+          env:
+            username: ${{ secrets.QUAY_USERNAME }}
+            password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+            DOCKER_REGISTRY_SERVER: ${{ env.DOCKER_REGISTRY_SERVER }}
+            OLM_IMAGE: ${{ env.OLM_IMAGE }}
+            OLM_INDEX_IMAGE: ${{ env.OLM_INDEX_IMAGE }}
+            BUNDLE_VERSION: ${{ env.BUNDLE_VERSION }}
+          run: |   
+            sed '/mount_program =/s/^#//' -i /etc/containers/storage.conf
+            podman login quay.io -u $username -p $password  
+            make generate-installation-manifest
+            cp ./config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds/crds.yaml
+            cp ./releases/cluster-operator.yml ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/manifests_crds/cluster-operator.yaml
+            cp OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/generators/cluster-service-version-generator-test.yml OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/generators/cluster-service-version-generator.yml 
+            cd ./OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/
+            python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml $BUNDLE_VERSION ./
+            opm alpha bundle build -c stable -d ./$BUNDLE_VERSION/manifests -t $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION -p rabbitmq-cluster-operator --image-builder podman     
+            podman push $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION
+            opm index add -b $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION -t $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:$BUNDLE_VERSION -c podman
+            podman push $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:$BUNDLE_VERSION
+            mkdir upload
+            mv "$BUNDLE_VERSION" ./upload
+            cp ./generators/cluster-service-version-generator-openshift.yml ./generators/cluster-service-version-generator.yml
+            python3 generate-olm-package.py ./manifests_crds/cluster-operator.yaml "$BUNDLE_VERSION" ./
+            mv "$BUNDLE_VERSION" ./upload/$BUNDLE_VERSION-openshift
+        - name: upload-olm-package
+          uses: actions/upload-artifact@master
+          with:
+            name: olm-artifact
+            path: "/home/runner/work/cluster-operator/cluster-operator/OLM-Package-Repo/generate_OLM/generate_OLM_cluster_operator/upload/"
+            retention-days: 2
+
+    test-olm-package:
+        name: Tests the OLM packaging
+        runs-on: ubuntu-latest
+        needs: create-olm-package
+        container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci-olm
+   
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: Checkout infrastructure repo
+          uses: actions/checkout@v4
+          with:
+            repository: rabbitmq/infrastructure
+            token: ${{ secrets.GIT_HUB_INFRA_REPO_ACCESS_TOKEN }}
+            path: ./infrastructure
+        - name: Checkout OLM-Package-Repo
+          uses: actions/checkout@v4
+          with:
+            repository: rabbitmq/OLM-Package-Repo
+            path: ./OLM-Package-Repo
+
+        - name: Protect access to the cluster with a mutex
+          uses: ben-z/gh-action-mutex@v1.0-alpha-8
+          with:
+            branch: openshift-lock
+            
+        - name: Connect to the Openshift cluster and deploy the operators through OLM
+          env:
+            TOKEN: ${{ secrets.OPERATORHUB_TOKEN }}
+            BUNDLE_VERSION: ${{ env.BUNDLE_VERSION }}
+          run: |   
+            mkdir $HOME/.kube
+            cp ./infrastructure/k8s/okd/admin-kubeconfig.yaml $HOME/.kube/config
+            export KUBECONFIG=$HOME/.kube/config
+            export ENVIRONMENT=openshift
+            kubectl config use-context admin
+            ./OLM-Package-Repo/testfiles/install-rabbitmq-cluster-operator.sh $BUNDLE_VERSION
+            export K8S_OPERATOR_NAMESPACE=rabbitmq-system-olm
+            export SYSTEM_TEST_NAMESPACE=rabbitmq-system-olm 
+            make system-tests
+
+        - name: Clean up
+          env:
+            OLM_INDEX_TAG: ${{ env.BUNDLE_VERSION }}
+          if: always()
+          run: | 
+            export KUBECONFIG=./infrastructure/k8s/okd/admin-kubeconfig.yaml
+            kubectl config use-context admin
+            ./OLM-Package-Repo/testfiles/uninstall-rabbitmq-cluster-operator.sh $BUNDLE_VERSION
+
+    publish-bundle:
+        name: Publish on OperatorHub and Openshift market-place
+        runs-on: ubuntu-latest
+        needs: test-olm-package
+        container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci-olm
+        # Create the PR to OperatorHUB
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: Checkout community-operators repo
+          uses: actions/checkout@v4
+          with:
+            repository: rabbitmq/community-operators
+            path: ./community-operators
+            token: ${{ secrets.OPERATORHUB_TOKEN }}
+        - name: Checkout community-operators-prod repo
+          uses: actions/checkout@v4
+          with:
+            repository: rabbitmq/community-operators-prod
+            path: ./community-operators-prod
+            token: ${{ secrets.OPERATORHUB_TOKEN }}
+
+        - name: Set tag image for tagged version
+          if: startsWith(github.ref, 'refs/tags/v')
+          run: | 
+            BUNDLE_VERSION=${GITHUB_REF#refs/*/} 
+            echo "BUNDLE_VERSION=${BUNDLE_VERSION:1}" >> $GITHUB_ENV
+
+        - name: Set tag image for test version
+          if: startsWith(github.ref, 'refs/tags/v') == false
+          run: | 
+              echo "BUNDLE_VERSION=0.0.0" >> $GITHUB_ENV
+
+        - name: download olm-artifact from previous step
+          uses: actions/download-artifact@master
+          with:
+            name: olm-artifact
+        - name: CreateOperatorHubPR
+          env:
+            TOKEN: ${{ secrets.OPERATORHUB_TOKEN }}
+            BUNDLE_VERSION: ${{ env.BUNDLE_VERSION }}
+          run: |
+            git config --global user.name "DanielePalaia"
+            git config --global user.email "dpalaia@vmware.com"
+            mkdir -p community-operators/operators/rabbitmq-cluster-operator
+            cd community-operators/operators/rabbitmq-cluster-operator
+            git branch rabbitmq-cluster-operator-$BUNDLE_VERSION
+            git checkout rabbitmq-cluster-operator-$BUNDLE_VERSION
+            cp -fR ./../../../$BUNDLE_VERSION .  
+            sed -i -e "s/latest/$BUNDLE_VERSION/g" ./$BUNDLE_VERSION/manifests/rabbitmq.clusterserviceversion.yaml 
+            git add .
+            git commit -s -m "RabbitMQ operator new release"
+            git push https://DanielePalaia:"$TOKEN"@github.com/rabbitmq/community-operators
+            cd ./../../..
+        
+        # Create the PR to redhat openshift ecosystem
+        - name: CreateOpenshiftEcosystemPR
+          env:
+            TOKEN: ${{ secrets.OPERATORHUB_TOKEN }}
+            BUNDLE_VERSION: ${{ env.BUNDLE_VERSION }}
+          run: |
+            cd community-operators-prod/operators/rabbitmq-cluster-operator
+            git branch rabbitmq-cluster-operator-$BUNDLE_VERSION
+            git checkout rabbitmq-cluster-operator-$BUNDLE_VERSION
+            cp -fR ./../../../$BUNDLE_VERSION-openshift .
+            mv $BUNDLE_VERSION-openshift $BUNDLE_VERSION
+            sed -i -e "s/latest/$BUNDLE_VERSION/g" ./$BUNDLE_VERSION/manifests/rabbitmq.clusterserviceversion.yaml 
+            git add .
+            git commit -s -m "RabbitMQ operator new release"
+            git push https://DanielePalaia:"$TOKEN"@github.com/rabbitmq/community-operators-prod  
