@@ -12,6 +12,7 @@ package resource_test
 import (
 	"bytes"
 	"fmt"
+
 	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -28,7 +29,7 @@ import (
 
 func defaultRabbitmqConf(instanceName string) string {
 	return iniString(`
-queue_master_locator                       = min-masters
+queue_master_locator                       = random
 disk_free_limit.absolute                   = 2GB
 cluster_partition_handling                 = pause_minority
 cluster_formation.peer_discovery_backend   = rabbit_peer_discovery_k8s

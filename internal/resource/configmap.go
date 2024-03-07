@@ -28,7 +28,7 @@ import (
 const (
 	ServerConfigMapName = "server-conf"
 	defaultRabbitmqConf = `
-queue_master_locator = min-masters
+queue_master_locator = random
 disk_free_limit.absolute = 2GB
 cluster_partition_handling = pause_minority
 cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
