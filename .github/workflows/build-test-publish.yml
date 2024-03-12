@@ -170,6 +170,7 @@ jobs:
         kustomize edit set image rabbitmqoperator/cluster-operator-dev=rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
         popd
         make generate-installation-manifest QUAY_IO_OPERATOR_IMAGE=quay.io/rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
+        echo -n "cluster-operator-${{ steps.meta.outputs.version }}.yml" > "latest-cluster-operator-dev-manifest.txt"
     - name: Upload operator manifests
       if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
@@ -194,6 +195,13 @@ jobs:
       with:
         path: cluster-operator-${{ steps.meta.outputs.version }}.yml
         destination: operator-manifests-dev
+    - name: Update carvel-packaging-dev pipeline trigger
+      if: github.event_name != 'pull_request'
+      uses: 'google-github-actions/upload-cloud-storage@v2'
+      with:
+        path: latest-cluster-operator-dev-manifest.txt
+        destination: operator-manifests-dev
+        process_gcloudignore: false
   system_tests_local:
     name: Local system tests (using KinD)
     runs-on: ubuntu-latest
