@@ -42,6 +42,14 @@ jobs:
         make install-tools
         kind create cluster --image "${{ env.KIND_NODE_IMAGE }}"
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind kubectl-plugin-tests
+    - name: Notify Google Chat
+      if: failure()
+      uses: SimonScholz/google-chat-action@main
+      with:
+          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+          jobStatus: ${{ job.status }}
+          title: Cluster Operator - RabbitMQ kubectl tests
+
   unit_integration_tests:
     name: unit and integration tests
     runs-on: ubuntu-latest
@@ -58,6 +66,14 @@ jobs:
       run: make unit-tests
     - name: Integration tests
       run: make integration-tests
+    - name: Notify Google Chat
+      if: failure()
+      uses: SimonScholz/google-chat-action@main
+      with:
+          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+          jobStatus: ${{ job.status }}
+          title: Cluster Operator - Unit and Integration tests
+
   build_operator:
     runs-on: ubuntu-latest
     needs: unit_integration_tests
@@ -202,6 +218,14 @@ jobs:
         path: latest-cluster-operator-dev-manifest.txt
         destination: operator-manifests-dev
         process_gcloudignore: false
+    - name: Notify Google Chat
+      if: failure()
+      uses: SimonScholz/google-chat-action@main
+      with:
+          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+          jobStatus: ${{ job.status }}
+          title: Cluster Operator - Build and push operator
+
   system_tests_local:
     name: Local system tests (using KinD)
     runs-on: ubuntu-latest
@@ -240,6 +264,14 @@ jobs:
         # The examples are assumed to run in the 'examples' namespace, create if it doesn't exist
         kubectl create namespace examples --dry-run=client -o yaml | kubectl  apply -f -
         kubectl --namespace=examples apply --dry-run=server $manifest_path
+    - name: Notify Google Chat
+      if: failure()
+      uses: SimonScholz/google-chat-action@main
+      with:
+          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+          jobStatus: ${{ job.status }}
+          title: Cluster Operator - Local system tests (using KinD)
+
   system_tests_119:
     name: Local system tests (using KinD)
     runs-on: ubuntu-latest
@@ -268,6 +300,14 @@ jobs:
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
         make cert-manager
         SUPPORT_VOLUME_EXPANSION=false make system-tests
+    - name: Notify Google Chat
+      if: failure()
+      uses: SimonScholz/google-chat-action@main
+      with:
+          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+          jobStatus: ${{ job.status }}
+          title: Cluster Operator - Local system tests (using KinD) 119
+
   system_tests:
     name: System tests
     runs-on: ubuntu-latest
@@ -331,6 +371,14 @@ jobs:
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
       run: |
         make system-tests
+    - name: Notify Google Chat
+      if: failure()
+      uses: SimonScholz/google-chat-action@main
+      with:
+          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+          jobStatus: ${{ job.status }}
+          title: Cluster Operator - System tests
+
   test_doc_examples:
     name: Documented example tests
     runs-on: ubuntu-latest
@@ -375,6 +423,14 @@ jobs:
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
     - name: Documented example tests
       run: docs/examples/test.sh
+    - name: Notify Google Chat
+      if: failure()
+      uses: SimonScholz/google-chat-action@main
+      with:
+          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+          jobStatus: ${{ job.status }}
+          title: Cluster Operator - Documented example tests
+
   test_upgrade:
     name: Test upgrade of the operator
     runs-on: ubuntu-latest
@@ -421,6 +477,14 @@ jobs:
         path: release-header.md
         retention-days: 2
         if-no-files-found: error
+    - name: Notify Google Chat
+      if: failure()
+      uses: SimonScholz/google-chat-action@main
+      with:
+          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+          jobStatus: ${{ job.status }}
+          title: Cluster Operator - Test upgrade
+
   release:
     name: Release to GitHub Releases
     runs-on: ubuntu-latest
@@ -448,3 +512,10 @@ jobs:
         draft: true
         body_path: release-header.md
         fail_on_unmatched_files: true
+    - name: Notify Google Chat
+      if: failure()
+      uses: SimonScholz/google-chat-action@main
+      with:
+          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+          jobStatus: ${{ job.status }}
+          title: Cluster Operator - Release to GitHub releases
