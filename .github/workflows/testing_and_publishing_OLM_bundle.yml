@@ -3,10 +3,8 @@
 name: test-and-publish-OLM-bundle
 
 on:
-  push:
-    # Pattern matched against refs/tags
-    branches:
-      - "update_olm_workflow"
+  release:
+    types: [published]
     
   workflow_dispatch:
 
@@ -37,7 +35,6 @@ jobs:
           uses: actions/checkout@v4
           with:
             repository: rabbitmq/OLM-Package-Repo
-            ref: general_clean_up
             path: ./OLM-Package-Repo
 
         - name: Set tag image for tagged version
