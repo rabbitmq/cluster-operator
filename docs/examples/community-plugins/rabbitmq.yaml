@@ -4,6 +4,7 @@ metadata:
   name: community-plugins
 spec:
   replicas: 1
+  image: rabbitmq:3.13-management
   override:
     statefulSet:
       spec:
@@ -21,23 +22,23 @@ spec:
               - command:
                   - sh
                   - -c
-                  - curl -L -v https://github.com/rabbitmq/rabbitmq-message-timestamp/releases/download/v3.11.2/rabbitmq_message_timestamp-v3.11.x.ez --output /community-plugins/rabbitmq_message_timestamp-v3.11.x.ez
+                  - curl -L -v https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v3.13.0/rabbitmq_delayed_message_exchange-3.13.0.ez --output /community-plugins/rabbitmq_delayed_message_exchange-3.13.0.ez
                 image: curlimages/curl
                 imagePullPolicy: IfNotPresent
                 name: copy-community-plugins
                 resources:
                   limits:
-                    cpu: 100m
-                    memory: 500Mi
+                    cpu: 1
+                    memory: 2Gi
                   requests:
-                    cpu: 100m
-                    memory: 500Mi
+                    cpu: 1
+                    memory: 2Gi
                 terminationMessagePolicy: FallbackToLogsOnError
                 volumeMounts:
                   - mountPath: /community-plugins/
                     name: community-plugins
   rabbitmq:
     additionalPlugins:
-      - rabbitmq_message_timestamp
+      - rabbitmq_delayed_message_exchange
     envConfig: |
       RABBITMQ_PLUGINS_DIR=/opt/rabbitmq/plugins:/opt/rabbitmq/community-plugins:/opt/bitnami/rabbitmq/plugins
