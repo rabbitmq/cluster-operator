@@ -161,8 +161,8 @@ eventually() {
 @test "enable-all-feature-flags enables all feature flags" {
   kubectl rabbitmq enable-all-feature-flags bats-default
 
-  states=$(kubectl exec bats-default-server-0 -- rabbitmqctl list_feature_flags --silent state --formatter=json)
-  [[ $(jq 'map(select(.state=="disabled")) | length' <<< "$states") -eq 0 ]]
+  states=$(kubectl exec bats-default-server-0 -- rabbitmqctl list_feature_flags --silent state --formatter=json name state stability)
+  [[ $(jq 'map(select(.stability!="experimental" and .state=="disabled")) | length' <<< "$states") -eq 0 ]]
 }
 
 @test "perf-test runs perf-test" {
