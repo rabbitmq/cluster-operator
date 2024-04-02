@@ -234,7 +234,7 @@ jobs:
     strategy:
       matrix:
         rabbitmq-image:
-        - rabbitmq:3.9.9-management
+        - rabbitmq:3.11.0-management
         - rabbitmq:management
         - pivotalrabbitmq/rabbitmq:main-otp-min-bazel
         - pivotalrabbitmq/rabbitmq:main-otp-max-bazel
@@ -280,7 +280,7 @@ jobs:
     strategy:
       matrix:
         rabbitmq-image:
-        - rabbitmq:3.9.9-management
+        - rabbitmq:3.11.0-management
         - rabbitmq:management
     steps:
     - name: Install Go
@@ -321,12 +321,12 @@ jobs:
     strategy:
       matrix:
         rabbitmq-image:
-        - rabbitmq:3.9.9-management
+        - rabbitmq:3.11.0-management
         - rabbitmq:management
         - pivotalrabbitmq/rabbitmq:main-otp-min-bazel
         - pivotalrabbitmq/rabbitmq:main-otp-max-bazel
         include:
-        - rabbitmq-image: rabbitmq:3.9.9-management
+        - rabbitmq-image: rabbitmq:3.11.0-management
           gke-cluster: ci-bunny-1
         - rabbitmq-image: rabbitmq:management
           gke-cluster: ci-bunny-1
