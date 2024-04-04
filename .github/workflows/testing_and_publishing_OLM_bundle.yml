@@ -42,6 +42,7 @@ jobs:
           run: | 
             BUNDLE_VERSION=${GITHUB_REF#refs/*/} 
             echo "BUNDLE_VERSION=${BUNDLE_VERSION:1}" >> $GITHUB_ENV
+          shell: bash
 
         - name: Set tag image for test version
           if: startsWith(github.ref, 'refs/tags/v') == false
