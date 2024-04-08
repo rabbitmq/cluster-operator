@@ -52,7 +52,7 @@ We run the check in bash because we want the operator to work with upstream Rabb
 When deleting the RabbitMQ Custom Resource, we don't want to have to wait on anything. We assume that if the user chooses to run `kubectl delete rabbitmqclusers my-cluster`, then they don't care about queue sync. We also don't want a situation where a final node can't be deleted because the check concludes the obvious but irrelevant fact that you will lose quorum. Our Custom Resource is configured with a [finalizer](https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers) so that our Operator reconciles on CR deletion. In the deletion loop, we set a label on the StatefulSet. The label updates a file mounted in the RabbitMQ container via the [Kubernetes DownwardAPI](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/). In turn, this file is checked inside the PreStop hook to exit before the `rabbitmq-queues` CLI checks. We then remove the finalizer from the Custom Resource so it can be garbage collected and we avoid blocking.
 
 ```
-if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]
+if [ ! -z "$(cat /etc/pod-info/skipPreStopChecks)" ]
   then exit 0
 fi
 ```
