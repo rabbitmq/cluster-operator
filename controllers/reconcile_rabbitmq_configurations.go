@@ -34,7 +34,7 @@ func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, logger
 		annotationKey string
 	)
 
-	switch builder.(type) {
+	switch b := builder.(type) {
 
 	case *resource.RabbitmqPluginsConfigMapBuilder:
 		if operationResult != controllerutil.OperationResultUpdated {
@@ -45,7 +45,7 @@ func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, logger
 		annotationKey = pluginsUpdateAnnotation
 
 	case *resource.ServerConfigMapBuilder:
-		if operationResult != controllerutil.OperationResultUpdated {
+		if operationResult != controllerutil.OperationResultUpdated || !b.UpdateRequiresStsRestart {
 			return nil
 		}
 		obj = &corev1.ConfigMap{}

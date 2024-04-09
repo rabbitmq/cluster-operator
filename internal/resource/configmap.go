@@ -22,6 +22,7 @@ import (
 
 	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -59,10 +60,11 @@ prometheus.ssl.port      = 15691
 
 type ServerConfigMapBuilder struct {
 	*RabbitmqResourceBuilder
+	UpdateRequiresStsRestart bool
 }
 
 func (builder *RabbitmqResourceBuilder) ServerConfigMap() *ServerConfigMapBuilder {
-	return &ServerConfigMapBuilder{builder}
+	return &ServerConfigMapBuilder{builder, true}
 }
 
 func (builder *ServerConfigMapBuilder) Build() (client.Object, error) {
@@ -82,6 +84,7 @@ func (builder *ServerConfigMapBuilder) UpdateMayRequireStsRecreate() bool {
 
 func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 	configMap := object.(*corev1.ConfigMap)
+	previousConfigMap := configMap.DeepCopy()
 
 	ini.PrettySection = false // Remove trailing new line because rabbitmq.conf has only a default section.
 	operatorConfiguration, err := ini.Load([]byte(defaultRabbitmqConf))
@@ -247,6 +250,43 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		return fmt.Errorf("failed setting controller reference: %w", err)
 	}
 
+	updatedConfigMap := configMap.DeepCopy()
+	if err := removeConfigNotRequiringNodeRestart(previousConfigMap); err != nil {
+		return err
+	}
+	if err := removeConfigNotRequiringNodeRestart(updatedConfigMap); err != nil {
+		return err
+	}
+	if equality.Semantic.DeepEqual(previousConfigMap, updatedConfigMap) {
+		builder.UpdateRequiresStsRestart = false
+	}
+
+	return nil
+}
+
+// removeConfigNotRequiringNodeRestart removes configuration data that does not require a restart of RabbitMQ nodes.
+// For example, the target cluster size hint changes after adding nodes to a cluster, but there's no reason
+// to restart already running nodes.
+func removeConfigNotRequiringNodeRestart(configMap *corev1.ConfigMap) error {
+	operatorConf := configMap.Data["operatorDefaults.conf"]
+	if operatorConf == "" {
+		return nil
+	}
+	conf, err := ini.Load([]byte(operatorConf))
+	if err != nil {
+		return err
+	}
+	defaultSection := conf.Section("")
+	for _, key := range defaultSection.KeyStrings() {
+		if strings.HasPrefix(key, "cluster_formation.target_cluster_size_hint") {
+			defaultSection.DeleteKey(key)
+		}
+	}
+	var b strings.Builder
+	if _, err := conf.WriteTo(&b); err != nil {
+		return err
+	}
+	configMap.Data["operatorDefaults.conf"] = b.String()
 	return nil
 }
 
