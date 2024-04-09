@@ -274,7 +274,7 @@ func removeConfigNotRequiringNodeRestart(configMap *corev1.ConfigMap) error {
 	}
 	conf, err := ini.Load([]byte(operatorConf))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load operatorDefaults.conf when deciding whether to restart STS: %w", err)
 	}
 	defaultSection := conf.Section("")
 	for _, key := range defaultSection.KeyStrings() {
@@ -284,7 +284,7 @@ func removeConfigNotRequiringNodeRestart(configMap *corev1.ConfigMap) error {
 	}
 	var b strings.Builder
 	if _, err := conf.WriteTo(&b); err != nil {
-		return err
+		return fmt.Errorf("failed to write operatorDefaults.conf when deciding whether to restart STS: %w", err)
 	}
 	configMap.Data["operatorDefaults.conf"] = b.String()
 	return nil
