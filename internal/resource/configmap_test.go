@@ -12,6 +12,7 @@ package resource_test
 import (
 	"bytes"
 	"fmt"
+
 	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -576,6 +577,34 @@ CONSOLE_LOG=new`
 					instance.Spec.Rabbitmq.ErlangInetConfig = ""
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
 					Expect(configMap.Data).ToNot(HaveKey("erl_inetrc"))
+				})
+			})
+		})
+
+		Describe("UpdateRequiresStsRestart", func() {
+			BeforeEach(func() {
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeTrue())
+			})
+			When("the config does not change", func() {
+				It("does not restart StatefulSet", func() {
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeFalse())
+				})
+			})
+			When("the only config change is cluster formation nodes", func() {
+				It("does not require the StatefulSet to be restarted", func() {
+					instance.Spec.Replicas = ptr.To(int32(3))
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeFalse())
+				})
+			})
+			When("config change includes more than cluster formation nodes", func() {
+				It("requires the StatefulSet to be restarted", func() {
+					instance.Spec.Replicas = ptr.To(int32(3))
+					instance.Spec.Rabbitmq.AdditionalConfig = "foo = bar"
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeTrue())
 				})
 			})
 		})
