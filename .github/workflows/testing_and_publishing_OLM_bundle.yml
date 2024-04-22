@@ -3,8 +3,10 @@
 name: test-and-publish-OLM-bundle
 
 on:
-  release:
-    types: [published]
+  push:
+    # Pattern matched against refs/tags
+    branches:
+      - "test_olm_new_permissions"
     
   workflow_dispatch:
 
@@ -13,7 +15,7 @@ concurrency:
     cancel-in-progress: true
 
 env:
-  # registry information where we want to store the operator image and the operator index image
+  # registry information where we want to store the operator image and the operator index image test
   DOCKER_REGISTRY_SERVER: quay.io/rabbitmqoperator
   OLM_IMAGE: rabbitmq-for-kubernetes-olm-cluster-operator
   OLM_INDEX_IMAGE: rabbitmq-for-kubernetes-olm-cluster-operator-index
@@ -34,6 +36,7 @@ jobs:
         - name: Checkout OLM-Package-Repo
           uses: actions/checkout@v4
           with:
+            ref: limit_permissions_at_cluster_level
             repository: rabbitmq/OLM-Package-Repo
             path: ./OLM-Package-Repo
 
@@ -105,6 +108,7 @@ jobs:
         - name: Checkout OLM-Package-Repo
           uses: actions/checkout@v4
           with:
+            ref: limit_permissions_at_cluster_level
             repository: rabbitmq/OLM-Package-Repo
             path: ./OLM-Package-Repo
 
