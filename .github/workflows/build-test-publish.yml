@@ -339,7 +339,7 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
     - name: Acquire lock for ${{ matrix.gke-cluster }}
-      uses: ben-z/gh-action-mutex@v1.0-alpha-9
+      uses: ben-z/gh-action-mutex@v1.0.0-alpha.9
       with:
         branch: lock-${{ matrix.gke-cluster }}
     - id: 'auth'
@@ -394,7 +394,7 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
     - name: Acquire lock for ci-bunny-2
-      uses: ben-z/gh-action-mutex@v1.0-alpha-9
+      uses: ben-z/gh-action-mutex@v1.0.0-alpha.9
       with:
         branch: lock-ci-bunny-2
     - id: 'auth'
@@ -446,7 +446,7 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
     - name: Acquire lock for ci-bunny-1
-      uses: ben-z/gh-action-mutex@v1.0-alpha-9
+      uses: ben-z/gh-action-mutex@v1.0.0-alpha.9
       with:
         branch: lock-ci-bunny-1
     - id: 'auth'
