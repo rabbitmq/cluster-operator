@@ -236,8 +236,7 @@ jobs:
         rabbitmq-image:
         - rabbitmq:3.11.0-management
         - rabbitmq:management
-        - pivotalrabbitmq/rabbitmq:main-otp-min-bazel
-        - pivotalrabbitmq/rabbitmq:main-otp-max-bazel
+        - pivotalrabbitmq/rabbitmq:main
     steps:
     - name: Install Go
       uses: actions/setup-go@v5
@@ -323,16 +322,13 @@ jobs:
         rabbitmq-image:
         - rabbitmq:3.11.0-management
         - rabbitmq:management
-        - pivotalrabbitmq/rabbitmq:main-otp-min-bazel
-        - pivotalrabbitmq/rabbitmq:main-otp-max-bazel
+        - pivotalrabbitmq/rabbitmq:main
         include:
         - rabbitmq-image: rabbitmq:3.11.0-management
           gke-cluster: ci-bunny-1
         - rabbitmq-image: rabbitmq:management
           gke-cluster: ci-bunny-1
-        - rabbitmq-image: pivotalrabbitmq/rabbitmq:main-otp-min-bazel
-          gke-cluster: ci-bunny-2
-        - rabbitmq-image: pivotalrabbitmq/rabbitmq:main-otp-max-bazel
+        - rabbitmq-image: pivotalrabbitmq/rabbitmq:main
           gke-cluster: ci-bunny-2
     steps:
     - name: Install Go
