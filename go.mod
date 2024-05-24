@@ -30,7 +30,7 @@ require (
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20220217024943-cfd92767d28e
 	sigs.k8s.io/controller-tools v0.14.0
 	sigs.k8s.io/kind v0.22.0
-	sigs.k8s.io/kustomize/kustomize/v5 v5.4.1
+	sigs.k8s.io/kustomize/kustomize/v5 v5.4.2
 )
 
 require (
@@ -126,9 +126,9 @@ require (
 	k8s.io/component-base v0.29.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20240105020646-a37d4de58910 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/kustomize/api v0.17.1 // indirect
-	sigs.k8s.io/kustomize/cmd/config v0.14.0 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.17.0 // indirect
+	sigs.k8s.io/kustomize/api v0.17.2 // indirect
+	sigs.k8s.io/kustomize/cmd/config v0.14.1 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.17.1 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
