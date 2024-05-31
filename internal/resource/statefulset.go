@@ -891,7 +891,7 @@ func generateVaultTLSTemplate(commonName, altNames string, vaultPath string, ipS
 }
 
 func generateVaultCATemplate(commonName, altNames string, vault *rabbitmqv1beta1.VaultSpec) string {
-	if (vault.TLS.PKIRootPath == "") {
+	if vault.TLS.PKIRootPath == "" {
 		return generateVaultTLSTemplate(commonName, altNames, vault.TLS.PKIIssuerPath, vault.TLS.IpSans, "issuing_ca")
 	} else {
 		return fmt.Sprintf(`
