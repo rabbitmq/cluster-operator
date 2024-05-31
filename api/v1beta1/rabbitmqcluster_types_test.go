@@ -438,7 +438,7 @@ var _ = Describe("RabbitmqCluster", func() {
 						Role: "test-role",
 						TLS: VaultTLSSpec{
 							PKIIssuerPath: "pki/issue/hashicorp-com",
-							PKIRootPath: "pki-root/certs/ca",
+							PKIRootPath:   "pki-root/certs/ca",
 						},
 					}
 					Expect(k8sClient.Create(context.Background(), rabbit)).To(Succeed())

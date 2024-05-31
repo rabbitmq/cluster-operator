@@ -617,6 +617,7 @@ The cluster-operator will add SANs:
 "<RabbitmqCluster name>-server-<index>.<RabbitmqCluster name>-nodes.<namespace>" for each pod,
 e.g. "myrabbit-server-0.myrabbit-nodes.default".
 | *`ipSans`* __string__ | Specifies the requested IP Subject Alternative Names, in a comma-delimited list.
+| *`pkiRootPath`* __string__ | Specifies an optional path to retrieve the root CA from vault.  Useful if certificates are issued by an intermediate CA
 |===
 
 
