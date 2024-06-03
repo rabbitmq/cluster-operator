@@ -6,10 +6,10 @@ spec:
   replicas: 3
   resources:
     requests:
-      cpu: 4
+      cpu: 4000m
       memory: 10Gi
     limits:
-      cpu: 4
+      cpu: 4000m
       memory: 10Gi
   rabbitmq:
     additionalConfig: |
