@@ -10,13 +10,13 @@ metadata:
   name: definitions
   namespace: # should be the same namespace as the rabbitmqcluster instance you are importing the definitions to
 data:
-  def.json: |
+  definitions.json: |
 # exported definitions context
 ```
 
 or
 ```bash
-kubectl create configmap definitions --from-file='def.json=/my/path/to/definitions.json'
+kubectl create configmap definitions --from-file='definitions.json=/my/path/to/definitions.json'
 ```
 
 Then, leverage the StatefulSet Override to mount this additional ConfigMap `definitions` to your rabbitmqcluster instance. Check out `rabbitmq.yaml` as an example.
