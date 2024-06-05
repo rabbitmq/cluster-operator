@@ -18,7 +18,7 @@ require (
 	github.com/sclevine/yj v0.0.0-20200815061347-554173e71934
 	golang.org/x/mod v0.17.0
 	golang.org/x/net v0.25.0
-	golang.org/x/text v0.15.0
+	golang.org/x/text v0.16.0
 	golang.org/x/vuln v1.1.1
 	gopkg.in/ini.v1 v1.67.0
 	k8s.io/api v0.30.1
