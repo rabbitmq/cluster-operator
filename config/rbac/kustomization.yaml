@@ -18,7 +18,9 @@ resources:
 - leader_election_role_binding.yaml
 - service_binding_cluster_role.yaml
 
-patchesStrategicMerge:
 # the following patch file adds labels to the operator ClusterRole definition in role.yaml
 # role.yaml is a generated file, and adding labels directly to the file does not work.
-- role_labels_patch.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+patches:
+- path: role_labels_patch.yaml
