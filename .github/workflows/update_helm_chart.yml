@@ -1,0 +1,49 @@
+# This action updates operator version, CRD, and clusterrole in our helm chart
+# For more information see https://github.com/rabbitmq-pro/tanzu-rabbitmq-operator-chart
+name: update_helm_chart
+
+on:
+  release:
+    types: [published]
+    
+  workflow_dispatch:
+
+env:
+
+jobs:
+    create-chart-pr:
+        name: Create pull request to char repo
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: Checkout helm repo
+          uses: actions/checkout@v4
+          with:
+            repository: rabbitmq-pro/tanzu-rabbitmq-operator-chart
+            token: ${{ secrets.GIT_HUB_INFRA_REPO_ACCESS_TOKEN }}
+            path: ./tanzu-rabbitmq-operator-chart
+
+        - name: Update helm released version and CRD
+          run: |   
+            BUNDLE_VERSION=${GITHUB_REF#refs/*/} 
+            BUNDLE_VERSION=${BUNDLE_VERSION:1}
+            cd ./tanzu-rabbitmq-operator-chart
+            git branch update_crd_and_version
+            git checkout update_crd_and_version
+            cp ./../config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml ./tanzu-rabbitmq-operator-chart/crds/rabbitmq-cluster/
+            sed -i '' 's/cluster-operator:.*/cluster-operator:$BUNDLE_VERSION/' ./Chart.yaml
+            python3 ./scripts/update_cluster_operator_clusterrole.py ./scripts/generators/rabbitmq-cluster-operator/clusterrole.yml ./scripts/generators/rabbitmq-cluster-operator/clusterrole-generator.yml 
+            cp ./scripts/generators/rabbitmq-cluster-operator/clusterrole-generator.yml  ./../templates/cluster-operator/clusterrole.yaml 
+            git checkout ./scripts/generators/rabbitmq-cluster-operator/clusterrole-generator.yml
+            git add .
+            git commit -m "Updating RabbitMQ cluster operator version and CRD"
+
+        - name: Create Pull Request
+          uses: peter-evans/create-pull-request@v6
+
+
+
+
+
+            
