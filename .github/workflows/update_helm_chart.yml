@@ -3,13 +3,12 @@
 name: update_helm_chart
 
 on:
-  release:
-    types: [published]
-    
+  push:
+    branches: 
+      action_to_sync_helm_chart
+
   workflow_dispatch:
-
-env:
-
+    
 jobs:
     create-chart-pr:
         name: Create pull request to char repo
@@ -21,27 +20,48 @@ jobs:
           uses: actions/checkout@v4
           with:
             repository: rabbitmq-pro/tanzu-rabbitmq-operator-chart
+            ref: adding_sync_operators_action_scripts
             token: ${{ secrets.GIT_HUB_INFRA_REPO_ACCESS_TOKEN }}
             path: ./tanzu-rabbitmq-operator-chart
 
-        - name: Update helm released version and CRD
-          run: |   
+        - name: Set tag image for tagged version
+          if: startsWith(github.ref, 'refs/tags/v')
+          run: | 
             BUNDLE_VERSION=${GITHUB_REF#refs/*/} 
-            BUNDLE_VERSION=${BUNDLE_VERSION:1}
+            echo "BUNDLE_VERSION=${BUNDLE_VERSION:1}" >> $GITHUB_ENV
+  
+        - name: Set tag image for test version
+          if: startsWith(github.ref, 'refs/tags/v') == false
+          run: | 
+            echo "BUNDLE_VERSION=0.0.0" >> $GITHUB_ENV
+
+        - name: Update helm released version and CRD
+          env:
+            GH_TOKEN: ${{ secrets.GIT_HUB_INFRA_REPO_ACCESS_TOKEN }}
+            #BUNDLE_VERSION: ${{ env.BUNDLE_VERSION }}
+          run: |  
+            export BUNDLE_VERSION=2.9.0
             cd ./tanzu-rabbitmq-operator-chart
-            git branch update_crd_and_version
-            git checkout update_crd_and_version
-            cp ./../config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml ./tanzu-rabbitmq-operator-chart/crds/rabbitmq-cluster/
-            sed -i '' 's/cluster-operator:.*/cluster-operator:$BUNDLE_VERSION/' ./Chart.yaml
+            git config --global user.name "rabbitmq-ci"
+            git config --global user.email rabbitmq-ci@vmware.com
+            git branch rabbitmq_cluster_operator_update_crd_and_versions_$BUNDLE_VERSION
+            git checkout rabbitmq_cluster_operator_update_crd_and_versions_$BUNDLE_VERSION
+            cp ./../config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml ./crds/rabbitmq-cluster/
+            sed -i -e "s/cluster-operator:.*/cluster-operator:$BUNDLE_VERSION/" ./Chart.yaml
             python3 ./scripts/update_cluster_operator_clusterrole.py ./scripts/generators/rabbitmq-cluster-operator/clusterrole.yml ./scripts/generators/rabbitmq-cluster-operator/clusterrole-generator.yml 
-            cp ./scripts/generators/rabbitmq-cluster-operator/clusterrole-generator.yml  ./../templates/cluster-operator/clusterrole.yaml 
+            python3 ./scripts/update_cluster_operator_value_version.py ./values.yaml "rabbitmqoperator/cluster-operator" $BUNDLE_VERSION
+            cp ./scripts/generators/rabbitmq-cluster-operator/clusterrole-generator.yml  ./templates/cluster-operator/clusterrole.yaml 
             git checkout ./scripts/generators/rabbitmq-cluster-operator/clusterrole-generator.yml
             git add .
             git commit -m "Updating RabbitMQ cluster operator version and CRD"
+            git push --force origin rabbitmq_cluster_operator_update_crd_and_versions_$BUNDLE_VERSION
+#gh pr create --title "RabbitMQ cluster operator: Update versions, CRD and clusterrole" --body "RabbitMQ cluster operator: Update image versions, CRD and clusterrole" --base main
 
         - name: Create Pull Request
           uses: peter-evans/create-pull-request@v6
-
+          with:
+            title: "RabbitMQ cluster operator: Update versions, CRD and clusterrole"
+            body:  "RabbitMQ cluster operator: Update image versions, CRD and clusterrole" 
 
 
 
