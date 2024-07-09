@@ -1352,14 +1352,14 @@ default_pass = {{ .Data.data.password }}
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(Equal(instance.ChildResourceName("server")))
+			Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(BeEmpty())
 		})
 
 		It("mounts the service account in its pods", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			Expect(*statefulSet.Spec.Template.Spec.AutomountServiceAccountToken).To(BeTrue())
+			Expect(*statefulSet.Spec.Template.Spec.AutomountServiceAccountToken).To(BeFalse())
 		})
 
 		It("creates the required SecurityContext", func() {

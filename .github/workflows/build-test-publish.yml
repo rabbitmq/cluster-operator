@@ -19,6 +19,7 @@ env:
   KIND_NODE_IMAGE: "kindest/node:v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245"
   KIND_OLDEST_NODE_IMAGE: "kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f"
   BASELINE_UPGRADE_VERSION: v2.1.0
+  RABBITMQ_IMAGE: pivotalrabbitmq/rabbitmq:k8s-peer-discovery-simplified
 
 jobs:
   kubectl_tests:
