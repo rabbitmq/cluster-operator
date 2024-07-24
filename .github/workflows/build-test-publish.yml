@@ -43,7 +43,7 @@ jobs:
         kind create cluster --image "${{ env.KIND_NODE_IMAGE }}"
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind kubectl-plugin-tests
     - name: Notify Google Chat
-      if: failure()
+      if: ${{ failure() && github.event_name != 'pull_request' }}
       uses: SimonScholz/google-chat-action@main
       with:
           webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
@@ -67,7 +67,7 @@ jobs:
     - name: Integration tests
       run: make integration-tests
     - name: Notify Google Chat
-      if: failure()
+      if: ${{ failure() && github.event_name != 'pull_request' }}
       uses: SimonScholz/google-chat-action@main
       with:
           webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
@@ -222,7 +222,7 @@ jobs:
         destination: operator-manifests-dev
         process_gcloudignore: false
     - name: Notify Google Chat
-      if: failure()
+      if: ${{ failure() && github.event_name != 'pull_request' }}
       uses: SimonScholz/google-chat-action@main
       with:
           webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
@@ -266,13 +266,6 @@ jobs:
         # The examples are assumed to run in the 'examples' namespace, create if it doesn't exist
         kubectl create namespace examples --dry-run=client -o yaml | kubectl  apply -f -
         kubectl --namespace=examples apply --dry-run=server $manifest_path
-    - name: Notify Google Chat
-      if: failure()
-      uses: SimonScholz/google-chat-action@main
-      with:
-          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
-          jobStatus: ${{ job.status }}
-          title: Cluster Operator - Local system tests (using KinD)
 
   system_tests_119:
     name: Local system tests (using KinD)
@@ -302,13 +295,6 @@ jobs:
         DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
         make cert-manager
         SUPPORT_VOLUME_EXPANSION=false make system-tests
-    - name: Notify Google Chat
-      if: failure()
-      uses: SimonScholz/google-chat-action@main
-      with:
-          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
-          jobStatus: ${{ job.status }}
-          title: Cluster Operator - Local system tests (using KinD) 119
 
   system_tests:
     name: System tests
