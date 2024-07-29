@@ -23,7 +23,7 @@ __check_defined = \
 ###
 
 # The latest 1.25 available for envtest
-ENVTEST_K8S_VERSION ?= 1.25.0
+ENVTEST_K8S_VERSION ?= 1.26.1
 LOCAL_TESTBIN = $(CURDIR)/testbin
 $(LOCAL_TESTBIN):
 	mkdir -p $@
