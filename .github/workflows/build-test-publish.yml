@@ -63,11 +63,14 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
 
+    - name: Setup Ginkgo
+      uses: ci-tasks/setup-ginkgo@main
+
     - name: Unit tests
-      run: make install-tools kubebuilder-assets just-unit-tests
+      run: make kubebuilder-assets just-unit-tests
 
     - name: Integration tests
-      run: make integration-tests
+      run: make just-integration-tests
 
     - name: Notify Google Chat
       if: ${{ failure() && github.event_name != 'pull_request' }}
@@ -86,11 +89,13 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
+
     - name: OCI Metadata for multi-arch image
       id: meta
       uses: docker/metadata-action@v5
@@ -104,16 +109,20 @@ jobs:
           type=sha
           type=ref,event=pr
           type=semver,pattern={{version}}
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+
     - name: Login to Docker Hub
       if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+
     - name: Login to Quay.io
       if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
@@ -121,6 +130,7 @@ jobs:
         registry: quay.io
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
     - name: Build and push
       uses: docker/build-push-action@v6
       with:
@@ -130,58 +140,7 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-    - name: OCI Metadata for single-arch amd64 image
-      if: github.event_name != 'pull_request'
-      #if: startsWith(github.ref, 'refs/tags/v')
-      id: single-arch-meta-amd64
-      uses: docker/metadata-action@v5
-      with:
-        # list of Docker images to use as base name for tags
-        images: |
-          rabbitmqoperator/cluster-operator
-        flavor: |
-          latest=false
-        # generate Docker tags based on the following events/attributes
-        tags: |
-          type=semver,pattern={{version}},suffix=-amd64,latest=false
-          type=sha,suffix=-amd64,latest=false
-    - name: Build and push single-arch amd64 image
-      if: github.event_name != 'pull_request'
-      #if: startsWith(github.ref, 'refs/tags/v')
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        platforms: linux/amd64
-        provenance: false
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.single-arch-meta-amd64.outputs.tags }}
-        labels: ${{ steps.single-arch-meta-amd64.outputs.labels }}
-    - name: OCI Metadata for single-arch arm64 image
-      if: github.event_name != 'pull_request'
-      #if: startsWith(github.ref, 'refs/tags/v')
-      id: single-arch-meta-arm64
-      uses: docker/metadata-action@v5
-      with:
-        # list of Docker images to use as base name for tags
-        images: |
-          rabbitmqoperator/cluster-operator
-        flavor: |
-          latest=false
-        # generate Docker tags based on the following events/attributes
-        tags: |
-          type=semver,pattern={{version}},suffix=-arm64,latest=false
-          type=sha,suffix=-arm64,latest=false
-    - name: Build and push single-arch arm64 image
-      if: github.event_name != 'pull_request'
-      #if: startsWith(github.ref, 'refs/tags/v')
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        platforms: linux/arm64
-        provenance: false
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.single-arch-meta-arm64.outputs.tags }}
-        labels: ${{ steps.single-arch-meta-arm64.outputs.labels }}
+
     - name: Build manifest
       if: github.event_name != 'pull_request'
       env:
@@ -193,6 +152,7 @@ jobs:
         popd
         make generate-installation-manifest QUAY_IO_OPERATOR_IMAGE=quay.io/rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
         echo -n "cluster-operator-${{ steps.meta.outputs.version }}.yml" > "latest-cluster-operator-dev-manifest.txt"
+
     - name: Upload operator manifests
       if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
@@ -201,39 +161,113 @@ jobs:
         path: releases/cluster-operator*.yml
         retention-days: 2
         if-no-files-found: error
+
     - name: Rename manifest for GCS
       if: github.event_name != 'pull_request'
       run: mv releases/cluster-operator.yml cluster-operator-${{ steps.meta.outputs.version }}.yml
-    - id: 'auth'
+
+    - id: auth
       name: Auth to Google Cloud
       if: github.event_name != 'pull_request'
       uses: 'google-github-actions/auth@v2'
       with:
         workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
         service_account: ${{ secrets.GCP_SA }}
+
     - name: Upload manifests to GCS
       if: github.event_name != 'pull_request'
-      uses: 'google-github-actions/upload-cloud-storage@v2'
+      uses: google-github-actions/upload-cloud-storage@v2
       with:
         path: cluster-operator-${{ steps.meta.outputs.version }}.yml
         destination: operator-manifests-dev
+
     - name: Update carvel-packaging-dev pipeline trigger
       if: github.event_name != 'pull_request'
-      uses: 'google-github-actions/upload-cloud-storage@v2'
+      uses: google-github-actions/upload-cloud-storage@v2
       with:
         path: latest-cluster-operator-dev-manifest.txt
         destination: operator-manifests-dev
         process_gcloudignore: false
+
     - name: Notify Google Chat
       if: ${{ failure() && github.event_name != 'pull_request' }}
       uses: SimonScholz/google-chat-action@main
       with:
-          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
-          jobStatus: ${{ job.status }}
-          title: Cluster Operator - Build and push operator
+        webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+        jobStatus: ${{ job.status }}
+        title: Cluster Operator - Build and push operator
+
+  build_operator_single_arch_amd64:
+    name: Build single-arch AMD64 image
+    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    needs: unit_integration_tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: OCI Metadata for single-arch amd64 image
+        #if: startsWith(github.ref, 'refs/tags/v')
+        id: single-arch-meta-amd64
+        uses: docker/metadata-action@v5
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            rabbitmqoperator/cluster-operator
+          flavor: |
+            latest=false
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=semver,pattern={{version}},suffix=-amd64,latest=false
+            type=sha,suffix=-amd64,latest=false
+
+      - name: Build and push single-arch amd64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          provenance: false
+          push: true
+          tags: ${{ steps.single-arch-meta-amd64.outputs.tags }}
+          labels: ${{ steps.single-arch-meta-amd64.outputs.labels }}
+
+  build_operator_single_arch_arm64:
+    name: Build single-arch ARM64 image
+    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    needs: unit_integration_tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: OCI Metadata for single-arch arm64 image
+        id: single-arch-meta-arm64
+        uses: docker/metadata-action@v5
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            rabbitmqoperator/cluster-operator
+          flavor: |
+            latest=false
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=semver,pattern={{version}},suffix=-arm64,latest=false
+            type=sha,suffix=-arm64,latest=false
+
+      - name: Build and push single-arch arm64 image
+        if: github.event_name != 'pull_request'
+        #if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          provenance: false
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.single-arch-meta-arm64.outputs.tags }}
+          labels: ${{ steps.single-arch-meta-arm64.outputs.labels }}
 
   system_tests_local:
-    name: Local system tests (using KinD)
+    name: Local system tests (stable k8s)
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' }}
     needs: build_operator
@@ -257,6 +291,8 @@ jobs:
       env:
         KIND_NODE_IMAGE: ${{ env.KIND_NODE_IMAGE }}
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
+      # make deploy-kind builds the image locally
+      # TODO: we can build the image locally in Actions
       run: |
         make install-tools
         kind create cluster --image "$KIND_NODE_IMAGE"
@@ -273,8 +309,8 @@ jobs:
         kubectl create namespace examples --dry-run=client -o yaml | kubectl  apply -f -
         kubectl --namespace=examples apply --dry-run=server $manifest_path
 
-  system_tests_119:
-    name: Local system tests (using KinD)
+  system_tests_oldest_k8s:
+    name: Local system tests (min k8s)
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' }}
     needs: build_operator
@@ -289,8 +325,10 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
+
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
+
     - name: System tests
       env:
         KIND_NODE_IMAGE: ${{ env.KIND_OLDEST_NODE_IMAGE }}
@@ -385,10 +423,6 @@ jobs:
     name: Documented example tests
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
-    # Add "id-token" with the intended permissions.
-    permissions:
-      contents: 'write'
-      id-token: 'write'
     needs: build_operator
     steps:
     - name: Install Go
@@ -445,13 +479,8 @@ jobs:
     name: Test upgrade of the operator
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
-    # Add "id-token" with the intended permissions.
-    permissions:
-      contents: 'write'
-      id-token: 'write'
     needs: build_operator
     steps:
-
     - name: Install Go
       uses: actions/setup-go@v5
       with:

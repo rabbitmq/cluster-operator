@@ -51,11 +51,31 @@ kubebuilder-assets-rm:
 	setup-envtest -v debug --os $(platform) --arch $(ARCHITECTURE) --bin-dir $(LOCAL_TESTBIN) cleanup
 
 .PHONY: unit-tests
-unit-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet vuln manifests ## Run unit tests
+unit-tests::install-tools
+unit-tests::$(KUBEBUILDER_ASSETS)
+unit-tests::generate
+unit-tests::fmt
+unit-tests::vet
+unit-tests::vuln
+unit-tests::manifests
+unit-tests::just-unit-tests ## Run unit tests
+
+.PHONY: just-unit-tests
+just-unit-tests:
 	ginkgo -r --randomize-all api/ internal/ pkg/
 
 .PHONY: integration-tests
-integration-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet vuln manifests ## Run integration tests
+integration-tests::install-tools
+integration-tests::$(KUBEBUILDER_ASSETS)
+integration-tests::generate
+integration-tests::fmt
+integration-tests::vet
+integration-tests::vuln
+integration-tests::manifests
+integration-tests::just-integration-tests ## Run integration tests
+
+.PHONY: just-integration-tests
+just-integration-tests:
 	ginkgo -r controllers/
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
