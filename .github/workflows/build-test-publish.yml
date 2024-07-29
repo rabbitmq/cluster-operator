@@ -63,11 +63,8 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
 
-    - name: Setup Ginkgo
-      uses: ci-tasks/setup-ginkgo@main
-
     - name: Unit tests
-      run: make kubebuilder-assets just-unit-tests
+      run: make install-tools kubebuilder-assets just-unit-tests
 
     - name: Integration tests
       run: make just-integration-tests
