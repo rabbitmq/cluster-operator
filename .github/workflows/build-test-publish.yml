@@ -22,6 +22,7 @@ env:
 
 jobs:
   kubectl_tests:
+    # FIXME: do not sneaky build the operator. Use a built one
     name: kubectl rabbitmq tests
     runs-on: ubuntu-latest
     steps:
@@ -341,9 +342,11 @@ jobs:
     name: System tests
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
-    # Add "id-token" with the intended permissions.
     permissions:
+      # Required by ben-z/gh-action-mutex@v1.0.0-alpha.9
       contents: 'write'
+      # Required by google-github-actions/auth@v2
+      # Required by google-github-actions/get-gke-credentials@v2
       id-token: 'write'
     needs: build_operator
     strategy:
@@ -421,6 +424,12 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
     needs: build_operator
+    permissions:
+      # Required by ben-z/gh-action-mutex@v1.0.0-alpha.9
+      contents: 'write'
+      # Required by google-github-actions/auth@v2
+      # Required by google-github-actions/get-gke-credentials@v2
+      id-token: 'write'
     steps:
     - name: Install Go
       uses: actions/setup-go@v5
@@ -477,6 +486,12 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
     needs: build_operator
+    permissions:
+      # Required by ben-z/gh-action-mutex@v1.0.0-alpha.9
+      contents: 'write'
+      # Required by google-github-actions/auth@v2
+      # Required by google-github-actions/get-gke-credentials@v2
+      id-token: 'write'
     steps:
     - name: Install Go
       uses: actions/setup-go@v5
