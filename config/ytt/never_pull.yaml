@@ -7,6 +7,7 @@ spec:
   template:
     spec:
       containers:
-        #@overlay/match by=overlay.map_key("name")
-        - name: manager
+        #@overlay/match by="name"
+        - name: operator
+          #@overlay/match missing_ok=True
           imagePullPolicy: Never

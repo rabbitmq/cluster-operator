@@ -3,7 +3,6 @@ kind: RabbitmqCluster
 metadata:
   name: vault-default-user
 spec:
-  replicas: 3
   secretBackend:
     vault:
       role: rabbitmq
