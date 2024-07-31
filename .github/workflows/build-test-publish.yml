@@ -25,31 +25,64 @@ jobs:
     # FIXME: do not sneaky build the operator. Use a built one
     name: kubectl rabbitmq tests
     runs-on: ubuntu-latest
+    needs:
+      - build_operator
     steps:
     - name: Install Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v4
+
+    - name: carvel-setup-action
+      uses: carvel-dev/setup-action@v2.0.1
+      with:
+        only: ytt
+
     - name: Install Bats
       run: |
         git clone https://github.com/bats-core/bats-core.git "$HOME"/bats-core
         cd "$HOME"/bats-core
         sudo ./install.sh /usr/local
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
-    - name: kubectl rabbitmq tests
-      run: |
-        make install-tools
-        kind create cluster --image "${{ env.KIND_NODE_IMAGE }}"
-        DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind kubectl-plugin-tests
-    - name: Notify Google Chat
-      if: ${{ failure() && github.event_name != 'pull_request' }}
-      uses: SimonScholz/google-chat-action@main
+
+    - name: Download Operator artifact
+      uses: actions/download-artifact@v4
       with:
-          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
-          jobStatus: ${{ job.status }}
-          title: Cluster Operator - RabbitMQ kubectl tests
+        name: operator_image
+        path: /tmp
+
+    - name: Create KinD
+      uses: helm/kind-action@v1
+      with:
+        cluster_name: cluster-operator-testing
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+
+    - name: kubectl rabbitmq tests
+      env:
+        IMG: "rabbitmqoperator/cluster-operator:${{ needs.build_operator.outputs.image_sha }}"
+      run: |
+        kind load image-archive /tmp/operator.tar --name cluster-operator-testing
+
+        make manifests deploy-namespace-rbac
+        kubectl kustomize config/crd | kubectl apply -f-
+        kubectl kustomize config/default/base | ytt -f- \
+          -f config/ytt/overlay-manager-image.yaml \
+          --data-value operator-image="$IMG" \
+          -f config/ytt/never_pull.yaml \
+          | kubectl apply -f-
+
+        make kubectl-plugin-tests
+
+#    - name: Notify Google Chat
+#      if: ${{ failure() && github.event_name != 'pull_request' }}
+#      uses: SimonScholz/google-chat-action@main
+#      with:
+#          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+#          jobStatus: ${{ job.status }}
+#          title: Cluster Operator - RabbitMQ kubectl tests
 
   unit_integration_tests:
     name: unit and integration tests
@@ -81,6 +114,8 @@ jobs:
   build_operator:
     runs-on: ubuntu-latest
     needs: unit_integration_tests
+    outputs:
+      image_sha: ${{ steps.build.outputs.digest }}
     permissions:
       contents: 'write'
       id-token: 'write'
@@ -130,6 +165,7 @@ jobs:
         password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
     - name: Build and push
+      id: build
       uses: docker/build-push-action@v6
       with:
         context: .
@@ -138,6 +174,14 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        outputs: |
+          type=docker,dest=./operator.tar
+
+    - name: Upload Operator artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: operator_image
+        path: ./operator.tar
 
     - name: Build manifest
       if: github.event_name != 'pull_request'

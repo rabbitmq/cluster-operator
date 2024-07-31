@@ -6,6 +6,10 @@ ifeq ($(ARCHITECTURE),x86_64)
 	ARCHITECTURE=amd64
 endif
 
+ifeq ($(ARCHITECTURE),aarch64)
+	ARCHITECTURE=arm64
+endif
+
 .DEFAULT_GOAL = help
 .PHONY: help
 help:
