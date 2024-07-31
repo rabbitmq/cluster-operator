@@ -62,7 +62,7 @@ jobs:
 
     - name: kubectl rabbitmq tests
       env:
-        IMG: "rabbitmqoperator/cluster-operator:${{ needs.build_operator.outputs.image_sha }}"
+        IMG: "rabbitmqoperator/cluster-operator:${{ needs.build_operator.outputs.image_tag }}"
       run: |
         kind load image-archive /tmp/operator.tar --name cluster-operator-testing
 
@@ -112,10 +112,11 @@ jobs:
           title: Cluster Operator - Unit and Integration tests
 
   build_operator:
+    name: Build Operator image
     runs-on: ubuntu-latest
     needs: unit_integration_tests
     outputs:
-      image_sha: ${{ steps.build.outputs.digest }}
+      image_tag: ${{ steps.meta.outputs.version }}
     permissions:
       contents: 'write'
       id-token: 'write'
@@ -167,11 +168,23 @@ jobs:
     - name: Build and push
       id: build
       uses: docker/build-push-action@v6
+      # TODO: re-enable before PR
+      if: false
+#      if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
       with:
         context: .
         platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
         provenance: false
-        push: ${{ github.event_name != 'pull_request' }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Build to TAR
+      id: build_tar
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        provenance: false
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         outputs: |
@@ -204,27 +217,39 @@ jobs:
         retention-days: 2
         if-no-files-found: error
 
+  upload_gcs:
+    runs-on: ubuntu-latest
+    name: Upload manifests to GCS
+    # TODO: remove before sending PR
+    if: false
+#    if: ${{ github.event_name != 'pull_request' }}
+    needs:
+      - build_operator
+    env:
+      image_version: ${{ needs.build_operator.outputs.image_tag }}
+    steps:
+    - name: Download Operator manifests
+      uses: actions/download-artifact@v4
+      with:
+        name: operator-manifests
+        path: release/
     - name: Rename manifest for GCS
-      if: github.event_name != 'pull_request'
-      run: mv releases/cluster-operator.yml cluster-operator-${{ steps.meta.outputs.version }}.yml
+      run: mv releases/cluster-operator.yml cluster-operator-${{ env.image_version }}.yml
 
     - id: auth
       name: Auth to Google Cloud
-      if: github.event_name != 'pull_request'
       uses: 'google-github-actions/auth@v2'
       with:
         workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
         service_account: ${{ secrets.GCP_SA }}
 
     - name: Upload manifests to GCS
-      if: github.event_name != 'pull_request'
       uses: google-github-actions/upload-cloud-storage@v2
       with:
-        path: cluster-operator-${{ steps.meta.outputs.version }}.yml
+        path: cluster-operator-${{ env.image_version }}.yml
         destination: operator-manifests-dev
 
     - name: Update carvel-packaging-dev pipeline trigger
-      if: github.event_name != 'pull_request'
       uses: google-github-actions/upload-cloud-storage@v2
       with:
         path: latest-cluster-operator-dev-manifest.txt
@@ -232,7 +257,7 @@ jobs:
         process_gcloudignore: false
 
     - name: Notify Google Chat
-      if: ${{ failure() && github.event_name != 'pull_request' }}
+      if: failure()
       uses: SimonScholz/google-chat-action@main
       with:
         webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
