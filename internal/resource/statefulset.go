@@ -298,6 +298,14 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 		}
 	}
 
+	// A user can may wish to override the default TopologySpreadConstraints. To remove the default constraints without adding new ones,
+	// set this to an empty array. To append to the default constraint is not supported, the user should put it explicitly in the override.
+	// As the merge key for the TopologySpreadConstraints is the TopologyKey there is no way to remove it with the `strategicpatch.StrategicMergePatch`.
+	// When a user wants to overwrite these topology constraints it can be assumed that the default will not be used, besides, in a rare case
+	// when appending the default is needed, then, to put it explicitly in the override is not a big deal.
+	if podSpecOverride.TopologySpreadConstraints != nil {
+		patchedPodSpec.TopologySpreadConstraints = podSpecOverride.TopologySpreadConstraints
+	}
 	return patchedPodSpec, nil
 }
 
