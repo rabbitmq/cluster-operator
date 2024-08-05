@@ -220,9 +220,14 @@ docker-build-dev:
 	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 
+# https://github.com/cert-manager/cmctl/releases
+# Cert Manager now publishes CMCTL independently from cert-manager
+CMCTL_VERSION ?= v2.1.0
 CMCTL = $(LOCAL_TESTBIN)/cmctl
+.PHONY: cmctl
+cmctl: | $(CMCTL)
 $(CMCTL): | $(LOCAL_TMP) $(LOCAL_TESTBIN)
-	curl -sSL -o $(LOCAL_TMP)/cmctl.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cmctl-$(platform)-$(shell go env GOARCH).tar.gz
+	curl -sSL -o $(LOCAL_TMP)/cmctl.tar.gz https://github.com/cert-manager/cmctl/releases/download/$(CMCTL_VERSION)/cmctl_$(platform)_$(shell go env GOARCH).tar.gz
 	tar -C $(LOCAL_TMP) -xzf $(LOCAL_TMP)/cmctl.tar.gz
 	mv $(LOCAL_TMP)/cmctl $(CMCTL)
 
