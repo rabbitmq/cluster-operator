@@ -195,7 +195,6 @@ jobs:
         path: ./operator.tar
 
     - name: Build manifest
-      if: github.event_name != 'pull_request'
       env:
         RELEASE_VERSION: ${{ steps.meta.outputs.version }}
       run: |
