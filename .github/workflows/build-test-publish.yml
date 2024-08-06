@@ -36,9 +36,10 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
 
-    - name: carvel-setup-action
+    - name: Install Carvel
       uses: carvel-dev/setup-action@v2.0.1
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         only: ytt
 
     - name: Install Bats
@@ -371,10 +372,11 @@ jobs:
         name: operator_image
         path: /tmp
 
-    - name: carvel-setup-action
+    - name: Install Carvel
       uses: carvel-dev/setup-action@v2.0.1
       with:
         only: ytt
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install Operator build
       run: |
@@ -439,9 +441,10 @@ jobs:
         name: operator-manifests
         path: tmp/
 
-    - name: carvel-setup-action
+    - name: Install Carvel
       uses: carvel-dev/setup-action@v2.0.1
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         only: ytt
 
     - name: Install Operator build
@@ -498,9 +501,10 @@ jobs:
         cluster_name: examples-testing
         node_image: ${{ env.KIND_NODE_IMAGE }}
 
-    - name: carvel-setup-action
+    - name: Install Carvel
       uses: carvel-dev/setup-action@v2.0.1
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         only: ytt
 
     - name: Install Operator build
