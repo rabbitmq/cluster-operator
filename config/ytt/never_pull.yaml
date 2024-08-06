@@ -1,0 +1,13 @@
+#@ load("@ytt:overlay", "overlay")
+
+#! Matching by Deployment is acceptable because we have only one Deployment :-)
+#@overlay/match by=overlay.subset({"kind": "Deployment"})
+---
+spec:
+  template:
+    spec:
+      containers:
+        #@overlay/match by="name"
+        - name: operator
+          #@overlay/match missing_ok=True
+          imagePullPolicy: Never

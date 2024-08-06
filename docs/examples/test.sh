@@ -15,9 +15,10 @@ spec:
   selfSigned: {}
 EOF
 
+set -e
 ## Removing stale namespace. Most likely due to previous test failures
 kubectl delete namespaces examples --ignore-not-found --timeout=5m
-for example in $(find $SCRIPT_DIR -mindepth 1 -type d)
+for example in $(find "$SCRIPT_DIR" -mindepth 1 -type d)
 do
   [[ -e "$example"/.ci-skip ]] && continue
   pushd "$example"

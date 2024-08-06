@@ -2,7 +2,7 @@ name: Build, Test, Publish Image & Manifest
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "test-ci/*" ]
     paths-ignore:
     - 'docs/**'
     - '*.md'
@@ -24,26 +24,60 @@ jobs:
   kubectl_tests:
     name: kubectl rabbitmq tests
     runs-on: ubuntu-latest
+    needs:
+      - build_operator
     steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v4
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
+
+    - name: Install Carvel
+      uses: carvel-dev/setup-action@v2.0.1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        only: ytt
+
     - name: Install Bats
       run: |
         git clone https://github.com/bats-core/bats-core.git "$HOME"/bats-core
         cd "$HOME"/bats-core
         sudo ./install.sh /usr/local
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+
+    - name: Download Operator artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: operator_image
+        path: /tmp
+
+    - name: Create KinD
+      uses: helm/kind-action@v1
+      with:
+        cluster_name: cluster-operator-testing
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+
     - name: kubectl rabbitmq tests
+      env:
+        IMG: "rabbitmqoperator/cluster-operator:${{ needs.build_operator.outputs.image_tag }}"
       run: |
-        make install-tools
-        kind create cluster --image "${{ env.KIND_NODE_IMAGE }}"
-        DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind kubectl-plugin-tests
+        kind load image-archive /tmp/operator.tar --name cluster-operator-testing
+
+        make manifests deploy-namespace-rbac
+        kubectl kustomize config/crd | kubectl apply -f-
+        kubectl kustomize config/default/base | ytt -f- \
+          -f config/ytt/overlay-manager-image.yaml \
+          --data-value operator_image="${IMG}" \
+          -f config/ytt/never_pull.yaml \
+          | kubectl apply -f-
+
+        make kubectl-plugin-tests
+
     - name: Notify Google Chat
-      if: failure()
+      if: ${{ failure() && github.event_name != 'pull_request' }}
       uses: SimonScholz/google-chat-action@main
       with:
           webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
@@ -53,21 +87,24 @@ jobs:
   unit_integration_tests:
     name: unit and integration tests
     runs-on: ubuntu-latest
-    container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v4
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+
     - name: Unit tests
-      run: make unit-tests
+      run: make install-tools kubebuilder-assets just-unit-tests
+
     - name: Integration tests
-      run: make integration-tests
+      run: make just-integration-tests
+
     - name: Notify Google Chat
-      if: failure()
+      if: ${{ failure() && github.event_name != 'pull_request' }}
       uses: SimonScholz/google-chat-action@main
       with:
           webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
@@ -75,19 +112,24 @@ jobs:
           title: Cluster Operator - Unit and Integration tests
 
   build_operator:
+    name: Build Operator image
     runs-on: ubuntu-latest
     needs: unit_integration_tests
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
     permissions:
       contents: 'write'
       id-token: 'write'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
+
     - name: OCI Metadata for multi-arch image
       id: meta
       uses: docker/metadata-action@v5
@@ -101,16 +143,20 @@ jobs:
           type=sha
           type=ref,event=pr
           type=semver,pattern={{version}}
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+
     - name: Login to Docker Hub
       if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+
     - name: Login to Quay.io
       if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
@@ -118,69 +164,37 @@ jobs:
         registry: quay.io
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
     - name: Build and push
+      id: build
       uses: docker/build-push-action@v6
+      if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
       with:
         context: .
         platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
         provenance: false
-        push: ${{ github.event_name != 'pull_request' }}
+        push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-    - name: OCI Metadata for single-arch amd64 image
-      if: github.event_name != 'pull_request'
-      #if: startsWith(github.ref, 'refs/tags/v')
-      id: single-arch-meta-amd64
-      uses: docker/metadata-action@v5
-      with:
-        # list of Docker images to use as base name for tags
-        images: |
-          rabbitmqoperator/cluster-operator
-        flavor: |
-          latest=false
-        # generate Docker tags based on the following events/attributes
-        tags: |
-          type=semver,pattern={{version}},suffix=-amd64,latest=false
-          type=sha,suffix=-amd64,latest=false
-    - name: Build and push single-arch amd64 image
-      if: github.event_name != 'pull_request'
-      #if: startsWith(github.ref, 'refs/tags/v')
+
+    - name: Build to TAR
+      id: build_tar
       uses: docker/build-push-action@v6
       with:
         context: .
-        platforms: linux/amd64
         provenance: false
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.single-arch-meta-amd64.outputs.tags }}
-        labels: ${{ steps.single-arch-meta-amd64.outputs.labels }}
-    - name: OCI Metadata for single-arch arm64 image
-      if: github.event_name != 'pull_request'
-      #if: startsWith(github.ref, 'refs/tags/v')
-      id: single-arch-meta-arm64
-      uses: docker/metadata-action@v5
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        outputs: |
+          type=docker,dest=./operator.tar
+
+    - name: Upload Operator artifact
+      uses: actions/upload-artifact@v4
       with:
-        # list of Docker images to use as base name for tags
-        images: |
-          rabbitmqoperator/cluster-operator
-        flavor: |
-          latest=false
-        # generate Docker tags based on the following events/attributes
-        tags: |
-          type=semver,pattern={{version}},suffix=-arm64,latest=false
-          type=sha,suffix=-arm64,latest=false
-    - name: Build and push single-arch arm64 image
-      if: github.event_name != 'pull_request'
-      #if: startsWith(github.ref, 'refs/tags/v')
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        platforms: linux/arm64
-        provenance: false
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.single-arch-meta-arm64.outputs.tags }}
-        labels: ${{ steps.single-arch-meta-arm64.outputs.labels }}
+        name: operator_image
+        path: ./operator.tar
+
     - name: Build manifest
-      if: github.event_name != 'pull_request'
       env:
         RELEASE_VERSION: ${{ steps.meta.outputs.version }}
       run: |
@@ -190,49 +204,142 @@ jobs:
         popd
         make generate-installation-manifest QUAY_IO_OPERATOR_IMAGE=quay.io/rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
         echo -n "cluster-operator-${{ steps.meta.outputs.version }}.yml" > "latest-cluster-operator-dev-manifest.txt"
+
     - name: Upload operator manifests
-      if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
       with:
         name: operator-manifests
         path: releases/cluster-operator*.yml
         retention-days: 2
         if-no-files-found: error
+
+  upload_gcs:
+    # TODO: nuke this after refactoring carvel CI
+    runs-on: ubuntu-latest
+    name: Upload manifests to GCS
+    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
+    needs:
+      - build_operator
+    env:
+      image_version: ${{ needs.build_operator.outputs.image_tag }}
+    steps:
+    - name: Download Operator manifests
+      uses: actions/download-artifact@v4
+      with:
+        name: operator-manifests
+        path: release/
     - name: Rename manifest for GCS
-      if: github.event_name != 'pull_request'
-      run: mv releases/cluster-operator.yml cluster-operator-${{ steps.meta.outputs.version }}.yml
-    - id: 'auth'
+      run: mv releases/cluster-operator.yml cluster-operator-${{ env.image_version }}.yml
+
+    - id: auth
       name: Auth to Google Cloud
-      if: github.event_name != 'pull_request'
       uses: 'google-github-actions/auth@v2'
       with:
         workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
         service_account: ${{ secrets.GCP_SA }}
+
     - name: Upload manifests to GCS
-      if: github.event_name != 'pull_request'
-      uses: 'google-github-actions/upload-cloud-storage@v2'
+      uses: google-github-actions/upload-cloud-storage@v2
       with:
-        path: cluster-operator-${{ steps.meta.outputs.version }}.yml
+        path: cluster-operator-${{ env.image_version }}.yml
         destination: operator-manifests-dev
+
     - name: Update carvel-packaging-dev pipeline trigger
-      if: github.event_name != 'pull_request'
-      uses: 'google-github-actions/upload-cloud-storage@v2'
+      uses: google-github-actions/upload-cloud-storage@v2
       with:
         path: latest-cluster-operator-dev-manifest.txt
         destination: operator-manifests-dev
         process_gcloudignore: false
+
     - name: Notify Google Chat
       if: failure()
       uses: SimonScholz/google-chat-action@main
       with:
-          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
-          jobStatus: ${{ job.status }}
-          title: Cluster Operator - Build and push operator
+        webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
+        jobStatus: ${{ job.status }}
+        title: Cluster Operator - Build and push operator
 
-  system_tests_local:
-    name: Local system tests (using KinD)
+  build_operator_single_arch_amd64:
+    name: Build single-arch AMD64 image
+    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' }}
+    needs: unit_integration_tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: OCI Metadata for single-arch amd64 image
+        #if: startsWith(github.ref, 'refs/tags/v')
+        id: single-arch-meta-amd64
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            rabbitmqoperator/cluster-operator
+          flavor: |
+            latest=false
+          tags: |
+            type=semver,pattern={{version}},suffix=-amd64,latest=false
+
+      - name: Build and push single-arch amd64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          provenance: false
+          push: true
+          tags: ${{ steps.single-arch-meta-amd64.outputs.tags }}
+          labels: ${{ steps.single-arch-meta-amd64.outputs.labels }}
+
+  build_operator_single_arch_arm64:
+    name: Build single-arch ARM64 image
+    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    needs: unit_integration_tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: OCI Metadata for single-arch arm64 image
+        id: single-arch-meta-arm64
+        uses: docker/metadata-action@v5
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            rabbitmqoperator/cluster-operator
+          flavor: |
+            latest=false
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=semver,pattern={{version}},suffix=-arm64,latest=false
+            type=sha,suffix=-arm64,latest=false
+
+      - name: Build and push single-arch arm64 image
+        if: github.event_name != 'pull_request'
+        #if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          provenance: false
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.single-arch-meta-arm64.outputs.tags }}
+          labels: ${{ steps.single-arch-meta-arm64.outputs.labels }}
+
+  system_tests:
+    name: Local system tests (stable k8s)
+    runs-on: ubuntu-latest
     needs: build_operator
     strategy:
       matrix:
@@ -241,23 +348,56 @@ jobs:
         - rabbitmq:management
         - pivotalrabbitmq/rabbitmq:main
     steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v4
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+
+    - name: Create KinD
+      uses: helm/kind-action@v1
+      with:
+        cluster_name: system-testing
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+
+    - name: Download Operator manifest
+      uses: actions/download-artifact@v4
+      # This manifest was generated by the build_operator job, and it has the image tag for this specific execution.
+      # Thanks to that, we don't have to make YAML modifications to deploy the right image.
+      with:
+        name: operator-manifests
+        path: tmp/
+
+    - name: Download Operator artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: operator_image
+        path: /tmp
+
+    - name: Install Carvel
+      uses: carvel-dev/setup-action@v2.0.1
+      with:
+        only: ytt
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install Operator build
+      run: |
+        kind load image-archive /tmp/operator.tar --name system-testing
+        ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
+        kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+
     - name: System tests
       env:
         KIND_NODE_IMAGE: ${{ env.KIND_NODE_IMAGE }}
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
+      # make deploy-kind builds the image locally
       run: |
-        make install-tools
-        kind create cluster --image "$KIND_NODE_IMAGE"
-        DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
         make cert-manager
         SUPPORT_VOLUME_EXPANSION=false make system-tests
+
     - name: Dry-run example YAMLs
       run: |
         for a in docs/examples/*/*.y*ml; do
@@ -266,18 +406,10 @@ jobs:
         # The examples are assumed to run in the 'examples' namespace, create if it doesn't exist
         kubectl create namespace examples --dry-run=client -o yaml | kubectl  apply -f -
         kubectl --namespace=examples apply --dry-run=server $manifest_path
-    - name: Notify Google Chat
-      if: failure()
-      uses: SimonScholz/google-chat-action@main
-      with:
-          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
-          jobStatus: ${{ job.status }}
-          title: Cluster Operator - Local system tests (using KinD)
 
-  system_tests_119:
-    name: Local system tests (using KinD)
+  system_tests_oldest_k8s:
+    name: Local system tests (min k8s)
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' }}
     needs: build_operator
     strategy:
       matrix:
@@ -285,143 +417,111 @@ jobs:
         - rabbitmq:3.11.0-management
         - rabbitmq:management
     steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v4
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+
+    - name: Create KinD
+      uses: helm/kind-action@v1
+      with:
+        cluster_name: system-testing-oldest-k8s
+        node_image: ${{ env.KIND_OLDEST_NODE_IMAGE }}
+
+    - name: Download Operator artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: operator_image
+        path: /tmp
+
+    - name: Download Operator manifest
+      uses: actions/download-artifact@v4
+      # This manifest was generated by the build_operator job, and it has the image tag for this specific execution.
+      # Thanks to that, we don't have to make YAML modifications to deploy the right image.
+      with:
+        name: operator-manifests
+        path: tmp/
+
+    - name: Install Carvel
+      uses: carvel-dev/setup-action@v2.0.1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        only: ytt
+
+    - name: Install Operator build
+      run: |
+        kind load image-archive /tmp/operator.tar --name system-testing-oldest-k8s
+        ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
+        kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+
     - name: System tests
       env:
         KIND_NODE_IMAGE: ${{ env.KIND_OLDEST_NODE_IMAGE }}
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
+      # make system-tests will install required tools e.g. ginkgo
       run: |
-        make install-tools
-        kind create cluster --image "$KIND_NODE_IMAGE"
-        DOCKER_REGISTRY_SERVER=local-server OPERATOR_IMAGE=local-operator make deploy-kind
         make cert-manager
         SUPPORT_VOLUME_EXPANSION=false make system-tests
-    - name: Notify Google Chat
-      if: failure()
-      uses: SimonScholz/google-chat-action@main
-      with:
-          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
-          jobStatus: ${{ job.status }}
-          title: Cluster Operator - Local system tests (using KinD) 119
-
-  system_tests:
-    name: System tests
-    runs-on: ubuntu-latest
-    container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
-    if: ${{ github.event_name != 'pull_request' }}
-    # Add "id-token" with the intended permissions.
-    permissions:
-      contents: 'write'
-      id-token: 'write'
-    needs: build_operator
-    strategy:
-      matrix:
-        rabbitmq-image:
-        - rabbitmq:3.11.0-management
-        - rabbitmq:management
-        - pivotalrabbitmq/rabbitmq:main
-        include:
-        - rabbitmq-image: rabbitmq:3.11.0-management
-          gke-cluster: ci-bunny-1
-        - rabbitmq-image: rabbitmq:management
-          gke-cluster: ci-bunny-1
-        - rabbitmq-image: pivotalrabbitmq/rabbitmq:main
-          gke-cluster: ci-bunny-2
-    steps:
-    - name: Install Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        check-latest: true
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
-    - name: Acquire lock for ${{ matrix.gke-cluster }}
-      uses: ben-z/gh-action-mutex@v1.0.0-alpha.9
-      with:
-        branch: lock-${{ matrix.gke-cluster }}
-    - id: 'auth'
-      uses: 'google-github-actions/auth@v2'
-      with:
-        workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
-        service_account: ${{ secrets.GCP_SA }}
-    - id: 'get-credentials'
-      uses: 'google-github-actions/get-gke-credentials@v2'
-      with:
-        cluster_name: ${{ matrix.gke-cluster }}
-        location: europe-west1
-    - name: Get operator manifest
-      uses: actions/download-artifact@v4
-      with:
-        name: operator-manifests
-    - name: Install Operator build
-      run: |
-        make install-tools
-        make destroy
-        kubectl apply -f cluster-operator.yml
-        kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
-    - name: System tests
-      env:
-        RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
-      run: |
-        make system-tests
-    - name: Notify Google Chat
-      if: failure()
-      uses: SimonScholz/google-chat-action@main
-      with:
-          webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
-          jobStatus: ${{ job.status }}
-          title: Cluster Operator - System tests
 
   test_doc_examples:
     name: Documented example tests
     runs-on: ubuntu-latest
-    container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name != 'pull_request' }}
-    # Add "id-token" with the intended permissions.
-    permissions:
-      contents: 'write'
-      id-token: 'write'
     needs: build_operator
+    permissions:
+      # Required by google-github-actions/auth@v2
+      # Required by google-github-actions/get-gke-credentials@v2
+      id-token: 'write'
     steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v4
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
-    - name: Acquire lock for ci-bunny-2
-      uses: ben-z/gh-action-mutex@v1.0.0-alpha.9
-      with:
-        branch: lock-ci-bunny-2
-    - id: 'auth'
-      uses: 'google-github-actions/auth@v2'
-      with:
-        workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
-        service_account: ${{ secrets.GCP_SA }}
-    - id: 'get-credentials'
-      uses: 'google-github-actions/get-gke-credentials@v2'
-      with:
-        cluster_name: ci-bunny-2
-        location: europe-west1
-    - name: Get operator manifest
+
+    - name: Download Operator artifact
       uses: actions/download-artifact@v4
       with:
+        name: operator_image
+        path: /tmp
+
+    - name: Download Operator manifest
+      uses: actions/download-artifact@v4
+      # This manifest was generated by the build_operator job, and it has the image tag for this specific execution.
+      # Thanks to that, we don't have to make YAML modifications to deploy the right image.
+      with:
         name: operator-manifests
+        path: tmp/
+
+    - name: Create KinD
+      uses: helm/kind-action@v1
+      with:
+        cluster_name: examples-testing
+        node_image: ${{ env.KIND_NODE_IMAGE }}
+
+    - name: Install Carvel
+      uses: carvel-dev/setup-action@v2.0.1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        only: ytt
+
     - name: Install Operator build
       run: |
-        make install-tools
         make destroy
-        kubectl apply -f cluster-operator.yml
+        kind load image-archive /tmp/operator.tar --name examples-testing
+        ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+
     - name: Documented example tests
       run: docs/examples/test.sh
+
     - name: Notify Google Chat
       if: failure()
       uses: SimonScholz/google-chat-action@main
@@ -433,41 +533,51 @@ jobs:
   test_upgrade:
     name: Test upgrade of the operator
     runs-on: ubuntu-latest
-    container: us.gcr.io/cf-rabbitmq-for-k8s-bunny/rabbitmq-for-kubernetes-ci
     if: ${{ github.event_name != 'pull_request' }}
-    # Add "id-token" with the intended permissions.
-    permissions:
-      contents: 'write'
-      id-token: 'write'
     needs: build_operator
+    permissions:
+      # Required by ben-z/gh-action-mutex@v1.0.0-alpha.9
+      contents: 'write'
+      # Required by google-github-actions/auth@v2
+      # Required by google-github-actions/get-gke-credentials@v2
+      id-token: 'write'
     steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v4
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+
     - name: Acquire lock for ci-bunny-1
       uses: ben-z/gh-action-mutex@v1.0.0-alpha.9
       with:
         branch: lock-ci-bunny-1
-    - id: 'auth'
-      uses: 'google-github-actions/auth@v2'
+
+    - id: auth
+      name: Authenticate with GCP
+      uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
         service_account: ${{ secrets.GCP_SA }}
-    - id: 'get-credentials'
-      uses: 'google-github-actions/get-gke-credentials@v2'
+
+    - id: get-credentials
+      name: Fetch creds
+      uses: google-github-actions/get-gke-credentials@v2
       with:
         cluster_name: ci-bunny-1
         location: europe-west1
+
     - name: Get operator manifest
       uses: actions/download-artifact@v4
       with:
         name: operator-manifests
+
     - name: Test upgrade rollout
       run: hack/test-upgrade.sh https://github.com/rabbitmq/cluster-operator/releases/download/${{ env.BASELINE_UPGRADE_VERSION }}/cluster-operator.yml cluster-operator.yml release-header.md
+
     - name: Upload release header
       if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
@@ -476,10 +586,12 @@ jobs:
         path: release-header.md
         retention-days: 2
         if-no-files-found: error
+
     - name: Notify Google Chat
       if: failure()
       uses: SimonScholz/google-chat-action@main
       with:
+          #! Shared-Shared-RabbitMQ%20for%20Kubernetes%2Frabbitmq-ci-google-chat-webhook
           webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
           jobStatus: ${{ job.status }}
           title: Cluster Operator - Test upgrade
@@ -492,16 +604,19 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
     - name: Get operator manifest
       uses: actions/download-artifact@v4
       with:
         name: operator-manifests
+
     - name: Get release header
       uses: actions/download-artifact@v4
       with:
         name: release-header
+
     - name: Release
-      uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191
+      uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
@@ -511,6 +626,7 @@ jobs:
         draft: true
         body_path: release-header.md
         fail_on_unmatched_files: true
+
     - name: Notify Google Chat
       if: failure()
       uses: SimonScholz/google-chat-action@main

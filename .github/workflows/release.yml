@@ -14,10 +14,3 @@ jobs:
       uses: rajatjindal/krew-release-bot@v0.0.46
       with:
         krew_template_file: hack/rabbitmq.yaml
-    - uses: 8398a7/action-slack@v3
-      with:
-        status: ${{ job.status }}
-        fields: repo,message,action,eventName
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      if: failure()
