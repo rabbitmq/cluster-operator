@@ -77,9 +77,7 @@ jobs:
         make kubectl-plugin-tests
 
     - name: Notify Google Chat
-      # TODO: add back before PR
-      if: false
-#      if: ${{ failure() && github.event_name != 'pull_request' }}
+      if: ${{ failure() && github.event_name != 'pull_request' }}
       uses: SimonScholz/google-chat-action@main
       with:
           webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
@@ -170,9 +168,7 @@ jobs:
     - name: Build and push
       id: build
       uses: docker/build-push-action@v6
-      # TODO: re-enable before PR
-      if: false
-#      if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
+      if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
       with:
         context: .
         platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
@@ -211,7 +207,6 @@ jobs:
         echo -n "cluster-operator-${{ steps.meta.outputs.version }}.yml" > "latest-cluster-operator-dev-manifest.txt"
 
     - name: Upload operator manifests
-      if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
       with:
         name: operator-manifests
@@ -220,11 +215,10 @@ jobs:
         if-no-files-found: error
 
   upload_gcs:
+    # TODO: nuke this after refactoring carvel CI
     runs-on: ubuntu-latest
     name: Upload manifests to GCS
-    # TODO: remove before sending PR
-    if: false
-#    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
     needs:
       - build_operator
     env:
@@ -528,9 +522,7 @@ jobs:
   test_upgrade:
     name: Test upgrade of the operator
     runs-on: ubuntu-latest
-    # FIXME: enable this before PR
-    if: false
-#    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ github.event_name != 'pull_request' }}
     needs: build_operator
     permissions:
       # Required by ben-z/gh-action-mutex@v1.0.0-alpha.9
