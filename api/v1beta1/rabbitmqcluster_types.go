@@ -21,6 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const DisableDefaultTopologySpreadAnnotation = "rabbitmq.com/disable-default-topology-spread-constraints"
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="AllReplicasReady",type="string",JSONPath=".status.conditions[?(@.type == 'AllReplicasReady')].status"
@@ -504,6 +506,14 @@ func (cluster RabbitmqCluster) ChildResourceName(name string) string {
 
 func (cluster RabbitmqCluster) PVCName(i int) string {
 	return strings.Join([]string{"persistence", cluster.Name, "server", strconv.Itoa(i)}, "-")
+}
+
+func (cluster RabbitmqCluster) DisableDefaultTopologySpreadConstraints() bool {
+	value, ok := cluster.Annotations[DisableDefaultTopologySpreadAnnotation]
+	if ok && strings.TrimSpace(value) == "true" {
+		return true
+	}
+	return false
 }
 
 func init() {

@@ -2138,6 +2138,87 @@ default_pass = {{ .Data.data.password }}
 
 				})
 
+				Context("TopologySpreadConstraints composition", func() {
+					BeforeEach(func() {
+						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+							Spec: &rabbitmqv1beta1.StatefulSetSpec{
+								Template: &rabbitmqv1beta1.PodTemplateSpec{
+									Spec: &corev1.PodSpec{},
+								},
+							},
+						}
+						builder = &resource.RabbitmqResourceBuilder{
+							Instance: &instance,
+							Scheme:   scheme,
+						}
+					})
+					When("Default TopologySpreadConstraints", func() {
+						It("uses the default", func() {
+							stsBuilder := builder.StatefulSet()
+							Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+							Expect(statefulSet.Spec.Template.Spec.TopologySpreadConstraints).To(ConsistOf(
+								corev1.TopologySpreadConstraint{
+									MaxSkew:           1,
+									TopologyKey:       "topology.kubernetes.io/zone",
+									WhenUnsatisfiable: corev1.ScheduleAnyway,
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: map[string]string{
+											"app.kubernetes.io/name": instance.Name,
+										},
+									},
+								},
+							))
+						})
+					})
+					When("Disable Default TopologySpreadConstraints", func() {
+						It("does not have any constraint", func() {
+							instance.Annotations = map[string]string{rabbitmqv1beta1.DisableDefaultTopologySpreadAnnotation: "true"}
+							stsBuilder := builder.StatefulSet()
+							Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+							Expect(statefulSet.Spec.Template.Spec.TopologySpreadConstraints).To(BeEmpty())
+						})
+					})
+					When("Disable Default TopologySpreadConstraints and override has a value", func() {
+						It("overrides the default", func() {
+							instance.Annotations = map[string]string{rabbitmqv1beta1.DisableDefaultTopologySpreadAnnotation: "true"}
+							instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+								Spec: &rabbitmqv1beta1.StatefulSetSpec{
+									Template: &rabbitmqv1beta1.PodTemplateSpec{
+										Spec: &corev1.PodSpec{
+											TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+												{
+													MaxSkew:           1,
+													TopologyKey:       "my-topology",
+													WhenUnsatisfiable: corev1.DoNotSchedule,
+													LabelSelector: &metav1.LabelSelector{
+														MatchLabels: map[string]string{
+															"key": "value",
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							}
+							stsBuilder := builder.StatefulSet()
+							Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+							Expect(statefulSet.Spec.Template.Spec.TopologySpreadConstraints).To(ConsistOf(
+								corev1.TopologySpreadConstraint{
+									MaxSkew:           1,
+									TopologyKey:       "my-topology",
+									WhenUnsatisfiable: corev1.DoNotSchedule,
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: map[string]string{
+											"key": "value",
+										},
+									},
+								},
+							))
+						})
+					})
+				})
+
 				Context("Rabbitmq Container volume mounts", func() {
 					It("Overrides the volume mounts list while making sure that '/var/lib/rabbitmq/' mounts before '/var/lib/rabbitmq/mnesia/' ", func() {
 						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
