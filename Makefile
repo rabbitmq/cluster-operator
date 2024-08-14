@@ -6,6 +6,10 @@ ifeq ($(ARCHITECTURE),x86_64)
 	ARCHITECTURE=amd64
 endif
 
+ifeq ($(ARCHITECTURE),aarch64)
+	ARCHITECTURE=arm64
+endif
+
 .DEFAULT_GOAL = help
 .PHONY: help
 help:
@@ -23,7 +27,7 @@ __check_defined = \
 ###
 
 # The latest 1.25 available for envtest
-ENVTEST_K8S_VERSION ?= 1.25.0
+ENVTEST_K8S_VERSION ?= 1.26.1
 LOCAL_TESTBIN = $(CURDIR)/testbin
 $(LOCAL_TESTBIN):
 	mkdir -p $@
@@ -51,11 +55,31 @@ kubebuilder-assets-rm:
 	setup-envtest -v debug --os $(platform) --arch $(ARCHITECTURE) --bin-dir $(LOCAL_TESTBIN) cleanup
 
 .PHONY: unit-tests
-unit-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet vuln manifests ## Run unit tests
+unit-tests::install-tools
+unit-tests::$(KUBEBUILDER_ASSETS)
+unit-tests::generate
+unit-tests::fmt
+unit-tests::vet
+unit-tests::vuln
+unit-tests::manifests
+unit-tests::just-unit-tests ## Run unit tests
+
+.PHONY: just-unit-tests
+just-unit-tests:
 	ginkgo -r --randomize-all api/ internal/ pkg/
 
 .PHONY: integration-tests
-integration-tests: install-tools $(KUBEBUILDER_ASSETS) generate fmt vet vuln manifests ## Run integration tests
+integration-tests::install-tools
+integration-tests::$(KUBEBUILDER_ASSETS)
+integration-tests::generate
+integration-tests::fmt
+integration-tests::vet
+integration-tests::vuln
+integration-tests::manifests
+integration-tests::just-integration-tests ## Run integration tests
+
+.PHONY: just-integration-tests
+just-integration-tests:
 	ginkgo -r controllers/
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
@@ -196,18 +220,23 @@ docker-build-dev:
 	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 
+# https://github.com/cert-manager/cmctl/releases
+# Cert Manager now publishes CMCTL independently from cert-manager
+CMCTL_VERSION ?= v2.1.0
 CMCTL = $(LOCAL_TESTBIN)/cmctl
+.PHONY: cmctl
+cmctl: | $(CMCTL)
 $(CMCTL): | $(LOCAL_TMP) $(LOCAL_TESTBIN)
-	curl -sSL -o $(LOCAL_TMP)/cmctl.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cmctl-$(platform)-$(shell go env GOARCH).tar.gz
+	curl -sSL -o $(LOCAL_TMP)/cmctl.tar.gz https://github.com/cert-manager/cmctl/releases/download/$(CMCTL_VERSION)/cmctl_$(platform)_$(shell go env GOARCH).tar.gz
 	tar -C $(LOCAL_TMP) -xzf $(LOCAL_TMP)/cmctl.tar.gz
 	mv $(LOCAL_TMP)/cmctl $(CMCTL)
 
-CERT_MANAGER_VERSION ?= 1.9.2
+CERT_MANAGER_VERSION ?= 1.15.1
 .PHONY: cert-manager
 cert-manager: | $(CMCTL) ## Setup cert-manager. Use CERT_MANAGER_VERSION to customise the version e.g. CERT_MANAGER_VERSION="1.9.2"
 	@echo "Installing Cert Manager"
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml
-	$(CMCTL) check api --wait=5m
+	$(CMCTL) check api --wait=5m --namespace cert-manager
 
 .PHONY: cert-manager-rm
 cert-manager-rm:

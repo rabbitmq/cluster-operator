@@ -25,7 +25,7 @@ You can deploy this example like this:
 kubectl apply -f rabbitmq.yaml
 ```
 
-And once deployed, you can check check that TLS is enabled by:
+And once deployed, you can check that TLS is enabled by:
 
 ```shell
   kubectl exec vault-tls-server-0 -c rabbitmq -- openssl s_client \
