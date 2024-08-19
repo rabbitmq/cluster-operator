@@ -180,8 +180,8 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
 					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
-					operatorDefaults, exists := configMap.Data["operatorDefaults.conf"]
-					Expect(exists).To(BeTrue())
+					Expect(configMap.Data).To(HaveKey("operatorDefaults.conf"))
+					operatorDefaults := configMap.Data["operatorDefaults.conf"]
 					Expect(operatorDefaults).NotTo(ContainSubstring("auth_mechanisms"))
 					Expect(operatorDefaults).NotTo(ContainSubstring("PLAIN"))
 					Expect(operatorDefaults).NotTo(ContainSubstring("ANONYMOUS"))
