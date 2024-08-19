@@ -101,6 +101,26 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		return err
 	}
 
+	rmqProperties := builder.Instance.Spec.Rabbitmq
+	authMechsConfigured, err := areAuthMechanismsConfigued(rmqProperties.AdditionalConfig)
+	if err != nil {
+		return err
+	}
+	// By default, RabbitMQ configures the following SASL mechanisms:
+	// auth_mechanisms.1 = PLAIN
+	// auth_mechanisms.2 = AMQPLAIN
+	// auth_mechanisms.3 = ANONYMOUS
+	if !authMechsConfigured {
+		// Since the user didn't explicitly configure auth mechanisms, we disable
+		// ANONYMOUS logins because they should be disabled in production.
+		if _, err := defaultSection.NewKey("auth_mechanisms.1", "PLAIN"); err != nil {
+			return err
+		}
+		if _, err := defaultSection.NewKey("auth_mechanisms.2", "AMQPLAIN"); err != nil {
+			return err
+		}
+	}
+
 	userConfiguration := ini.Empty()
 	userConfigurationSection := userConfiguration.Section("")
 
@@ -231,7 +251,6 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 
 	rmqConfBuffer.Reset()
 
-	rmqProperties := builder.Instance.Spec.Rabbitmq
 	if err := userConfiguration.Append([]byte(rmqProperties.AdditionalConfig)); err != nil {
 		return fmt.Errorf("failed to append spec.rabbitmq.additionalConfig: %w", err)
 	}
@@ -306,4 +325,19 @@ func removeHeadroom(memLimit int64) int64 {
 		return memLimit - 2*GiB
 	}
 	return memLimit - memLimit/5
+}
+
+func areAuthMechanismsConfigued(additionalConfig string) (bool, error) {
+	iniFile, err := ini.Load([]byte(additionalConfig))
+	if err != nil {
+		return false, fmt.Errorf("failed to load spec.rabbitmq.additionalConfig: %w", err)
+	}
+
+	section := iniFile.Section("")
+	for _, key := range section.KeyStrings() {
+		if strings.HasPrefix(key, "auth_mechanisms") {
+			return true, nil
+		}
+	}
+	return false, nil
 }

@@ -36,7 +36,10 @@ cluster_formation.peer_discovery_backend   = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host                 = kubernetes.default
 cluster_formation.k8s.address_type         = hostname
 cluster_formation.target_cluster_size_hint = 1
-cluster_name                               = ` + instanceName)
+cluster_name                               = ` + instanceName + `
+auth_mechanisms.1                          = PLAIN
+auth_mechanisms.2                          = AMQPLAIN
+`)
 }
 
 var _ = Describe("GenerateServerConfigMap", func() {
@@ -167,6 +170,22 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
+			})
+
+			When("user restricts SSL mechanisms to EXTERNAL", func() {
+				It("adds only EXTERNAL", func() {
+					userDefinedConfiguration := "auth_mechanisms.1 = EXTERNAL"
+					instance.Spec.Rabbitmq.AdditionalConfig = userDefinedConfiguration
+					expectedConfiguration := iniString(userDefinedConfiguration)
+
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
+					operatorDefaults, exists := configMap.Data["operatorDefaults.conf"]
+					Expect(exists).To(BeTrue())
+					Expect(operatorDefaults).NotTo(ContainSubstring("auth_mechanisms"))
+					Expect(operatorDefaults).NotTo(ContainSubstring("PLAIN"))
+					Expect(operatorDefaults).NotTo(ContainSubstring("ANONYMOUS"))
+				})
 			})
 		})
 
