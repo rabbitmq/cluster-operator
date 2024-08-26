@@ -383,7 +383,7 @@ type RabbitmqClusterConfigurationSpec struct {
 	// Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator.
 	// Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
 	// For more information on this config, see https://www.rabbitmq.com/configure.html#config-file
-	// +kubebuilder:validation:MaxLength:=2000
+	// +kubebuilder:validation:MaxLength:=100000
 	AdditionalConfig string `json:"additionalConfig,omitempty"`
 	// Specify any rabbitmq advanced.config configurations to apply to the cluster.
 	// For more information on advanced config, see https://www.rabbitmq.com/configure.html#advanced-config-file

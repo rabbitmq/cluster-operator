@@ -4886,7 +4886,7 @@ spec:
                         Modify to add to the rabbitmq.conf file in addition to default configurations set by the operator.
                         Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
                         For more information on this config, see https://www.rabbitmq.com/configure.html#config-file
-                      maxLength: 2000
+                      maxLength: 100000
                       type: string
                     additionalPlugins:
                       description: 'List of plugins to enable in addition to essential plugins: rabbitmq_management, rabbitmq_prometheus, and rabbitmq_peer_discovery_k8s.'
