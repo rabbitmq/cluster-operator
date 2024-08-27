@@ -190,11 +190,11 @@ deploy-kind: manifests deploy-namespace-rbac ## Load operator image and deploy o
 	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/kind | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
-YTT_VERSION ?= v0.45.3
+YTT_VERSION ?= v0.50.0
 YTT = $(LOCAL_TESTBIN)/ytt
 $(YTT): | $(LOCAL_TESTBIN)
 	mkdir -p $(LOCAL_TESTBIN)
-	curl -sSL -o $(YTT) https://github.com/vmware-tanzu/carvel-ytt/releases/download/$(YTT_VERSION)/ytt-$(platform)-$(shell go env GOARCH)
+	curl -sSL -o $(YTT) https://github.com/carvel-dev/ytt/releases/download/$(YTT_VERSION)/ytt-$(platform)-$(ARCHITECTURE)
 	chmod +x $(YTT)
 
 QUAY_IO_OPERATOR_IMAGE ?= quay.io/rabbitmqoperator/cluster-operator:latest
