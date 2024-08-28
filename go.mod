@@ -29,16 +29,16 @@ require (
 	sigs.k8s.io/controller-runtime v0.18.5
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20220217024943-cfd92767d28e
 	sigs.k8s.io/controller-tools v0.15.0
-	sigs.k8s.io/kind v0.23.0
+	sigs.k8s.io/kind v0.24.0
 	sigs.k8s.io/kustomize/kustomize/v5 v5.4.3
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.1 // indirect
+	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
-	github.com/alessio/shellescape v1.4.1 // indirect
+	github.com/alessio/shellescape v1.4.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
