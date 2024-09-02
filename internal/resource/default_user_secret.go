@@ -74,6 +74,7 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 		},
 	}
 	builder.updatePorts(secret)
+	builder.updateConnectionString(secret)
 
 	return secret, nil
 }
@@ -87,6 +88,7 @@ func (builder *DefaultUserSecretBuilder) Update(object client.Object) error {
 	secret.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
 	secret.Annotations = metadata.ReconcileAndFilterAnnotations(secret.GetAnnotations(), builder.Instance.Annotations)
 	builder.updatePorts(secret)
+	builder.updateConnectionString(secret)
 
 	if err := controllerutil.SetControllerReference(builder.Instance, secret, builder.Scheme); err != nil {
 		return fmt.Errorf("failed setting controller reference: %w", err)
@@ -142,6 +144,14 @@ func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
 				delete(secret.Data, portName)
 			}
 		}
+	}
+}
+
+func (builder *DefaultUserSecretBuilder) updateConnectionString(secret *corev1.Secret) {
+	if builder.Instance.Spec.TLS.SecretName != "" {
+		secret.Data["connection_string"] = []byte(fmt.Sprintf("amqps://%s:%s@%s:%s/", secret.Data["username"], secret.Data["password"], secret.Data["host"], secret.Data["port"]))
+	} else {
+		secret.Data["connection_string"] = []byte(fmt.Sprintf("amqp://%s:%s@%s:%s/", secret.Data["username"], secret.Data["password"], secret.Data["host"], secret.Data["port"]))
 	}
 }
 
