@@ -7,6 +7,12 @@ on:
     types: [published]
     
   workflow_dispatch:
+    inputs:
+      bundle_version:
+        description: 'The version of the bundle in format 1.2.3 (do not prefix with "v")'
+        default: ""
+        required: false
+        type: string
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
@@ -39,7 +45,7 @@ jobs:
 
         - name: Set image tag to tagged release
           id: set_bundle_version
-          run: scripts/print-tag-version.bash >> "$GITHUB_OUTPUT"
+          run: scripts/print-tag-version.bash ${{ inputs.bundle_version }} >> "$GITHUB_OUTPUT"
           shell: bash
 
         - name: Install and configure Poetry
@@ -84,27 +90,15 @@ jobs:
             poetry run generate_bundle ./../releases/cluster-operator.yml $BUNDLE_VERSION ./
 
             opm alpha bundle build -c stable -d ./$BUNDLE_VERSION/manifests -t $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION -p rabbitmq-cluster-operator --image-builder podman     
+            podman push $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION
             opm index add -b $DOCKER_REGISTRY_SERVER/$OLM_IMAGE:$BUNDLE_VERSION -t $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:$BUNDLE_VERSION -c podman
+            podman push $DOCKER_REGISTRY_SERVER/$OLM_INDEX_IMAGE:$BUNDLE_VERSION
 
             mkdir upload
             mv "$BUNDLE_VERSION" ./upload
             cp ./rabbitmq_olm_package_repo/generators/cluster_operator_generators/cluster-service-version-generator-openshift.yml ./rabbitmq_olm_package_repo/generators/cluster_operator_generators/cluster-service-version-generator.yml
             poetry run generate_bundle ./rabbitmq_olm_package_repo/manifests_crds/cluster-operator.yaml $BUNDLE_VERSION ./
             mv "$BUNDLE_VERSION" ./upload/$BUNDLE_VERSION-openshift
-
-        - name: Push OLM Package to Registry
-          uses: redhat-actions/push-to-registry@v2
-          with:
-            registry: ${{ env.DOCKER_REGISTRY_SERVER }}
-            image: ${{ env.OLM_IMAGE }}
-            tags: ${{ steps.set_bundle_version.outputs.BUNDLE_VERSION }}
-
-        - name: Push OLM Package to Registry
-          uses: redhat-actions/push-to-registry@v2
-          with:
-            registry: ${{ env.DOCKER_REGISTRY_SERVER }}
-            image: ${{ env.OLM_INDEX_IMAGE }}
-            tags: ${{ steps.set_bundle_version.outputs.BUNDLE_VERSION }}
 
         - name: Upload OLM Package
           uses: actions/upload-artifact@v4

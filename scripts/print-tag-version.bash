@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [ -n "$1" ]; then
+    echo "BUNDLE_VERSION=$1"
+    exit 0
+fi
+
 if [ "$GITHUB_REF_TYPE" != "tag" ]; then
   echo "BUNDLE_VERSION=0.0.0"
   exit 0
