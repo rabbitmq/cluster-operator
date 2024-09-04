@@ -220,6 +220,9 @@ jobs:
     if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
     needs:
       - build_operator
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     env:
       image_version: ${{ needs.build_operator.outputs.image_tag }}
     steps:
