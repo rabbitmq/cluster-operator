@@ -61,6 +61,7 @@ import (
 
 const podCreationTimeout = 10 * time.Minute
 const portReadinessTimeout = 1 * time.Minute
+const serviceReadinessTimeout = 1 * time.Minute
 const k8sQueryTimeout = 1 * time.Minute
 
 type featureFlag struct {
@@ -395,15 +396,22 @@ func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset
 }
 
 func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
+	serviceType := rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+		Type: "NodePort",
+	}
+	if os.Getenv("SYSTEM_TESTS_MODE") == "LoadBalancer" {
+		serviceType = rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+			Type: "LoadBalancer",
+		}
+	} 
+
 	cluster := &rabbitmqv1beta1.RabbitmqCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instanceName,
 			Namespace: namespace,
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
-				Type: "NodePort",
-			},
+			Service: serviceType,
 			// run system tests with low resources so that they can run on GitHub actions
 			Resources: &corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]k8sresource.Quantity{
@@ -483,25 +491,46 @@ func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) str
  * Helper function to fetch a Kubernetes Node IP. Node IPs are necessary
  * to access NodePort type services.
  */
-func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) string {
-	nodes, err := clientSet.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	ExpectWithOffset(1, nodes).ToNot(BeNil())
-	ExpectWithOffset(1, len(nodes.Items)).To(BeNumerically(">", 0))
+func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) string {
 
 	var nodeIp string
-	for _, address := range nodes.Items[0].Status.Addresses {
-		// There are no order guarantees in this array. An Internal IP might come
-		// before an external IP or hostname. We want to return an external IP if
-		// available, or the internal IP.
-		// We don't want to return a hostname because it might not be resolvable by
-		// our local DNS
-		switch address.Type {
-		case corev1.NodeExternalIP:
-			return address.Address
-		case corev1.NodeInternalIP:
-			nodeIp = address.Address
+
+	if os.Getenv("SYSTEM_TESTS_MODE") == "LoadBalancer"   {
+		var output []byte
+		EventuallyWithOffset(2, func() string {
+			output, _ = kubectl(
+				"-n",
+				rabbitmqCluster.Namespace,
+				"get",
+				"services",
+				rabbitmqCluster.Name,
+				"-ojsonpath='{.status.loadBalancer.ingress[0].ip}'",
+			)
+			return string(output)
+		}, serviceReadinessTimeout, 3).ShouldNot(Equal(""))
+		nodeIp = string(output)
+
+	} else   {
+		nodes, err := clientSet.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		ExpectWithOffset(1, nodes).ToNot(BeNil())
+		ExpectWithOffset(1, len(nodes.Items)).To(BeNumerically(">", 0))
+
+	
+		for _, address := range nodes.Items[0].Status.Addresses {
+			// There are no order guarantees in this array. An Internal IP might come
+			// before an external IP or hostname. We want to return an external IP if
+			// available, or the internal IP.
+			// We don't want to return a hostname because it might not be resolvable by
+			// our local DNS
+			switch address.Type {
+				case corev1.NodeExternalIP:
+					return address.Address
+				case corev1.NodeInternalIP:
+					nodeIp = address.Address
+			}
 		}
+		return nodeIp
 	}
 	// we did not find an external IP
 	// we might return empty or the internal IP
@@ -531,14 +560,17 @@ func containsPort(ports []corev1.ServicePort, portName string) bool {
 }
 
 func rabbitmqNodePort(ctx context.Context, clientSet *kubernetes.Clientset, cluster *rabbitmqv1beta1.RabbitmqCluster, portName string) string {
+
+	
+	var err error
 	service, err := clientSet.CoreV1().Services(cluster.Namespace).
-		Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
+	Get(ctx, cluster.ChildResourceName(""), metav1.GetOptions{})
 
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	for _, port := range service.Spec.Ports {
 		if port.Name == portName {
-			return strconv.Itoa(int(port.NodePort))
+			return strconv.Itoa(int(port.Port))
 		}
 	}
 
@@ -600,6 +632,23 @@ func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, 
 	}, podCreationTimeout, 1).Should(Equal("'True'"))
 
 	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
+
+	if os.Getenv("SYSTEM_TESTS_MODE") == "LoadBalancer"   {
+		var output []byte
+		EventuallyWithOffset(2, func() string {
+			output, _ = kubectl(
+				"-n",
+				cluster.Namespace,
+				"get",
+				"services",
+				cluster.Name,
+				"-ojsonpath='{.status.loadBalancer.ingress[0].ip}'",
+			)
+			return string(output)
+		}, serviceReadinessTimeout, 3).ShouldNot(Equal(""))
+	}
+
+	
 }
 
 func waitForPortConnectivity(cluster *rabbitmqv1beta1.RabbitmqCluster) {

@@ -54,8 +54,10 @@ var _ = Describe("Operator", func() {
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
 			waitForRabbitmqRunning(cluster)
 
-			hostname = kubernetesNodeIp(ctx, clientSet)
+			hostname = kubernetesNodeIp(ctx, clientSet, cluster)
 			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
+
+			fmt.Printf("hostname: " + hostname + " port: " + port)
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -278,8 +280,10 @@ CONSOLE_LOG=new`
 
 			waitForRabbitmqRunning(cluster)
 
-			hostname = kubernetesNodeIp(ctx, clientSet)
+			hostname = kubernetesNodeIp(ctx, clientSet, cluster)
 			port = rabbitmqNodePort(ctx, clientSet, cluster, "management")
+
+			fmt.Printf("hostname: " + hostname + " port: " + port)
 
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
@@ -404,8 +408,9 @@ CONSOLE_LOG=new`
 
 			It("works", func() {
 				username, password, err := getUsernameAndPassword(ctx, clientSet, cluster.Namespace, cluster.Name)
-				hostname := kubernetesNodeIp(ctx, clientSet)
+				hostname := kubernetesNodeIp(ctx, clientSet, cluster)
 				port := rabbitmqNodePort(ctx, clientSet, cluster, "management")
+				fmt.Printf("hostname: " + hostname + " port: " + port)
 				Expect(err).NotTo(HaveOccurred())
 				assertHttpReady(hostname, port)
 
@@ -462,7 +467,7 @@ CONSOLE_LOG=new`
 
 				// Passing a single hostname for certificate creation
 				// the AMPQS client is connecting using the same hostname
-				hostname = kubernetesNodeIp(ctx, clientSet)
+				hostname = kubernetesNodeIp(ctx, clientSet, cluster)
 				caFilePath, caCert, caKey = createTLSSecret("rabbitmq-tls-test-secret", namespace, hostname)
 
 				// Update RabbitmqCluster with TLS secret name
@@ -591,7 +596,8 @@ CONSOLE_LOG=new`
 		BeforeEach(func() {
 			instanceName := "mqtt-stomp-stream"
 			cluster = newRabbitmqCluster(namespace, instanceName)
-			cluster.Spec.Service.Type = "NodePort"
+			
+			//cluster.Spec.Service.Type = "LoadBalancer"
 			cluster.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
 				"rabbitmq_mqtt",
 				"rabbitmq_web_mqtt",
@@ -611,7 +617,7 @@ CONSOLE_LOG=new`
 			waitForPortReadiness(cluster, 1883)  // mqtt
 			waitForPortReadiness(cluster, 61613) // stomp
 
-			hostname = kubernetesNodeIp(ctx, clientSet)
+			hostname = kubernetesNodeIp(ctx, clientSet, cluster)
 			var err error
 			username, password, err = getUsernameAndPassword(ctx, clientSet, namespace, instanceName)
 			Expect(err).NotTo(HaveOccurred())
