@@ -997,20 +997,18 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 			})
 		}
 
-		if builder.Instance.MutualTLSEnabled() {
-			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
-				ports = append(ports, corev1.ContainerPort{
-					Name:          "web-mqtt-tls",
-					ContainerPort: 15676,
-				})
-			}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "web-mqtt-tls",
+				ContainerPort: 15676,
+			})
+		}
 
-			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
-				ports = append(ports, corev1.ContainerPort{
-					Name:          "web-stomp-tls",
-					ContainerPort: 15673,
-				})
-			}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "web-stomp-tls",
+				ContainerPort: 15673,
+			})
 		}
 	}
 
