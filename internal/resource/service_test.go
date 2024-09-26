@@ -16,7 +16,6 @@ import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -875,7 +874,7 @@ var _ = Context("Services", func() {
 
 func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnnotations, serviceAnnotations map[string]string) *corev1.Service {
 	instance := &rabbitmqv1beta1.RabbitmqCluster{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        "foo",
 			Namespace:   "foo-namespace",
 			Annotations: instanceAnnotations,

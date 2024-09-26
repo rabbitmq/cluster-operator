@@ -952,8 +952,8 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		defer secureConn.Close()
 
-		for retry := 0; retry < 5; retry++ {
-			fmt.Printf("Attempt #%d to connect using STOMPS\n", retry)
+		for r := 0; r < 5; r++ {
+			fmt.Printf("Attempt #%d to connect using STOMPS\n", r)
 			conn, err = stomp.Connect(secureConn,
 				stomp.ConnOpt.Login(username, password),
 				stomp.ConnOpt.AcceptVersion(stomp.V12), // RabbitMQ STOMP plugin supports STOMP versions 1.0 through 1.2
@@ -967,8 +967,8 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 			time.Sleep(2 * time.Second)
 		}
 	} else {
-		for retry := 0; retry < 5; retry++ {
-			fmt.Printf("Attempt #%d to connect using STOMP\n", retry)
+		for r := 0; r < 5; r++ {
+			fmt.Printf("Attempt #%d to connect using STOMP\n", r)
 			conn, err = stomp.Dial("tcp",
 				fmt.Sprintf("%s:%s", hostname, port),
 				stomp.ConnOpt.Login(username, password),

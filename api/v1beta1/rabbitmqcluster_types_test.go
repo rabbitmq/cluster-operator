@@ -14,7 +14,6 @@ import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
@@ -26,7 +25,6 @@ import (
 )
 
 var _ = Describe("RabbitmqCluster", func() {
-
 	Context("RabbitmqClusterSpec", func() {
 		It("can be created with a single replica", func() {
 			created := generateRabbitmqClusterObject("rabbit1")
@@ -69,11 +67,11 @@ var _ = Describe("RabbitmqCluster", func() {
 		It("can be created with resource requests", func() {
 			created := generateRabbitmqClusterObject("rabbit-resource-request")
 			created.Spec.Resources = &corev1.ResourceRequirements{
-				Limits: map[corev1.ResourceName]resource.Quantity{
+				Limits: map[corev1.ResourceName]k8sresource.Quantity{
 					corev1.ResourceCPU:    k8sresource.MustParse("100m"),
 					corev1.ResourceMemory: k8sresource.MustParse("100Mi"),
 				},
-				Requests: map[corev1.ResourceName]resource.Quantity{
+				Requests: map[corev1.ResourceName]k8sresource.Quantity{
 					corev1.ResourceCPU:    k8sresource.MustParse("100m"),
 					corev1.ResourceMemory: k8sresource.MustParse("100Mi"),
 				},
@@ -116,7 +114,7 @@ var _ = Describe("RabbitmqCluster", func() {
 			Expect(created.MemoryLimited()).To(BeTrue())
 
 			created.Spec.Resources = &corev1.ResourceRequirements{
-				Limits: map[corev1.ResourceName]resource.Quantity{},
+				Limits: map[corev1.ResourceName]k8sresource.Quantity{},
 			}
 			Expect(created.MemoryLimited()).To(BeFalse())
 		})
@@ -464,11 +462,11 @@ var _ = Describe("RabbitmqCluster", func() {
 			statefulset.Spec.Template.Spec.Containers = []corev1.Container{
 				{
 					Resources: corev1.ResourceRequirements{
-						Limits: map[corev1.ResourceName]resource.Quantity{
-							"memory": resource.MustParse("100Mi"),
+						Limits: map[corev1.ResourceName]k8sresource.Quantity{
+							"memory": k8sresource.MustParse("100Mi"),
 						},
-						Requests: map[corev1.ResourceName]resource.Quantity{
-							"memory": resource.MustParse("100Mi"),
+						Requests: map[corev1.ResourceName]k8sresource.Quantity{
+							"memory": k8sresource.MustParse("100Mi"),
 						},
 					},
 				},
