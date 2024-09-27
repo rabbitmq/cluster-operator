@@ -13,16 +13,16 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var disableNonTLSConfigErr = errors.New("TLS must be enabled if disableNonTLSListeners is set to true")
+var errDisableNonTLSConfig = errors.New("TLS must be enabled if disableNonTLSListeners is set to true")
 
 func (r *RabbitmqClusterReconciler) reconcileTLS(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	// if tls.disableNonTLSListeners set to true and TLS is not enabled, it's a configuration error
 	// reconcileTLS() will return a special error so the operator won't requeue
 	if rabbitmqCluster.DisableNonTLSListeners() && !rabbitmqCluster.TLSEnabled() {
-		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError", disableNonTLSConfigErr.Error())
-		ctrl.LoggerFrom(ctx).Error(disableNonTLSConfigErr, "Error setting up TLS")
-		r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "TLSError", disableNonTLSConfigErr.Error())
-		return disableNonTLSConfigErr
+		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning, "TLSError", errDisableNonTLSConfig.Error())
+		ctrl.LoggerFrom(ctx).Error(errDisableNonTLSConfig, "Error setting up TLS")
+		r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "TLSError", errDisableNonTLSConfig.Error())
+		return errDisableNonTLSConfig
 	}
 
 	if rabbitmqCluster.SecretTLSEnabled() {

@@ -16,7 +16,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -107,8 +106,8 @@ type RabbitmqClusterSpec struct {
 // Future secret backends could be Secrets Store CSI Driver.
 // If not configured, K8s Secrets will be used.
 type SecretBackend struct {
-	Vault          *VaultSpec              `json:"vault,omitempty"`
-	ExternalSecret v1.LocalObjectReference `json:"externalSecret,omitempty"`
+	Vault          *VaultSpec                  `json:"vault,omitempty"`
+	ExternalSecret corev1.LocalObjectReference `json:"externalSecret,omitempty"`
 }
 
 // VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations)
@@ -500,15 +499,15 @@ type RabbitmqClusterList struct {
 	Items []RabbitmqCluster `json:"items"`
 }
 
-func (cluster RabbitmqCluster) ChildResourceName(name string) string {
+func (cluster *RabbitmqCluster) ChildResourceName(name string) string {
 	return strings.TrimSuffix(strings.Join([]string{cluster.Name, name}, "-"), "-")
 }
 
-func (cluster RabbitmqCluster) PVCName(i int) string {
+func (cluster *RabbitmqCluster) PVCName(i int) string {
 	return strings.Join([]string{"persistence", cluster.Name, "server", strconv.Itoa(i)}, "-")
 }
 
-func (cluster RabbitmqCluster) DisableDefaultTopologySpreadConstraints() bool {
+func (cluster *RabbitmqCluster) DisableDefaultTopologySpreadConstraints() bool {
 	value, ok := cluster.Annotations[DisableDefaultTopologySpreadAnnotation]
 	if ok && strings.TrimSpace(value) == "true" {
 		return true

@@ -74,16 +74,16 @@ func generatePVC(rmq rabbitmqv1beta1.RabbitmqCluster, index int, size k8sresourc
 	}
 }
 
-type ActionMatcher struct {
+type actionMatcher struct {
 	expectedVerb         string
 	expectedResourceType string
 	expectedNamespace    string
 	actualAction         k8stesting.Action
 }
 
-func BeGetActionOnResource(expectedResourceType, expectedResourceName, expectedNamespace string) types.GomegaMatcher {
-	return &GetActionMatcher{
-		ActionMatcher{
+func beGetActionOnResource(expectedResourceType, expectedResourceName, expectedNamespace string) types.GomegaMatcher {
+	return &getActionMatcher{
+		actionMatcher{
 			expectedVerb:         "get",
 			expectedResourceType: expectedResourceType,
 			expectedNamespace:    expectedNamespace,
@@ -92,15 +92,15 @@ func BeGetActionOnResource(expectedResourceType, expectedResourceName, expectedN
 	}
 }
 
-type GetActionMatcher struct {
-	ActionMatcher
+type getActionMatcher struct {
+	actionMatcher
 	expectedResourceName string
 }
 
-func (matcher *GetActionMatcher) Match(actual interface{}) (bool, error) {
+func (matcher *getActionMatcher) Match(actual interface{}) (bool, error) {
 	genericAction, ok := actual.(k8stesting.Action)
 	if !ok {
-		return false, fmt.Errorf("BeGetActionOnResource must be passed an Action from the fakeClientset")
+		return false, fmt.Errorf("beGetActionOnResource must be passed an Action from the fakeClientset")
 	}
 	matcher.actualAction = genericAction
 
@@ -113,19 +113,19 @@ func (matcher *GetActionMatcher) Match(actual interface{}) (bool, error) {
 		action.GetName() == matcher.expectedResourceName, nil
 }
 
-func (matcher *GetActionMatcher) FailureMessage(actual interface{}) string {
+func (matcher *getActionMatcher) FailureMessage(actual interface{}) string {
 	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' to match the observed action:\n%+v\n",
 		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
-func (matcher *GetActionMatcher) NegatedFailureMessage(actual interface{}) string {
+func (matcher *getActionMatcher) NegatedFailureMessage(actual interface{}) string {
 	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' not to match the observed action:\n%+v\n",
 		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
-func BeDeleteActionOnResource(expectedResourceType, expectedResourceName, expectedNamespace string) types.GomegaMatcher {
-	return &DeleteActionMatcher{
-		ActionMatcher{
+func beDeleteActionOnResource(expectedResourceType, expectedResourceName, expectedNamespace string) types.GomegaMatcher {
+	return &deleteActionMatcher{
+		actionMatcher{
 			expectedVerb:         "delete",
 			expectedResourceType: expectedResourceType,
 			expectedNamespace:    expectedNamespace,
@@ -134,15 +134,15 @@ func BeDeleteActionOnResource(expectedResourceType, expectedResourceName, expect
 	}
 }
 
-type DeleteActionMatcher struct {
-	ActionMatcher
+type deleteActionMatcher struct {
+	actionMatcher
 	expectedResourceName string
 }
 
-func (matcher *DeleteActionMatcher) Match(actual interface{}) (bool, error) {
+func (matcher *deleteActionMatcher) Match(actual interface{}) (bool, error) {
 	genericAction, ok := actual.(k8stesting.Action)
 	if !ok {
-		return false, fmt.Errorf("BeDeleteActionOnResource must be passed an Action from the fakeClientset")
+		return false, fmt.Errorf("beDeleteActionOnResource must be passed an Action from the fakeClientset")
 	}
 	matcher.actualAction = genericAction
 
@@ -156,19 +156,19 @@ func (matcher *DeleteActionMatcher) Match(actual interface{}) (bool, error) {
 
 }
 
-func (matcher *DeleteActionMatcher) FailureMessage(actual interface{}) string {
+func (matcher *deleteActionMatcher) FailureMessage(actual interface{}) string {
 	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' to match the observed action:\n%+v\n",
 		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
-func (matcher *DeleteActionMatcher) NegatedFailureMessage(actual interface{}) string {
+func (matcher *deleteActionMatcher) NegatedFailureMessage(actual interface{}) string {
 	return fmt.Sprintf("Expected '%s' on resource '%s' named '%s' in namespace '%s' not to match the observed action:\n%+v\n",
 		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
-func BeUpdateActionOnResource(expectedResourceType, expectedResourceName, expectedNamespace string, updatedResourceMatcher types.GomegaMatcher) types.GomegaMatcher {
-	return &UpdateActionMatcher{
-		ActionMatcher{
+func beUpdateActionOnResource(expectedResourceType, expectedResourceName, expectedNamespace string, updatedResourceMatcher types.GomegaMatcher) types.GomegaMatcher {
+	return &updateActionMatcher{
+		actionMatcher{
 			expectedVerb:         "update",
 			expectedResourceType: expectedResourceType,
 			expectedNamespace:    expectedNamespace,
@@ -179,17 +179,17 @@ func BeUpdateActionOnResource(expectedResourceType, expectedResourceName, expect
 	}
 }
 
-type UpdateActionMatcher struct {
-	ActionMatcher
+type updateActionMatcher struct {
+	actionMatcher
 	expectedResourceName         string
 	updatedResourceMatcher       types.GomegaMatcher
 	failedUpdatedResourceMatcher bool
 }
 
-func (matcher *UpdateActionMatcher) Match(actual interface{}) (bool, error) {
+func (matcher *updateActionMatcher) Match(actual interface{}) (bool, error) {
 	genericAction, ok := actual.(k8stesting.Action)
 	if !ok {
-		return false, fmt.Errorf("BeUpdateActionOnResource must be passed an Action from the fakeClientset")
+		return false, fmt.Errorf("beUpdateActionOnResource must be passed an Action from the fakeClientset")
 	}
 	matcher.actualAction = genericAction
 
@@ -221,7 +221,7 @@ func (matcher *UpdateActionMatcher) Match(actual interface{}) (bool, error) {
 	return passedUpdatedResourceMatcher, nil
 }
 
-func (matcher *UpdateActionMatcher) FailureMessage(actual interface{}) string {
+func (matcher *updateActionMatcher) FailureMessage(actual interface{}) string {
 	if matcher.failedUpdatedResourceMatcher {
 		return matcher.updatedResourceMatcher.FailureMessage(actual)
 	}
@@ -229,7 +229,7 @@ func (matcher *UpdateActionMatcher) FailureMessage(actual interface{}) string {
 		matcher.expectedVerb, matcher.expectedResourceType, matcher.expectedResourceName, matcher.expectedNamespace, matcher.actualAction)
 }
 
-func (matcher *UpdateActionMatcher) NegatedFailureMessage(actual interface{}) string {
+func (matcher *updateActionMatcher) NegatedFailureMessage(actual interface{}) string {
 	if matcher.failedUpdatedResourceMatcher {
 		return matcher.updatedResourceMatcher.NegatedFailureMessage(actual)
 	}
