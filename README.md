@@ -64,6 +64,6 @@ generate a new draft release, alongside release artefacts.
 
 ## Copyright
 
-Copyright 2020-2023 VMware, Inc. All Rights Reserved.
+(c) 2007-2024 Broadcom. All Rights Reserved. The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/rabbitmq/cluster-operator)](https://goreportcard.com/report/github.com/rabbitmq/cluster-operator)
