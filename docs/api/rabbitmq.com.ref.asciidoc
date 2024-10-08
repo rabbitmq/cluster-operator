@@ -72,7 +72,6 @@ equivalent to the "default" namespace, but "default" is the canonical representa
 Not all objects are required to be scoped to a namespace - the value of this field for
 those objects will be empty.
 
-
 Must be a DNS_LABEL.
 Cannot be updated.
 More info: http://kubernetes.io/docs/user-guide/namespaces
@@ -287,7 +286,7 @@ The settings for the persistent storage desired for each Pod in the RabbitmqClus
 |===
 | Field | Description
 | *`storageClassName`* __string__ | The name of the StorageClass to claim a PersistentVolume from.
-| *`storage`* __xref:{anchor_prefix}-k8s-io-apimachinery-pkg-api-resource-quantity[$$Quantity$$]__ | The requested size of the persistent volume attached to each Pod in the RabbitmqCluster.
+| *`storage`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#quantity-resource-api[$$Quantity$$]__ | The requested size of the persistent volume attached to each Pod in the RabbitmqCluster.
 The format of this field matches that defined by kubernetes/apimachinery.
 See https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity for more info on the format of this field.
 |===
