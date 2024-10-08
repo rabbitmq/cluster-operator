@@ -1447,7 +1447,7 @@ default_pass = {{ .Data.data.password }}
 			Expect(gracePeriodSeconds).To(Equal(ptr.To(int64(10))))
 
 			// TerminationGracePeriodSeconds is used to set commands timeouts in the preStop hook
-			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 10 && rabbitmq-upgrade await_online_synchronized_mirror -t 10 && rabbitmq-upgrade drain -t 10"}
+			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 10 && rabbitmq-upgrade await_online_synchronized_mirror -t 10 || true && rabbitmq-upgrade drain -t 10"}
 			Expect(statefulSet.Spec.Template.Spec.Containers[0].Lifecycle.PreStop.Exec.Command).To(Equal(expectedPreStopCommand))
 		})
 
@@ -1455,7 +1455,7 @@ default_pass = {{ .Data.data.password }}
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 604800 && rabbitmq-upgrade await_online_synchronized_mirror -t 604800 && rabbitmq-upgrade drain -t 604800"}
+			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 604800 && rabbitmq-upgrade await_online_synchronized_mirror -t 604800 || true && rabbitmq-upgrade drain -t 604800"}
 
 			Expect(statefulSet.Spec.Template.Spec.Containers[0].Lifecycle.PreStop.Exec.Command).To(Equal(expectedPreStopCommand))
 		})
