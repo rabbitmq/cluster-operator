@@ -177,6 +177,7 @@ deploy::deploy-manager
 .PHONY: deploy-dev
 deploy-dev::docker-build-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
 deploy-dev::manifests
+deploy-dev::install
 deploy-dev::deploy-namespace-rbac
 deploy-dev::docker-registry-secret
 deploy-dev::deploy-manager-dev
