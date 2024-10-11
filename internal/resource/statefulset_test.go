@@ -530,6 +530,10 @@ var _ = Describe("StatefulSet", func() {
 											Name: "tls-secret",
 										},
 										Optional: ptr.To(true),
+										Items: []corev1.KeyToPath{
+											{Key: "tls.crt", Path: "tls.crt"},
+											{Key: "tls.key", Path: "tls.key"},
+										},
 									},
 								},
 							},
@@ -638,6 +642,10 @@ var _ = Describe("StatefulSet", func() {
 												Name: "tls-secret",
 											},
 											Optional: ptr.To(true),
+											Items: []corev1.KeyToPath{
+												{Key: "tls.crt", Path: "tls.crt"},
+												{Key: "tls.key", Path: "tls.key"},
+											},
 										},
 									},
 									{
@@ -646,6 +654,9 @@ var _ = Describe("StatefulSet", func() {
 												Name: "mutual-tls-secret",
 											},
 											Optional: ptr.To(true),
+											Items: []corev1.KeyToPath{
+												{Key: "ca.crt", Path: "ca.crt"},
+											},
 										},
 									},
 								},

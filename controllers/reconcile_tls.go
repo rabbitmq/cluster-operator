@@ -60,6 +60,7 @@ func (r *RabbitmqClusterReconciler) checkTLSSecrets(ctx context.Context, rabbitm
 
 	// Mutual TLS: check if CA certificate is stored in a separate secret
 	if rabbitmqCluster.MutualTLSEnabled() {
+		// This is an optimisation to avoid reading the same secret twice
 		if !rabbitmqCluster.SingleTLSSecret() {
 			secretName := rabbitmqCluster.Spec.TLS.CaSecretName
 			logger.V(1).Info("mutual TLS enabled, looking for CA certificate secret", "secret", secretName)

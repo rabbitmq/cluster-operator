@@ -523,6 +523,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 									Name: tlsSpec.SecretName,
 								},
 								Optional: &secretEnforced,
+								Items: []corev1.KeyToPath{
+									{Key: "tls.crt", Path: "tls.crt"},
+									{Key: "tls.key", Path: "tls.key"},
+								},
 							},
 						},
 					},
@@ -531,11 +535,14 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		}
 
-		if builder.Instance.MutualTLSEnabled() && !builder.Instance.SingleTLSSecret() {
+		if builder.Instance.MutualTLSEnabled() {
 			caSecretProjection := corev1.VolumeProjection{
 				Secret: &corev1.SecretProjection{
 					LocalObjectReference: corev1.LocalObjectReference{Name: tlsSpec.CaSecretName},
 					Optional:             &secretEnforced,
+					Items: []corev1.KeyToPath{
+						{Key: "ca.crt", Path: "ca.crt"},
+					},
 				},
 			}
 			tlsProjectedVolume.VolumeSource.Projected.Sources = append(tlsProjectedVolume.VolumeSource.Projected.Sources, caSecretProjection)
