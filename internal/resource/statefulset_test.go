@@ -530,6 +530,10 @@ var _ = Describe("StatefulSet", func() {
 											Name: "tls-secret",
 										},
 										Optional: ptr.To(true),
+										Items: []corev1.KeyToPath{
+											{Key: "tls.crt", Path: "tls.crt"},
+											{Key: "tls.key", Path: "tls.key"},
+										},
 									},
 								},
 							},
@@ -621,28 +625,6 @@ var _ = Describe("StatefulSet", func() {
 				}))
 			})
 
-			When("Mutual TLS (same secret) is enabled", func() {
-				It("opens tls ports when rabbitmq_web_mqtt and rabbitmq_web_stomp are configured", func() {
-					instance.Spec.TLS.SecretName = "tls-secret"
-					instance.Spec.TLS.CaSecretName = "tls-secret"
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
-					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-
-					Expect(rabbitmqContainerSpec.Ports).To(ContainElements([]corev1.ContainerPort{
-						{
-							Name:          "web-mqtt-tls",
-							ContainerPort: 15676,
-						},
-						{
-							Name:          "web-stomp-tls",
-							ContainerPort: 15673,
-						},
-					}))
-				})
-			})
-
 			When("Mutual TLS (different secret) is enabled", func() {
 				It("adds the CA cert secret to tls project volume", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
@@ -660,6 +642,10 @@ var _ = Describe("StatefulSet", func() {
 												Name: "tls-secret",
 											},
 											Optional: ptr.To(true),
+											Items: []corev1.KeyToPath{
+												{Key: "tls.crt", Path: "tls.crt"},
+												{Key: "tls.key", Path: "tls.key"},
+											},
 										},
 									},
 									{
@@ -668,6 +654,9 @@ var _ = Describe("StatefulSet", func() {
 												Name: "mutual-tls-secret",
 											},
 											Optional: ptr.To(true),
+											Items: []corev1.KeyToPath{
+												{Key: "ca.crt", Path: "ca.crt"},
+											},
 										},
 									},
 								},

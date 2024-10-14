@@ -539,7 +539,7 @@ created from the StatefulSet VolumeClaimTemplates.
 [id="{anchor_prefix}-github-com-rabbitmq-cluster-operator-v2-api-v1beta1-tlsspec"]
 ==== TLSSpec 
 
-Allows for the configuration of TLS certificates to be used by RabbitMQ. Also allows for non-TLS traffic to be disabled.
+TLSSpec allows for the configuration of TLS certificates to be used by RabbitMQ. Also allows for non-TLS traffic to be disabled.
 
 .Appears In:
 ****
@@ -551,10 +551,10 @@ Allows for the configuration of TLS certificates to be used by RabbitMQ. Also al
 | Field | Description
 | *`secretName`* __string__ | Name of a Secret in the same Namespace as the RabbitmqCluster, containing the server's private key & public certificate for TLS.
 The Secret must store these as tls.key and tls.crt, respectively.
-This Secret can be created by running `kubectl create secret tls tls-secret --cert=path/to/tls.cert --key=path/to/tls.key`
+This Secret can be created by running `kubectl create secret tls tls-secret --cert=path/to/tls.crt --key=path/to/tls.key`
 | *`caSecretName`* __string__ | Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS.
 The Secret must store this as ca.crt.
-This Secret can be created by running `kubectl create secret generic ca-secret --from-file=ca.crt=path/to/ca.cert`
+This Secret can be created by running `kubectl create secret generic ca-secret --from-file=ca.crt=path/to/ca.crt`
 Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
 | *`disableNonTLSListeners`* __boolean__ | When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ, management plugin and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt.
 Only TLS-enabled clients will be able to connect.
