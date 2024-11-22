@@ -2126,6 +2126,84 @@ default_pass = {{ .Data.data.password }}
 
 				})
 
+				It("can replace the default readinessProbe", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											ReadinessProbe: &corev1.Probe{
+												ProbeHandler: corev1.ProbeHandler{
+													Exec: &corev1.ExecAction{
+														Command: []string{"custom-readiness-probe", "arg1"},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+
+					builder = &resource.RabbitmqResourceBuilder{
+						Instance: &instance,
+						Scheme:   scheme,
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.Template.Spec.Containers[0].ReadinessProbe.ProbeHandler).To(Equal(
+						corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"custom-readiness-probe", "arg1"},
+							},
+						},
+					))
+				})
+
+				It("can add/replace a LivenessProbe", func() {
+					// note: we currently don't have a default LivenessProbe
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											LivenessProbe: &corev1.Probe{
+												ProbeHandler: corev1.ProbeHandler{
+													Exec: &corev1.ExecAction{
+														Command: []string{"custom-liveness-probe", "arg1"},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+
+					builder = &resource.RabbitmqResourceBuilder{
+						Instance: &instance,
+						Scheme:   scheme,
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.Template.Spec.Containers[0].LivenessProbe.ProbeHandler).To(Equal(
+						corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"custom-liveness-probe", "arg1"},
+							},
+						},
+					))
+
+				})
+
 				Context("TopologySpreadConstraints composition", func() {
 					BeforeEach(func() {
 						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
