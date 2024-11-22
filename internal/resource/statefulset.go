@@ -286,6 +286,15 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 		sortVolumeMounts(patchedPodSpec.Containers[0].VolumeMounts)
 	}
 
+	// allow overriding the liveness and readiness probes
+	// note: as of 2024, we don't set a default LivenessProbe
+	if rmqContainer.LivenessProbe != nil {
+		patchedPodSpec.Containers[0].LivenessProbe = rmqContainer.LivenessProbe
+	}
+	if rmqContainer.ReadinessProbe != nil {
+		patchedPodSpec.Containers[0].ReadinessProbe = rmqContainer.ReadinessProbe
+	}
+
 	// A user may wish to override the controller-set securityContext for the RabbitMQ & init containers so that the
 	// container runtime can override them. If the securityContext has been set to an empty struct, `strategicpatch.StrategicMergePatch`
 	// won't pick this up, so manually override it here.
