@@ -1,0 +1,33 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: import-multiple-definition-files
+spec:
+  replicas: 1
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+            - name: rabbitmq
+              volumeMounts:
+              # 01- prefix is used to ensure that users are imported first
+              - mountPath: /etc/rabbitmq/definitions/01-users.json
+                name: users
+                subPath: users.json
+              # 02- prefix is used to ensure that definitions are imported after users, since
+              # they might reference users (eg. to set up permissions)
+              - mountPath: /etc/rabbitmq/definitions/02-definitions.json
+                name: definitions
+                subPath: definitions.json
+            volumes:
+            - name: users
+              secret:
+                secretName: users # Name of the Secret containing user definitions
+            - name: definitions
+              configMap:
+                name: definitions # Name of the ConfigMap containing other definitions
+  rabbitmq:
+    additionalConfig: |
+      load_definitions = /etc/rabbitmq/definitions # Path to the folder

@@ -1,0 +1,65 @@
+{
+  "permissions": [
+    {
+      "configure": ".*",
+      "read": ".*",
+      "user": "guest",
+      "vhost": "/",
+      "write": ".*"
+    }
+  ],
+  "bindings": [
+    {
+      "arguments": {},
+      "destination": "qq",
+      "destination_type": "queue",
+      "routing_key": "3c01b232-e21a-4320-bbdb-329eede5188c",
+      "source": "direct",
+      "vhost": "/"
+    }
+  ],
+  "queues": [
+    {
+      "arguments": {
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "qq",
+      "type": "quorum",
+      "vhost": "/"
+    }
+  ],
+  "parameters": [],
+  "policies": [],
+  "rabbitmq_version": "4.1.0+beta.3.47.gac7dcc9",
+  "rabbit_version": "4.1.0+beta.3.47.gac7dcc9",
+  "exchanges": [
+    {
+      "arguments": {},
+      "auto_delete": false,
+      "durable": true,
+      "name": "direct",
+      "type": "direct",
+      "vhost": "/"
+    }
+  ],
+  "vhosts": [
+    {
+      "default_queue_type": "classic",
+      "limits": [],
+      "metadata": {
+        "description": "Default virtual host",
+        "tags": []
+      },
+      "name": "/"
+    }
+  ],
+  "global_parameters": [
+    {
+      "name": "cluster_tags",
+      "value": []
+    }
+  ],
+  "topic_permissions": []
+}
