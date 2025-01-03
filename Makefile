@@ -153,15 +153,6 @@ run::just-run
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
 	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) ENABLE_DEBUG_PPROF=true go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel $(OPERATOR_ARGS)
 
-.PHONY: delve
-delve::generate ## Deploys CRD, Namespace, RBACs and starts Delve debugger
-delve::install
-delve::deploy-namespace-rbac
-delve::just-delve
-
-just-delve: install-tools ## Just starts Delve debugger
-	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) dlv debug
-
 install: manifests ## Install CRDs into a cluster
 	kubectl apply -f config/crd/bases
 
@@ -268,4 +259,4 @@ docker-registry-secret:
 
 .PHONY: install-tools
 install-tools:
-	grep _ tools/tools.go | awk -F '"' '{print $$2}' | xargs -t go install -mod=mod
+	cd internal/tools; grep _ tools.go | awk -F '"' '{print $$2}' | xargs -t go install -mod=mod
