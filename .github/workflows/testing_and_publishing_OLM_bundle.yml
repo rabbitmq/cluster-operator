@@ -147,7 +147,7 @@ jobs:
             only: ytt, kbld
 
         - name: Protect access to the cluster with a mutex
-          uses: ben-z/gh-action-mutex@v1.0.0-alpha.9
+          uses: ben-z/gh-action-mutex@v1.0.0-alpha.10
           with:
             branch: openshift-lock
             
