@@ -409,7 +409,7 @@ jobs:
     if: ${{ github.event_name != 'pull_request' }}
     needs: build_operator
     permissions:
-      # Required by ben-z/gh-action-mutex@v1.0.0-alpha.9
+      # Required by ben-z/gh-action-mutex@v1.0.0-alpha.10
       contents: 'write'
       # Required by google-github-actions/auth@v2
       # Required by google-github-actions/get-gke-credentials@v2
@@ -425,7 +425,7 @@ jobs:
         check-latest: true
 
     - name: Acquire lock for ci-bunny-1
-      uses: ben-z/gh-action-mutex@v1.0.0-alpha.9
+      uses: ben-z/gh-action-mutex@v1.0.0-alpha.10
       with:
         branch: lock-ci-bunny-1
 
