@@ -3,9 +3,8 @@
 name: Test & Publish OLM Package
 
 on:
-  push:
-    branches: 
-      - test_olm_action
+  release:
+    types: [published]
     
   workflow_dispatch:
     inputs:
@@ -98,7 +97,7 @@ jobs:
             mkdir upload
             mv "$BUNDLE_VERSION" ./upload
             cp ./rabbitmq_olm_package_repo/generators/cluster_operator_generators/cluster-service-version-generator-openshift.yml ./rabbitmq_olm_package_repo/generators/cluster_operator_generators/cluster-service-version-generator.yml
-            poetry run generate_bundle ./rabbitmq_olm_package_repo/manifests_crds/cluster-operator.yaml $BUNDLE_VERSION ./
+            poetry run generate_bundle ./../releases/cluster-operator.yml $BUNDLE_VERSION ./
             mv "$BUNDLE_VERSION" ./upload/$BUNDLE_VERSION-openshift
 
         - name: Upload OLM Package
