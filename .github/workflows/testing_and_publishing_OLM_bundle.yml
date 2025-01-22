@@ -3,8 +3,9 @@
 name: Test & Publish OLM Package
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: 
+      - test_olm_action
     
   workflow_dispatch:
     inputs:
