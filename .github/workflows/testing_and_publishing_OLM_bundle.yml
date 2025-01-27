@@ -209,7 +209,10 @@ jobs:
             git branch rabbitmq-cluster-operator-$BUNDLE_VERSION
             git checkout rabbitmq-cluster-operator-$BUNDLE_VERSION
 
+            REPLACE_VERSION=$(ls -1v ./operators/rabbitmq-cluster-operator/ | tail -2 | head -1)
+            
             cp -v -fR olm-package-ci/"$BUNDLE_VERSION" ./operators/rabbitmq-cluster-operator/
+            sed -i -e "s/replaces: null/replaces: rabbitmq-cluster-operator.v$REPLACE_VERSION/g" ./operators/rabbitmq-cluster-operator/$BUNDLE_VERSION/manifests/rabbitmq.clusterserviceversion.yaml
             sed -i -e "s/latest/$BUNDLE_VERSION/g" ./operators/rabbitmq-cluster-operator/$BUNDLE_VERSION/manifests/rabbitmq.clusterserviceversion.yaml
             git add operators/rabbitmq-cluster-operator
             git commit -s -m "RabbitMQ Operator release $BUNDLE_VERSION"
