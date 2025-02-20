@@ -38,8 +38,7 @@ jobs:
 
       - name: Check Prometheus rule file
         run: |
-          # need to use @main because of https://github.com/prometheus/prometheus/issues/8586#issuecomment-796976710
-          GO111MODULE=on go get github.com/prometheus/prometheus/cmd/promtool@main
+          make install-tools
           promtool check rules observability/prometheus/rule-file.yml
       - name: Commit Prometheus rule file
         working-directory: observability/prometheus
