@@ -15,7 +15,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.5.0
 	golang.org/x/mod v0.23.0
-	golang.org/x/net v0.35.0
+	golang.org/x/net v0.36.0
 	golang.org/x/text v0.22.0
 	gopkg.in/ini.v1 v1.67.0
 	k8s.io/api v0.32.1
@@ -76,7 +76,7 @@ require (
 	github.com/zmap/zlint/v3 v3.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/oauth2 v0.25.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
