@@ -423,11 +423,21 @@ jobs:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
 
+    - name: Download Operator artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: operator_image
+        path: /tmp
+
     - name: Create KinD
       uses: helm/kind-action@v1
       with:
         cluster_name: upgrade-testing
         node_image: ${{ env.KIND_NODE_IMAGE }}
+
+    - name: Install Operator build
+      run: |
+        kind load image-archive /tmp/operator.tar --name upgrade-testing
 
     - name: Get operator manifest
       uses: actions/download-artifact@v4
