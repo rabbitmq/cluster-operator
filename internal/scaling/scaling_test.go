@@ -46,13 +46,13 @@ var _ = Describe("Scaling", func() {
 		It("scales the PVC", func() {
 			Expect(persistenceScaler.Scale(context.Background(), rmq, fifteenG)).To(Succeed())
 			Expect(fakeClientset.Actions()).To(MatchAllElementsWithIndex(IndexIdentity, Elements{
-				"0": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-				"1": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
-				"2": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-				"3": BeDeleteActionOnResource("statefulsets", "rabbit-server", namespace),
-				"4": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-				"5": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
-				"6": BeUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace, MatchFields(IgnoreExtras, Fields{
+				"0": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+				"1": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+				"2": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+				"3": beDeleteActionOnResource("statefulsets", "rabbit-server", namespace),
+				"4": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+				"5": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+				"6": beUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace, MatchFields(IgnoreExtras, Fields{
 					"Spec": MatchFields(IgnoreExtras, Fields{
 						"Resources": MatchFields(IgnoreExtras, Fields{
 							"Requests": MatchAllKeys(Keys{
@@ -72,8 +72,8 @@ var _ = Describe("Scaling", func() {
 		It("performs no actions other than checking for the PVC's existence", func() {
 			Expect(persistenceScaler.Scale(context.Background(), rmq, fifteenG)).To(Succeed())
 			Expect(fakeClientset.Actions()).To(MatchAllElementsWithIndex(IndexIdentity, Elements{
-				"0": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-				"1": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+				"0": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+				"1": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
 			}))
 		})
 	})
@@ -85,11 +85,11 @@ var _ = Describe("Scaling", func() {
 		It("does not delete the StatefulSet, but still updates the PVC", func() {
 			Expect(persistenceScaler.Scale(context.Background(), rmq, fifteenG)).To(Succeed())
 			Expect(fakeClientset.Actions()).To(MatchAllElementsWithIndex(IndexIdentity, Elements{
-				"0": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-				"1": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
-				"2": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-				"3": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
-				"4": BeUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace, MatchFields(IgnoreExtras, Fields{
+				"0": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+				"1": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+				"2": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+				"3": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+				"4": beUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace, MatchFields(IgnoreExtras, Fields{
 					"Spec": MatchFields(IgnoreExtras, Fields{
 						"Resources": MatchFields(IgnoreExtras, Fields{
 							"Requests": MatchAllKeys(Keys{
@@ -109,7 +109,7 @@ var _ = Describe("Scaling", func() {
 		It("raises an error", func() {
 			Expect(persistenceScaler.Scale(context.Background(), rmq, oneG)).To(MatchError("shrinking persistent volumes is not supported"))
 			Expect(fakeClientset.Actions()).To(MatchAllElementsWithIndex(IndexIdentity, Elements{
-				"0": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
+				"0": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
 			}))
 		})
 	})
@@ -122,14 +122,14 @@ var _ = Describe("Scaling", func() {
 		It("raises an error if trying to move to persistent storage", func() {
 			Expect(persistenceScaler.Scale(context.Background(), rmq, tenG)).To(MatchError("changing from ephemeral to persistent storage is not supported"))
 			Expect(fakeClientset.Actions()).To(MatchAllElementsWithIndex(IndexIdentity, Elements{
-				"0": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
+				"0": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
 			}))
 		})
 		It("does nothing if remaining as ephemeral storage", func() {
 			Expect(persistenceScaler.Scale(context.Background(), rmq, ephemeralStorage)).To(Succeed())
 			Expect(fakeClientset.Actions()).To(MatchAllElementsWithIndex(IndexIdentity, Elements{
-				"0": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-				"1": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+				"0": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+				"1": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
 			}))
 		})
 	})
@@ -146,15 +146,15 @@ var _ = Describe("Scaling", func() {
 			It("deletes the statefulset and updates each individual PVC", func() {
 				Expect(persistenceScaler.Scale(context.Background(), rmq, fifteenG)).To(Succeed())
 				Expect(fakeClientset.Actions()).To(MatchAllElementsWithIndex(IndexIdentity, Elements{
-					"0": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-					"1": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
-					"2": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace),
-					"3": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
-					"4": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-					"5": BeDeleteActionOnResource("statefulsets", "rabbit-server", namespace),
-					"6": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-					"7": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
-					"8": BeUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace, MatchFields(IgnoreExtras, Fields{
+					"0": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+					"1": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+					"2": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace),
+					"3": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
+					"4": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+					"5": beDeleteActionOnResource("statefulsets", "rabbit-server", namespace),
+					"6": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+					"7": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+					"8": beUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace, MatchFields(IgnoreExtras, Fields{
 						"Spec": MatchFields(IgnoreExtras, Fields{
 							"Resources": MatchFields(IgnoreExtras, Fields{
 								"Requests": MatchAllKeys(Keys{
@@ -163,8 +163,8 @@ var _ = Describe("Scaling", func() {
 							}),
 						}),
 					})),
-					"9": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace),
-					"10": BeUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace, MatchFields(IgnoreExtras, Fields{
+					"9": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace),
+					"10": beUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace, MatchFields(IgnoreExtras, Fields{
 						"Spec": MatchFields(IgnoreExtras, Fields{
 							"Resources": MatchFields(IgnoreExtras, Fields{
 								"Requests": MatchAllKeys(Keys{
@@ -173,8 +173,8 @@ var _ = Describe("Scaling", func() {
 							}),
 						}),
 					})),
-					"11": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
-					"12": BeUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace, MatchFields(IgnoreExtras, Fields{
+					"11": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
+					"12": beUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace, MatchFields(IgnoreExtras, Fields{
 						"Spec": MatchFields(IgnoreExtras, Fields{
 							"Resources": MatchFields(IgnoreExtras, Fields{
 								"Requests": MatchAllKeys(Keys{
@@ -197,15 +197,15 @@ var _ = Describe("Scaling", func() {
 			It("deletes the statefulset and updates the PVCs that exist", func() {
 				Expect(persistenceScaler.Scale(context.Background(), rmq, fifteenG)).To(Succeed())
 				Expect(fakeClientset.Actions()).To(MatchAllElementsWithIndex(IndexIdentity, Elements{
-					"0": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-					"1": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
-					"2": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace),
-					"3": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
-					"4": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-					"5": BeDeleteActionOnResource("statefulsets", "rabbit-server", namespace),
-					"6": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-					"7": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
-					"8": BeUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace, MatchFields(IgnoreExtras, Fields{
+					"0": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+					"1": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+					"2": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace),
+					"3": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
+					"4": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+					"5": beDeleteActionOnResource("statefulsets", "rabbit-server", namespace),
+					"6": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+					"7": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+					"8": beUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace, MatchFields(IgnoreExtras, Fields{
 						"Spec": MatchFields(IgnoreExtras, Fields{
 							"Resources": MatchFields(IgnoreExtras, Fields{
 								"Requests": MatchAllKeys(Keys{
@@ -214,8 +214,8 @@ var _ = Describe("Scaling", func() {
 							}),
 						}),
 					})),
-					"9": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
-					"10": BeUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace, MatchFields(IgnoreExtras, Fields{
+					"9": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
+					"10": beUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace, MatchFields(IgnoreExtras, Fields{
 						"Spec": MatchFields(IgnoreExtras, Fields{
 							"Resources": MatchFields(IgnoreExtras, Fields{
 								"Requests": MatchAllKeys(Keys{
@@ -239,15 +239,15 @@ var _ = Describe("Scaling", func() {
 			It("deletes the statefulset and updates the PVCs that exist", func() {
 				Expect(persistenceScaler.Scale(context.Background(), rmq, fifteenG)).To(Succeed())
 				Expect(fakeClientset.Actions()).To(MatchAllElementsWithIndex(IndexIdentity, Elements{
-					"0": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-					"1": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
-					"2": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace),
-					"3": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
-					"4": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-					"5": BeDeleteActionOnResource("statefulsets", "rabbit-server", namespace),
-					"6": BeGetActionOnResource("statefulsets", "rabbit-server", namespace),
-					"7": BeGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
-					"8": BeUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace, MatchFields(IgnoreExtras, Fields{
+					"0": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+					"1": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-0", namespace),
+					"2": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-1", namespace),
+					"3": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
+					"4": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+					"5": beDeleteActionOnResource("statefulsets", "rabbit-server", namespace),
+					"6": beGetActionOnResource("statefulsets", "rabbit-server", namespace),
+					"7": beGetActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace),
+					"8": beUpdateActionOnResource("persistentvolumeclaims", "persistence-rabbit-server-2", namespace, MatchFields(IgnoreExtras, Fields{
 						"Spec": MatchFields(IgnoreExtras, Fields{
 							"Resources": MatchFields(IgnoreExtras, Fields{
 								"Requests": MatchAllKeys(Keys{

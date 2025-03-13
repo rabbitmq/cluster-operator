@@ -58,6 +58,19 @@ var _ = Describe("Reconcile TLS", func() {
 											Name: "tls-secret",
 										},
 										Optional: ptr.To(true),
+										Items: []corev1.KeyToPath{
+											{Key: "tls.crt", Path: "tls.crt"},
+											{Key: "tls.key", Path: "tls.key"},
+										},
+									},
+								},
+								{
+									Secret: &corev1.SecretProjection{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "tls-secret",
+										},
+										Optional: ptr.To(true),
+										Items:    []corev1.KeyToPath{{Key: "ca.crt", Path: "ca.crt"}},
 									},
 								},
 							},

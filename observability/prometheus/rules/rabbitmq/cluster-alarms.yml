@@ -1,0 +1,60 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-cluster-alarms
+  # If labels are defined in spec.ruleSelector.matchLabels of your deployed Prometheus object, make sure to include them here.
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: rabbitmq
+    rules:
+    - alert: MemoryAlarm
+      expr: |
+        max by(rabbitmq_cluster) (
+          max_over_time(rabbitmq_alarms_memory_used_watermark[5m])
+          * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info
+        ) > 0
+      keep_firing_for: 5m
+      annotations:
+        description: |
+          RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}` memory alarm active. Publishers are blocked.
+        summary: |
+          A RabbitMQ node reached the `vm_memory_high_watermark` threshold.
+          See https://www.rabbitmq.com/docs/alarms#overview, https://www.rabbitmq.com/docs/memory.
+      labels:
+        rulesgroup: rabbitmq
+        severity: warning
+    - alert: RabbitmqDiskAlarm
+      expr: |
+        max by(rabbitmq_cluster) (
+          max_over_time(rabbitmq_alarms_free_disk_space_watermark[5m])
+          * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info
+        ) > 0
+      keep_firing_for: 5m
+      annotations:
+        description: |
+          RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}` disk alarm active. Publishers are blocked.
+        summary: |
+          A RabbitMQ node reached the `disk_free_limit` threshold.
+          See https://www.rabbitmq.com/docs/alarms#overview, https://www.rabbitmq.com/docs/disk-alarms.
+      labels:
+        rulesgroup: rabbitmq
+        severity: warning
+    - alert: RabbitmqFileDescriptorAlarm
+      expr: |
+        max by(rabbitmq_cluster) (
+          max_over_time(rabbitmq_alarms_file_descriptor_limit[5m])
+          * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) rabbitmq_identity_info
+        ) > 0
+      keep_firing_for: 5m
+      annotations:
+        description: |
+          RabbitMQ cluster `{{ $labels.rabbitmq_cluster }}` file descriptor alarm active. Publishers are blocked.
+        summary: |
+          A RabbitMQ node ran out of file descriptors.
+          See https://www.rabbitmq.com/docs/alarms#file-descriptors.
+      labels:
+        rulesgroup: rabbitmq
+        severity: warning

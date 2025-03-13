@@ -6,18 +6,18 @@ on:
     paths:
     - observability/prometheus/rules/**/*.y*ml
 
-env:
-  GO_VERSION: ~1.21
-
 jobs:
   rules:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        name: Checkout code
+
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v4
+          go-version-file: "go.mod"
+
       - name: Create Prometheus rule file
         run: |
           make install-tools
@@ -35,10 +35,10 @@ jobs:
           append_rabbitmq_rules='select(fileIndex==0).groups.[1].rules = select(fileIndex==0).groups.[1].rules + select(fileIndex==1).spec.groups.[0].rules | select(fileIndex==0)'
           find rules/rabbitmq -name "*.y*ml" ! -name recording-rules.yml -exec yq eval-all --inplace --no-colors --prettyPrint "$append_rabbitmq_rules" rule-file.yml {} ';'
           yq eval-all --inplace --no-colors --prettyPrint "$append_rabbitmq_rules" rule-file.yml rules/rabbitmq/recording-rules.yml
+
       - name: Check Prometheus rule file
         run: |
-          # need to use @main because of https://github.com/prometheus/prometheus/issues/8586#issuecomment-796976710
-          GO111MODULE=on go get github.com/prometheus/prometheus/cmd/promtool@main
+          make install-tools
           promtool check rules observability/prometheus/rule-file.yml
       - name: Commit Prometheus rule file
         working-directory: observability/prometheus

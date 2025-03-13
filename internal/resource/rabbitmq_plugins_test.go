@@ -13,11 +13,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
-	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
-	. "github.com/rabbitmq/cluster-operator/v2/internal/resource"
+	rmqresource "github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
@@ -27,7 +25,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 	Context("DesiredPlugins", func() {
 		When("AdditionalPlugins is empty", func() {
 			It("returns list of required plugins", func() {
-				plugins := NewRabbitmqPlugins(nil)
+				plugins := rmqresource.NewRabbitmqPlugins(nil)
 				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s", "rabbitmq_prometheus", "rabbitmq_management"}))
 			})
 		})
@@ -35,7 +33,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 		When("AdditionalPlugins are provided", func() {
 			It("returns a concatenated list of plugins", func() {
 				morePlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_shovel", "my_great_plugin"}
-				plugins := NewRabbitmqPlugins(morePlugins)
+				plugins := rmqresource.NewRabbitmqPlugins(morePlugins)
 
 				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",
@@ -49,7 +47,7 @@ var _ = Describe("RabbitMQPlugins", func() {
 		When("AdditionalPlugins are provided with duplicates", func() {
 			It("returns a unique list of plugins", func() {
 				morePlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_management", "rabbitmq_shovel", "my_great_plugin", "rabbitmq_shovel"}
-				plugins := NewRabbitmqPlugins(morePlugins)
+				plugins := rmqresource.NewRabbitmqPlugins(morePlugins)
 
 				Expect(plugins.DesiredPlugins()).To(ConsistOf([]string{"rabbitmq_peer_discovery_k8s",
 					"rabbitmq_prometheus",
@@ -64,8 +62,8 @@ var _ = Describe("RabbitMQPlugins", func() {
 	Context("PluginsConfigMap", func() {
 		var (
 			instance         rabbitmqv1beta1.RabbitmqCluster
-			configMapBuilder *resource.RabbitmqPluginsConfigMapBuilder
-			builder          *resource.RabbitmqResourceBuilder
+			configMapBuilder *rmqresource.RabbitmqPluginsConfigMapBuilder
+			builder          *rmqresource.RabbitmqResourceBuilder
 			scheme           *runtime.Scheme
 		)
 
@@ -74,12 +72,12 @@ var _ = Describe("RabbitMQPlugins", func() {
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "a name",
 					Namespace: "a namespace",
 				},
 			}
-			builder = &resource.RabbitmqResourceBuilder{
+			builder = &rmqresource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
 			}

@@ -135,7 +135,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	tlsErr := r.reconcileTLS(ctx, rabbitmqCluster)
-	if errors.Is(tlsErr, disableNonTLSConfigErr) {
+	if errors.Is(tlsErr, errDisableNonTLSConfig) {
 		return ctrl.Result{}, nil
 	} else if tlsErr != nil {
 		return ctrl.Result{}, tlsErr

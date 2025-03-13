@@ -286,6 +286,15 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 		sortVolumeMounts(patchedPodSpec.Containers[0].VolumeMounts)
 	}
 
+	// allow overriding the liveness and readiness probes
+	// note: as of 2024, we don't set a default LivenessProbe
+	if rmqContainer.LivenessProbe != nil {
+		patchedPodSpec.Containers[0].LivenessProbe = rmqContainer.LivenessProbe
+	}
+	if rmqContainer.ReadinessProbe != nil {
+		patchedPodSpec.Containers[0].ReadinessProbe = rmqContainer.ReadinessProbe
+	}
+
 	// A user may wish to override the controller-set securityContext for the RabbitMQ & init containers so that the
 	// container runtime can override them. If the securityContext has been set to an empty struct, `strategicpatch.StrategicMergePatch`
 	// won't pick this up, so manually override it here.
@@ -523,6 +532,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 									Name: tlsSpec.SecretName,
 								},
 								Optional: &secretEnforced,
+								Items: []corev1.KeyToPath{
+									{Key: "tls.crt", Path: "tls.crt"},
+									{Key: "tls.key", Path: "tls.key"},
+								},
 							},
 						},
 					},
@@ -531,11 +544,14 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		}
 
-		if builder.Instance.MutualTLSEnabled() && !builder.Instance.SingleTLSSecret() {
+		if builder.Instance.MutualTLSEnabled() {
 			caSecretProjection := corev1.VolumeProjection{
 				Secret: &corev1.SecretProjection{
 					LocalObjectReference: corev1.LocalObjectReference{Name: tlsSpec.CaSecretName},
 					Optional:             &secretEnforced,
+					Items: []corev1.KeyToPath{
+						{Key: "ca.crt", Path: "ca.crt"},
+					},
 				},
 			}
 			tlsProjectedVolume.VolumeSource.Projected.Sources = append(tlsProjectedVolume.VolumeSource.Projected.Sources, caSecretProjection)
@@ -614,7 +630,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 								Command: []string{"/bin/bash", "-c",
 									fmt.Sprintf("if [ ! -z \"$(cat /etc/pod-info/%s)\" ]; then exit 0; fi;", DeletionMarker) +
 										fmt.Sprintf(" rabbitmq-upgrade await_online_quorum_plus_one -t %d &&"+
-											" rabbitmq-upgrade await_online_synchronized_mirror -t %d &&"+
+											" rabbitmq-upgrade await_online_synchronized_mirror -t %d || true &&"+
 											" rabbitmq-upgrade drain -t %d",
 											*builder.Instance.Spec.TerminationGracePeriodSeconds,
 											*builder.Instance.Spec.TerminationGracePeriodSeconds,
@@ -997,20 +1013,18 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 			})
 		}
 
-		if builder.Instance.MutualTLSEnabled() {
-			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
-				ports = append(ports, corev1.ContainerPort{
-					Name:          "web-mqtt-tls",
-					ContainerPort: 15676,
-				})
-			}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "web-mqtt-tls",
+				ContainerPort: 15676,
+			})
+		}
 
-			if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
-				ports = append(ports, corev1.ContainerPort{
-					Name:          "web-stomp-tls",
-					ContainerPort: 15673,
-				})
-			}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "web-stomp-tls",
+				ContainerPort: 15673,
+			})
 		}
 	}
 

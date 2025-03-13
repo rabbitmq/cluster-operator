@@ -153,15 +153,6 @@ run::just-run
 just-run: ## Just runs 'go run main.go' without regenerating any manifests or deploying RBACs
 	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) ENABLE_DEBUG_PPROF=true go run ./main.go -metrics-bind-address 127.0.0.1:9782 --zap-devel $(OPERATOR_ARGS)
 
-.PHONY: delve
-delve::generate ## Deploys CRD, Namespace, RBACs and starts Delve debugger
-delve::install
-delve::deploy-namespace-rbac
-delve::just-delve
-
-just-delve: install-tools ## Just starts Delve debugger
-	KUBECONFIG=${HOME}/.kube/config OPERATOR_NAMESPACE=$(K8S_OPERATOR_NAMESPACE) dlv debug
-
 install: manifests ## Install CRDs into a cluster
 	kubectl apply -f config/crd/bases
 
@@ -177,6 +168,7 @@ deploy::deploy-manager
 .PHONY: deploy-dev
 deploy-dev::docker-build-dev ## Deploy operator in the configured Kubernetes cluster in ~/.kube/config, with local changes
 deploy-dev::manifests
+deploy-dev::install
 deploy-dev::deploy-namespace-rbac
 deploy-dev::docker-registry-secret
 deploy-dev::deploy-manager-dev
@@ -190,11 +182,11 @@ deploy-kind: manifests deploy-namespace-rbac ## Load operator image and deploy o
 	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/kind | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
 
-YTT_VERSION ?= v0.45.3
+YTT_VERSION ?= v0.50.0
 YTT = $(LOCAL_TESTBIN)/ytt
 $(YTT): | $(LOCAL_TESTBIN)
 	mkdir -p $(LOCAL_TESTBIN)
-	curl -sSL -o $(YTT) https://github.com/vmware-tanzu/carvel-ytt/releases/download/$(YTT_VERSION)/ytt-$(platform)-$(shell go env GOARCH)
+	curl -sSL -o $(YTT) https://github.com/carvel-dev/ytt/releases/download/$(YTT_VERSION)/ytt-$(platform)-$(ARCHITECTURE)
 	chmod +x $(YTT)
 
 QUAY_IO_OPERATOR_IMAGE ?= quay.io/rabbitmqoperator/cluster-operator:latest
@@ -267,4 +259,4 @@ docker-registry-secret:
 
 .PHONY: install-tools
 install-tools:
-	grep _ tools/tools.go | awk -F '"' '{print $$2}' | xargs -t go install -mod=mod
+	cd internal/tools; grep _ tools.go | awk -F '"' '{print $$2}' | xargs -t go install -mod=mod

@@ -1,0 +1,13 @@
+{
+  "users": [
+    {
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "limits": {},
+      "name": "guest",
+      "password_hash": "KYBvEg5fU0m1sE8E6qNmjITswwixc9EMjxWcjiC5f/70vgmC",
+      "tags": [
+        "administrator"
+      ]
+    }
+  ]
+}

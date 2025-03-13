@@ -16,7 +16,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -107,8 +106,8 @@ type RabbitmqClusterSpec struct {
 // Future secret backends could be Secrets Store CSI Driver.
 // If not configured, K8s Secrets will be used.
 type SecretBackend struct {
-	Vault          *VaultSpec              `json:"vault,omitempty"`
-	ExternalSecret v1.LocalObjectReference `json:"externalSecret,omitempty"`
+	Vault          *VaultSpec                  `json:"vault,omitempty"`
+	ExternalSecret corev1.LocalObjectReference `json:"externalSecret,omitempty"`
 }
 
 // VaultSpec will add Vault annotations (see https://www.vaultproject.io/docs/platform/k8s/injector/annotations)
@@ -351,15 +350,15 @@ type PersistentVolumeClaim struct {
 	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
-// Allows for the configuration of TLS certificates to be used by RabbitMQ. Also allows for non-TLS traffic to be disabled.
+// TLSSpec allows for the configuration of TLS certificates to be used by RabbitMQ. Also allows for non-TLS traffic to be disabled.
 type TLSSpec struct {
 	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the server's private key & public certificate for TLS.
 	// The Secret must store these as tls.key and tls.crt, respectively.
-	// This Secret can be created by running `kubectl create secret tls tls-secret --cert=path/to/tls.cert --key=path/to/tls.key`
+	// This Secret can be created by running `kubectl create secret tls tls-secret --cert=path/to/tls.crt --key=path/to/tls.key`
 	SecretName string `json:"secretName,omitempty"`
 	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS.
 	// The Secret must store this as ca.crt.
-	// This Secret can be created by running `kubectl create secret generic ca-secret --from-file=ca.crt=path/to/ca.cert`
+	// This Secret can be created by running `kubectl create secret generic ca-secret --from-file=ca.crt=path/to/ca.crt`
 	// Used for mTLS, and TLS for rabbitmq_web_stomp and rabbitmq_web_mqtt.
 	CaSecretName string `json:"caSecretName,omitempty"`
 	// When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ, management plugin and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt.
@@ -500,15 +499,15 @@ type RabbitmqClusterList struct {
 	Items []RabbitmqCluster `json:"items"`
 }
 
-func (cluster RabbitmqCluster) ChildResourceName(name string) string {
+func (cluster *RabbitmqCluster) ChildResourceName(name string) string {
 	return strings.TrimSuffix(strings.Join([]string{cluster.Name, name}, "-"), "-")
 }
 
-func (cluster RabbitmqCluster) PVCName(i int) string {
+func (cluster *RabbitmqCluster) PVCName(i int) string {
 	return strings.Join([]string{"persistence", cluster.Name, "server", strconv.Itoa(i)}, "-")
 }
 
-func (cluster RabbitmqCluster) DisableDefaultTopologySpreadConstraints() bool {
+func (cluster *RabbitmqCluster) DisableDefaultTopologySpreadConstraints() bool {
 	value, ok := cluster.Annotations[DisableDefaultTopologySpreadAnnotation]
 	if ok && strings.TrimSpace(value) == "true" {
 		return true

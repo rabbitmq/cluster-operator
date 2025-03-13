@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
-	. "github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -49,17 +48,17 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 
 			Expect(resourceBuilders).To(HaveLen(10))
 
-			expectedBuildersInOrder := []ResourceBuilder{
-				&HeadlessServiceBuilder{},
-				&ServiceBuilder{},
-				&ErlangCookieBuilder{},
-				&DefaultUserSecretBuilder{},
-				&RabbitmqPluginsConfigMapBuilder{},
-				&ServerConfigMapBuilder{},
-				&ServiceAccountBuilder{},
-				&RoleBuilder{},
-				&RoleBindingBuilder{},
-				&StatefulSetBuilder{},
+			expectedBuildersInOrder := []resource.ResourceBuilder{
+				&resource.HeadlessServiceBuilder{},
+				&resource.ServiceBuilder{},
+				&resource.ErlangCookieBuilder{},
+				&resource.DefaultUserSecretBuilder{},
+				&resource.RabbitmqPluginsConfigMapBuilder{},
+				&resource.ServerConfigMapBuilder{},
+				&resource.ServiceAccountBuilder{},
+				&resource.RoleBuilder{},
+				&resource.RoleBindingBuilder{},
+				&resource.StatefulSetBuilder{},
 			}
 
 			for i, resourceBuilder := range resourceBuilders {
@@ -77,7 +76,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			It("returns all resource builders except for defaultUser K8s Secret", func() {
 				resourceBuilders := builder.ResourceBuilders()
 				Expect(resourceBuilders).To(HaveLen(9))
-				Expect(resourceBuilders).NotTo(ContainElement(BeAssignableToTypeOf(&DefaultUserSecretBuilder{})))
+				Expect(resourceBuilders).NotTo(ContainElement(BeAssignableToTypeOf(&resource.DefaultUserSecretBuilder{})))
 			})
 		})
 	})

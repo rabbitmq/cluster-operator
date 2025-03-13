@@ -65,5 +65,5 @@ OpenSSL command line tools. This methodology helps narrow down connectivity issu
 In the context of Kubernetes, OpenSSL CLI tools can be run on RabbitMQ nodes using `kubectl exec`, e.g.:
 
 ``` shell
-kubectl exec -it tls-server-0 -- openssl s_client -connect tls-nodes.examples.svc.cluster.local:25672 </dev/null
+kubectl exec -it mtls-inter-node-server-0 -- openssl s_client -connect mtls-inter-node-nodes.examples.svc.cluster.local:25672 </dev/null
 ```

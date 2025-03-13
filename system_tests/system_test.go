@@ -205,8 +205,7 @@ var _ = Describe("Operator", func() {
 
 			By("updating the userDefinedConfiguration.conf file when additionalConfig are modified", func() {
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
-					cluster.Spec.Rabbitmq.AdditionalConfig = `vm_memory_high_watermark_paging_ratio = 0.5
-cluster_partition_handling = ignore
+					cluster.Spec.Rabbitmq.AdditionalConfig = `cluster_partition_handling = ignore
 cluster_keepalive_interval = 10000`
 				})).To(Succeed())
 
@@ -216,7 +215,6 @@ cluster_keepalive_interval = 10000`
 				// verify that rabbitmq.conf contains provided configurations
 				cfgMap := getConfigFileFromPod(namespace, cluster, "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf")
 				Expect(cfgMap).To(SatisfyAll(
-					HaveKeyWithValue("vm_memory_high_watermark_paging_ratio", "0.5"),
 					HaveKeyWithValue("cluster_keepalive_interval", "10000"),
 					HaveKeyWithValue("cluster_partition_handling", "ignore"),
 				))

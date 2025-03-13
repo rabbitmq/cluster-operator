@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.22 as builder
+FROM --platform=$BUILDPLATFORM golang:1.23 AS builder
 
 WORKDIR /workspace
 
@@ -18,12 +18,12 @@ COPY pkg/ pkg/
 # Build
 ARG TARGETOS
 ARG TARGETARCH
-ENV GOOS $TARGETOS
-ENV GOARCH $TARGETARCH
+ENV GOOS=$TARGETOS
+ENV GOARCH=$TARGETARCH
 RUN CGO_ENABLED=0 GO111MODULE=on go build -a -tags timetzdata -o manager main.go
 
 # ---------------------------------------
-FROM alpine:latest as etc-builder
+FROM alpine:latest AS etc-builder
 
 RUN echo "rabbitmq-cluster-operator:x:1000:" > /etc/group && \
     echo "rabbitmq-cluster-operator:x:1000:1000::/home/rabbitmq-cluster-operator:/usr/sbin/nologin" > /etc/passwd

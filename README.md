@@ -24,20 +24,20 @@ kubectl apply -f https://raw.githubusercontent.com/rabbitmq/cluster-operator/mai
 
 RabbitMQ Cluster Kubernetes Operator is covered by several guides:
 
- - [Operator overview](https://www.rabbitmq.com/kubernetes/operator/operator-overview.html)
- - [Deploying an operator](https://www.rabbitmq.com/kubernetes/operator/install-operator.html)
- - [Deploying a RabbitMQ cluster](https://www.rabbitmq.com/kubernetes/operator/using-operator.html)
- - [Monitoring the cluster](https://www.rabbitmq.com/kubernetes/operator/operator-monitoring.html)
- - [Troubleshooting operator deployments](https://www.rabbitmq.com/kubernetes/operator/troubleshooting-operator.html)
+ - [Operator overview](https://www.rabbitmq.com/kubernetes/operator/operator-overview)
+ - [Deploying an operator](https://www.rabbitmq.com/kubernetes/operator/install-operator)
+ - [Deploying a RabbitMQ cluster](https://www.rabbitmq.com/kubernetes/operator/using-operator)
+ - [Monitoring the cluster](https://www.rabbitmq.com/kubernetes/operator/operator-monitoring)
+ - [Troubleshooting operator deployments](https://www.rabbitmq.com/kubernetes/operator/troubleshooting-operator)
 
-In addition, a number of [examples](./docs/examples) can be found in this repository.
+In addition, a number of [code examples](./docs/examples) can be found in this repository.
 
 The doc guides are open source. The source can be found in the [RabbitMQ website repository](https://github.com/rabbitmq/rabbitmq-website/)
 under `site/kubernetes`.
 
 ## Supported Versions
 
-The operator deploys RabbitMQ `3.13.6` by default, and should work with [any supported RabbitMQ version](https://www.rabbitmq.com/release-information) and [Kubernetes version](https://kubernetes.io/releases/).
+The operator deploys RabbitMQ `4.0.5` by default, and should work with [any supported RabbitMQ version](https://www.rabbitmq.com/release-information) and [Kubernetes version](https://kubernetes.io/releases/).
 
 ## Versioning
 
@@ -64,6 +64,6 @@ generate a new draft release, alongside release artefacts.
 
 ## Copyright
 
-Copyright 2020-2023 VMware, Inc. All Rights Reserved.
+(c) 2007-2024 Broadcom. All Rights Reserved. The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/rabbitmq/cluster-operator)](https://goreportcard.com/report/github.com/rabbitmq/cluster-operator)

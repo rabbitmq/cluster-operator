@@ -14,15 +14,26 @@ name: "CodeQL"
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'LICENSE.txt'
+      - 'PROJECT'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'LICENSE.txt'
+      - 'PROJECT'
   schedule:
     - cron: '0 0 * * 0'
 
 jobs:
   analyze:
     name: Analyze
+    if: ${{ github.actor != 'dependabot[bot]' || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
 
     strategy:

@@ -19,7 +19,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -113,7 +112,7 @@ var _ = Describe("StatefulSet", func() {
 				statefulSet := obj.(*appsv1.StatefulSet)
 
 				expectedPersistentVolumeClaim := corev1.PersistentVolumeClaim{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "persistence",
 						Namespace: instance.Namespace,
 						Labels: map[string]string{
@@ -121,7 +120,7 @@ var _ = Describe("StatefulSet", func() {
 							"app.kubernetes.io/component": "rabbitmq",
 							"app.kubernetes.io/part-of":   "rabbitmq",
 						},
-						OwnerReferences: []v1.OwnerReference{
+						OwnerReferences: []metav1.OwnerReference{
 							{
 								APIVersion:         "rabbitmq.com/v1beta1",
 								Kind:               "RabbitmqCluster",
@@ -531,6 +530,10 @@ var _ = Describe("StatefulSet", func() {
 											Name: "tls-secret",
 										},
 										Optional: ptr.To(true),
+										Items: []corev1.KeyToPath{
+											{Key: "tls.crt", Path: "tls.crt"},
+											{Key: "tls.key", Path: "tls.key"},
+										},
 									},
 								},
 							},
@@ -622,28 +625,6 @@ var _ = Describe("StatefulSet", func() {
 				}))
 			})
 
-			When("Mutual TLS (same secret) is enabled", func() {
-				It("opens tls ports when rabbitmq_web_mqtt and rabbitmq_web_stomp are configured", func() {
-					instance.Spec.TLS.SecretName = "tls-secret"
-					instance.Spec.TLS.CaSecretName = "tls-secret"
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
-					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-					rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-
-					Expect(rabbitmqContainerSpec.Ports).To(ContainElements([]corev1.ContainerPort{
-						{
-							Name:          "web-mqtt-tls",
-							ContainerPort: 15676,
-						},
-						{
-							Name:          "web-stomp-tls",
-							ContainerPort: 15673,
-						},
-					}))
-				})
-			})
-
 			When("Mutual TLS (different secret) is enabled", func() {
 				It("adds the CA cert secret to tls project volume", func() {
 					instance.Spec.TLS.SecretName = "tls-secret"
@@ -661,6 +642,10 @@ var _ = Describe("StatefulSet", func() {
 												Name: "tls-secret",
 											},
 											Optional: ptr.To(true),
+											Items: []corev1.KeyToPath{
+												{Key: "tls.crt", Path: "tls.crt"},
+												{Key: "tls.key", Path: "tls.key"},
+											},
 										},
 									},
 									{
@@ -669,6 +654,9 @@ var _ = Describe("StatefulSet", func() {
 												Name: "mutual-tls-secret",
 											},
 											Optional: ptr.To(true),
+											Items: []corev1.KeyToPath{
+												{Key: "ca.crt", Path: "ca.crt"},
+											},
 										},
 									},
 								},
@@ -1448,7 +1436,7 @@ default_pass = {{ .Data.data.password }}
 			Expect(gracePeriodSeconds).To(Equal(ptr.To(int64(10))))
 
 			// TerminationGracePeriodSeconds is used to set commands timeouts in the preStop hook
-			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 10 && rabbitmq-upgrade await_online_synchronized_mirror -t 10 && rabbitmq-upgrade drain -t 10"}
+			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 10 && rabbitmq-upgrade await_online_synchronized_mirror -t 10 || true && rabbitmq-upgrade drain -t 10"}
 			Expect(statefulSet.Spec.Template.Spec.Containers[0].Lifecycle.PreStop.Exec.Command).To(Equal(expectedPreStopCommand))
 		})
 
@@ -1456,7 +1444,7 @@ default_pass = {{ .Data.data.password }}
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 604800 && rabbitmq-upgrade await_online_synchronized_mirror -t 604800 && rabbitmq-upgrade drain -t 604800"}
+			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 604800 && rabbitmq-upgrade await_online_synchronized_mirror -t 604800 || true && rabbitmq-upgrade drain -t 604800"}
 
 			Expect(statefulSet.Spec.Template.Spec.Containers[0].Lifecycle.PreStop.Exec.Command).To(Equal(expectedPreStopCommand))
 		})
@@ -1546,7 +1534,7 @@ default_pass = {{ .Data.data.password }}
 
 			statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
 				{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "persistence",
 						Namespace: instance.Namespace,
 					},
@@ -1778,7 +1766,7 @@ default_pass = {{ .Data.data.password }}
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pert-1",
 							Namespace: "foo-namespace",
-							OwnerReferences: []v1.OwnerReference{
+							OwnerReferences: []metav1.OwnerReference{
 								{
 									APIVersion:         "rabbitmq.com/v1beta1",
 									Kind:               "RabbitmqCluster",
@@ -1802,7 +1790,7 @@ default_pass = {{ .Data.data.password }}
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pert-2",
 							Namespace: "foo-namespace",
-							OwnerReferences: []v1.OwnerReference{
+							OwnerReferences: []metav1.OwnerReference{
 								{
 									APIVersion:         "rabbitmq.com/v1beta1",
 									Kind:               "RabbitmqCluster",
@@ -1867,7 +1855,7 @@ default_pass = {{ .Data.data.password }}
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pert-1",
 							Namespace: "foo-namespace",
-							OwnerReferences: []v1.OwnerReference{
+							OwnerReferences: []metav1.OwnerReference{
 								{
 									APIVersion:         "rabbitmq.com/v1beta1",
 									Kind:               "RabbitmqCluster",
@@ -1891,7 +1879,7 @@ default_pass = {{ .Data.data.password }}
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pert-2",
 							Namespace: "foo-namespace",
-							OwnerReferences: []v1.OwnerReference{
+							OwnerReferences: []metav1.OwnerReference{
 								{
 									APIVersion:         "rabbitmq.com/v1beta1",
 									Kind:               "RabbitmqCluster",
@@ -2135,6 +2123,84 @@ default_pass = {{ .Data.data.password }}
 
 					Expect(statefulSet.Spec.Template.Spec.SecurityContext).To(BeNil())
 					Expect(statefulSet.Spec.Template.Spec.InitContainers[0].SecurityContext).To(BeNil())
+
+				})
+
+				It("can replace the default readinessProbe", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											ReadinessProbe: &corev1.Probe{
+												ProbeHandler: corev1.ProbeHandler{
+													Exec: &corev1.ExecAction{
+														Command: []string{"custom-readiness-probe", "arg1"},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+
+					builder = &resource.RabbitmqResourceBuilder{
+						Instance: &instance,
+						Scheme:   scheme,
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.Template.Spec.Containers[0].ReadinessProbe.ProbeHandler).To(Equal(
+						corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"custom-readiness-probe", "arg1"},
+							},
+						},
+					))
+				})
+
+				It("can add/replace a LivenessProbe", func() {
+					// note: we currently don't have a default LivenessProbe
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											LivenessProbe: &corev1.Probe{
+												ProbeHandler: corev1.ProbeHandler{
+													Exec: &corev1.ExecAction{
+														Command: []string{"custom-liveness-probe", "arg1"},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+
+					builder = &resource.RabbitmqResourceBuilder{
+						Instance: &instance,
+						Scheme:   scheme,
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.Template.Spec.Containers[0].LivenessProbe.ProbeHandler).To(Equal(
+						corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"custom-liveness-probe", "arg1"},
+							},
+						},
+					))
 
 				})
 
@@ -2450,7 +2516,7 @@ func extractProjectedSecret(volume corev1.Volume, secretName string) corev1.Volu
 func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
 	return rabbitmqv1beta1.RabbitmqCluster{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "foo-namespace",
 		},
