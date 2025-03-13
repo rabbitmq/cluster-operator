@@ -535,12 +535,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
     needs: build_operator
-    permissions:
-      # Required by ben-z/gh-action-mutex@v1.0.0-alpha.9
-      contents: 'write'
-      # Required by google-github-actions/auth@v2
-      # Required by google-github-actions/get-gke-credentials@v2
-      id-token: 'write'
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
@@ -551,24 +545,11 @@ jobs:
         go-version: ${{ env.GO_VERSION }}
         check-latest: true
 
-    - name: Acquire lock for ci-bunny-1
-      uses: ben-z/gh-action-mutex@v1.0.0-alpha.9
+    - name: Create KinD
+      uses: helm/kind-action@v1
       with:
-        branch: lock-ci-bunny-1
-
-    - id: auth
-      name: Authenticate with GCP
-      uses: google-github-actions/auth@v2
-      with:
-        workload_identity_provider: ${{ secrets.GCP_IDENTITY_PROVIDER }}
-        service_account: ${{ secrets.GCP_SA }}
-
-    - id: get-credentials
-      name: Fetch creds
-      uses: google-github-actions/get-gke-credentials@v2
-      with:
-        cluster_name: ci-bunny-1
-        location: europe-west1
+        cluster_name: upgrade-testing
+        node_image: ${{ env.KIND_NODE_IMAGE }}
 
     - name: Get operator manifest
       uses: actions/download-artifact@v4
