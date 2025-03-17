@@ -26,7 +26,7 @@ metadata:
 spec:
   image: rabbitmq:management
   persistence:
-    storage: 20Gi
+    storage: 0
   replicas: 3
   resources:
     limits: {}
