@@ -2,7 +2,7 @@ module github.com/rabbitmq/cluster-operator/v2
 
 go 1.23.0
 
-toolchain go1.23.4
+toolchain go1.24.1
 
 require (
 	github.com/cloudflare/cfssl v1.6.5
@@ -15,7 +15,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.5.0
 	golang.org/x/mod v0.24.0
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 	golang.org/x/text v0.23.0
 	gopkg.in/ini.v1 v1.67.0
 	k8s.io/api v0.32.1
