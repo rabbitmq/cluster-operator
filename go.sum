@@ -208,8 +208,8 @@ github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoG
 github.com/rabbitmq/amqp091-go v1.9.0/go.mod h1:+jPrT9iY2eLjRaMSRHUhc3z14E/l85kv/f+6luSD3pc=
 github.com/rabbitmq/amqp091-go v1.10.0 h1:STpn5XsHlHGcecLmMFCtg7mqq0RnD+zFr4uzukfVhBw=
 github.com/rabbitmq/amqp091-go v1.10.0/go.mod h1:Hy4jKW5kQART1u+JkDTF9YYOQUHXqMuhrgxOEeS7G4o=
-github.com/rabbitmq/rabbitmq-stream-go-client v1.5.2 h1:yn08+QKCVFWFHLqAz87GmvIIxcuYPjmYUOmqTBvQHb0=
-github.com/rabbitmq/rabbitmq-stream-go-client v1.5.2/go.mod h1:vQkT+nDDcwpqj3Pzijy+v3qTTDpWdSzC8TwN4AiraR4=
+github.com/rabbitmq/rabbitmq-stream-go-client v1.5.3 h1:hz7hXePJiZPbot+9tCv4SlIIElP4gzYK+KvC81223XU=
+github.com/rabbitmq/rabbitmq-stream-go-client v1.5.3/go.mod h1:vQkT+nDDcwpqj3Pzijy+v3qTTDpWdSzC8TwN4AiraR4=
 github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU5NdKM8=
 github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
 github.com/sirupsen/logrus v1.3.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
