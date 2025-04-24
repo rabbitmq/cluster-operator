@@ -43,6 +43,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 	var (
 		cluster          *rabbitmqv1beta1.RabbitmqCluster
+		suffix           string
 		defaultNamespace = "default"
 	)
 
@@ -781,9 +782,11 @@ var _ = Describe("RabbitmqClusterController", func() {
 			storageClassName = "my-storage-class"
 			myStorage = k8sresource.MustParse("100Gi")
 			q, _ = k8sresource.ParseQuantity("10Gi")
+			suffix = fmt.Sprintf("-%d", time.Now().UnixNano())
+			clusterName := "rabbitmq-sts-override" + suffix
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-sts-override",
+					Name:      clusterName,
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -797,7 +800,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 											Name:      "persistence",
 											Namespace: defaultNamespace,
 											Labels: map[string]string{
-												"app.kubernetes.io/name": "rabbitmq-sts-override",
+												"app.kubernetes.io/name": clusterName,
 											},
 											Annotations: map[string]string{},
 										},
@@ -815,7 +818,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 											Name:      "disk-2",
 											Namespace: defaultNamespace,
 											Labels: map[string]string{
-												"app.kubernetes.io/name": "rabbitmq-sts-override",
+												"app.kubernetes.io/name": clusterName,
 											},
 										},
 										Spec: corev1.PersistentVolumeClaimSpec{
@@ -872,14 +875,14 @@ var _ = Describe("RabbitmqClusterController", func() {
 			defaultMode := int32(420)
 
 			Expect(sts.ObjectMeta.Labels).To(Equal(map[string]string{
-				"app.kubernetes.io/name":      "rabbitmq-sts-override",
+				"app.kubernetes.io/name":      "rabbitmq-sts-override" + suffix,
 				"app.kubernetes.io/component": "rabbitmq",
 				"app.kubernetes.io/part-of":   "rabbitmq",
 			}))
 
-			Expect(sts.Spec.ServiceName).To(Equal("rabbitmq-sts-override-nodes"))
+			Expect(sts.Spec.ServiceName).To(Equal("rabbitmq-sts-override" + suffix + "-nodes"))
 			Expect(sts.Spec.Selector.MatchLabels).To(Equal(map[string]string{
-				"app.kubernetes.io/name": "rabbitmq-sts-override",
+				"app.kubernetes.io/name": "rabbitmq-sts-override" + suffix,
 			}))
 
 			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(2))
@@ -888,9 +891,9 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Namespace).To(Equal("default"))
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Labels).To(Equal(
 				map[string]string{
-					"app.kubernetes.io/name": "rabbitmq-sts-override",
+					"app.kubernetes.io/name": "rabbitmq-sts-override" + suffix,
 				}))
-			Expect(sts.Spec.VolumeClaimTemplates[0].OwnerReferences[0].Name).To(Equal("rabbitmq-sts-override"))
+			Expect(sts.Spec.VolumeClaimTemplates[0].OwnerReferences[0].Name).To(Equal("rabbitmq-sts-override" + suffix))
 			Expect(sts.Spec.VolumeClaimTemplates[0].Spec).To(Equal(
 				corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -906,9 +909,9 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(sts.Spec.VolumeClaimTemplates[1].ObjectMeta.Namespace).To(Equal("default"))
 			Expect(sts.Spec.VolumeClaimTemplates[1].ObjectMeta.Labels).To(Equal(
 				map[string]string{
-					"app.kubernetes.io/name": "rabbitmq-sts-override",
+					"app.kubernetes.io/name": "rabbitmq-sts-override" + suffix,
 				}))
-			Expect(sts.Spec.VolumeClaimTemplates[1].OwnerReferences[0].Name).To(Equal("rabbitmq-sts-override"))
+			Expect(sts.Spec.VolumeClaimTemplates[1].OwnerReferences[0].Name).To(Equal("rabbitmq-sts-override" + suffix))
 			Expect(sts.Spec.VolumeClaimTemplates[1].Spec).To(Equal(
 				corev1.PersistentVolumeClaimSpec{
 					VolumeMode:       &volumeMode,
@@ -941,7 +944,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 								{
 									ConfigMap: &corev1.ConfigMapProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "rabbitmq-sts-override-server-conf",
+											Name: "rabbitmq-sts-override" + suffix + "-server-conf",
 										},
 										Items: []corev1.KeyToPath{
 											{
@@ -958,7 +961,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 								{
 									Secret: &corev1.SecretProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "rabbitmq-sts-override-default-user",
+											Name: "rabbitmq-sts-override" + suffix + "-default-user",
 										},
 										Items: []corev1.KeyToPath{
 											{
@@ -979,7 +982,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							DefaultMode: &defaultMode,
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "rabbitmq-sts-override-plugins-conf",
+								Name: "rabbitmq-sts-override" + suffix + "-plugins-conf",
 							},
 						},
 					},
@@ -1002,7 +1005,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
 							DefaultMode: &defaultMode,
-							SecretName:  "rabbitmq-sts-override-erlang-cookie",
+							SecretName:  "rabbitmq-sts-override" + suffix + "-erlang-cookie",
 						},
 					},
 				},

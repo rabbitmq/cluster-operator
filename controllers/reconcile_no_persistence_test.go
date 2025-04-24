@@ -28,7 +28,7 @@ var _ = Describe("Persistence", func() {
 		zeroGi := k8sresource.MustParse("0Gi")
 		cluster = &rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rabbitmq-shrink",
+				Name:      "rabbitmq-no-persistence",
 				Namespace: defaultNamespace,
 			},
 			Spec: rabbitmqv1beta1.RabbitmqClusterSpec{

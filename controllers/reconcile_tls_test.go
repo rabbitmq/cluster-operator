@@ -3,6 +3,8 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	"k8s.io/utils/ptr"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +33,7 @@ var _ = Describe("Reconcile TLS", func() {
 				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 				return apierrors.IsNotFound(err)
-			}, 5).Should(BeTrue())
+			}, 10).Should(BeTrue())
 		})
 
 		Context("Mutual TLS with single secret", func() {
@@ -112,13 +114,13 @@ var _ = Describe("Reconcile TLS", func() {
 
 		Context("Mutual TLS with a separate CA certificate secret", func() {
 			It("Does not deploy the RabbitmqCluster, and retries every 10 seconds", func() {
-				tlsSecretWithoutCACert(ctx, "rabbitmq-tls-secret-does-not-exist", defaultNamespace)
+				tlsSecretWithoutCACert(ctx, "rabbitmq-tls-secret-initially-missing", defaultNamespace)
 
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
-					SecretName:   "rabbitmq-tls-secret-does-not-exist",
-					CaSecretName: "ca-cert-secret",
+					SecretName:   "rabbitmq-tls-secret-initially-missing",
+					CaSecretName: "ca-cert-secret-initially-missing",
 				}
-				cluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist", defaultNamespace, tlsSpec)
+				cluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-initially-missing", defaultNamespace, tlsSpec)
 				verifyTLSErrorEvents(ctx, cluster, "Failed to get CA certificate secret")
 				verifyReconcileSuccessFalse(cluster.Name, cluster.Namespace)
 
@@ -129,7 +131,7 @@ var _ = Describe("Reconcile TLS", func() {
 				caData := map[string]string{
 					"ca.crt": "this is a ca cert",
 				}
-				_, err = createSecret(ctx, "ca-cert-secret", defaultNamespace, caData)
+				_, err = createSecret(ctx, "ca-cert-secret-initially-missing", defaultNamespace, caData)
 				Expect(err).NotTo(HaveOccurred())
 
 				waitForClusterCreation(ctx, cluster, client)
@@ -173,14 +175,15 @@ var _ = Describe("Reconcile TLS", func() {
 		})
 
 		It("Deploys successfully", func() {
+			suffix := fmt.Sprintf("-%d", time.Now().UnixNano())
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-tls",
+					Name:      "rabbitmq-tls" + suffix,
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					TLS: rabbitmqv1beta1.TLSSpec{
-						SecretName: "tls-secret",
+						SecretName: "tls-secret" + suffix,
 					},
 				},
 			}
@@ -218,7 +221,8 @@ var _ = Describe("Reconcile TLS", func() {
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
 					SecretName: "tls-secret-does-not-exist",
 				}
-				cluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist", defaultNamespace, tlsSpec)
+				suffix := fmt.Sprintf("-%d", time.Now().UnixNano())
+				cluster = rabbitmqClusterWithTLS(ctx, "rabbitmq-tls-secret-does-not-exist"+suffix, defaultNamespace, tlsSpec)
 
 				verifyTLSErrorEvents(ctx, cluster, "Failed to get TLS secret")
 				verifyReconcileSuccessFalse(cluster.Name, cluster.Namespace)
