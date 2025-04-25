@@ -59,7 +59,9 @@ func (builder *ServiceBuilder) Update(object client.Object) error {
 
 	if builder.Instance.Spec.Service.Labels != nil {
 		for k, v := range builder.Instance.Spec.Service.Labels {
-			service.Labels[k] = v
+			if _, exists := service.Labels[k]; !exists {
+				service.Labels[k] = v
+			}
 		}
 	}
 
