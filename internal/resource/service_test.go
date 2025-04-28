@@ -478,6 +478,25 @@ var _ = Context("Services", func() {
 			It("deletes the labels that are removed from the CR", func() {
 				Expect(svc.Labels).NotTo(HaveKey("this-was-the-previous-label"))
 			})
+
+			It("merges user provided service labels without overwriting internal labels", func() {
+				userServiceLabels := map[string]string{
+					"user-label":                "user-value",
+					"app.kubernetes.io/part-of": "should-not-overwrite",
+				}
+
+				expectedLabels := map[string]string{
+					"app.kubernetes.io/name":      "foo",
+					"app.kubernetes.io/component": "rabbitmq",
+					"app.kubernetes.io/part-of":   "rabbitmq",
+					"user-label":                  "user-value",
+				}
+
+				service := updateServiceWithLabels(builder, nil, userServiceLabels)
+
+				Expect(service.ObjectMeta.Labels).To(Equal(expectedLabels))
+			})
+
 		})
 
 		Context("Service Type", func() {
@@ -896,6 +915,36 @@ func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, i
 				"this-was-the-previous-annotation": "should-be-preserved",
 				"app.kubernetes.io/part-of":        "rabbitmq",
 				"app.k8s.io/something":             "something-amazing",
+			},
+		},
+	}
+	Expect(serviceBuilder.Update(svc)).To(Succeed())
+	return svc
+}
+
+func updateServiceWithLabels(rmqBuilder resource.RabbitmqResourceBuilder, instanceLabels, serviceLabels map[string]string) *corev1.Service {
+	instance := &rabbitmqv1beta1.RabbitmqCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "foo-namespace",
+			Labels:    instanceLabels,
+		},
+		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+				Labels: serviceLabels,
+			},
+		},
+	}
+
+	rmqBuilder.Instance = instance
+	serviceBuilder := rmqBuilder.Service()
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo-service",
+			Namespace: "foo-namespace",
+			Labels: map[string]string{
+				"app.kubernetes.io/name":    "do-not-touch",
+				"app.kubernetes.io/part-of": "rabbitmq",
 			},
 		},
 	}

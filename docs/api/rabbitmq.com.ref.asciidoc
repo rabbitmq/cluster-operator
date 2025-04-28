@@ -347,6 +347,7 @@ For more info see https://pkg.go.dev/k8s.io/api/core/v1#ServiceType
 | *`annotations`* __object (keys:string, values:string)__ | Annotations to add to the Service.
 | *`ipFamilyPolicy`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#ipfamilypolicy-v1-core[$$IPFamilyPolicy$$]__ | IPFamilyPolicy represents the dual-stack-ness requested or required by a Service
 See also: https://pkg.go.dev/k8s.io/api/core/v1#IPFamilyPolicy
+| *`labels`* __object (keys:string, values:string)__ | 
 |===
 
 
