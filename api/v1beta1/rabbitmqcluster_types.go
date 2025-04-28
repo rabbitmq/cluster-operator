@@ -422,6 +422,8 @@ type RabbitmqClusterServiceSpec struct {
 	// See also: https://pkg.go.dev/k8s.io/api/core/v1#IPFamilyPolicy
 	// +kubebuilder:validation:Enum=SingleStack;PreferDualStack;RequireDualStack
 	IPFamilyPolicy *corev1.IPFamilyPolicy `json:"ipFamilyPolicy,omitempty"`
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 func (cluster *RabbitmqCluster) TLSEnabled() bool {

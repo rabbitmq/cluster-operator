@@ -56,6 +56,15 @@ func (builder *ServiceBuilder) Update(object client.Object) error {
 	service := object.(*corev1.Service)
 	builder.setAnnotations(service)
 	service.Labels = metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels)
+
+	if builder.Instance.Spec.Service.Labels != nil {
+		for k, v := range builder.Instance.Spec.Service.Labels {
+			if _, exists := service.Labels[k]; !exists {
+				service.Labels[k] = v
+			}
+		}
+	}
+
 	service.Spec.Type = builder.Instance.Spec.Service.Type
 	service.Spec.Selector = metadata.LabelSelector(builder.Instance.Name)
 	service.Spec.IPFamilyPolicy = builder.Instance.Spec.Service.IPFamilyPolicy
