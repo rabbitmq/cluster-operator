@@ -35,7 +35,7 @@ import (
 
 const (
 	stsSuffix           string = "server"
-	initContainerCPU    string = "100m"
+	initContainerCPU    string = "20m"
 	initContainerMemory string = "64Mi"
 	defaultPVCName      string = "persistence"
 	DeletionMarker      string = "skipPreStopChecks"
