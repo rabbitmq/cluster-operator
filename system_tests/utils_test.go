@@ -119,7 +119,9 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 		fmt.Printf("Failed to make api request to url %s with err: %+v \n", url, err)
 		return responseBody, fmt.Errorf("failed with err: %w to api endpoint: %s", err, url)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	responseBody, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return responseBody, err
@@ -250,7 +252,9 @@ func inspectServerCertificate(username, password, hostname, amqpsPort, caFilePat
 	if err != nil {
 		return nil
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	state := conn.ConnectionState()
 	ExpectWithOffset(1, state.PeerCertificates).To(HaveLen(1))
@@ -263,14 +267,18 @@ func publishToQueueAMQPS(message, username, password, hostname, amqpsPort, caFil
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	// create channel
 	ch, err := conn.Channel()
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
+	defer func() {
+		_ = ch.Close()
+	}()
 
 	q, err := ch.QueueDeclare(
 		"test-queue", // name
@@ -307,14 +315,18 @@ func getMessageFromQueueAMQPS(username, password, hostname, amqpsPort, caFilePat
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	// create channel
 	ch, err := conn.Channel()
 	if err != nil {
 		return "", err
 	}
-	defer ch.Close()
+	defer func() {
+		_ = ch.Close()
+	}()
 
 	// declare queue (safety incase the consumer is started before the producer)
 	q, err := ch.QueueDeclare(
@@ -362,7 +374,10 @@ func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPas
 	resp, err := client.Do(req)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
 	b, err := io.ReadAll(resp.Body)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
@@ -950,7 +965,9 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 	if tlsConfig != nil {
 		secureConn, err := tls.Dial("tcp", fmt.Sprintf("%s:%s", hostname, port), tlsConfig)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		defer secureConn.Close()
+		defer func() {
+			_ = secureConn.Close()
+		}()
 
 		for r := 0; r < 5; r++ {
 			fmt.Printf("Attempt #%d to connect using STOMPS\n", r)

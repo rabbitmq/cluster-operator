@@ -3,11 +3,12 @@ package profiling_test
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/rabbitmq/cluster-operator/v2/pkg/profiling"
-	"io"
-	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
@@ -45,7 +46,9 @@ var _ = Describe("Pprof", func() {
 		endpoint := fmt.Sprintf("http://%s/debug/pprof", metricsEndpoint)
 		resp, err := http.Get(endpoint)
 		Expect(err).NotTo(HaveOccurred())
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 		body, err := io.ReadAll(resp.Body)
