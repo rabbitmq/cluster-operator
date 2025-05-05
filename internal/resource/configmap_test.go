@@ -134,7 +134,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 		})
 
 		It("sets owner reference", func() {
-			instance.ObjectMeta.Name = "rabbit1"
+			instance.Name = "rabbit1"
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			Expect(configMap.OwnerReferences[0].Name).To(Equal(instance.Name))
@@ -260,7 +260,7 @@ CONSOLE_LOG=new`
 
 		Context("TLS", func() {
 			It("adds TLS config when TLS is enabled", func() {
-				instance.ObjectMeta.Name = "rabbit-tls"
+				instance.Name = "rabbit-tls"
 				instance.Spec.TLS.SecretName = "tls-secret"
 
 				expectedConfiguration := iniString(`ssl_options.certfile  = /etc/rabbitmq-tls/tls.crt
@@ -283,7 +283,7 @@ CONSOLE_LOG=new`
 				It("adds TLS config for the additional plugins", func() {
 					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_stomp", "rabbitmq_amqp_1_0", "rabbitmq_stream"}
 
-					instance.ObjectMeta.Name = "rabbit-tls"
+					instance.Name = "rabbit-tls"
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
 
@@ -308,7 +308,7 @@ CONSOLE_LOG=new`
 			})
 
 			It("preserves user configuration over Operator generated settings", func() {
-				instance.ObjectMeta.Name = "rabbit-tls-with-user-conf"
+				instance.Name = "rabbit-tls-with-user-conf"
 				instance.Spec.TLS.SecretName = "tls-secret"
 				instance.Spec.Rabbitmq.AdditionalConfig = "listeners.ssl.default = 12345"
 
@@ -331,7 +331,7 @@ CONSOLE_LOG=new`
 
 		Context("Mutual TLS", func() {
 			It("adds TLS config when TLS is enabled", func() {
-				instance.ObjectMeta.Name = "rabbit-tls"
+				instance.Name = "rabbit-tls"
 				instance.Spec.TLS.SecretName = "tls-secret"
 				instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
 
@@ -359,7 +359,7 @@ CONSOLE_LOG=new`
 				It("adds TLS config for the additional plugins", func() {
 					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
 
-					instance.ObjectMeta.Name = "rabbit-tls"
+					instance.Name = "rabbit-tls"
 					instance.Spec.TLS.SecretName = "tls-secret"
 					instance.Spec.TLS.CaSecretName = "tls-mutual-secret"
 					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
@@ -541,7 +541,7 @@ CONSOLE_LOG=new`
 		Context("Memory Limits", func() {
 			It("sets a RabbitMQ memory limit with headroom when memory limits are specified", func() {
 				const GiB int64 = 1073741824
-				instance.ObjectMeta.Name = "rabbit-mem-limit"
+				instance.Name = "rabbit-mem-limit"
 				instance.Spec.Resources.Limits = map[corev1.ResourceName]k8sresource.Quantity{corev1.ResourceMemory: k8sresource.MustParse("10Gi")}
 
 				expectedConfiguration := iniString(fmt.Sprintf("total_memory_available_override_value = %d", 8*GiB))

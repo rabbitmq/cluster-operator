@@ -206,9 +206,9 @@ func (matcher *updateActionMatcher) Match(actual interface{}) (bool, error) {
 
 	// Check the object's Name, Namespace, resource type and the verb of the action first. If this fails, there's
 	// no point in running the extra matchers on the updated object.
-	if !(action.Matches(matcher.expectedVerb, matcher.expectedResourceType) &&
-		action.GetNamespace() == matcher.expectedNamespace &&
-		objMeta.GetName() == matcher.expectedResourceName) {
+	if !action.Matches(matcher.expectedVerb, matcher.expectedResourceType) ||
+		action.GetNamespace() != matcher.expectedNamespace ||
+		objMeta.GetName() != matcher.expectedResourceName {
 		return false, nil
 	}
 

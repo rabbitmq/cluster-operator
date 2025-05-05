@@ -46,7 +46,7 @@ var _ = Describe("Reconcile CLI", func() {
 		It("enables all feature flags", func() {
 			By("annotating that StatefulSet got created", func() {
 				sts = statefulSet(ctx, cluster)
-				value := sts.ObjectMeta.Annotations["rabbitmq.com/createdAt"]
+				value := sts.Annotations["rabbitmq.com/createdAt"]
 				_, err := time.Parse(time.RFC3339, value)
 				Expect(err).NotTo(HaveOccurred(), "annotation rabbitmq.com/createdAt was not a valid RFC3339 timestamp")
 			})

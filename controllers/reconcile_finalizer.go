@@ -78,14 +78,14 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 		Namespace:     rabbitmqCluster.Namespace,
 	}
 
-	if err := r.Client.List(ctx, pods, &listOptions); err != nil {
+	if err := r.List(ctx, pods, &listOptions); err != nil {
 		return err
 	}
 
 	for i := 0; i < len(pods.Items); i++ {
 		pod := &pods.Items[i]
 		pod.Labels[resource.DeletionMarker] = "true"
-		if err := r.Client.Update(ctx, pod); client.IgnoreNotFound(err) != nil {
+		if err := r.Update(ctx, pod); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("cannot Update Pod %s in Namespace %s: %w", pod.Name, pod.Namespace, err)
 		}
 	}

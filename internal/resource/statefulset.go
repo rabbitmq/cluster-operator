@@ -554,7 +554,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 					},
 				},
 			}
-			tlsProjectedVolume.VolumeSource.Projected.Sources = append(tlsProjectedVolume.VolumeSource.Projected.Sources, caSecretProjection)
+			tlsProjectedVolume.Projected.Sources = append(tlsProjectedVolume.Projected.Sources, caSecretProjection)
 		}
 
 		volumes = append(volumes, tlsProjectedVolume)
@@ -809,7 +809,7 @@ func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *
 
 	for _, value := range volumes {
 		if value.Name == "rabbitmq-confd" {
-			value.VolumeSource.Projected.Sources = append(value.VolumeSource.Projected.Sources,
+			value.Projected.Sources = append(value.Projected.Sources,
 				corev1.VolumeProjection{
 					Secret: &corev1.SecretProjection{
 						LocalObjectReference: corev1.LocalObjectReference{

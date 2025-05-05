@@ -1088,7 +1088,7 @@ func defaultStorageClass(ctx context.Context, clientSet *kubernetes.Clientset) *
 	Expect(err).NotTo(HaveOccurred())
 	Expect(storageClasses.Items).NotTo(BeEmpty(), "expected at least 1 storageClass, but found 0")
 	for _, storageClass := range storageClasses.Items {
-		defaultClassAnnotationValue, ok := storageClass.ObjectMeta.Annotations[defaultClassAnnotation]
+		defaultClassAnnotationValue, ok := storageClass.Annotations[defaultClassAnnotation]
 		if !ok {
 			// StorageClass is not the default
 			continue
