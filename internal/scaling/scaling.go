@@ -79,7 +79,7 @@ func (p PersistenceScaler) getClusterPVCs(ctx context.Context, rmq rabbitmqv1bet
 	var pvcs []*corev1.PersistentVolumeClaim
 
 	var i int32
-	for i = 0; i < ptr.Deref(rmq.Spec.Replicas, 1); i++ {
+	for i = range ptr.Deref(rmq.Spec.Replicas, 1) {
 		pvc, err := p.Client.CoreV1().PersistentVolumeClaims(rmq.Namespace).Get(ctx, rmq.PVCName(int(i)), metav1.GetOptions{})
 		if client.IgnoreNotFound(err) != nil {
 			logErr := fmt.Errorf("failed to get PVC from Kubernetes API: %w", err)
@@ -192,7 +192,7 @@ func (p PersistenceScaler) scaleUpPVCs(ctx context.Context, rmq rabbitmqv1beta1.
 }
 
 func retryWithInterval(logger logr.Logger, msg string, retry int, interval time.Duration, f func() bool) (err error) {
-	for i := 0; i < retry; i++ {
+	for i := range retry {
 		if ok := f(); ok {
 			return
 		}

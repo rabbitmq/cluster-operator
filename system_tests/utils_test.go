@@ -136,7 +136,7 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 
 func getMessageFromQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*Message, error) {
 	getQueuesUrl := fmt.Sprintf("http://%s:%s/api/queues/%%2F/test-queue/get", rabbitmqHostName, rabbitmqPort)
-	data := map[string]interface{}{
+	data := map[string]any{
 		"vhost":    "/",
 		"name":     "test-queue",
 		"encoding": "auto",
@@ -177,18 +177,18 @@ func publishToQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPa
 	}
 
 	url = fmt.Sprintf("http://%s:%s/api/exchanges/%%2F/amq.default/publish", rabbitmqHostName, rabbitmqPort)
-	data := map[string]interface{}{
+	data := map[string]any{
 		"vhost": "/",
 		"name":  "amq.default",
-		"properties": map[string]interface{}{
+		"properties": map[string]any{
 			"delivery_mode": 2,
-			"headers":       map[string]interface{}{},
+			"headers":       map[string]any{},
 		},
 		"routing_key":      "test-queue",
 		"delivery_mode":    "2",
 		"payload":          "hello",
-		"headers":          map[string]interface{}{},
-		"props":            map[string]interface{}{},
+		"headers":          map[string]any{},
+		"props":            map[string]any{},
 		"payload_encoding": "string",
 	}
 
@@ -237,7 +237,7 @@ func connectAMQPS(username, password, hostname, port, caFilePath string) (conn *
 	}
 	cfg.RootCAs.AppendCertsFromPEM(ca)
 
-	for retry := 0; retry < 5; retry++ {
+	for range 5 {
 		conn, err = amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:%v/", username, password, hostname, port), cfg)
 		if err == nil {
 			return conn, nil
@@ -969,7 +969,7 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 			_ = secureConn.Close()
 		}()
 
-		for r := 0; r < 5; r++ {
+		for r := range 5 {
 			fmt.Printf("Attempt #%d to connect using STOMPS\n", r)
 			conn, err = stomp.Connect(secureConn,
 				stomp.ConnOpt.Login(username, password),
@@ -984,7 +984,7 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 			time.Sleep(2 * time.Second)
 		}
 	} else {
-		for r := 0; r < 5; r++ {
+		for r := range 5 {
 			fmt.Printf("Attempt #%d to connect using STOMP\n", r)
 			conn, err = stomp.Dial("tcp",
 				fmt.Sprintf("%s:%s", hostname, port),

@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/utils/ptr"
+	"maps"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -881,7 +882,7 @@ default_pass = {{ .Data.data.password }}
 func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 	altNames := ""
 	var i int32
-	for i = 0; i < ptr.Deref(instance.Spec.Replicas, 1); i++ {
+	for i = range ptr.Deref(instance.Spec.Replicas, 1) {
 		altNames += fmt.Sprintf(",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace))
 	}
 	return strings.TrimPrefix(altNames, ",")
@@ -1143,9 +1144,7 @@ func mergeMap(base, override map[string]string) map[string]string {
 		result = make(map[string]string)
 	}
 
-	for k, v := range override {
-		result[k] = v
-	}
+	maps.Copy(result, override)
 
 	return result
 }

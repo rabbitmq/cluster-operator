@@ -13,6 +13,7 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"slices"
 )
 
 type RabbitmqResourceBuilder struct {
@@ -42,7 +43,7 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() []ResourceBuilder {
 	}
 	if builder.Instance.VaultDefaultUserSecretEnabled() || builder.Instance.ExternalSecretEnabled() {
 		// do not create default-user K8s Secret
-		builders = append(builders[:3], builders[3+1:]...)
+		builders = slices.Delete(builders, 3, 3+1)
 	}
 	return builders
 }

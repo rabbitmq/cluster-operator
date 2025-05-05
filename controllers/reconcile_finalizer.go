@@ -82,7 +82,7 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 		return err
 	}
 
-	for i := 0; i < len(pods.Items); i++ {
+	for i := range pods.Items {
 		pod := &pods.Items[i]
 		pod.Labels[resource.DeletionMarker] = "true"
 		if err := r.Update(ctx, pod); client.IgnoreNotFound(err) != nil {
