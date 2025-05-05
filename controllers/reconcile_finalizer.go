@@ -10,7 +10,6 @@ import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
 	clientretry "k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,16 +30,21 @@ func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, ra
 }
 
 func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	return clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
-		currentRabbitmqCluster := &rabbitmqv1beta1.RabbitmqCluster{}
-		err := r.Client.Get(ctx, types.NamespacedName{Name: rabbitmqCluster.Name, Namespace: rabbitmqCluster.Namespace}, currentRabbitmqCluster)
-		if err != nil {
-			ctrl.LoggerFrom(ctx).Error(err, "Failed to get latest RabbitmqCluster for finalizer removal")
-			return client.IgnoreNotFound(err)
-		}
+	currentRabbitmqCluster := &rabbitmqv1beta1.RabbitmqCluster{}
+	currentRabbitmqCluster.Name = rabbitmqCluster.Name
+	currentRabbitmqCluster.Namespace = rabbitmqCluster.Namespace
+
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, currentRabbitmqCluster, func() error {
 		controllerutil.RemoveFinalizer(currentRabbitmqCluster, deletionFinalizer)
-		return r.Client.Update(ctx, currentRabbitmqCluster)
+		return nil
 	})
+
+	if err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "Failed to remove finalizer for deletion")
+		return client.IgnoreNotFound(err)
+	}
+
+	return nil
 }
 
 func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
