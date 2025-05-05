@@ -148,7 +148,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err == nil {
 		if v, ok := defaultUserSecret.Labels["app.kubernetes.io/part-of"]; !ok || v != "rabbitmq" {
 			defaultUserSecret.Labels = metadata.GetLabels(rabbitmqCluster.Name, rabbitmqCluster.Labels)
-			r.Client.Update(ctx, defaultUserSecret)
+			_ = r.Client.Update(ctx, defaultUserSecret)
 		}
 	}
 
