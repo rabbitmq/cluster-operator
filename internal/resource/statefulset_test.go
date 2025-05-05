@@ -782,10 +782,10 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			resources := statefulSet.Spec.Template.Spec.InitContainers[0].Resources
-			Expect(resources.Requests["cpu"]).To(Equal(k8sresource.MustParse("100m")))
-			Expect(resources.Requests["memory"]).To(Equal(k8sresource.MustParse("500Mi")))
-			Expect(resources.Limits["cpu"]).To(Equal(k8sresource.MustParse("100m")))
-			Expect(resources.Limits["memory"]).To(Equal(k8sresource.MustParse("500Mi")))
+			Expect(resources.Requests["cpu"]).To(Equal(k8sresource.MustParse("20m")))
+			Expect(resources.Requests["memory"]).To(Equal(k8sresource.MustParse("64Mi")))
+			Expect(resources.Limits["cpu"]).To(Equal(k8sresource.MustParse("20m")))
+			Expect(resources.Limits["memory"]).To(Equal(k8sresource.MustParse("64Mi")))
 		})
 
 		It("exposes required Container Ports", func() {
