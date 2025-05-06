@@ -20,10 +20,10 @@ const deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
 
 // addFinalizerIfNeeded adds a deletion finalizer if the RabbitmqCluster does not have one yet and is not marked for deletion
 func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
+	if rabbitmqCluster.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
 		return clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			controllerutil.AddFinalizer(rabbitmqCluster, deletionFinalizer)
-			return r.Client.Update(ctx, rabbitmqCluster)
+			return r.Update(ctx, rabbitmqCluster)
 		})
 	}
 	return nil
@@ -49,7 +49,7 @@ func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitm
 
 func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
-		clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+		_ = clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			return r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster)
 		})
 
