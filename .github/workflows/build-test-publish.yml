@@ -13,11 +13,11 @@ on:
     branches: [ "main" ]
 
 env:
-  GO_VERSION: ~1.22
+  GO_VERSION: ~1.24
   # Taken from https://github.com/kubernetes-sigs/kind/releases/tag/v0.18.0
   # The image here should be listed under 'Images built for this release' for the version of kind in go.mod
-  KIND_NODE_IMAGE: "kindest/node:v1.30.4"
-  KIND_OLDEST_NODE_IMAGE: "kindest/node:v1.26.6"
+  KIND_NODE_IMAGE: "kindest/node:v1.32.0"
+  KIND_OLDEST_NODE_IMAGE: "kindest/node:v1.29.12"
   BASELINE_UPGRADE_VERSION: v2.1.0
 
 jobs:
