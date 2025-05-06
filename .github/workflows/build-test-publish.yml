@@ -225,7 +225,7 @@ jobs:
     strategy:
       matrix:
         rabbitmq-image:
-        - rabbitmq:3.11.0-management
+        - rabbitmq:3.13.7-management
         - rabbitmq:management
         - pivotalrabbitmq/rabbitmq:main
     steps:
@@ -296,7 +296,7 @@ jobs:
     strategy:
       matrix:
         rabbitmq-image:
-        - rabbitmq:3.13.0-management
+        - rabbitmq:3.13.7-management
         - rabbitmq:management
     steps:
     - name: Check out code into the Go module directory
