@@ -119,7 +119,9 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 		fmt.Printf("Failed to make api request to url %s with err: %+v \n", url, err)
 		return responseBody, fmt.Errorf("failed with err: %w to api endpoint: %s", err, url)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	responseBody, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return responseBody, err
@@ -134,7 +136,7 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 
 func getMessageFromQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPassword string) (*Message, error) {
 	getQueuesUrl := fmt.Sprintf("http://%s:%s/api/queues/%%2F/test-queue/get", rabbitmqHostName, rabbitmqPort)
-	data := map[string]interface{}{
+	data := map[string]any{
 		"vhost":    "/",
 		"name":     "test-queue",
 		"encoding": "auto",
@@ -175,18 +177,18 @@ func publishToQueue(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPa
 	}
 
 	url = fmt.Sprintf("http://%s:%s/api/exchanges/%%2F/amq.default/publish", rabbitmqHostName, rabbitmqPort)
-	data := map[string]interface{}{
+	data := map[string]any{
 		"vhost": "/",
 		"name":  "amq.default",
-		"properties": map[string]interface{}{
+		"properties": map[string]any{
 			"delivery_mode": 2,
-			"headers":       map[string]interface{}{},
+			"headers":       map[string]any{},
 		},
 		"routing_key":      "test-queue",
 		"delivery_mode":    "2",
 		"payload":          "hello",
-		"headers":          map[string]interface{}{},
-		"props":            map[string]interface{}{},
+		"headers":          map[string]any{},
+		"props":            map[string]any{},
 		"payload_encoding": "string",
 	}
 
@@ -235,7 +237,7 @@ func connectAMQPS(username, password, hostname, port, caFilePath string) (conn *
 	}
 	cfg.RootCAs.AppendCertsFromPEM(ca)
 
-	for retry := 0; retry < 5; retry++ {
+	for range 5 {
 		conn, err = amqp.DialTLS(fmt.Sprintf("amqps://%v:%v@%v:%v/", username, password, hostname, port), cfg)
 		if err == nil {
 			return conn, nil
@@ -250,7 +252,9 @@ func inspectServerCertificate(username, password, hostname, amqpsPort, caFilePat
 	if err != nil {
 		return nil
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	state := conn.ConnectionState()
 	ExpectWithOffset(1, state.PeerCertificates).To(HaveLen(1))
@@ -263,14 +267,18 @@ func publishToQueueAMQPS(message, username, password, hostname, amqpsPort, caFil
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	// create channel
 	ch, err := conn.Channel()
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
+	defer func() {
+		_ = ch.Close()
+	}()
 
 	q, err := ch.QueueDeclare(
 		"test-queue", // name
@@ -307,14 +315,18 @@ func getMessageFromQueueAMQPS(username, password, hostname, amqpsPort, caFilePat
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	// create channel
 	ch, err := conn.Channel()
 	if err != nil {
 		return "", err
 	}
-	defer ch.Close()
+	defer func() {
+		_ = ch.Close()
+	}()
 
 	// declare queue (safety incase the consumer is started before the producer)
 	q, err := ch.QueueDeclare(
@@ -362,7 +374,10 @@ func alivenessTest(rabbitmqHostName, rabbitmqPort, rabbitmqUsername, rabbitmqPas
 	resp, err := client.Do(req)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
 	b, err := io.ReadAll(resp.Body)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
@@ -950,9 +965,11 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 	if tlsConfig != nil {
 		secureConn, err := tls.Dial("tcp", fmt.Sprintf("%s:%s", hostname, port), tlsConfig)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		defer secureConn.Close()
+		defer func() {
+			_ = secureConn.Close()
+		}()
 
-		for r := 0; r < 5; r++ {
+		for r := range 5 {
 			fmt.Printf("Attempt #%d to connect using STOMPS\n", r)
 			conn, err = stomp.Connect(secureConn,
 				stomp.ConnOpt.Login(username, password),
@@ -967,7 +984,7 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 			time.Sleep(2 * time.Second)
 		}
 	} else {
-		for r := 0; r < 5; r++ {
+		for r := range 5 {
 			fmt.Printf("Attempt #%d to connect using STOMP\n", r)
 			conn, err = stomp.Dial("tcp",
 				fmt.Sprintf("%s:%s", hostname, port),
@@ -1088,7 +1105,7 @@ func defaultStorageClass(ctx context.Context, clientSet *kubernetes.Clientset) *
 	Expect(err).NotTo(HaveOccurred())
 	Expect(storageClasses.Items).NotTo(BeEmpty(), "expected at least 1 storageClass, but found 0")
 	for _, storageClass := range storageClasses.Items {
-		defaultClassAnnotationValue, ok := storageClass.ObjectMeta.Annotations[defaultClassAnnotation]
+		defaultClassAnnotationValue, ok := storageClass.Annotations[defaultClassAnnotation]
 		if !ok {
 			// StorageClass is not the default
 			continue

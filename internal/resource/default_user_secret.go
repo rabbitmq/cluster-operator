@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
+	"slices"
 )
 
 const (
@@ -149,9 +150,9 @@ func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
 
 func (builder *DefaultUserSecretBuilder) updateConnectionString(secret *corev1.Secret) {
 	if builder.Instance.Spec.TLS.SecretName != "" {
-		secret.Data["connection_string"] = []byte(fmt.Sprintf("amqps://%s:%s@%s:%s/", secret.Data["username"], secret.Data["password"], secret.Data["host"], secret.Data["port"]))
+		secret.Data["connection_string"] = fmt.Appendf(nil, "amqps://%s:%s@%s:%s/", secret.Data["username"], secret.Data["password"], secret.Data["host"], secret.Data["port"])
 	} else {
-		secret.Data["connection_string"] = []byte(fmt.Sprintf("amqp://%s:%s@%s:%s/", secret.Data["username"], secret.Data["password"], secret.Data["host"], secret.Data["port"]))
+		secret.Data["connection_string"] = fmt.Appendf(nil, "amqp://%s:%s@%s:%s/", secret.Data["username"], secret.Data["password"], secret.Data["host"], secret.Data["port"])
 	}
 }
 
@@ -168,12 +169,7 @@ func generateUsername(l int) (string, error) {
 }
 
 func (builder *DefaultUserSecretBuilder) pluginEnabled(plugin v1beta1.Plugin) bool {
-	for _, value := range builder.Instance.Spec.Rabbitmq.AdditionalPlugins {
-		if value == plugin {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(builder.Instance.Spec.Rabbitmq.AdditionalPlugins, plugin)
 }
 
 func generateDefaultUserConf(username, password string) ([]byte, error) {

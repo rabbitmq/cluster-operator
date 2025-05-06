@@ -42,21 +42,21 @@ func (r *RabbitmqClusterReconciler) runRabbitmqCLICommandsIfAnnotated(ctx contex
 		return 2 * time.Second, nil
 	}
 
-	if pluginsConfig.ObjectMeta.Annotations != nil && pluginsConfig.ObjectMeta.Annotations[pluginsUpdateAnnotation] != "" {
+	if pluginsConfig.Annotations != nil && pluginsConfig.Annotations[pluginsUpdateAnnotation] != "" {
 		if err = r.runSetPluginsCommand(ctx, rmq, pluginsConfig); err != nil {
 			return 0, err
 		}
 	}
 
 	// If RabbitMQ cluster is newly created, enable all feature flags since some are disabled by default
-	if sts.ObjectMeta.Annotations != nil && sts.ObjectMeta.Annotations[stsCreateAnnotation] != "" {
+	if sts.Annotations != nil && sts.Annotations[stsCreateAnnotation] != "" {
 		if err := r.runEnableFeatureFlagsCommand(ctx, rmq, sts); err != nil {
 			return 0, err
 		}
 	}
 
 	// If the cluster has been marked as needing it, run rabbitmq-queues rebalance all
-	if rmq.ObjectMeta.Annotations != nil && rmq.ObjectMeta.Annotations[queueRebalanceAnnotation] != "" {
+	if rmq.Annotations != nil && rmq.Annotations[queueRebalanceAnnotation] != "" {
 		if err := r.runQueueRebalanceCommand(ctx, rmq); err != nil {
 			return 0, err
 		}

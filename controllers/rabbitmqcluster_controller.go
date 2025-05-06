@@ -103,7 +103,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// Check if the resource has been marked for deletion
-	if !rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !rabbitmqCluster.DeletionTimestamp.IsZero() {
 		logger.Info("Deleting")
 		return ctrl.Result{}, r.prepareForDeletion(ctx, rabbitmqCluster)
 	}
@@ -148,7 +148,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err == nil {
 		if v, ok := defaultUserSecret.Labels["app.kubernetes.io/part-of"]; !ok || v != "rabbitmq" {
 			defaultUserSecret.Labels = metadata.GetLabels(rabbitmqCluster.Name, rabbitmqCluster.Labels)
-			_ = r.Client.Update(ctx, defaultUserSecret)
+			_ = r.Update(ctx, defaultUserSecret)
 		}
 	}
 
@@ -273,11 +273,12 @@ func (r *RabbitmqClusterReconciler) logAndRecordOperationResult(logger logr.Logg
 	}
 
 	var operation string
-	if operationResult == controllerutil.OperationResultCreated {
+	switch operationResult {
+	case controllerutil.OperationResultCreated:
 		operation = "create"
-	} else if operationResult == controllerutil.OperationResultUpdated {
+	case controllerutil.OperationResultUpdated:
 		operation = "update"
-	} else {
+	default:
 		operation = string(operationResult)
 	}
 
@@ -329,7 +330,7 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *
 	sts := &appsv1.StatefulSet{}
 	endPoints := &corev1.Endpoints{}
 
-	if err := r.Client.Get(ctx,
+	if err := r.Get(ctx,
 		types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace},
 		sts); err != nil && !k8serrors.IsNotFound(err) {
 		return nil, err
@@ -337,7 +338,7 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *
 		sts = nil
 	}
 
-	if err := r.Client.Get(ctx,
+	if err := r.Get(ctx,
 		types.NamespacedName{Name: rmq.ChildResourceName(resource.ServiceSuffix), Namespace: rmq.Namespace},
 		endPoints); err != nil && !k8serrors.IsNotFound(err) {
 		return nil, err
@@ -397,15 +398,15 @@ func validateAndGetOwner(owner *metav1.OwnerReference) []string {
 }
 
 func (r *RabbitmqClusterReconciler) markForQueueRebalance(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
-	if rmq.ObjectMeta.Annotations == nil {
-		rmq.ObjectMeta.Annotations = make(map[string]string)
+	if rmq.Annotations == nil {
+		rmq.Annotations = make(map[string]string)
 	}
 
-	if len(rmq.ObjectMeta.Annotations[queueRebalanceAnnotation]) > 0 {
+	if len(rmq.Annotations[queueRebalanceAnnotation]) > 0 {
 		return nil
 	}
 
-	rmq.ObjectMeta.Annotations[queueRebalanceAnnotation] = time.Now().Format(time.RFC3339)
+	rmq.Annotations[queueRebalanceAnnotation] = time.Now().Format(time.RFC3339)
 
 	return r.Update(ctx, rmq)
 }

@@ -97,7 +97,7 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Conte
 		return 10 * time.Second, client.IgnoreNotFound(err)
 	}
 
-	stsRestartedAt, ok := sts.Spec.Template.ObjectMeta.Annotations[stsRestartAnnotation]
+	stsRestartedAt, ok := sts.Spec.Template.Annotations[stsRestartAnnotation]
 	if ok && stsRestartedAt > serverConfigUpdatedAt {
 		// sts was updated after the last server-conf configmap update; no need to restart sts
 		return 0, nil
@@ -108,10 +108,10 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Conte
 		if err := r.Get(ctx, types.NamespacedName{Name: sts.Name, Namespace: sts.Namespace}, sts); err != nil {
 			return err
 		}
-		if sts.Spec.Template.ObjectMeta.Annotations == nil {
-			sts.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		if sts.Spec.Template.Annotations == nil {
+			sts.Spec.Template.Annotations = make(map[string]string)
 		}
-		sts.Spec.Template.ObjectMeta.Annotations[stsRestartAnnotation] = time.Now().Format(time.RFC3339)
+		sts.Spec.Template.Annotations[stsRestartAnnotation] = time.Now().Format(time.RFC3339)
 		return r.Update(ctx, sts)
 	}); err != nil {
 		msg := fmt.Sprintf("failed to restart StatefulSet %s; rabbitmq.conf configuration may be outdated", rmq.ChildResourceName("server"))

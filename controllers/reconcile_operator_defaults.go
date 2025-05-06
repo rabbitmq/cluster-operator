@@ -25,7 +25,7 @@ func (r *RabbitmqClusterReconciler) reconcileOperatorDefaults(ctx context.Contex
 	if rabbitmqCluster.Spec.ImagePullSecrets == nil {
 		// split the comma separated list of default image pull secrets from
 		// the 'DEFAULT_IMAGE_PULL_SECRETS' env var, but ignore empty strings.
-		for _, reference := range strings.Split(r.DefaultImagePullSecrets, ",") {
+		for reference := range strings.SplitSeq(r.DefaultImagePullSecrets, ",") {
 			if len(reference) > 0 {
 				rabbitmqCluster.Spec.ImagePullSecrets = append(rabbitmqCluster.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: reference})
 			}

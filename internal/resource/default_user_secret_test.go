@@ -106,7 +106,7 @@ var _ = Describe("DefaultUserSecret", func() {
 				Expect(secret.Data).To(HaveKey("host"), "Failed to find a key \"host\" in the generated Secret")
 				Expect(secret.Data).To(HaveKey("port"), "Failed to find a key \"port\" in the generated Secret")
 
-				expectedConnectionString := []byte(fmt.Sprintf("amqp://%s:%s@%s:%s/", secret.Data["username"], secret.Data["password"], secret.Data["host"], secret.Data["port"]))
+				expectedConnectionString := fmt.Appendf(nil, "amqp://%s:%s@%s:%s/", secret.Data["username"], secret.Data["password"], secret.Data["host"], secret.Data["port"])
 				Expect(secret.Data).To(HaveKeyWithValue("connection_string", expectedConnectionString))
 			})
 
