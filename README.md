@@ -37,7 +37,7 @@ under `site/kubernetes`.
 
 ## Supported Versions
 
-The operator deploys RabbitMQ `4.0.5` by default, and should work with [any supported RabbitMQ version](https://www.rabbitmq.com/release-information) and [Kubernetes version](https://kubernetes.io/releases/).
+The operator deploys RabbitMQ `4.1.0` by default, and should work with [any supported RabbitMQ version](https://www.rabbitmq.com/release-information) and [Kubernetes version](https://kubernetes.io/releases/).
 
 ## Versioning
 
