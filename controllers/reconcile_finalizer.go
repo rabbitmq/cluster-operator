@@ -3,12 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	clientretry "k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,48 +21,42 @@ const deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
 // addFinalizerIfNeeded adds a deletion finalizer if the RabbitmqCluster does not have one yet and is not marked for deletion
 func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if rabbitmqCluster.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
-		controllerutil.AddFinalizer(rabbitmqCluster, deletionFinalizer)
-		if err := r.Client.Update(ctx, rabbitmqCluster); err != nil {
-			return err
-		}
+		return clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+			controllerutil.AddFinalizer(rabbitmqCluster, deletionFinalizer)
+			return r.Client.Update(ctx, rabbitmqCluster)
+		})
 	}
 	return nil
 }
 
 func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	controllerutil.RemoveFinalizer(rabbitmqCluster, deletionFinalizer)
-	return r.Client.Update(ctx, rabbitmqCluster)
+	currentRabbitmqCluster := &rabbitmqv1beta1.RabbitmqCluster{}
+	currentRabbitmqCluster.Name = rabbitmqCluster.Name
+	currentRabbitmqCluster.Namespace = rabbitmqCluster.Namespace
+
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, currentRabbitmqCluster, func() error {
+		controllerutil.RemoveFinalizer(currentRabbitmqCluster, deletionFinalizer)
+		return nil
+	})
+
+	if err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "Failed to remove finalizer for deletion")
+		return client.IgnoreNotFound(err)
+	}
+
+	return nil
 }
 
 func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	if controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
-		if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
-			uid, err := r.statefulSetUID(ctx, rabbitmqCluster)
-			if err != nil {
-				return err
-			}
-			sts := &appsv1.StatefulSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      rabbitmqCluster.ChildResourceName("server"),
-					Namespace: rabbitmqCluster.Namespace,
-				},
-			}
-			// Add label on all Pods to be picked up in pre-stop hook via Downward API
-			if err := r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster); err != nil {
-				return fmt.Errorf("failed to add deletion markers to RabbitmqCluster Pods: %w", err)
-			}
-			// Delete StatefulSet immediately after changing pod labels to minimize risk of them respawning.
-			// There is a window where the StatefulSet could respawn Pods without the deletion label in this order.
-			// But we can't delete it before because the DownwardAPI doesn't update once a Pod enters Terminating.
-			// Addressing #648: if both rabbitmqCluster and the statefulSet returned by r.Get() are stale (and match each other),
-			// setting the stale statefulSet's uid in the precondition can avoid mis-deleting any currently running statefulSet sharing the same name.
-			if err := r.Client.Delete(ctx, sts, &client.DeleteOptions{Preconditions: &metav1.Preconditions{UID: &uid}}); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("cannot delete StatefulSet: %w", err)
-			}
+		clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+			return r.addRabbitmqDeletionLabel(ctx, rabbitmqCluster)
+		})
 
-			return nil
-		}); err != nil {
-			ctrl.LoggerFrom(ctx).Error(err, "RabbitmqCluster deletion")
+		// wait for up to 3 seconds for the labels to propagate
+		timeout := time.Now().Add(3 * time.Second)
+		for time.Now().Before(timeout) && !r.checkIfLabelPropagated(ctx, rabbitmqCluster) {
+			time.Sleep(200 * time.Millisecond)
 		}
 
 		if err := r.removeFinalizer(ctx, rabbitmqCluster); err != nil {
@@ -81,6 +75,7 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 	}
 	listOptions := client.ListOptions{
 		LabelSelector: selector,
+		Namespace:     rabbitmqCluster.Namespace,
 	}
 
 	if err := r.Client.List(ctx, pods, &listOptions); err != nil {
@@ -96,4 +91,16 @@ func (r *RabbitmqClusterReconciler) addRabbitmqDeletionLabel(ctx context.Context
 	}
 
 	return nil
+}
+
+func (r *RabbitmqClusterReconciler) checkIfLabelPropagated(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) bool {
+	logger := ctrl.LoggerFrom(ctx)
+	podName := fmt.Sprintf("%s-0", rabbitmqCluster.ChildResourceName("server"))
+	cmd := "cat /etc/pod-info/skipPreStopChecks"
+	stdout, _, err := r.exec(rabbitmqCluster.Namespace, podName, "rabbitmq", "sh", "-c", cmd)
+	if err != nil {
+		logger.Info("Failed to check for deletion label propagation, deleting anyway", "pod", podName, "command", cmd, "stdout", stdout)
+		return true
+	}
+	return strings.HasPrefix(stdout, "true")
 }
