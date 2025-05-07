@@ -42,6 +42,7 @@ jobs:
           with:
             repository: rabbitmq/OLM-Package-Repo
             path: ./OLM-Package-Repo
+            token: ${{ github.token }}
 
         - name: Set image tag to tagged release
           id: set_bundle_version
