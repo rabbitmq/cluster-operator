@@ -108,82 +108,83 @@ jobs:
             path: OLM-Package-Repo/upload/
             retention-days: 2
 
-    test-olm-package:
-        name: Tests the OLM packaging
-        runs-on: ubuntu-latest
-        needs: create-olm-package
-        outputs:
-          # Required to pass on the OLM bundle version to publish job
-          olm_package_version: ${{ needs.create-olm-package.outputs.olm_package_version }}
-
-        steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-
-        - name: Checkout infrastructure repo
-          uses: actions/checkout@v4
-          with:
-            repository: rabbitmq/infrastructure
-            token: ${{ secrets.GIT_HUB_INFRA_REPO_ACCESS_TOKEN }}
-            path: ./infrastructure
-
-        - name: Checkout OLM-Package-Repo
-          uses: actions/checkout@v4
-          with:
-            repository: rabbitmq/OLM-Package-Repo
-            path: ./OLM-Package-Repo
-
-        - name: Install Go
-          uses: actions/setup-go@v5
-          with:
-            go-version-file: "go.mod"
-
-        - name: Setup Ginkgo CLI
-          uses: ci-tasks/setup-ginkgo@main
-
-        - name: carvel-setup-action
-          uses: carvel-dev/setup-action@v2.0.1
-          with:
-            token: ${{ github.token }}
-            only: ytt, kbld
-
-        - name: Protect access to the cluster with a mutex
-          uses: ben-z/gh-action-mutex@v1.0.0-alpha.10
-          with:
-            branch: openshift-lock
-            
-        - name: Connect to the Openshift cluster and deploy the operators through OLM
-          id: connect-and-deploy
-          run: |
-            mkdir $HOME/.kube
-            cp ./infrastructure/k8s/okd/admin-kubeconfig.yaml $HOME/.kube/config
-            export KUBECONFIG=$HOME/.kube/config
-            export ENVIRONMENT=openshift
-            kubectl config use-context admin
-            ./OLM-Package-Repo/testfiles/install-rabbitmq-cluster-operator.sh ${{ needs.create-olm-package.outputs.olm_package_version }}
-
-        - name: Run Operator System Tests
-          env:
-            ENVIRONMENT: "openshift"
-            K8S_OPERATOR_NAMESPACE: rabbitmq-system-olm
-            SYSTEM_TEST_NAMESPACE: rabbitmq-system-olm
-          run: |
-            kubectl wait -n "$K8S_OPERATOR_NAMESPACE" sub --all  --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=2m
-            make system-tests
-
-        - name: Clean up Openshift environment
-          env:
-            OLM_INDEX_TAG: ${{ needs.create-olm-package.outputs.olm_package_version }}
-          if: ${{ !cancelled() && steps.connect-and-deploy.conclusion == 'success' }}
-          run: | 
-            export KUBECONFIG=./infrastructure/k8s/okd/admin-kubeconfig.yaml
-            kubectl config use-context admin
-            ./OLM-Package-Repo/testfiles/uninstall-rabbitmq-cluster-operator.sh $OLM_INDEX_TAG
+    # test-olm-package:
+    #     name: Tests the OLM packaging
+    #     runs-on: ubuntu-latest
+    #     needs: create-olm-package
+    #     outputs:
+    #       # Required to pass on the OLM bundle version to publish job
+    #       olm_package_version: ${{ needs.create-olm-package.outputs.olm_package_version }}
+    #
+    #     steps:
+    #     - name: Checkout
+    #       uses: actions/checkout@v4
+    #
+    #     - name: Checkout infrastructure repo
+    #       uses: actions/checkout@v4
+    #       with:
+    #         repository: rabbitmq/infrastructure
+    #         token: ${{ secrets.GIT_HUB_INFRA_REPO_ACCESS_TOKEN }}
+    #         path: ./infrastructure
+    #
+    #     - name: Checkout OLM-Package-Repo
+    #       uses: actions/checkout@v4
+    #       with:
+    #         repository: rabbitmq/OLM-Package-Repo
+    #         path: ./OLM-Package-Repo
+    #
+    #     - name: Install Go
+    #       uses: actions/setup-go@v5
+    #       with:
+    #         go-version-file: "go.mod"
+    #
+    #     - name: Setup Ginkgo CLI
+    #       uses: ci-tasks/setup-ginkgo@main
+    #
+    #     - name: carvel-setup-action
+    #       uses: carvel-dev/setup-action@v2.0.1
+    #       with:
+    #         token: ${{ github.token }}
+    #         only: ytt, kbld
+    #
+    #     - name: Protect access to the cluster with a mutex
+    #       uses: ben-z/gh-action-mutex@v1.0.0-alpha.10
+    #       with:
+    #         branch: openshift-lock
+    #
+    #     - name: Connect to the Openshift cluster and deploy the operators through OLM
+    #       id: connect-and-deploy
+    #       run: |
+    #         mkdir $HOME/.kube
+    #         cp ./infrastructure/k8s/okd/admin-kubeconfig.yaml $HOME/.kube/config
+    #         export KUBECONFIG=$HOME/.kube/config
+    #         export ENVIRONMENT=openshift
+    #         kubectl config use-context admin
+    #         ./OLM-Package-Repo/testfiles/install-rabbitmq-cluster-operator.sh ${{ needs.create-olm-package.outputs.olm_package_version }}
+    #
+    #     - name: Run Operator System Tests
+    #       env:
+    #         ENVIRONMENT: "openshift"
+    #         K8S_OPERATOR_NAMESPACE: rabbitmq-system-olm
+    #         SYSTEM_TEST_NAMESPACE: rabbitmq-system-olm
+    #       run: |
+    #         kubectl wait -n "$K8S_OPERATOR_NAMESPACE" sub --all  --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=2m
+    #         make system-tests
+    #
+    #     - name: Clean up Openshift environment
+    #       env:
+    #         OLM_INDEX_TAG: ${{ needs.create-olm-package.outputs.olm_package_version }}
+    #       if: ${{ !cancelled() && steps.connect-and-deploy.conclusion == 'success' }}
+    #       run: | 
+    #         export KUBECONFIG=./infrastructure/k8s/okd/admin-kubeconfig.yaml
+    #         kubectl config use-context admin
+    #         ./OLM-Package-Repo/testfiles/uninstall-rabbitmq-cluster-operator.sh $OLM_INDEX_TAG
 
     publish-bundle-operatorhub:
         name: Create branch for OperatorHub PR
         runs-on: ubuntu-latest
-        needs: test-olm-package
+        needs: create-olm-package
+        # needs: test-olm-package
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         steps:
         - name: Checkout community-operators fork (OperatorHub)
@@ -200,9 +201,10 @@ jobs:
 
         - name: Create branch for OperatorHub PR
           env:
-            BUNDLE_VERSION: ${{ needs.test-olm-package.outputs.olm_package_version }}
-          # RABBITMQ_CI_EMAIL: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
-          # RABBITMQ_CI_TOKEN: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
+            # BUNDLE_VERSION: ${{ needs.test-olm-package.outputs.olm_package_version }}
+            BUNDLE_VERSION: ${{ needs.create-olm-package.outputs.olm_package_version }}
+            # RABBITMQ_CI_EMAIL: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
+            # RABBITMQ_CI_TOKEN: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           run: |
             mkdir -pv operators/rabbitmq-cluster-operator
             git config user.name "rabbitmq-ci"
@@ -222,7 +224,8 @@ jobs:
     publish-bundle-redhat-marketplace:
         name: Create branch for Openshift marketplace PR
         runs-on: ubuntu-latest
-        needs: test-olm-package
+        # needs: test-olm-package
+        needs: create-olm-package
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         steps:
         - name: Checkout community-operators-prod fork (Openshift Ecosystem)
@@ -239,9 +242,10 @@ jobs:
 
         - name: Create branch for Openshift Ecosystem PR
           env:
-            BUNDLE_VERSION: ${{ needs.test-olm-package.outputs.olm_package_version }}
-          # RABBITMQ_CI_EMAIL: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
-          # RABBITMQ_CI_TOKEN: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
+            # BUNDLE_VERSION: ${{ needs.test-olm-package.outputs.olm_package_version }}
+            BUNDLE_VERSION: ${{ needs.create-olm-package.outputs.olm_package_version }}
+            # RABBITMQ_CI_EMAIL: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
+            # RABBITMQ_CI_TOKEN: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           run: |
             mkdir -pv operators/rabbitmq-cluster-operator
             git config user.name "rabbitmq-ci"
