@@ -392,7 +392,6 @@ The purpose of this artificial delay is to ensure that DNS entries are up-to-dat
 For more information, see https://github.com/kubernetes/kubernetes/issues/92559
 If your Kubernetes DNS backend is configured with a low DNS cache value or publishes not ready addresses
 promptly, you can decrase this value or set it to 0.
-(Default `30` seconds)
 | *`secretBackend`* __xref:{anchor_prefix}-github-com-rabbitmq-cluster-operator-v2-api-v1beta1-secretbackend[$$SecretBackend$$]__ | Secret backend configuration for the RabbitmqCluster.
 Enables to fetch default user credentials and certificates from K8s external secret stores.
 |===
