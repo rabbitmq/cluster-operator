@@ -254,4 +254,5 @@ docker-registry-secret:
 
 .PHONY: install-tools
 install-tools:
+	go install tool
 	cd internal/tools; go install tool; go tool
