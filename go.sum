@@ -533,8 +533,8 @@ github.com/prometheus/sigv4 v0.1.2/go.mod h1:GF9fwrvLgkQwDdQ5BXeV9XUSCH/IPNqzvAo
 github.com/rabbitmq/amqp091-go v1.9.0/go.mod h1:+jPrT9iY2eLjRaMSRHUhc3z14E/l85kv/f+6luSD3pc=
 github.com/rabbitmq/amqp091-go v1.10.0 h1:STpn5XsHlHGcecLmMFCtg7mqq0RnD+zFr4uzukfVhBw=
 github.com/rabbitmq/amqp091-go v1.10.0/go.mod h1:Hy4jKW5kQART1u+JkDTF9YYOQUHXqMuhrgxOEeS7G4o=
-github.com/rabbitmq/rabbitmq-stream-go-client v1.5.4 h1:yzBfztqNNNG4j/QxQmOUErd0XsBkXnht63k5/mTk+1g=
-github.com/rabbitmq/rabbitmq-stream-go-client v1.5.4/go.mod h1:5kvOdfDnxu9HYXFOPZzHuEmevfoFCSsXjSvGt1QenPI=
+github.com/rabbitmq/rabbitmq-stream-go-client v1.5.5 h1:Qc8LKAJyP5q8bSpJxY+Oq0AXXEe306ikNFpormY+7OA=
+github.com/rabbitmq/rabbitmq-stream-go-client v1.5.5/go.mod h1:brUsBj3WdcyqmCXhzv8Ro+1fF59sGIcWWYYlXn6622Q=
 github.com/redis/go-redis/v9 v9.7.0 h1:HhLSs+B6O021gwzl+locl0zEDnyNkxMtf/Z3NNBMa9E=
 github.com/redis/go-redis/v9 v9.7.0/go.mod h1:f6zhXITC7JUJIlPEiBOTXxJgPLdZcA93GewI7inzyWw=
 github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR38lUII=
