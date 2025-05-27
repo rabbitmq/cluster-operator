@@ -13,15 +13,27 @@ spec:
     - alert: HighConnectionChurn
       expr: |
         (
-          sum(rate(rabbitmq_connections_closed_total[5m]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster)) by(namespace, rabbitmq_cluster)
+          sum by (namespace, rabbitmq_cluster) (
+            rate(rabbitmq_connections_closed_total[5m])
+            * on (instance) group_left (rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)
+          )
           +
-          sum(rate(rabbitmq_connections_opened_total[5m]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster)) by(namespace, rabbitmq_cluster)
+          sum by (namespace, rabbitmq_cluster) (
+            rate(rabbitmq_connections_opened_total[5m])
+            * on (instance) group_left (rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)
+          )
         )
         /
-        sum (rabbitmq_connections * on(instance) group_left(rabbitmq_cluster) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster)) by (namespace, rabbitmq_cluster)
+        sum by (namespace, rabbitmq_cluster) (
+          rabbitmq_connections
+          * on (instance) group_left (rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)
+        )
         > 0.1
         unless
-        sum (rabbitmq_connections * on(instance) group_left(rabbitmq_cluster) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster)) by (namespace, rabbitmq_cluster)
+        sum by (namespace, rabbitmq_cluster) (
+          rabbitmq_connections
+          * on (instance) group_left (rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)
+        )
         < 100
       for: 10m
       annotations:

@@ -13,11 +13,11 @@ spec:
     - alert: InsufficientEstablishedErlangDistributionLinks
       # erlang_vm_dist_node_state: 1=pending, 2=up_pending, 3=up
       expr: |
-        count by (namespace, rabbitmq_cluster) (erlang_vm_dist_node_state * on(instance) group_left(rabbitmq_cluster) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster) == 3)
+        count by (namespace, rabbitmq_cluster) (erlang_vm_dist_node_state * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info) == 3)
         <
-         count by (namespace, rabbitmq_cluster) (rabbitmq_build_info * on(instance) group_left(rabbitmq_cluster) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster))
+         count by (namespace, rabbitmq_cluster) (rabbitmq_build_info * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info))
          *
-        (count by (namespace, rabbitmq_cluster) (rabbitmq_build_info * on(instance) group_left(rabbitmq_cluster) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster)) -1 )
+        (count by (namespace, rabbitmq_cluster) (rabbitmq_build_info * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)) -1 )
       for: 10m
       annotations:
         description: |

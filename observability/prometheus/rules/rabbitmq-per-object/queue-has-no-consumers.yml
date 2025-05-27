@@ -14,7 +14,7 @@ spec:
       expr: |
           (
             ((rabbitmq_detailed_queue_consumers{vhost="/", queue=~".*"} == 0) + rabbitmq_detailed_queue_messages) > 0
-          ) * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info
+          ) * on (instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)
       for: 10m
       annotations:
         description: |
