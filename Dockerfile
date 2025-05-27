@@ -20,6 +20,11 @@ ARG TARGETOS
 ARG TARGETARCH
 ENV GOOS=$TARGETOS
 ENV GOARCH=$TARGETARCH
+
+# FIPS
+ARG FIPS_MODE=off
+ENV GOFIPS140=$FIPS_MODE
+
 RUN CGO_ENABLED=0 GO111MODULE=on go build -a -tags timetzdata -o manager main.go
 
 # ---------------------------------------
