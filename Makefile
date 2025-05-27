@@ -49,6 +49,7 @@ $(KUBEBUILDER_ASSETS):
 
 .PHONY: kubebuilder-assets
 kubebuilder-assets: $(KUBEBUILDER_ASSETS)
+	@echo "export KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)"
 
 .PHONY: kubebuilder-assets-rm
 kubebuilder-assets-rm:

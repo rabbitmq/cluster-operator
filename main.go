@@ -9,6 +9,7 @@
 package main
 
 import (
+	"crypto/fips140"
 	"flag"
 	"fmt"
 	"os"
@@ -192,7 +193,7 @@ func main() {
 
 	clusterConfig := config.GetConfigOrDie()
 
-	err = (&controllers.RabbitmqClusterReconciler{
+	if err = (&controllers.RabbitmqClusterReconciler{
 		Client:                  mgr.GetClient(),
 		APIReader:               mgr.GetAPIReader(),
 		Scheme:                  mgr.GetScheme(),
@@ -205,13 +206,15 @@ func main() {
 		DefaultUserUpdaterImage: defaultUserUpdaterImage,
 		DefaultImagePullSecrets: defaultImagePullSecrets,
 		ControlRabbitmqImage:    controlRabbitmqImage,
-	}).SetupWithManager(mgr)
-	if err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", controllerName)
 		os.Exit(1)
 	}
-	log.Info("started controller")
 	// +kubebuilder:scaffold:builder
+
+	if fips140.Enabled() {
+		log.Info("FIPS 140-3 mode enabled")
+	}
 
 	log.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
