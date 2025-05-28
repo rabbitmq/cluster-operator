@@ -12,9 +12,9 @@ spec:
     rules:
     - alert: ContainerRestarts
       expr: |
-        increase(kube_pod_container_status_restarts_total[10m]) * on(namespace, pod, container) group_left(rabbitmq_cluster) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster)
-        >=
-        1
+        increase(kube_pod_container_status_restarts_total[10m])
+        * on(namespace, pod, container) group_left(rabbitmq_cluster) max by (namespace, pod, container, rabbitmq_cluster) (rabbitmq_identity_info)
+        >= 1
       for: 5m
       annotations:
         description: |

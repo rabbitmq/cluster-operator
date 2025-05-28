@@ -15,7 +15,7 @@ spec:
       expr: |
           (
               avg_over_time(rabbitmq_detailed_queue_messages[10m]) - avg_over_time(rabbitmq_detailed_queue_messages[10m] offset 1m) > 1
-          ) * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info
+          ) * on (instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)
       for: 10m
       annotations:
         description: |

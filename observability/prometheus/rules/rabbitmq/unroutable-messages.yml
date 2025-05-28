@@ -12,10 +12,10 @@ spec:
     rules:
     - alert: UnroutableMessages
       expr: |
-        sum by(namespace, rabbitmq_cluster) (increase(rabbitmq_channel_messages_unroutable_dropped_total[5m]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info)
+        sum by(namespace, rabbitmq_cluster) (increase(rabbitmq_channel_messages_unroutable_dropped_total[5m]) * on (instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info))
         >= 1
         or
-        sum by(namespace, rabbitmq_cluster) (increase(rabbitmq_channel_messages_unroutable_returned_total[5m]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info)
+        sum by(namespace, rabbitmq_cluster) (increase(rabbitmq_channel_messages_unroutable_returned_total[5m]) * on (instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info))
         >= 1
       annotations:
         description: |
