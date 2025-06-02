@@ -217,7 +217,7 @@ docker-build-dev:
 # Cert Manager now publishes CMCTL independently from cert-manager
 .PHONY: cmctl
 cmctl:
-	cd internal/tools; go install github.com/cert-manager/cmctl/v2
+	go install github.com/cert-manager/cmctl/v2
 
 CERT_MANAGER_VERSION ?= 1.15.1
 .PHONY: cert-manager
@@ -257,3 +257,4 @@ docker-registry-secret:
 install-tools:
 	go install tool
 	cd internal/tools; go install tool; go tool
+	cd internal/promtool; go install tool
