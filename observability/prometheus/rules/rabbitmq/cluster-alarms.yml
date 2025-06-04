@@ -14,7 +14,7 @@ spec:
       expr: |
         max by(rabbitmq_cluster) (
           max_over_time(rabbitmq_alarms_memory_used_watermark[5m])
-          * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster)
+          * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)
         ) > 0
       keep_firing_for: 5m
       annotations:
@@ -30,7 +30,7 @@ spec:
       expr: |
         max by(rabbitmq_cluster) (
           max_over_time(rabbitmq_alarms_free_disk_space_watermark[5m])
-          * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster)
+          * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)
         ) > 0
       keep_firing_for: 5m
       annotations:
@@ -46,7 +46,7 @@ spec:
       expr: |
         max by(rabbitmq_cluster) (
           max_over_time(rabbitmq_alarms_file_descriptor_limit[5m])
-          * on(instance) group_left(rabbitmq_cluster, rabbitmq_node, pod) max(rabbitmq_identity_info) by (namespace, pod, container, rabbitmq_cluster)
+          * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info)
         ) > 0
       keep_firing_for: 5m
       annotations:
