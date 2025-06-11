@@ -11,3 +11,5 @@ testbin/
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
 tmp/
+# Ignore manifests in OLM
+olm/manifests/*.y*ml
