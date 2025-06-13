@@ -66,7 +66,7 @@ spec:
     for more information.
   maturity: stable
   version: #@ data.values.version
-  minKubeVersion: 1.25.0
+  minKubeVersion: 1.26.0
   support: Community based
   keywords:
   - rabbitmq
