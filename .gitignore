@@ -13,3 +13,4 @@ gha-creds-*.json
 tmp/
 # Ignore manifests in OLM
 olm/manifests/*.y*ml
+olm/catalog/catalog.y*ml

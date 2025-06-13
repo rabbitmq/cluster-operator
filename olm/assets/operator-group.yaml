@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ns-1
+spec: {}
+---
+apiVersion: operators.coreos.com/v1alpha2
+kind: OperatorGroup
+metadata:
+  name: my-group
+  #! Subscriptions cannot install operators provided by CatalogSources
+  #! that are not in the same namespace unless the CatalogSource is
+  #! created in the olm namespace.
+  #! https://olm.operatorframework.io/docs/troubleshooting/subscription/#a-subscription-in-namespace-x-cant-install-operators-from-a-catalogsource-in-namespace-y
+  namespace: ns-1
+spec:
+  targetNamespaces:
+  - ns-1
