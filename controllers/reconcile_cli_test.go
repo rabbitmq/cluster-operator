@@ -120,6 +120,7 @@ var _ = Describe("Reconcile CLI", func() {
 						return annotations
 					}, 5).Should(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
 					Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-queues rebalance all"}))
+					Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"bash", "-c", "rabbitmqctl enable_feature_flag all"}))
 					_, err := time.Parse(time.RFC3339, annotations["rabbitmq.com/queueRebalanceNeededAt"])
 					Expect(err).NotTo(HaveOccurred(), "Annotation rabbitmq.com/queueRebalanceNeededAt was not a valid RFC3339 timestamp")
 				})
@@ -134,6 +135,7 @@ var _ = Describe("Reconcile CLI", func() {
 						return rmq.ObjectMeta.Annotations
 					}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
 					Expect(fakeExecutor.ExecutedCommands()).To(ContainElement(command{"sh", "-c", "rabbitmq-queues rebalance all"}))
+					Expect(fakeExecutor.ExecutedCommands()).To(ContainElement(command{"bash", "-c", "rabbitmqctl enable_feature_flag all"}))
 				})
 			})
 		})
