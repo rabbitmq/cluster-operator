@@ -127,6 +127,28 @@ spec:
   install:
     strategy: deployment
     spec:
+      permissions:
+        - serviceAccountName: rabbitmq-cluster-operator
+          rules:
+          - apiGroups:
+            - coordination.k8s.io
+            resources:
+            - leases
+            verbs:
+            - get
+            - list
+            - watch
+            - create
+            - update
+            - patch
+            - delete
+          - apiGroups:
+            - ""
+            resources:
+            - events
+            verbs:
+            - create
+
       clusterPermissions:
         - serviceAccountName: rabbitmq-cluster-operator
           rules: #@ data.values.rules
