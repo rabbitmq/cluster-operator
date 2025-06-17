@@ -49,7 +49,7 @@ func (r *RabbitmqClusterReconciler) runRabbitmqCLICommandsIfAnnotated(ctx contex
 	}
 
 	// If RabbitMQ cluster is newly created, enable all feature flags since some are disabled by default
-	if sts.Annotations != nil && sts.Annotations[stsCreateAnnotation] != "" {
+	if sts.Annotations != nil && sts.Annotations[stsCreateAnnotation] != "" || rmq.Spec.AutoEnableAllFeatureFlags {
 		if err := r.runEnableFeatureFlagsCommand(ctx, rmq, sts); err != nil {
 			return 0, err
 		}
