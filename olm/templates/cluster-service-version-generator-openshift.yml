@@ -161,6 +161,8 @@ spec:
           name: rabbitmq-cluster-operator
           spec: #@ data.values.spec
 
+  replaces: #@ data.values.replaces
+
   installModes:
     - type: OwnNamespace
       supported: true

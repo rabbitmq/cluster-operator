@@ -3,3 +3,4 @@ name: rabbitmq-cluster-operator
 createdAt: '2025-05-02T09:11:31'
 image: quay.io/rabbitmqoperator/cluster-operator:2.14.0
 version: 2.14.0
+replaces: rabbitmq-cluster-operator.v2.13.0
