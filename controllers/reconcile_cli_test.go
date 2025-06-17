@@ -179,7 +179,7 @@ var _ = Describe("Reconcile CLI", func() {
 							cluster.Spec.AutoEnableAllFeatureFlags = false
 						}
 					})).Should(Succeed())
-					Eventually(fakeExecutor.ExecutedCommands).Within(time.Second * 5).WithPolling(time.Second).
+					Consistently(fakeExecutor.ExecutedCommands).Within(time.Second * 5).WithPolling(time.Second).
 						ShouldNot(ContainElement(command{"bash", "-c", "rabbitmqctl enable_feature_flag all"}))
 				})
 			})
