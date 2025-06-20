@@ -1,0 +1,35 @@
+#@ load("@ytt:data", "data")
+
+---
+defaultChannel: preview
+description: |
+  This is a test bundle for CI
+icon:
+  base64data: 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
+  mediatype: image/png
+name: rabbitmq-cluster-operator
+schema: olm.package
+---
+image: #@ data.values.image
+name: #@ "{}.v{}".format(data.values.name, data.values.version)
+package: rabbitmq-cluster-operator
+properties:
+- type: olm.gvk
+  value:
+    group: rabbitmq.com
+    kind: RabbitmqCluster
+    version: v1beta1
+- type: olm.package
+  value:
+    packageName: #@ data.values.name
+    version: #@ data.values.version
+relatedImages:
+- image: quay.io/rabbitmqoperator/cluster-operator:latest
+  name: ""
+schema: olm.bundle
+---
+schema: olm.channel
+package: rabbitmq-cluster-operator
+name: preview
+entries:
+  - name: #@ "{}.v{}".format(data.values.name, data.values.version)
