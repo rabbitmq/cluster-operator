@@ -22,8 +22,12 @@ all::olm-manifests
 
 .PHONY: all crd rbac deployment olm-manifests clean
 
-crd: ## Generate CRD manifest
-	kustomize build config/crd > olm/manifests/rabbitmq.com_rabbitmqcluster.yaml
+OLM_DIR = $(CURDIR)/olm/manifests
+$(OLM_DIR) :
+	mkdir -pv $@
+
+crd: $(OLM_DIR) ## Generate CRD manifest
+	kustomize build config/crd > $(OLM_DIR)/rabbitmq.com_rabbitmqcluster.yaml
 
 rbac: ## Extract RBAC rules to a temporary file
 	mkdir -p tmp/
@@ -39,13 +43,9 @@ deployment: ## Extract deployment spec. Customise using QUAY_IO_OPERATOR_IMAGE
 		> tmp/cluster-operator.yml
 	yq '{"spec": .spec}' tmp/cluster-operator.yml > tmp/spec.yaml
 
-OLM_DIR = $(CURDIR)/olm/manifests
-$(OLM_DIR) :
-	mkdir -pv $@
-
 BUNDLE_CREATED_AT ?= $(shell date +'%Y-%m-%dT%H:%M:%S')
 BUNDLE_VERSION ?= 0.0.0
-olm-manifests: ## Render bundle manifests. Customise version using BUNDLE_VERSION and BUNDLE_CREATED_AT
+olm-manifests: $(OLM_DIR) ## Render bundle manifests. Customise version using BUNDLE_VERSION and BUNDLE_CREATED_AT
 	ytt -f $(CURDIR)/olm/templates/cluster-service-version-generator-openshift.yml \
 		--data-values-file $(CURDIR)/tmp/role-rules.yaml \
 		--data-values-file $(CURDIR)/tmp/spec.yaml \
