@@ -200,7 +200,7 @@ data:
                       "uid":"${DS_PROMETHEUS}"
                   },
                   "editorMode":"code",
-                  "expr":"(rabbitmq_detailed_queue_messages{namespace=\"$namespace\", queue=\"$queue\"} * on (instance, job) rabbitmq_identity_info{namespace=\"$namespace\",rabbitmq_cluster=\"$rabbitmq_cluster\"})",
+                  "expr":"(rabbitmq_detailed_queue_messages{namespace=\"$namespace\", queue=\"$queue\"} * on (instance, job) rabbitmq_identity_info{namespace=\"$namespace\",rabbitmq_cluster=\"$rabbitmq_cluster\",rabbitmq_endpoint=\"aggregated\"})",
                   "legendFormat":"Messages ({{job}} | {{instance}})",
                   "range":true,
                   "refId":"A"
@@ -329,7 +329,7 @@ data:
                   
                 ],
                 "query":{
-                  "query":"query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info{namespace=\"$namespace\", rabbitmq_cluster=\"$rabbitmq_cluster\"})",
+                  "query":"query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info{namespace=\"$namespace\", rabbitmq_cluster=\"$rabbitmq_cluster\",rabbitmq_endpoint=\"aggregated\"})",
                   "refId":"StandardVariableQuery"
                 },
                 "refresh":2,
