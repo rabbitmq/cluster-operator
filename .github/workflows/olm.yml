@@ -179,7 +179,7 @@ jobs:
           # RABBITMQ_CI_EMAIL: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           ### operators/rabbitmq-cluster-operator
           GH_PROMPT_DISABLED: 1
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RABBITMQ_CI_TOKEN }}
         run: |
           git config user.name "rabbitmq-ci"
           git config user.email ${{ secrets.RABBITMQ_CI_EMAIL }}
@@ -190,6 +190,7 @@ jobs:
           cp -v -fR olm-package-ci/* ./operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"/
           git add operators/rabbitmq-cluster-operator
           git commit -s -m "RabbitMQ Cluster Operator release $BUNDLE_VERSION"
+          git push --set-upstream origin "rabbitmq-cluster-operator-$BUNDLE_VERSION"
           
           gh pr create --title "operator rabbitmq-cluster-operator (${{ env.BUNDLE_VERSION }})" \
             --body "Update operator rabbitmq-cluster-operator (${{ needs.test-olm-package.outputs.olm_package_version }})" \
@@ -219,7 +220,7 @@ jobs:
           BUNDLE_VERSION: ${{ needs.test-olm-package.outputs.olm_package_version }}
           # RABBITMQ_CI_EMAIL: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           GH_PROMPT_DISABLED: 1
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RABBITMQ_CI_TOKEN }}
         run: |
           git config user.name "rabbitmq-ci"
           git config user.email ${{ secrets.RABBITMQ_CI_EMAIL }}
@@ -230,6 +231,7 @@ jobs:
           cp -v -fR olm-package-ci/* ./operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"/
           git add operators/rabbitmq-cluster-operator
           git commit -s -m "RabbitMQ Cluster Operator release $BUNDLE_VERSION"
+          git push --set-upstream origin "rabbitmq-cluster-operator-$BUNDLE_VERSION"
           
           gh pr create --title "operator rabbitmq-cluster-operator (${{ env.BUNDLE_VERSION }})" \
             --body "Update operator rabbitmq-cluster-operator (${{ needs.test-olm-package.outputs.olm_package_version }})" \
