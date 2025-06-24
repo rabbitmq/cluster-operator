@@ -211,7 +211,7 @@ data:
                       "uid":"${DS_PROMETHEUS}"
                   },
                   "editorMode":"code",
-                  "expr":"rabbitmq_detailed_queue_consumers{namespace=\"$namespace\", queue=\"$queue\"} * on (instance, job) rabbitmq_identity_info{namespace=\"$namespace\",rabbitmq_cluster=\"$rabbitmq_cluster\"}",
+                  "expr":"rabbitmq_detailed_queue_consumers{namespace=\"$namespace\", queue=\"$queue\"} * on (instance, job) rabbitmq_identity_info{namespace=\"$namespace\",rabbitmq_cluster=\"$rabbitmq_cluster\",rabbitmq_endpoint=\"aggregated\"}",
                   "legendFormat":"Consumers ({{job}} | {{instance}})",
                   "range":true,
                   "refId":"B"
