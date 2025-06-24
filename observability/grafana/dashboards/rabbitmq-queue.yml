@@ -329,7 +329,7 @@ data:
                   
                 ],
                 "query":{
-                  "query":"query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) topk(1, rabbitmq_identity_info{namespace=\"$namespace\", rabbitmq_cluster=\"$rabbitmq_cluster\") without (rabbitmq_endpoint))",
+                  "query":"query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) topk(1, rabbitmq_identity_info{namespace=\"$namespace\", rabbitmq_cluster=\"$rabbitmq_cluster\"}) without (rabbitmq_endpoint))",
                   "refId":"StandardVariableQuery"
                 },
                 "refresh":2,
