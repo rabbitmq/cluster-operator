@@ -1,0 +1,18 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+#@ deployment = overlay.subset({"kind": "Deployment"})
+#@ cluster_operator = overlay.subset({"metadata": {"name": "rabbitmq-cluster-operator"}})
+#@overlay/match by=overlay.and_op(deployment, cluster_operator),expects="1+"
+---
+spec:
+  template:
+    spec:
+      containers:
+      #@overlay/match by=overlay.subset({"name": "operator"}),expects="1+"
+      -
+        #@overlay/match missing_ok=True
+        env:
+        - name: OPERATOR_SCOPE_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['olm.targetNamespaces']

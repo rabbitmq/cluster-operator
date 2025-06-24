@@ -1,0 +1,16 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: sub-to-rabbitmq-cluster-operator
+  #! Subscriptions cannot install operators provided by CatalogSources
+  #! that are not in the same namespace unless the CatalogSource is
+  #! created in the olm namespace.
+  #! https://olm.operatorframework.io/docs/troubleshooting/subscription/#a-subscription-in-namespace-x-cant-install-operators-from-a-catalogsource-in-namespace-y
+  namespace: ns-1
+spec:
+  channel: preview
+  name: rabbitmq-cluster-operator
+  source: cool-catalog
+  sourceNamespace: ns-1
+  installPlanApproval: Automatic
