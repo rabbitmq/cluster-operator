@@ -152,7 +152,7 @@ jobs:
 
       - name: Promote tested image
         if: ${{ github.event_name == 'release' || inputs.release == true }}
-        run: imgpkg copy --image ${{ vars.UNTESTED_BUNDLE_IMAGE }}:${{ needs.create-olm-package.outputs.olm_package_version }} --to-repo ${{ vars.FINAL_BUNDLE_IMAGE }}
+        run: imgpkg copy --image quay.io/${{ vars.UNTESTED_BUNDLE_IMAGE }}:${{ needs.create-olm-package.outputs.olm_package_version }} --to-repo quay.io/${{ vars.FINAL_BUNDLE_IMAGE }}
 
   publish-bundle-operatorhub:
     if: ${{ github.event_name == 'release' || inputs.release == true }}
