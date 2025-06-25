@@ -191,7 +191,8 @@ jobs:
           git push --set-upstream origin "rabbitmq-cluster-operator-$BUNDLE_VERSION"
           
           gh pr create --title "operator rabbitmq-cluster-operator (${{ env.BUNDLE_VERSION }})" \
-            --body "Update operator rabbitmq-cluster-operator (${{ needs.test-olm-package.outputs.olm_package_version }})"
+            --body "Update operator rabbitmq-cluster-operator (${{ needs.test-olm-package.outputs.olm_package_version }})" \
+            --repo k8s-operatorhub/community-operators
 
   publish-bundle-redhat-marketplace:
     name: PR Openshift marketplace
