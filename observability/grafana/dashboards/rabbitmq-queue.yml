@@ -200,7 +200,7 @@ data:
                       "uid":"${DS_PROMETHEUS}"
                   },
                   "editorMode":"code",
-                  "expr":"(rabbitmq_detailed_queue_messages{namespace=\"$namespace\", queue=\"$queue\"} * on (instance, job) rabbitmq_identity_info{namespace=\"$namespace\",rabbitmq_cluster=\"$rabbitmq_cluster\"})",
+                  "expr":"(rabbitmq_detailed_queue_messages{namespace=\"$namespace\", queue=\"$queue\"} * on (instance, job) topk(1, rabbitmq_identity_info{namespace=\"$namespace\",rabbitmq_cluster=\"$rabbitmq_cluster\"}) without (rabbitmq_endpoint))",
                   "legendFormat":"Messages ({{job}} | {{instance}})",
                   "range":true,
                   "refId":"A"
@@ -211,7 +211,7 @@ data:
                       "uid":"${DS_PROMETHEUS}"
                   },
                   "editorMode":"code",
-                  "expr":"rabbitmq_detailed_queue_consumers{namespace=\"$namespace\", queue=\"$queue\"} * on (instance, job) rabbitmq_identity_info{namespace=\"$namespace\",rabbitmq_cluster=\"$rabbitmq_cluster\"}",
+                  "expr":"rabbitmq_detailed_queue_consumers{namespace=\"$namespace\", queue=\"$queue\"} * on (instance, job) topk(1, rabbitmq_identity_info{namespace=\"$namespace\",rabbitmq_cluster=\"$rabbitmq_cluster\"}) without (rabbitmq_endpoint)",
                   "legendFormat":"Consumers ({{job}} | {{instance}})",
                   "range":true,
                   "refId":"B"
@@ -319,7 +319,7 @@ data:
                   "type":"prometheus",
                   "uid":"${DS_PROMETHEUS}"
                 },
-                "definition":"query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info{namespace=\"$namespace\"})",
+                "definition":"query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) topk(1, rabbitmq_identity_info{namespace=\"$namespace\"}) without (rabbitmq_endpoint))",
                 "hide":0,
                 "includeAll":false,
                 "label":"Queue",
@@ -329,7 +329,7 @@ data:
                   
                 ],
                 "query":{
-                  "query":"query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) rabbitmq_identity_info{namespace=\"$namespace\", rabbitmq_cluster=\"$rabbitmq_cluster\"})",
+                  "query":"query_result(rabbitmq_detailed_queue_messages{namespace=\"$namespace\"} * on (instance, job) group_left(rabbitmq_cluster) topk(1, rabbitmq_identity_info{namespace=\"$namespace\", rabbitmq_cluster=\"$rabbitmq_cluster\"}) without (rabbitmq_endpoint))",
                   "refId":"StandardVariableQuery"
                 },
                 "refresh":2,
