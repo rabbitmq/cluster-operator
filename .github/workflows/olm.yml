@@ -113,7 +113,7 @@ jobs:
         with:
           go-version-file: "go.mod"
       - name: Kubectl tool installer
-        uses: Azure/setup-kubectl@v4.0.0
+        uses: Azure/setup-kubectl@v4.0.1
       - name: Setup YTT
         uses: carvel-dev/setup-action@v2.0.1
         with:
