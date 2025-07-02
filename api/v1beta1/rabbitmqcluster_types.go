@@ -15,10 +15,11 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 
+	"slices"
+
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"slices"
 )
 
 const DisableDefaultTopologySpreadAnnotation = "rabbitmq.com/disable-default-topology-spread-constraints"
@@ -81,6 +82,9 @@ type RabbitmqClusterSpec struct {
 	// Has no effect if the cluster only consists of one node.
 	// For more information, see https://www.rabbitmq.com/rabbitmq-queues.8.html#rebalance
 	SkipPostDeploySteps bool `json:"skipPostDeploySteps,omitempty"`
+	// Set to true to automatically enable all feature flags after each upgrade
+	// For more information, see https://www.rabbitmq.com/docs/feature-flags
+	AutoEnableAllFeatureFlags bool `json:"autoEnableAllFeatureFlags,omitempty"`
 	// TerminationGracePeriodSeconds is the timeout that each rabbitmqcluster pod will have to terminate gracefully.
 	// It defaults to 604800 seconds ( a week long) to ensure that the container preStop lifecycle hook can finish running.
 	// For more information, see: https://github.com/rabbitmq/cluster-operator/blob/main/docs/design/20200520-graceful-pod-termination.md

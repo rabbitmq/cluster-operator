@@ -936,6 +936,11 @@ spec:
                           x-kubernetes-list-type: atomic
                       type: object
                   type: object
+                autoEnableAllFeatureFlags:
+                  description: |-
+                    Set to true to automatically enable all feature flags after each upgrade
+                    For more information, see https://www.rabbitmq.com/docs/feature-flags
+                  type: boolean
                 delayStartSeconds:
                   default: 30
                   description: |-

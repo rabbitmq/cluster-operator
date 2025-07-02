@@ -1,0 +1,174 @@
+#@ load("@ytt:data", "data")
+
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: #@ data.values.name + '.v' + data.values.version
+  namespace: placeholder
+  annotations:
+    alm-examples: |
+      [
+        {
+          "apiVersion": "rabbitmq.com/v1beta1",
+          "kind": "RabbitmqCluster",
+          "metadata": {
+            "name": "hello-world"
+          },
+          "spec": {
+            "override": {
+              "statefulset": {
+                "spec": {
+                  "template": {
+                    "spec": {
+                      "containers": [],
+                      "securityContext": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    certified: "false"
+    createdAt: #@ data.values.createdAt
+    containerImage: #@ data.values.image
+    capabilities: Full Lifecycle
+    repository: "https://github.com/rabbitmq/cluster-operator"
+    categories: "Streaming & Messaging"
+  labels:
+    operatorframework.io/os.linux: supported
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/arch.ppc64le: supported
+    operatorframework.io/arch.s390x: supported
+spec:
+  displayName: RabbitMQ-cluster-operator
+  description: |
+    ## About the managed application
+    RabbitMQ is an open-source message broker that originally implemented the
+    Advanced Message Queuing Protocol (AMQP). Nowadays features a plug-in
+    architecture supporting protocols such as Streaming Text Oriented Messaging
+    Protocol (STOMP), MQ Telemetry Transport (MQTT), and others. RabbitMQ
+    supports native streaming and AMQP 1.0.
+
+    Visit [rabbitmq.com](rabbitmq.com) for more information.
+
+    ## About this Operator
+    RabbitMQ Cluster Kubernetes Operator is developed and maintened by the VMware 
+    RabbitMQ team and provides a consistent and easy way to deploy RabbitMQ
+    clusters to Kubernetes and run them, including "day two" (continuous)
+    operations. RabbitMQ clusters deployed using the Operator can be used by
+    applications running on Kubernetes or outside of Kubernetes.
+
+    Read [RabbitMQ operator docs](https://www.rabbitmq.com/kubernetes/operator/operator-overview)
+    for more information.
+  maturity: stable
+  version: #@ data.values.version
+  minKubeVersion: 1.26.0
+  support: Community based
+  keywords:
+  - rabbitmq
+  - messaging
+  - amqp
+  - amqp10
+  - stomp
+  - mqtt
+  - mqtt5
+  - queues
+  - streaming
+  maintainers:
+  - name: VMware Tanzu
+    email: rabbitmq-users@googlegroups.com 
+  provider:
+    name: VMware Tanzu
+  labels: {}
+  selector:
+    matchLabels: {}
+  links:
+  - name: Documentation
+    url: https://www.rabbitmq.com/kubernetes/operator/operator-overview.html
+  - name: GitHub
+    url: https://github.com/rabbitmq/cluster-operator
+  icon:
+  - base64data: iVBORw0KGgoAAAANSUhEUgAAAOQAAABACAYAAAAK2tt1AAAK4WlDQ1BJQ0MgUHJvZmlsZQAASImVlwdUk8kWgOf/00NCgIQqJfSOdAJICaEFUJAOohKSQEIJMSEoiA1ZXMFVQUQEywquiii4uhRZCyKKFcWGfUEWBeW5WLCB8n7gEXb3nffeeTdnMt+5uXPLnJmcOwCQQzhicTqsBECGKEsSHuBDj42Lp+OeAxwgAyJwBpYcrlTMDAsLAYjMzH+VD/cANDnftp709e+//1dR4fGlXACgBISTeFJuBsJtyBjhiiVZAKCOIXrD5VniSb6DME2CJIjw4CSnTPP4JCdNMVppyiYynIWwEQB4EocjSQGAZIvo6dncFMQPKQxhWxFPKEJ4LcKeXAGHhzASF1hlZGRO8jDCZoi9GAAyDWFG0p98pvzFf5LcP4eTIufpuqYE7yuUitM5Of/n1vxvyUiXzcQwQQZJIAkMR2YNZP/up2UGy1mUtCB0hoW8KfspFsgCo2aYK2XFzzCP4xssX5u+IGSGk4X+bLmfLHbkDPOlfhEzLMkMl8dKlrCYM8yRzMaVpUXJ9QI+W+4/VxAZM8PZwugFMyxNiwietWHJ9RJZuDx/vijAZzauv7z2DOmf6hWy5WuzBJGB8to5s/nzRcxZn9JYeW48vq/frE2U3F6c5SOPJU4Pk9vz0wPkeml2hHxtFnI4Z9eGyfcwlRMUNsPAF/iBEORDB1HAHjgCO+AKAgEri78ia7IYVqY4RyJMEWTRmciN49PZIq6NFd3e1t4egMn7O30k3oVP3UtI7cysLnM/cpQ/IHemZFaXVAZAcyES+uGszmgPAJQCAJrauTJJ9rQOPfmFQf4VKIAGNIEuMARmwBrJzxm4A28k4yAQCiJBHFgCuEAAMoAELAd5YB0oBMVgK9gOKsFeUAMOgaPgOGgGp8A5cBFcBTfBXfAI9IIB8AqMgA9gDIIgHESGqJAmpAcZQ5aQPcSAPCE/KAQKh+KgRCgFEkEyKA9aDxVDpVAltA+qhX6GTkLnoMtQN/QA6oOGoLfQFxgFk2AarAObwHNhBsyEg+FIeDGcAi+Dc+ECeDNcAVfDR+Am+Bx8Fb4L98Kv4FEUQCmg1FD6KGsUA8VChaLiUckoCWo1qghVjqpG1aNaUZ2o26he1DDqMxqLpqLpaGu0OzoQHYXmopehV6M3oSvRh9BN6A70bXQfegT9DUPGaGMsMW4YNiYWk4JZjinElGMOYBoxFzB3MQOYD1gsVg1rinXBBmLjsKnYldhN2N3YBmwbthvbjx3F4XCaOEucBy4Ux8Fl4QpxO3FHcGdxt3ADuE94Bbwe3h7vj4/Hi/D5+HL8YfwZ/C38C/wYQYlgTHAjhBJ4hBzCFsJ+QivhBmGAMEZUJpoSPYiRxFTiOmIFsZ54gfiY+E5BQcFAwVVhoYJQYa1ChcIxhUsKfQqfSSokCxKLlECSkTaTDpLaSA9I78hksgnZmxxPziJvJteSz5Ofkj8pUhVtFNmKPMU1ilWKTYq3FF9TCBRjCpOyhJJLKaecoNygDCsRlEyUWEocpdVKVUonlXqURpWpynbKocoZypuUDytfVh5UwamYqPip8FQKVGpUzqv0U1FUQyqLyqWup+6nXqAO0LA0Uxqblkorph2lddFGVFVUHVWjVVeoVqmeVu1VQ6mZqLHV0tW2qB1Xu6f2RV1HnanOV9+oXq9+S/2jxhwNbw2+RpFGg8ZdjS+adE0/zTTNEs1mzSdaaC0LrYVay7X2aF3QGp5Dm+M+hzunaM7xOQ+1YW0L7XDtldo12te0R3V0dQJ0xDo7dc7rDOuq6XrrpuqW6Z7RHdKj6nnqCfXK9M7qvaSr0pn0dHoFvYM+oq+tH6gv09+n36U/ZmBqEGWQb9Bg8MSQaMgwTDYsM2w3HDHSM5pvlGdUZ/TQmGDMMBYY7zDuNP5oYmoSY7LBpNlk0FTDlG2aa1pn+tiMbOZltsys2uyOOdacYZ5mvtv8pgVs4WQhsKiyuGEJWzpbCi13W3ZbYaxcrURW1VY91iRrpnW2dZ11n42aTYhNvk2zzeu5RnPj55bM7Zz7zdbJNt12v+0jOxW7ILt8u1a7t/YW9lz7Kvs7DmQHf4c1Di0ObxwtHfmOexzvO1Gd5jttcGp3+urs4ixxrncecjFySXTZ5dLDoDHCGJsYl1wxrj6ua1xPuX52c3bLcjvu9oe7tXua+2H3wXmm8/jz9s/r9zDw4Hjs8+j1pHsmev7o2eul78XxqvZ65m3ozfM+4P2Cac5MZR5hvvax9ZH4NPp8ZLmxVrHafFG+Ab5Fvl1+Kn5RfpV+T/0N/FP86/xHApwCVga0BWICgwNLAnvYOmwuu5Y9EuQStCqoI5gUHBFcGfwsxCJEEtI6H54fNH/b/McLjBeIFjSHglB26LbQJ2GmYcvCfl2IXRi2sGrh83C78LzwzghqxNKIwxEfIn0it0Q+ijKLkkW1R1OiE6Jroz/G+MaUxvTGzo1dFXs1TitOGNcSj4uPjj8QP7rIb9H2RQMJTgmFCfcWmy5esfjyEq0l6UtOL6Us5Sw9kYhJjEk8nDjOCeVUc0aT2Em7kka4LO4O7iueN6+MN8T34JfyXyR7JJcmD6Z4pGxLGRJ4CcoFw0KWsFL4JjUwdW/qx7TQtINpE+kx6Q0Z+IzEjJMiFVGaqCNTN3NFZrfYUlwo7l3mtmz7shFJsOSAFJIulrZk0ZBG6ZrMTPadrC/bM7sq+9Py6OUnViivEK24lmORszHnRa5/7k8r0Su5K9vz9PPW5fWtYq7atxpanbS6fY3hmoI1A2sD1h5aR1yXtu56vm1+af779THrWwt0CtYW9H8X8F1doWKhpLBng/uGvd+jvxd+37XRYePOjd+KeEVXim2Ly4vHN3E3XfnB7oeKHyY2J2/u2uK8Zc9W7FbR1nslXiWHSpVLc0v7t83f1lRGLysqe7996fbL5Y7le3cQd8h29FaEVLTsNNq5ded4paDybpVPVcMu7V0bd33czdt9a4/3nvq9OnuL9375Ufjj/X0B+5qqTarLa7A12TXP90fv7/yJ8VPtAa0DxQe+HhQd7D0Ufqij1qW29rD24S11cJ2sbuhIwpGbR32PttRb1+9rUGsoPgaOyY69/Dnx53vHg4+3n2CcqP/F+JddjdTGoiaoKadppFnQ3NsS19J9Muhke6t7a+OvNr8ePKV/quq06uktZ4hnCs5MnM09O9ombhs+l3Kuv31p+6PzsefvdCzs6LoQfOHSRf+L5zuZnWcveVw6ddnt8skrjCvNV52vNl1zutZ43el6Y5dzV9MNlxstN11vtnbP6z5zy+vWudu+ty/eYd+5enfB3e57Uffu9yT09N7n3R98kP7gzcPsh2OP1j7GPC56ovSk/Kn20+rfzH9r6HXuPd3n23ftWcSzR/3c/le/S38fHyh4Tn5e/kLvRe2g/eCpIf+hmy8XvRx4JX41Nlz4D+V/7Hpt9vqXP7z/uDYSOzLwRvJm4u2md5rvDr53fN8+Gjb69EPGh7GPRZ80Px36zPjc+SXmy4ux5eO48Yqv5l9bvwV/ezyRMTEh5kg4U60AChlwcjIAbw8i/XEcANSbABAXTffXUwJNvwmmCPwnnu7Bp8QZgJoeACJXAhByHYCdlUhLi/inIO+CMAqidwewg4N8/EukyQ72075IXkhr8mRi4p0ZALgSAL6WTEyM1UxMfK1Bkn0EQFvOdF8/KUpHkJdMVRCDEfOwaybdWZnu+f9U499nMJmBI/j7/E/UoxzuQVV1mwAAAFZlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA5KGAAcAAAASAAAARKACAAQAAAABAAAA5KADAAQAAAABAAAAQAAAAABBU0NJSQAAAFNjcmVlbnNob3Sd/G8UAAAB1WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iWE1QIENvcmUgNi4wLjAiPgogICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgICAgICAgICB4bWxuczpleGlmPSJodHRwOi8vbnMuYWRvYmUuY29tL2V4aWYvMS4wLyI+CiAgICAgICAgIDxleGlmOlBpeGVsWURpbWVuc2lvbj42NDwvZXhpZjpQaXhlbFlEaW1lbnNpb24+CiAgICAgICAgIDxleGlmOlBpeGVsWERpbWVuc2lvbj4yMjg8L2V4aWY6UGl4ZWxYRGltZW5zaW9uPgogICAgICAgICA8ZXhpZjpVc2VyQ29tbWVudD5TY3JlZW5zaG90PC9leGlmOlVzZXJDb21tZW50PgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAgPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4Km1ryLgAACdNJREFUeAHtXbuuHEUQbSMjEWNjIjJsEJAQIBIkTAzO+QAkcpMRgA0xRCR8AR8AxFwkJ0hIREa+mAxB4Jf4A9iz957Zc9v93p6Z9rpaGk9Pd/Xp6po6UzW9e9fn/tsUZ8UsYBYYwgLPDKGFKWEWMAtsLWCENEcwCwxkASPkQDfDVDELGCHNB8wCA1nACDnQzTBVzAJGSPMBs8BAFjBCDnQzTBWzgBHSfMAsMJAFjJAD3QxTxSxghDQfMAsMZAEj5EA3w1QxCxghzQfMAgNZwAg50M0wVcwCRkjzAbPAQBYwQg50M0wVs4AR0nzALDCQBc530+WPI+d+uHkW7vK7zl27cbaNV7XyHFdy/v5GWuqVq85d2RxLFaz1eHP0mJdr2xfrxy93q7902bm3Ptxd71G79/CBu//owRmE1y+/eua69mIfTIz9/c872ylRR7l04aJ74fmLbl+9tmCd/znX7RcDPj4XVu3byA8S1MqH0cOtMeyQ9Aefxx8aIfmWNpAIDyuQ6PpPLQi7MVzbJxucfR4qN99w7p/bJ7gffdeNkLfv3nE4tFx9+50tCbStpn70yy1HMmEcCAXMVAnpEZIHKUcipqWsIAqcnJEndNesbVULKBlLFAmRESTmoRiQBeFHKf1S1lFWpHqkIhIJyDSbEWyfqKNzW31LAKaMly6kI1rMXBptQagcOX0yxqKzygET1yNEysMmZOwuo13fbUnKr95zLpZip7CexL5Pfy3Tmu/6SO0bH1Y5EpUpkpcisSgZIyP6maoyHQYh8V4J0q9ZLGUFMeFsLHDAp6E8+5xzesTWjIfV8VGsN9n+2su7zZxWUoIoKCXRSzeTUmRUpVVHbv5o/9J1IyQsHoqWS9+JA5xP39lanJ1khGkQvVJFoyPIWxrpVEdgtD44UrrV9BkhaS28b1qZzQL7OnqOYBodaxcxUpQ0QtbePZOvsoA6ey0pGSFL0lXKQrkSeV1EjuwqO3f96d3U8S3L9yR8mSFV8I5JWZVDhK3d9OBOL3FaMDiWmy/UX9Nwyuj5r992Vy+9uaujFnqPDq0Zspk1q7MjbS3dbVWC5dJVqMFSS0aOg55MWXFWvSmzxNkICSuHHNC3Ph0+5pj82KTkg39gAYe7u5yrBoNj+KUDXlM/YKW+9PDv3859c825F68498UxR5+csdvsF+D5+uIBcn1zZIo6e0Y02J0jR23kDU0C0vfACWHXtM1PSDhf5il6RuFa+TODGy/oxLHh0EmdFI7ISIQxd38+IRhw8CWD3EcncGzOyR3eWgzMq2RUnUgcnnPREli5Any/qA38PrlG2nrv4a1tS2n0YYQsiXj7vD9SzZoozDFznOcnJByZTscVwPliJSQfk0X7vs6mTh2LKHRszBeTURzUY3p9vbEHyBjCKcWAHkpq/2t0mJvzQA5kqnko6gOFONC3BgM6nhaNcCVpK8nI8UufQXDVecn55yckVqMOXbK6GvmY4+fmQdRTp4bThqIA5BjN0B+bj+3AjD1wcjiKQRuwzUWKT0aKIXXm916BVZBacugc59a0tSRCqr6jRDrVqaa+DCFrNOoti6ijhamhtoFosXc/kIhERZQoKSReTDaFAwKSjLHxaMccuagFvSGHY41XAbcrNWkrI2QtGXez7VfrkQK3anDYhKQzxqwDh805dS5CKTbwcmSCTC71g07AwZGaP9UHvYADGwxQNAVMpa0tGytrEqi3aZ/uzyFzhO1tbeCBJDUFkS1UQOxcUeLnHhQ5rA79SsoYnJKrNEL2TlN748XWGmo/bELCabFBoQfeuUAKEgOOio2LkYqS7fgorFnhDueUbodRFm3llwQQBWORcO10dVGDBCYbM2WFQ6rD9Xy6I2r4kQNOD1LG3iMDhnusSTd/HuuUBp1bmmevxog9+8S7CTRChnYyYyTdIRx+bTxCInL570YgqH4O2Ou+YB5u8tQ4LDeKah8UGvlSayghbSlWap4V+rjbqqkp1dC20nQVY3ukmDo39VnjPF7K6pMRVilx0FbrMXXF+Nj7GrFBRHyUACLWkpEYS58101h67sB8qbSVpKghoz8FMfz2museBK+ZT2XHi5Cq3RJ1JTtIFvq8DkTVCM2U2n94+HJL6P+EzaFpq696a8qqmK2E1HGK5+s49/V4EXLuFYfwc+mfkhERFe+aPhlDuH5bTVrsj229jn1JoRWvwzg6vP6NJDdzAN8SIYnZSmqOI06HZTZBjEfIUNrId7amJVYMChFG9cEObQsRK1TYiuqcsYdFSNfUPDGc1JiZ+jRt5RSMUD0IQXIRO3fWh8Ga6Sr0HI+QiEYgIA/sfs79vpZ6j9S5Nb0N3WWV1X4lg5JNZbSeIhuxSiMfsQZ7l+RySR6eWwlBkgNXIy/nKT23ROdS7BK5Md8hY45dsqK5ZEiEGD6IRuf3ZZTIkNFrXxbXJBvmjMnG5lK8nplFid46d6KOKIgDJAR57j/a/TxHKyEUE7g4SqItoiMjZOvciaVWd40XIauX0GGAOn3sYZAjQGwc1WMUzskpsUNRjTjAzUVbnWuJVJtrLTgzojEyYkgJgVLQxIQMfk2ORIuNUTJCJkVIklzP+nuuWo/NV9JuhKSVYhFQSRGKOGjDRyEgbAyDc/AcwkEfCMYNJGCFSISHB+eBbIyUOoeSeDNNVeH6ldxVAHlhEqc1XeUMILSSioQjPuRIKJ+wOo54emYERhvr0Bd4wNeHgY6rrZ+vHXDw8n4kBCnojDgznYQhfFk4vt9Gg5FcwCCOEgXjOA/GaB8xeNZ5QEpck6SQAQ71QB/n5vjWM97nfb00u6jApVPDoVn2JSRwSCyS0D9zLj1DF2wqaZSDXmhP/ZcF1JdnxWyt9yMkHIJO0KrNmuPUyRF11NHQR7KE1oi1l3ztjsQgYUJYsEHsbxzRhwLdIMNoCjzqtxU4/acHGVM6b9e90aWxIKrwlwQAAQL0KCAlSAKSkZApXH0opORCfdwd7kXKfoSEQ2qaFNK+d5tGBcXmUzzWr7Ja5zglI/rhlMAikdCGa6ZzdFq0EwP1UFEs9JOUxFOs0Hi2QUd8aR42R9RWHMhAD38daNfy/md6Fa/HdOb6ZSQck1FKmqNVypY4NGR4RAFPOxiBgQ/CkTi5cdqf04kPEJ51bGu93/9+1aqBjTMLmAUmC9imzmQKq5gF1reAEXL9e2AamAUmCxghJ1NYxSywvgWMkOvfA9PALDBZwAg5mcIqZoH1LWCEXP8emAZmgckCRsjJFFYxC6xvASPk+vfANDALTBYwQk6msIpZYH0LGCHXvwemgVlgsoARcjKFVcwC61vACLn+PTANzAKTBYyQkymsYhZY3wJGyPXvgWlgFpgsYIScTGEVs8D6FvgfHDmp0QzloI4AAAAASUVORK5CYII=
+    mediatype: image/png
+  customresourcedefinitions:
+    owned:
+      - name: rabbitmqclusters.rabbitmq.com
+        displayName: RabbitmqCluster
+        kind: RabbitmqCluster
+        version: v1beta1
+        description: Rabbitmq Cluster
+        resources:
+        specDescriptors: []
+        statusDescriptors: []
+    required: []
+  nativeAPIs:
+    - version: v1
+      group: apps
+      kind: Deployment
+    - version: v1
+      group: ""
+      kind: Service
+    - version: v1
+      group: apps
+      kind: ReplicaSet
+    - version: v1
+      kind: Pod
+      group: ""
+    - version: v1
+      group: ""
+      kind: Secret
+    - version: v1
+      group: ""
+      kind: ConfigMap
+  install:
+    strategy: deployment
+    spec:
+      permissions:
+        - serviceAccountName: rabbitmq-cluster-operator
+          rules:
+          - apiGroups:
+            - coordination.k8s.io
+            resources:
+            - leases
+            verbs:
+            - get
+            - list
+            - watch
+            - create
+            - update
+            - patch
+            - delete
+          - apiGroups:
+            - ""
+            resources:
+            - events
+            verbs:
+            - create
+
+      clusterPermissions:
+        - serviceAccountName: rabbitmq-cluster-operator
+          rules: #@ data.values.rules
+
+      deployments:
+        - label:
+            app.kubernetes.io/component: rabbitmq-operator
+            app.kubernetes.io/name: rabbitmq-cluster-operator
+            app.kubernetes.io/part-of: rabbitmq
+          name: rabbitmq-cluster-operator
+          spec: #@ data.values.spec
+
+  replaces: #@ data.values.replaces
+
+  installModes:
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: true
+    - type: AllNamespaces
+      supported: true
