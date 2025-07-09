@@ -201,9 +201,23 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				if err := builder.Update(sts); err != nil {
 					return ctrl.Result{}, err
 				}
-				if r.scaleDown(ctx, rabbitmqCluster, current, sts) {
-					// return when cluster scale down detected; unsupported operation
-					return ctrl.Result{}, nil
+				if r.scaleToZero(current, sts) {
+					err := r.saveReplicasBeforeZero(ctx, rabbitmqCluster, current)
+					if err != nil {
+						return ctrl.Result{}, err
+					}
+				} else {
+					if r.scaleDown(ctx, rabbitmqCluster, current, sts) {
+						// return when cluster scale down detected; unsupported operation
+						return ctrl.Result{}, nil
+					}
+				}
+				if r.scaleFromZero(current, sts) {
+					if r.scaleDownFromZero(ctx, rabbitmqCluster, sts) {
+						// return when cluster scale down from zero detected; unsupported operation
+						return ctrl.Result{}, nil
+					}
+					r.removeReplicasBeforeZeroAnnotationIfExists(ctx, rabbitmqCluster)
 				}
 			}
 
