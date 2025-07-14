@@ -31,7 +31,7 @@ func (r *RabbitmqClusterReconciler) scaleFromZero(current, sts *appsv1.StatefulS
 }
 
 // scaleDownFromZero checks if the current replicas is desired replicas would be greatter than replicas configured before zero state.
-func (r *RabbitmqClusterReconciler) scaleDownFromZero(ctx context.Context, cluster *v1beta1.RabbitmqCluster, sts *appsv1.StatefulSet) bool {
+func (r *RabbitmqClusterReconciler) scaleFromZeroToBeforeReplicasConfigured(ctx context.Context, cluster *v1beta1.RabbitmqCluster, sts *appsv1.StatefulSet) bool {
 	var err error
 	var beforeZeroReplicas int64
 	desiredReplicas := *sts.Spec.Replicas
@@ -50,9 +50,8 @@ func (r *RabbitmqClusterReconciler) scaleDownFromZero(ctx context.Context, clust
 		}
 		return true
 	}
-
-	if desiredReplicas < int32(beforeZeroReplicas) {
-		msg := fmt.Sprintf("Cluster Scale down not supported; tried to scale cluster from %d nodes to %d nodes", int32(beforeZeroReplicas), desiredReplicas)
+	if desiredReplicas != int32(beforeZeroReplicas) {
+		msg := fmt.Sprintf("Cluster Scale from zero to other replicas than before configured not supported; tried to scale cluster from %d nodes to %d nodes", int32(beforeZeroReplicas), desiredReplicas)
 		reason := "UnsupportedOperation"
 		err = r.recordEventsAndSetCondition(ctx, cluster, status.ReconcileSuccess, corev1.ConditionFalse, corev1.EventTypeWarning, reason, msg)
 		if err != nil {
@@ -61,6 +60,7 @@ func (r *RabbitmqClusterReconciler) scaleDownFromZero(ctx context.Context, clust
 		return true
 	}
 	return false
+
 }
 
 // saveReplicasBeforeZero saves the current replicas count in an annotation before scaling down to zero.
@@ -90,9 +90,6 @@ func (r *RabbitmqClusterReconciler) recordEventsAndSetCondition(ctx context.Cont
 	logger.Error(errors.New(reason), msg)
 	r.Recorder.Event(cluster, eventType, reason, msg)
 	cluster.Status.SetCondition(condType, condStatus, reason, msg)
-	if statusErr := r.Status().Update(ctx, cluster); statusErr != nil {
-		logger.Error(statusErr, "Failed to update ReconcileSuccess condition state")
-	}
+	statusErr = r.Status().Update(ctx, cluster)
 	return statusErr
-
 }
