@@ -41,6 +41,13 @@ func AllReplicasReadyCondition(resources []runtime.Object,
 			if resource.Spec.Replicas != nil {
 				desiredReplicas = *resource.Spec.Replicas
 			}
+
+			if desiredReplicas == 0 {
+				condition.Status = corev1.ConditionFalse
+				condition.Reason = "ScaledToZero"
+				goto assignLastTransitionTime
+			}
+
 			if desiredReplicas == resource.Status.ReadyReplicas {
 				condition.Status = corev1.ConditionTrue
 				condition.Reason = "AllPodsAreReady"
