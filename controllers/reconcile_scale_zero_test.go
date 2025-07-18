@@ -225,7 +225,7 @@ var _ = Describe("Cluster scale from zero to less replicas configured", Ordered,
 				return "ReconcileSuccess status: condition not present"
 			}, 0).Should(Equal("ReconcileSuccess status: False, " +
 				"with reason: UnsupportedOperation " +
-				"and message: Unsupported operation; when scaling from zero, you can only restore the previous number of replicas (1)"))
+				"and message: Unsupported operation; when scaling from zero, you can only restore the previous number of replicas (2)"))
 		})
 	})
 })
