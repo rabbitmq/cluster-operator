@@ -51,7 +51,7 @@ func (r *RabbitmqClusterReconciler) scaleFromZeroToBeforeReplicasConfigured(ctx 
 		return true
 	}
 	if desiredReplicas != int32(beforeZeroReplicas) {
-		msg := fmt.Sprintf("Cluster Scale from zero to other replicas than before configured not supported; tried to scale cluster from %d nodes to %d nodes", int32(beforeZeroReplicas), desiredReplicas)
+		msg := fmt.Sprintf("Unsupported operation; when scaling from zero, you can only restore the previous number of replicas (%d)", int32(beforeZeroReplicas))
 		reason := "UnsupportedOperation"
 		err = r.recordEventsAndSetCondition(ctx, cluster, status.ReconcileSuccess, corev1.ConditionFalse, corev1.EventTypeWarning, reason, msg)
 		if err != nil {

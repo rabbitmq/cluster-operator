@@ -202,7 +202,7 @@ var _ = Describe("Cluster scale from zero to less replicas configured", Ordered,
 
 		By("setting 'Warning' events", func() {
 			Expect(aggregateEventMsgs(ctx, cluster, "UnsupportedOperation")).To(
-				ContainSubstring("Cluster Scale from zero to other replicas than before configured not supported"))
+				ContainSubstring("Unsupported operation"))
 		})
 
 		By("setting ReconcileSuccess to 'false'", func() {
@@ -225,7 +225,7 @@ var _ = Describe("Cluster scale from zero to less replicas configured", Ordered,
 				return "ReconcileSuccess status: condition not present"
 			}, 0).Should(Equal("ReconcileSuccess status: False, " +
 				"with reason: UnsupportedOperation " +
-				"and message: Cluster Scale from zero to other replicas than before configured not supported; tried to scale cluster from 2 nodes to 1 nodes"))
+				"and message: Unsupported operation; when scaling from zero, you can only restore the previous number of replicas (1)"))
 		})
 	})
 })
