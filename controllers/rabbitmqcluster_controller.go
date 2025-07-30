@@ -201,9 +201,23 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				if err := builder.Update(sts); err != nil {
 					return ctrl.Result{}, err
 				}
-				if r.scaleDown(ctx, rabbitmqCluster, current, sts) {
-					// return when cluster scale down detected; unsupported operation
-					return ctrl.Result{}, nil
+				if ScaleToZero(current, sts) {
+					err := r.saveReplicasBeforeZero(ctx, rabbitmqCluster, current)
+					if err != nil {
+						return ctrl.Result{}, err
+					}
+				} else {
+					if r.scaleDown(ctx, rabbitmqCluster, current, sts) {
+						// return when cluster scale down detected; unsupported operation
+						return ctrl.Result{}, nil
+					}
+				}
+				if ScaleFromZero(current, sts) {
+					if r.scaleFromZeroToBeforeReplicasConfigured(ctx, rabbitmqCluster, sts) {
+						// return when cluster scale down from zero detected; unsupported operation
+						return ctrl.Result{}, nil
+					}
+					r.removeReplicasBeforeZeroAnnotationIfExists(ctx, rabbitmqCluster)
 				}
 			}
 
@@ -212,8 +226,8 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
 				return ctrl.Result{}, err
 			}
-		}
 
+		}
 		var operationResult controllerutil.OperationResult
 		err = clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			var apiError error
