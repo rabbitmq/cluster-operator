@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -44,6 +45,7 @@ func (r *RabbitmqClusterReconciler) scaleFromZeroToBeforeReplicasConfigured(ctx 
 	if err != nil {
 		msg := "Failed to convert string to integer for before-zero-replicas-configuration annotation"
 		reason := "TransformErrorOperation"
+		logger.Error(errors.New(reason), msg)
 		err = r.recordEventsAndSetCondition(ctx, cluster, status.ReconcileSuccess, corev1.ConditionFalse, corev1.EventTypeWarning, reason, msg)
 		if err != nil {
 			logger.V(1).Info(err.Error())
@@ -53,6 +55,7 @@ func (r *RabbitmqClusterReconciler) scaleFromZeroToBeforeReplicasConfigured(ctx 
 	if desiredReplicas != int32(beforeZeroReplicas) {
 		msg := fmt.Sprintf("Unsupported operation; when scaling from zero, you can only restore the previous number of replicas (%d)", int32(beforeZeroReplicas))
 		reason := "UnsupportedOperation"
+		logger.Error(errors.New(reason), msg)
 		err = r.recordEventsAndSetCondition(ctx, cluster, status.ReconcileSuccess, corev1.ConditionFalse, corev1.EventTypeWarning, reason, msg)
 		if err != nil {
 			logger.V(1).Info(err.Error())
