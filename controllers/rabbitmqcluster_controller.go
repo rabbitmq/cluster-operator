@@ -201,7 +201,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				if err := builder.Update(sts); err != nil {
 					return ctrl.Result{}, err
 				}
-				if r.scaleToZero(current, sts) {
+				if ScaleToZero(current, sts) {
 					err := r.saveReplicasBeforeZero(ctx, rabbitmqCluster, current)
 					if err != nil {
 						return ctrl.Result{}, err
@@ -212,7 +212,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 						return ctrl.Result{}, nil
 					}
 				}
-				if r.scaleFromZero(current, sts) {
+				if ScaleFromZero(current, sts) {
 					if r.scaleFromZeroToBeforeReplicasConfigured(ctx, rabbitmqCluster, sts) {
 						// return when cluster scale down from zero detected; unsupported operation
 						return ctrl.Result{}, nil
@@ -226,6 +226,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "FailedReconcilePVC", err.Error())
 				return ctrl.Result{}, err
 			}
+
 		}
 		var operationResult controllerutil.OperationResult
 		err = clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
@@ -262,9 +263,9 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
+
 	// Set ReconcileSuccess to true and update observedGeneration after all reconciliation steps have finished with no error
 	rabbitmqCluster.Status.ObservedGeneration = rabbitmqCluster.GetGeneration()
-
 	r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionTrue, "Success", "Finish reconciling")
 
 	logger.Info("Finished reconciling")
