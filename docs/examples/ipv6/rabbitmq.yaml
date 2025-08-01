@@ -12,8 +12,6 @@ spec:
     envConfig: |
         SERVER_ADDITIONAL_ERL_ARGS="-kernel inetrc '/etc/rabbitmq/erl_inetrc'  -proto_dist inet6_tcp"
         RABBITMQ_CTL_ERL_ARGS="-proto_dist inet6_tcp"
-    additionalConfig: |
-      cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
   replicas: 1
   service:
     ipFamilyPolicy: "PreferDualStack"
