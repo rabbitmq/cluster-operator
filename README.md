@@ -64,6 +64,6 @@ generate a new draft release, alongside release artefacts.
 
 ## Copyright
 
-(c) 2007-2024 Broadcom. All Rights Reserved. The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.
+(c) 2007-2025 Broadcom. All Rights Reserved. The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/rabbitmq/cluster-operator)](https://goreportcard.com/report/github.com/rabbitmq/cluster-operator)
