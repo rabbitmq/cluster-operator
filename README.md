@@ -60,7 +60,7 @@ generate a new draft release, alongside release artefacts.
 
 ## License
 
-[Licensed under the MPL](LICENSE.txt), same as RabbitMQ server.
+[Licensed under the MPL-2.0](LICENSE.txt), same as RabbitMQ server.
 
 ## Copyright
 
