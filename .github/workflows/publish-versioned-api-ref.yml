@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout operator codebase
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: cluster-operator
 
@@ -21,7 +21,7 @@ jobs:
         run: echo VERSION=${GITHUB_REF#refs/tags/} >> "$GITHUB_OUTPUT"
 
       - name: Checkout wiki codebase
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ github.repository }}.wiki
           path: wiki
