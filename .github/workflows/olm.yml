@@ -168,7 +168,7 @@ jobs:
           token: ${{ secrets.RABBITMQ_CI_TOKEN }}
 
       - name: Download OLM artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: bundle-manifest
           path: olm-package-ci
@@ -208,7 +208,7 @@ jobs:
           token: ${{ secrets.RABBITMQ_CI_TOKEN }}
 
       - name: Download OLM artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: bundle-manifest
           path: olm-package-ci
