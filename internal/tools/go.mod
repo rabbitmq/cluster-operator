@@ -1,8 +1,6 @@
 module tools
 
-go 1.24.2
-
-toolchain go1.24.3
+go 1.24.6
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
