@@ -13,6 +13,14 @@ updates:
       versions: ["0.19.x"]
     - dependency-name: "github.com/go-logr/logr"
       versions: ["0.2.x"]
+- package-ecosystem: "gomod"
+  directory: "/internal/tools/"
+  schedule:
+    interval: "daily"
+- package-ecosystem: "gomod"
+  directory: "/internal/promtool/"
+  schedule:
+    interval: "daily"
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
