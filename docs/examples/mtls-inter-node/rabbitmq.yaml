@@ -3,6 +3,7 @@ kind: RabbitmqCluster
 metadata:
   name: mtls-inter-node
 spec:
+  image: rabbitmq:4.1.3-management
   rabbitmq:
     envConfig: |
       SERVER_ADDITIONAL_ERL_ARGS="-proto_dist inet_tls -ssl_dist_optfile /etc/rabbitmq/inter-node-tls.config"
