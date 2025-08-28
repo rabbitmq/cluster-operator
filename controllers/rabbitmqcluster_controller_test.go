@@ -488,8 +488,12 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
 
 			// verify that SuccessfulUpdate event is recorded for the StatefulSet
-			Expect(aggregateEventMsgs(ctx, cluster, "SuccessfulUpdate")).To(
-				ContainSubstring("updated resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")))
+			Eventually(func() string {
+				return aggregateEventMsgs(ctx, cluster, "SuccessfulUpdate")
+			}).
+				Within(5 * time.Second).
+				WithPolling(time.Second).
+				Should(ContainSubstring("updated resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")))
 		})
 
 		It("the rabbitmq image is updated", func() {
