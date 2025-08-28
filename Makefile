@@ -81,7 +81,7 @@ integration-tests::just-integration-tests ## Run integration tests
 
 .PHONY: just-integration-tests
 just-integration-tests:
-	ginkgo -r controllers/
+	ginkgo -r -p controllers/
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 	controller-gen crd rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
