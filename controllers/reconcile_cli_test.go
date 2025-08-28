@@ -1,8 +1,9 @@
 package controllers_test
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -238,7 +239,7 @@ var _ = Describe("Reconcile CLI", func() {
 					Consistently(func() map[string]string {
 						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-						Expect(err).To(BeNil())
+						Expect(err).ToNot(HaveOccurred())
 						return rmq.ObjectMeta.Annotations
 					}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
 				})
@@ -253,7 +254,7 @@ var _ = Describe("Reconcile CLI", func() {
 					Consistently(func() map[string]string {
 						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-						Expect(err).To(BeNil())
+						Expect(err).ToNot(HaveOccurred())
 						return rmq.ObjectMeta.Annotations
 					}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
 					Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-queues rebalance all"}))
@@ -297,7 +298,7 @@ var _ = Describe("Reconcile CLI", func() {
 					Consistently(func() map[string]string {
 						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-						Expect(err).To(BeNil())
+						Expect(err).ToNot(HaveOccurred())
 						return rmq.ObjectMeta.Annotations
 					}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
 				})
@@ -312,7 +313,7 @@ var _ = Describe("Reconcile CLI", func() {
 					Consistently(func() map[string]string {
 						rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 						err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-						Expect(err).To(BeNil())
+						Expect(err).ToNot(HaveOccurred())
 						return rmq.ObjectMeta.Annotations
 					}, 5).ShouldNot(HaveKey("rabbitmq.com/queueRebalanceNeededAt"))
 					Expect(fakeExecutor.ExecutedCommands()).NotTo(ContainElement(command{"sh", "-c", "rabbitmq-queues rebalance all"}))

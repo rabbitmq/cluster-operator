@@ -65,7 +65,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Eventually(func() bool {
 				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, cluster)
 				return apierrors.IsNotFound(err)
-			}, 5).Should(BeTrue())
+			}, 5).Should(BeTrue(), "expected to delete cluster '%s' but it still exists", cluster.Name)
 		})
 
 		It("works", func() {
@@ -81,7 +81,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 				Expect(sts.Name).To(Equal(cluster.ChildResourceName("server")))
 
-				Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
+				Expect(sts.Spec.VolumeClaimTemplates).To(HaveLen(1))
 				Expect(sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
 			})
 
@@ -419,7 +419,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			sts := statefulSet(ctx, cluster)
 
-			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
+			Expect(sts.Spec.VolumeClaimTemplates).To(HaveLen(1))
 			Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 			actualStorageCapacity := sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests[corev1.ResourceStorage]
 			Expect(actualStorageCapacity).To(Equal(k8sresource.MustParse("100Gi")))
@@ -889,7 +889,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				"app.kubernetes.io/name": "rabbitmq-sts-override" + suffix,
 			}))
 
-			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(2))
+			Expect(sts.Spec.VolumeClaimTemplates).To(HaveLen(2))
 
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Name).To(Equal("persistence"))
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Namespace).To(Equal("default"))
@@ -1366,7 +1366,7 @@ func waitForClusterDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta
 			&rabbitmqClusterCreated,
 		)
 		return apierrors.IsNotFound(err)
-	}, ClusterDeletionTimeout, 1*time.Second).Should(BeTrue())
+	}, ClusterDeletionTimeout, 1*time.Second).Should(BeTrue(), "expected to delete cluster '%s' but it still exists", rabbitmqCluster.Name)
 
 }
 

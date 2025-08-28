@@ -266,7 +266,7 @@ var _ = Describe("StatefulSet", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-			Expect(len(statefulSet.OwnerReferences)).To(Equal(1))
+			Expect(statefulSet.OwnerReferences).To(HaveLen(1))
 			Expect(statefulSet.OwnerReferences[0].Name).To(Equal(builder.Instance.Name))
 		})
 
@@ -1496,8 +1496,8 @@ default_pass = {{ .Data.data.password }}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-				Expect(len(container.Resources.Requests)).To(Equal(0))
-				Expect(len(container.Resources.Limits)).To(Equal(0))
+				Expect(container.Resources.Requests).To(BeEmpty())
+				Expect(container.Resources.Limits).To(BeEmpty())
 			})
 		})
 
