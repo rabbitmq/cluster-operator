@@ -37,11 +37,13 @@ var _ = Describe("Reconcile TLS", func() {
 		})
 
 		Context("Mutual TLS with single secret", func() {
+			const tlsSecretName = "tls-secret-success"
+
 			It("Deploys successfully", func() {
-				tlsSecretWithCACert(ctx, "tls-secret", defaultNamespace)
+				tlsSecretWithCACert(ctx, tlsSecretName, defaultNamespace)
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
-					SecretName:   "tls-secret",
-					CaSecretName: "tls-secret",
+					SecretName:   tlsSecretName,
+					CaSecretName: tlsSecretName,
 				}
 				cluster = rabbitmqClusterWithTLS(ctx, "mutual-tls-success", defaultNamespace, tlsSpec)
 				waitForClusterCreation(ctx, cluster, client)
@@ -57,7 +59,7 @@ var _ = Describe("Reconcile TLS", func() {
 								{
 									Secret: &corev1.SecretProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "tls-secret",
+											Name: tlsSecretName,
 										},
 										Optional: ptr.To(true),
 										Items: []corev1.KeyToPath{
@@ -69,7 +71,7 @@ var _ = Describe("Reconcile TLS", func() {
 								{
 									Secret: &corev1.SecretProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "tls-secret",
+											Name: tlsSecretName,
 										},
 										Optional: ptr.To(true),
 										Items:    []corev1.KeyToPath{{Key: "ca.crt", Path: "ca.crt"}},

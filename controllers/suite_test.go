@@ -14,6 +14,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -144,3 +145,7 @@ func (f *fakePodExecutor) ExecutedCommands() []command { return f.executedComman
 func (f *fakePodExecutor) ResetExecutedCommands() { f.executedCommands = []command{} }
 
 var _ = AfterEach(func() { fakeExecutor.ResetExecutedCommands() })
+
+func substituteSpacesWithUnderscores(input string) string {
+	return strings.ReplaceAll(strings.ToLower(input), " ", "-")
+}

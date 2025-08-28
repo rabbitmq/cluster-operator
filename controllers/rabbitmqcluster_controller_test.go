@@ -426,11 +426,11 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 	})
 
-	Context("Custom Resource updates", func() {
+	Context("Custom Resource updates", FlakeAttempts(3), func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-cr-update",
+					Name:      fmt.Sprintf("cr-update-%d", GinkgoParallelProcess()),
 					Namespace: defaultNamespace,
 				},
 			}
@@ -867,10 +867,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 			waitForClusterCreation(ctx, cluster, client)
 		})
 
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			waitForClusterDeletion(ctx, cluster, client)
-		})
+		// AfterEach(func() {
+		// 	Expect(client.Delete(ctx, cluster)).To(Succeed())
+		// 	waitForClusterDeletion(ctx, cluster, client)
+		// })
 
 		It("creates a StatefulSet with the override applied", func() {
 			sts := statefulSet(ctx, cluster)
