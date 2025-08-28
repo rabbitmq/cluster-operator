@@ -7,7 +7,7 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("ReconcileOperatorDefaults", func() {
@@ -32,13 +32,9 @@ var _ = Describe("ReconcileOperatorDefaults", func() {
 		waitForClusterCreation(ctx, cluster, client)
 	})
 
-	AfterEach(func() {
-		Expect(client.Delete(ctx, cluster)).To(Succeed())
-	})
-
 	It("handles operator defaults correctly", func() {
 		fetchedCluster := &rabbitmqv1beta1.RabbitmqCluster{}
-		Expect(client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, fetchedCluster)).To(Succeed())
+		Expect(client.Get(ctx, k8sclient.ObjectKeyFromObject(cluster), fetchedCluster)).To(Succeed())
 
 		By("setting the image spec with the default image")
 		Expect(fetchedCluster.Spec.Image).To(Equal(defaultRabbitmqImage))

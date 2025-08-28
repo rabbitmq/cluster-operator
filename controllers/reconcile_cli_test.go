@@ -1,6 +1,7 @@
 package controllers_test
 
 import (
+	"fmt"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
@@ -21,11 +22,6 @@ var _ = Describe("Reconcile CLI", func() {
 		cluster          *rabbitmqv1beta1.RabbitmqCluster
 		defaultNamespace = "default"
 	)
-
-	AfterEach(func() {
-		Expect(client.Delete(ctx, cluster)).To(Succeed())
-		waitForClusterDeletion(ctx, cluster, client)
-	})
 
 	When("cluster is created", func() {
 		var sts *appsv1.StatefulSet
@@ -63,10 +59,19 @@ var _ = Describe("Reconcile CLI", func() {
 	})
 
 	When("the cluster is configured to run post-deploy steps", func() {
+		const (
+			rmqNamePrefix = "rabbitmq-three"
+		)
+
+		var (
+			rmqName string
+		)
+
 		BeforeEach(func() {
+			rmqName = fmt.Sprintf("%s-%d", rmqNamePrefix, time.Now().Unix())
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-three",
+					Name:      rmqName,
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -83,6 +88,8 @@ var _ = Describe("Reconcile CLI", func() {
 			BeforeEach(func() {
 				sts = statefulSet(ctx, cluster)
 				sts.Status.Replicas = 3
+				sts.Status.AvailableReplicas = 2
+				sts.Status.ReadyReplicas = 2
 				sts.Status.CurrentReplicas = 2
 				sts.Status.CurrentRevision = "some-old-revision"
 				sts.Status.UpdatedReplicas = 1
@@ -96,7 +103,7 @@ var _ = Describe("Reconcile CLI", func() {
 
 				By("setting an annotation on the CR", func() {
 					rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-					rmq.Name = "rabbitmq-three"
+					rmq.Name = rmqName
 					rmq.Namespace = defaultNamespace
 					Eventually(k.Object(rmq)).Within(time.Second * 5).WithPolling(time.Second).Should(HaveField("ObjectMeta.Annotations", HaveKey("rabbitmq.com/queueRebalanceNeededAt")))
 
@@ -112,11 +119,12 @@ var _ = Describe("Reconcile CLI", func() {
 						sts.Status.UpdatedReplicas = 3
 						sts.Status.UpdateRevision = "some-new-revision"
 						sts.Status.ReadyReplicas = 2
+						sts.Status.AvailableReplicas = 2
 					})).Should(Succeed())
 
 					// by not removing the annotation
 					rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-					rmq.Name = "rabbitmq-three"
+					rmq.Name = rmqName
 					rmq.Namespace = defaultNamespace
 					Eventually(k.Object(rmq)).Within(time.Second * 5).WithPolling(time.Second).Should(HaveField("ObjectMeta.Annotations", HaveKey("rabbitmq.com/queueRebalanceNeededAt")))
 
@@ -130,11 +138,12 @@ var _ = Describe("Reconcile CLI", func() {
 				By("removing the annotation once all Pods are up, and triggering the queue rebalance", func() {
 					// setup transition to all pods ready
 					sts.Status.ReadyReplicas = 3
+					sts.Status.AvailableReplicas = 3
 					Expect(client.Status().Update(ctx, sts)).To(Succeed())
 
 					// by not having the annotation
 					rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-					rmq.Name = "rabbitmq-three"
+					rmq.Name = rmqName
 					rmq.Namespace = defaultNamespace
 					Eventually(k.Object(rmq)).Within(time.Second * 5).WithPolling(time.Second).ShouldNot(HaveField("ObjectMeta.Annotations", HaveKey("rabbitmq.com/queueRebalanceNeededAt")))
 

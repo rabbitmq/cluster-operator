@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Reconcile finalizer", func() {
@@ -31,7 +31,7 @@ var _ = Describe("Reconcile finalizer", func() {
 	It("adds the deletion finalizer", func() {
 		rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 		Eventually(func() string {
-			err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+			err := client.Get(ctx, k8sclient.ObjectKeyFromObject(cluster), rmq)
 			if err != nil {
 				return ""
 			}
