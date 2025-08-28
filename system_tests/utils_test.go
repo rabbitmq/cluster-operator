@@ -502,7 +502,7 @@ func kubernetesNodeIp(ctx context.Context, clientSet *kubernetes.Clientset) stri
 	nodes, err := clientSet.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	ExpectWithOffset(1, nodes).ToNot(BeNil())
-	ExpectWithOffset(1, len(nodes.Items)).To(BeNumerically(">", 0))
+	ExpectWithOffset(1, nodes.Items).ToNot(BeEmpty())
 
 	var nodeIp string
 	for _, address := range nodes.Items[0].Status.Addresses {
