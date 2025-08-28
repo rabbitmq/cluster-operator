@@ -67,7 +67,7 @@ unit-tests::just-unit-tests ## Run unit tests
 
 .PHONY: just-unit-tests
 just-unit-tests:
-	ginkgo -r --randomize-all api/ internal/ pkg/
+	ginkgo -r -p --randomize-all --fail-on-pending api/ internal/ pkg/
 
 .PHONY: integration-tests
 integration-tests::install-tools
@@ -81,7 +81,7 @@ integration-tests::just-integration-tests ## Run integration tests
 
 .PHONY: just-integration-tests
 just-integration-tests:
-	ginkgo -r controllers/
+	ginkgo -r -p --fail-on-pending --randomize-all controllers/
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 	controller-gen crd rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases

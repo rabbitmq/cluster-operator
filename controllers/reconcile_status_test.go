@@ -20,12 +20,13 @@ var _ = Describe("Reconcile status", func() {
 	)
 
 	AfterEach(func() {
+		// flaky, the solution is probably just to delete the after each since there is only one test case
 		Expect(client.Delete(ctx, cluster)).To(Succeed())
 		Eventually(func() bool {
 			rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 			err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
 			return apierrors.IsNotFound(err)
-		}, 5).Should(BeTrue())
+		}, 5).Should(BeTrue(), "expected to delete cluster '%s' but it still exists", cluster.Name)
 	})
 
 	It("reconciles the custom resource status", func() {

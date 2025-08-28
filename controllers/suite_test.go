@@ -12,7 +12,9 @@ package controllers_test
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -73,6 +75,9 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
+		Config: &rest.Config{
+			Host: fmt.Sprintf("http://localhost:218%d", GinkgoParallelProcess()),
+		},
 	}
 
 	cfg, err := testEnv.Start()
@@ -140,3 +145,7 @@ func (f *fakePodExecutor) ExecutedCommands() []command { return f.executedComman
 func (f *fakePodExecutor) ResetExecutedCommands() { f.executedCommands = []command{} }
 
 var _ = AfterEach(func() { fakeExecutor.ResetExecutedCommands() })
+
+func substituteSpacesWithUnderscores(input string) string {
+	return strings.ReplaceAll(strings.ToLower(input), " ", "-")
+}

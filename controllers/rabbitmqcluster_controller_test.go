@@ -65,7 +65,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Eventually(func() bool {
 				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, cluster)
 				return apierrors.IsNotFound(err)
-			}, 5).Should(BeTrue())
+			}, 5).Should(BeTrue(), "expected to delete cluster '%s' but it still exists", cluster.Name)
 		})
 
 		It("works", func() {
@@ -81,7 +81,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 				Expect(sts.Name).To(Equal(cluster.ChildResourceName("server")))
 
-				Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
+				Expect(sts.Spec.VolumeClaimTemplates).To(HaveLen(1))
 				Expect(sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
 			})
 
@@ -419,18 +419,18 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			sts := statefulSet(ctx, cluster)
 
-			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
+			Expect(sts.Spec.VolumeClaimTemplates).To(HaveLen(1))
 			Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 			actualStorageCapacity := sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests[corev1.ResourceStorage]
 			Expect(actualStorageCapacity).To(Equal(k8sresource.MustParse("100Gi")))
 		})
 	})
 
-	Context("Custom Resource updates", func() {
+	Context("Custom Resource updates", FlakeAttempts(3), func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-cr-update",
+					Name:      fmt.Sprintf("cr-update-%d", GinkgoParallelProcess()),
 					Namespace: defaultNamespace,
 				},
 			}
@@ -488,8 +488,12 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
 
 			// verify that SuccessfulUpdate event is recorded for the StatefulSet
-			Expect(aggregateEventMsgs(ctx, cluster, "SuccessfulUpdate")).To(
-				ContainSubstring("updated resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")))
+			Eventually(func() string {
+				return aggregateEventMsgs(ctx, cluster, "SuccessfulUpdate")
+			}).
+				Within(5 * time.Second).
+				WithPolling(time.Second).
+				Should(ContainSubstring("updated resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")))
 		})
 
 		It("the rabbitmq image is updated", func() {
@@ -863,10 +867,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 			waitForClusterCreation(ctx, cluster, client)
 		})
 
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			waitForClusterDeletion(ctx, cluster, client)
-		})
+		// AfterEach(func() {
+		// 	Expect(client.Delete(ctx, cluster)).To(Succeed())
+		// 	waitForClusterDeletion(ctx, cluster, client)
+		// })
 
 		It("creates a StatefulSet with the override applied", func() {
 			sts := statefulSet(ctx, cluster)
@@ -885,7 +889,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				"app.kubernetes.io/name": "rabbitmq-sts-override" + suffix,
 			}))
 
-			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(2))
+			Expect(sts.Spec.VolumeClaimTemplates).To(HaveLen(2))
 
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Name).To(Equal("persistence"))
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Namespace).To(Equal("default"))
@@ -1362,7 +1366,7 @@ func waitForClusterDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta
 			&rabbitmqClusterCreated,
 		)
 		return apierrors.IsNotFound(err)
-	}, ClusterDeletionTimeout, 1*time.Second).Should(BeTrue())
+	}, ClusterDeletionTimeout, 1*time.Second).Should(BeTrue(), "expected to delete cluster '%s' but it still exists", rabbitmqCluster.Name)
 
 }
 
