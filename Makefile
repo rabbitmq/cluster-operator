@@ -191,11 +191,13 @@ $(YTT): | $(LOCAL_TESTBIN)
 	chmod +x $(YTT)
 
 QUAY_IO_OPERATOR_IMAGE ?= quay.io/rabbitmqoperator/cluster-operator:latest
+GHCR_IO_OPERATOR_IMAGE ?= ghcr.io/rabbitmq/cluster-operator:latest
 # Builds a single-file installation manifest to deploy the Operator
 generate-installation-manifest: | $(YTT)
 	mkdir -p releases
 	kustomize build config/installation/ > releases/cluster-operator.yml
 	$(YTT) -f releases/cluster-operator.yml -f config/ytt/overlay-manager-image.yaml --data-value operator_image=$(QUAY_IO_OPERATOR_IMAGE) > releases/cluster-operator-quay-io.yml
+	$(YTT) -f releases/cluster-operator.yml -f config/ytt/overlay-manager-image.yaml --data-value operator_image=$(GHCR_IO_OPERATOR_IMAGE) > releases/cluster-operator-ghcr-io.yml
 
 docker-build: ## Build the docker image with tag `latest`
 	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
