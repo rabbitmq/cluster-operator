@@ -1,5 +1,6 @@
+ARG GO_TAG=1.24
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.24 AS builder
+FROM --platform=$BUILDPLATFORM golang:${GO_TAG} AS builder
 
 WORKDIR /workspace
 
