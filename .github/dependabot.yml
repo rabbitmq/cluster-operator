@@ -2,6 +2,10 @@ version: 2
 updates:
 - package-ecosystem: "gomod"
   directory: "/"
+  groups:
+    all:
+      patterns:
+      - '*'
   schedule:
     interval: "daily"
   ignore:
@@ -15,10 +19,18 @@ updates:
       versions: ["0.2.x"]
 - package-ecosystem: "gomod"
   directory: "/internal/tools/"
+  groups:
+    tools:
+      patterns:
+      - '*'
   schedule:
     interval: "daily"
 - package-ecosystem: "gomod"
   directory: "/internal/promtool/"
+  groups:
+    promtool:
+      patterns:
+      - '*'
   schedule:
     interval: "daily"
 - package-ecosystem: "github-actions"
