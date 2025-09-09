@@ -8,20 +8,20 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.16.0
-	github.com/onsi/ginkgo/v2 v2.25.2
+	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	github.com/rabbitmq/amqp091-go v1.10.0
-	github.com/rabbitmq/rabbitmq-stream-go-client v1.5.8
-	golang.org/x/mod v0.27.0
+	github.com/rabbitmq/rabbitmq-stream-go-client v1.6.0
+	golang.org/x/mod v0.28.0
 	golang.org/x/net v0.43.0
-	golang.org/x/text v0.28.0
+	golang.org/x/text v0.29.0
 	gopkg.in/ini.v1 v1.67.0
 	k8s.io/api v0.34.0
 	k8s.io/apimachinery v0.34.0
 	k8s.io/client-go v0.34.0
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
-	sigs.k8s.io/controller-runtime v0.22.0
+	sigs.k8s.io/controller-runtime v0.22.1
 )
 
 require (
@@ -147,7 +147,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
