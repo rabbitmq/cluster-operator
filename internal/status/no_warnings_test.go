@@ -65,6 +65,22 @@ var _ = Describe("NoWarnings", func() {
 		})
 	})
 
+	It("is true if the memory limit are not set but the request is set", func() {
+		sts := noMemoryWarningStatefulSet()
+		sts.Spec.Template.Spec.Containers[0].Resources.Limits = corev1.ResourceList{}
+		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{sts}, nil)
+		By("having the correct type", func() {
+			var conditionType rabbitmqstatus.RabbitmqClusterConditionType = "NoWarnings"
+			Expect(condition.Type).To(Equal(conditionType))
+		})
+
+		By("having status false and reason message", func() {
+			Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+			Expect(condition.Reason).To(Equal("NoWarnings"))
+			Expect(condition.Message).To(BeEmpty())
+		})
+	})
+
 	It("is unknown when the StatefulSet does not exist", func() {
 		var sts *appsv1.StatefulSet = nil
 		condition := rabbitmqstatus.NoWarningsCondition([]runtime.Object{sts}, nil)

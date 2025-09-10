@@ -35,7 +35,9 @@ func NoWarningsCondition(resources []runtime.Object, oldCondition *RabbitmqClust
 				goto assignLastTransitionTime
 			}
 
-			if !equality.Semantic.DeepEqual(resource.Spec.Template.Spec.Containers[0].Resources.Limits["memory"], resource.Spec.Template.Spec.Containers[0].Resources.Requests["memory"]) {
+			limitMemory := resource.Spec.Template.Spec.Containers[0].Resources.Limits["memory"]
+			requestMemory := resource.Spec.Template.Spec.Containers[0].Resources.Requests["memory"]
+			if (!limitMemory.IsZero() && !requestMemory.IsZero()) && !equality.Semantic.DeepEqual(limitMemory, requestMemory) {
 				condition.Status = corev1.ConditionFalse
 				condition.Reason = "MemoryRequestAndLimitDifferent"
 				condition.Message = "RabbitMQ container memory resource request and limit must be equal"
