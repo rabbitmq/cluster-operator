@@ -13,7 +13,7 @@ on:
     branches: [ "main" ]
 
 env:
-  GO_VERSION: ~1.24
+  GO_VERSION: 'stable'
   # Taken from https://github.com/kubernetes-sigs/kind/releases/tag/v0.18.0
   # The image here should be listed under 'Images built for this release' for the version of kind in go.mod
   KIND_NODE_IMAGE: "kindest/node:v1.32.0"
@@ -120,11 +120,13 @@ jobs:
     permissions:
       contents: 'write'
       id-token: 'write'
+      packages: 'write'
     steps:
     - name: Checkout
       uses: actions/checkout@v5
 
     - name: Install Go
+      id: set-go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
@@ -138,6 +140,7 @@ jobs:
         images: |
           rabbitmqoperator/cluster-operator
           quay.io/rabbitmqoperator/cluster-operator
+          ghcr.io/rabbitmq/cluster-operator
         # generate Docker tags based on the following events/attributes
         tags: |
           type=sha
@@ -151,19 +154,27 @@ jobs:
       uses: docker/setup-buildx-action@v3
 
     - name: Login to Docker Hub
-      if: github.event_name != 'pull_request'
+      if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Login to Quay.io
-      if: github.event_name != 'pull_request'
+      if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
       uses: docker/login-action@v3
       with:
         registry: quay.io
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+    - name: Login to GHCR
+      if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and push
       id: build
@@ -176,8 +187,13 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        # FIXME: mount cache in the container
+        # https://github.com/reproducible-containers/buildkit-cache-dance
+        # https://docs.docker.com/build/ci/github-actions/cache/#cache-mounts
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        build-args: |
+          GO_TAG=${{ steps.set-go.outputs.go-version }}
 
     - name: Build to TAR
       id: build_tar
@@ -207,8 +223,7 @@ jobs:
         pushd config/installation
         kustomize edit set image rabbitmqoperator/cluster-operator-dev=rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
         popd
-        make generate-installation-manifest QUAY_IO_OPERATOR_IMAGE=quay.io/rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}"
-        echo -n "cluster-operator-${{ steps.meta.outputs.version }}.yml" > "latest-cluster-operator-dev-manifest.txt"
+        make generate-installation-manifest QUAY_IO_OPERATOR_IMAGE=quay.io/rabbitmqoperator/cluster-operator:"${RELEASE_VERSION}" GHCR_IO_OPERATOR_IMAGE=ghcr.io/rabbitmq/cluster-operator:"${RELEASE_VERSION}"
 
     - name: Upload operator manifests
       uses: actions/upload-artifact@v4
@@ -227,7 +242,7 @@ jobs:
         rabbitmq-image:
         - rabbitmq:3.13.7-management
         - rabbitmq:management
-        - pivotalrabbitmq/rabbitmq:main
+        - pivotalrabbitmq/rabbitmq:main-otp27
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v5
@@ -491,6 +506,7 @@ jobs:
         files: |
           cluster-operator.yml
           cluster-operator-quay-io.yml
+          cluster-operator-ghcr-io.yml
         generate_release_notes: true
         draft: true
         body_path: release-header.md
