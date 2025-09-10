@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Close Stale Issues
-      uses: actions/stale@v9
+      uses: actions/stale@v10
       with:
         # Token for the repository. Can be passed in using `{{ secrets.GITHUB_TOKEN }}`.
         repo-token: ${{ secrets.GITHUB_TOKEN }}
