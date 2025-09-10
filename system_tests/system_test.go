@@ -223,7 +223,7 @@ cluster_keepalive_interval = 10000`
 			By("updating the advanced.config file when advancedConfig are modified", func() {
 				Expect(updateRabbitmqCluster(ctx, rmqClusterClient, cluster.Name, cluster.Namespace, func(cluster *rabbitmqv1beta1.RabbitmqCluster) {
 					cluster.Spec.Rabbitmq.AdvancedConfig = `[
-  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}
+  {kernel, [{net_ticktime, 61}]}
 ].`
 				})).To(Succeed())
 
@@ -237,7 +237,7 @@ cluster_keepalive_interval = 10000`
 					"/etc/rabbitmq/advanced.config",
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(output)).Should(ContainSubstring("[\n  {rabbit, [{auth_backends, [rabbit_auth_backend_ldap]}]}\n]."))
+				Expect(string(output)).Should(ContainSubstring("[\n  {kernel, [{net_ticktime, 61}]}\n]."))
 			})
 
 			By("updating the rabbitmq-env.conf file when additionalConfig are modified", func() {
