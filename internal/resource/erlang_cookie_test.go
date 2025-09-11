@@ -67,7 +67,7 @@ var _ = Describe("ErlangCookie", func() {
 
 		It("creates an erlang cookie that is base64 encoded and 24 characters", func() {
 			cookie, ok := secret.Data[".erlang.cookie"]
-			Expect(ok).NotTo(BeFalse())
+			Expect(ok).To(BeTrue())
 			decodedCookie, err := b64.URLEncoding.DecodeString(string(cookie))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(decodedCookie).To(HaveLen(24))

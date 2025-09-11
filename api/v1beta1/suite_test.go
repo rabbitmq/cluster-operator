@@ -9,6 +9,7 @@
 package v1beta1
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -41,6 +42,9 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		Config: &rest.Config{
+			Host: fmt.Sprintf("http://localhost:218%d", GinkgoParallelProcess()),
+		},
 	}
 
 	err := SchemeBuilder.AddToScheme(scheme.Scheme)

@@ -4,7 +4,6 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -18,15 +17,6 @@ var _ = Describe("Reconcile status", func() {
 		cluster          *rabbitmqv1beta1.RabbitmqCluster
 		defaultNamespace = "default"
 	)
-
-	AfterEach(func() {
-		Expect(client.Delete(ctx, cluster)).To(Succeed())
-		Eventually(func() bool {
-			rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-			err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-			return apierrors.IsNotFound(err)
-		}, 5).Should(BeTrue())
-	})
 
 	It("reconciles the custom resource status", func() {
 		cluster = &rabbitmqv1beta1.RabbitmqCluster{

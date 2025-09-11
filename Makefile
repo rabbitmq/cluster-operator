@@ -27,7 +27,7 @@ __check_defined = \
 ###
 
 # The latest 1.25 available for envtest
-ENVTEST_K8S_VERSION ?= 1.26.1
+ENVTEST_K8S_VERSION ?= 1.29.5
 LOCAL_TESTBIN = $(CURDIR)/testbin
 $(LOCAL_TESTBIN):
 	mkdir -p $@
@@ -66,10 +66,11 @@ unit-tests::manifests
 unit-tests::just-unit-tests ## Run unit tests
 
 GINKGO ?= go run github.com/onsi/ginkgo/v2/ginkgo
+GINKGO_PROCS ?= 4
 
 .PHONY: just-unit-tests
 just-unit-tests:
-	$(GINKGO) -r --randomize-all api/ internal/ pkg/
+	$(GINKGO) -r -p --randomize-all --fail-on-pending --procs=$(GINKGO_PROCS) $(GINKGO_EXTRA) api/ internal/ pkg/
 
 .PHONY: integration-tests
 integration-tests::install-tools
@@ -83,7 +84,7 @@ integration-tests::just-integration-tests ## Run integration tests
 
 .PHONY: just-integration-tests
 just-integration-tests:
-	$(GINKGO) -r controllers/
+	$(GINKGO) -r -p --fail-on-pending --randomize-all --procs=$(GINKGO_PROCS) $(GINKGO_EXTRA) controllers/
 
 manifests: install-tools ## Generate manifests e.g. CRD, RBAC etc.
 	controller-gen crd rbac:roleName=operator-role paths="./api/...;./controllers/..." output:crd:artifacts:config=config/crd/bases
@@ -236,7 +237,7 @@ cert-manager-rm:
 	kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml --ignore-not-found
 
 system-tests: install-tools ## Run end-to-end tests against Kubernetes cluster defined in ~/.kube/config
-	NAMESPACE="$(SYSTEM_TEST_NAMESPACE)" K8S_OPERATOR_NAMESPACE="$(K8S_OPERATOR_NAMESPACE)" $(GINKGO) -nodes=3 --randomize-all -r system_tests/
+	NAMESPACE="$(SYSTEM_TEST_NAMESPACE)" K8S_OPERATOR_NAMESPACE="$(K8S_OPERATOR_NAMESPACE)" $(GINKGO) -nodes=3 --randomize-all -r $(GINKGO_EXTRA) system_tests/
 
 kubectl-plugin-tests: ## Run kubectl-rabbitmq tests
 	@echo "running kubectl plugin tests"

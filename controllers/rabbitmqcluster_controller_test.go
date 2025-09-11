@@ -17,6 +17,7 @@ import (
 
 	"k8s.io/utils/ptr"
 
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -30,7 +31,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -60,18 +60,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 			waitForClusterCreation(ctx, cluster, client)
 		})
 
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			Eventually(func() bool {
-				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, cluster)
-				return apierrors.IsNotFound(err)
-			}, 5).Should(BeTrue())
-		})
-
 		It("works", func() {
 			By("populating the image spec with the default image", func() {
 				fetchedCluster := &rabbitmqv1beta1.RabbitmqCluster{}
-				Expect(client.Get(ctx, types.NamespacedName{Name: "rabbitmq-one", Namespace: defaultNamespace}, fetchedCluster)).To(Succeed())
+				Expect(client.Get(ctx, runtimeClient.ObjectKeyFromObject(cluster), fetchedCluster)).To(Succeed())
 				Expect(fetchedCluster.Spec.Image).To(Equal(defaultRabbitmqImage))
 			})
 
@@ -81,7 +73,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 				Expect(sts.Name).To(Equal(cluster.ChildResourceName("server")))
 
-				Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
+				Expect(sts.Spec.VolumeClaimTemplates).To(HaveLen(1))
 				Expect(sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(BeNil())
 			})
 
@@ -199,10 +191,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 			waitForClusterCreation(ctx, cluster, client)
 		})
 
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-		})
-
 		It("adds annotations to child resources", func() {
 			headlessSvc := service(ctx, cluster, "nodes")
 			Expect(headlessSvc.Annotations).Should(HaveKeyWithValue("my-annotation", "this-annotation"))
@@ -234,10 +222,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 			waitForClusterCreation(ctx, cluster, client)
 		})
 
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-		})
-
 		It("applies the Vault configuration", func() {
 			By("not exposing DefaultUser or its Binding as status")
 			Expect(cluster).NotTo(BeNil())
@@ -246,7 +230,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(cluster.Status.Binding).To(BeNil())
 			By("setting the default user updater image to the controller default")
 			fetchedCluster := &rabbitmqv1beta1.RabbitmqCluster{}
-			Expect(client.Get(ctx, types.NamespacedName{Name: "rabbitmq-vault", Namespace: defaultNamespace}, fetchedCluster)).To(Succeed())
+			Expect(client.Get(ctx, runtimeClient.ObjectKeyFromObject(cluster), fetchedCluster)).To(Succeed())
 			Expect(fetchedCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage).To(PointTo(Equal(defaultUserUpdaterImage)))
 		})
 	})
@@ -265,10 +249,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
 		})
 
 		It("configures the imagePullSecret on sts correctly", func() {
@@ -307,10 +287,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 		})
 
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-		})
-
 		It("adds the affinity rules to pod spec", func() {
 			sts := statefulSet(ctx, cluster)
 			podSpecAffinity := sts.Spec.Template.Spec.Affinity
@@ -319,11 +295,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 	})
 
 	Context("Service configurations", func() {
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			Expect(clientSet.CoreV1().Services(cluster.Namespace).Delete(ctx, cluster.ChildResourceName(""), metav1.DeleteOptions{}))
-		})
-
 		It("creates the service type and annotations as configured in instance spec", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -360,10 +331,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 	})
 
 	Context("Resource requirements configurations", func() {
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-		})
-
 		It("uses resource requirements from instance spec when provided", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -400,10 +367,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 	})
 
 	Context("Persistence configurations", func() {
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-		})
-
 		It("creates the RabbitmqCluster with the specified storage from instance spec", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -419,29 +382,24 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			sts := statefulSet(ctx, cluster)
 
-			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(1))
+			Expect(sts.Spec.VolumeClaimTemplates).To(HaveLen(1))
 			Expect(*sts.Spec.VolumeClaimTemplates[0].Spec.StorageClassName).To(Equal("my-storage-class"))
 			actualStorageCapacity := sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests[corev1.ResourceStorage]
 			Expect(actualStorageCapacity).To(Equal(k8sresource.MustParse("100Gi")))
 		})
 	})
 
-	Context("Custom Resource updates", func() {
+	Context("Custom Resource updates", FlakeAttempts(3), func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-cr-update",
+					Name:      fmt.Sprintf("cr-update-%d-%d", GinkgoParallelProcess(), time.Now().Unix()),
 					Namespace: defaultNamespace,
 				},
 			}
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			waitForClusterDeletion(ctx, cluster, client)
 		})
 
 		It("the service annotations are updated", func() {
@@ -488,8 +446,12 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(resourceRequirements.Limits).To(HaveKeyWithValue(corev1.ResourceMemory, expectedRequirements.Limits[corev1.ResourceMemory]))
 
 			// verify that SuccessfulUpdate event is recorded for the StatefulSet
-			Expect(aggregateEventMsgs(ctx, cluster, "SuccessfulUpdate")).To(
-				ContainSubstring("updated resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")))
+			Eventually(func() string {
+				return aggregateEventMsgs(ctx, cluster, "SuccessfulUpdate")
+			}).
+				Within(5 * time.Second).
+				WithPolling(time.Second).
+				Should(ContainSubstring("updated resource %s of Type *v1.StatefulSet", cluster.ChildResourceName("server")))
 		})
 
 		It("the rabbitmq image is updated", func() {
@@ -863,11 +825,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 			waitForClusterCreation(ctx, cluster, client)
 		})
 
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			waitForClusterDeletion(ctx, cluster, client)
-		})
-
 		It("creates a StatefulSet with the override applied", func() {
 			sts := statefulSet(ctx, cluster)
 			myStorage := k8sresource.MustParse("100Gi")
@@ -885,7 +842,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 				"app.kubernetes.io/name": "rabbitmq-sts-override" + suffix,
 			}))
 
-			Expect(len(sts.Spec.VolumeClaimTemplates)).To(Equal(2))
+			Expect(sts.Spec.VolumeClaimTemplates).To(HaveLen(2))
 
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Name).To(Equal("persistence"))
 			Expect(sts.Spec.VolumeClaimTemplates[0].ObjectMeta.Namespace).To(Equal("default"))
@@ -1077,11 +1034,13 @@ var _ = Describe("RabbitmqClusterController", func() {
 	})
 
 	Context("Service Override", func() {
-
+		var clusterName string
 		BeforeEach(func() {
+			suffix = fmt.Sprintf("-%d", time.Now().UnixNano())
+			clusterName = "svc-override" + suffix
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "svc-override",
+					Name:      clusterName,
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -1112,11 +1071,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			waitForClusterDeletion(ctx, cluster, client)
 		})
 
 		It("creates a Service with the override applied", func() {
@@ -1155,7 +1109,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					TargetPort: additionalTargetPort,
 				},
 			))
-			Expect(svc.Spec.Selector).To(Equal(map[string]string{"a-selector": "a-label", "app.kubernetes.io/name": "svc-override"}))
+			Expect(svc.Spec.Selector).To(Equal(map[string]string{"a-selector": "a-label", "app.kubernetes.io/name": clusterName}))
 			Expect(svc.Spec.SessionAffinity).To(Equal(corev1.ServiceAffinityClientIP))
 			Expect(svc.Spec.PublishNotReadyAddresses).To(BeFalse())
 		})
@@ -1182,10 +1136,6 @@ var _ = Describe("RabbitmqClusterController", func() {
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
-		})
-
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
 		})
 
 		It("works", func() {
@@ -1362,7 +1312,7 @@ func waitForClusterDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta
 			&rabbitmqClusterCreated,
 		)
 		return apierrors.IsNotFound(err)
-	}, ClusterDeletionTimeout, 1*time.Second).Should(BeTrue())
+	}, ClusterDeletionTimeout, 1*time.Second).Should(BeTrue(), "expected to delete cluster '%s' but it still exists", rabbitmqCluster.Name)
 
 }
 

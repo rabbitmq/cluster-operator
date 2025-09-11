@@ -9,10 +9,8 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,15 +40,6 @@ var _ = Describe("Persistence", func() {
 		waitForClusterCreation(ctx, cluster, client)
 	})
 
-	AfterEach(func() {
-		Expect(client.Delete(ctx, cluster)).To(Succeed())
-		Eventually(func() bool {
-			rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-			err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-			return apierrors.IsNotFound(err)
-		}, 5).Should(BeTrue())
-	})
-
 	It("does not allow changing the capcity from zero (no persistence)", func() {
 		By("failing a statefulSet update", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
@@ -72,10 +61,7 @@ var _ = Describe("Persistence", func() {
 		By("setting ReconcileSuccess to 'false' with failed reason and message", func() {
 			Eventually(func() string {
 				rabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-				Expect(client.Get(ctx, runtimeClient.ObjectKey{
-					Name:      cluster.Name,
-					Namespace: defaultNamespace,
-				}, rabbit)).To(Succeed())
+				Expect(client.Get(ctx, runtimeClient.ObjectKeyFromObject(cluster), rabbit)).To(Succeed())
 
 				for i := range rabbit.Status.Conditions {
 					if rabbit.Status.Conditions[i].Type == status.ReconcileSuccess {

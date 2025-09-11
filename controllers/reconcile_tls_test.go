@@ -17,7 +17,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 var _ = Describe("Reconcile TLS", func() {
@@ -27,21 +26,14 @@ var _ = Describe("Reconcile TLS", func() {
 		ctx              = context.Background()
 	)
 	Context("Mutual TLS", func() {
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			Eventually(func() bool {
-				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-				return apierrors.IsNotFound(err)
-			}, 10).Should(BeTrue())
-		})
-
 		Context("Mutual TLS with single secret", func() {
+			const tlsSecretName = "tls-secret-success"
+
 			It("Deploys successfully", func() {
-				tlsSecretWithCACert(ctx, "tls-secret", defaultNamespace)
+				tlsSecretWithCACert(ctx, tlsSecretName, defaultNamespace)
 				tlsSpec := rabbitmqv1beta1.TLSSpec{
-					SecretName:   "tls-secret",
-					CaSecretName: "tls-secret",
+					SecretName:   tlsSecretName,
+					CaSecretName: tlsSecretName,
 				}
 				cluster = rabbitmqClusterWithTLS(ctx, "mutual-tls-success", defaultNamespace, tlsSpec)
 				waitForClusterCreation(ctx, cluster, client)
@@ -57,7 +49,7 @@ var _ = Describe("Reconcile TLS", func() {
 								{
 									Secret: &corev1.SecretProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "tls-secret",
+											Name: tlsSecretName,
 										},
 										Optional: ptr.To(true),
 										Items: []corev1.KeyToPath{
@@ -69,7 +61,7 @@ var _ = Describe("Reconcile TLS", func() {
 								{
 									Secret: &corev1.SecretProjection{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "tls-secret",
+											Name: tlsSecretName,
 										},
 										Optional: ptr.To(true),
 										Items:    []corev1.KeyToPath{{Key: "ca.crt", Path: "ca.crt"}},
@@ -161,15 +153,6 @@ var _ = Describe("Reconcile TLS", func() {
 	})
 
 	Context("TLS set on the instance", func() {
-		AfterEach(func() {
-			Expect(client.Delete(ctx, cluster)).To(Succeed())
-			Eventually(func() bool {
-				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-				return apierrors.IsNotFound(err)
-			}, 5).Should(BeTrue())
-		})
-
 		BeforeEach(func() {
 			tlsSecretWithoutCACert(ctx, "tls-secret", defaultNamespace)
 		})
@@ -262,11 +245,8 @@ var _ = Describe("Reconcile TLS", func() {
 
 func verifyReconcileSuccessFalse(name, namespace string) bool {
 	return EventuallyWithOffset(1, func() string {
-		rabbit := &rabbitmqv1beta1.RabbitmqCluster{}
-		Expect(client.Get(ctx, runtimeClient.ObjectKey{
-			Name:      name,
-			Namespace: namespace,
-		}, rabbit)).To(Succeed())
+		rabbit := &rabbitmqv1beta1.RabbitmqCluster{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
+		Expect(client.Get(ctx, runtimeClient.ObjectKeyFromObject(rabbit), rabbit)).To(Succeed())
 
 		for i := range rabbit.Status.Conditions {
 			if rabbit.Status.Conditions[i].Type == status.ReconcileSuccess {
