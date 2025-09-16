@@ -4,7 +4,7 @@ go 1.24.6
 
 require (
 	github.com/cloudflare/cfssl v1.6.5
-	github.com/eclipse/paho.mqtt.golang v1.5.0
+	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/go-logr/logr v1.4.3
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v2 v2.16.0
