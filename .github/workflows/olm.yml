@@ -164,7 +164,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: rabbitmq/community-operators
-          # secret_rabbitmq/kv/oss%2Frabbitmq-cluster-operator%2Fsecrets/details
+          # secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           token: ${{ secrets.RABBITMQ_CI_TOKEN }}
 
       - name: Download OLM artifact
@@ -177,6 +177,7 @@ jobs:
         env:
           BUNDLE_VERSION: ${{ needs.test-olm-package.outputs.olm_package_version }}
           GH_PROMPT_DISABLED: 1
+          # secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           GH_TOKEN: ${{ secrets.RABBITMQ_CI_TOKEN }}
         run: |
           git config user.name "rabbitmq-ci"
@@ -204,7 +205,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: rabbitmq/community-operators-prod
-          # secret_rabbitmq/kv/oss%2Frabbitmq-cluster-operator%2Fsecrets/details
+          # secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           token: ${{ secrets.RABBITMQ_CI_TOKEN }}
 
       - name: Download OLM artifact
@@ -218,6 +219,7 @@ jobs:
           BUNDLE_VERSION: ${{ needs.test-olm-package.outputs.olm_package_version }}
           # RABBITMQ_CI_EMAIL: secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           GH_PROMPT_DISABLED: 1
+          # secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           GH_TOKEN: ${{ secrets.RABBITMQ_CI_TOKEN }}
         # IMPORTANT: this job does not open the PR automatically because the operator is configured differently in
         # RedHat marketplace CI. In RedHat Marketplace, we have semver-mode for update strategy, and in operatorhub
