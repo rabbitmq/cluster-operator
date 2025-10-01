@@ -51,4 +51,12 @@ spec:
         - containerPort: 9782
           name: metrics
           protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - All
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
       terminationGracePeriodSeconds: 10
