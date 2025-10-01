@@ -570,8 +570,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		Spec: corev1.PodSpec{
 			TopologySpreadConstraints: builder.defaultTopologySpreadConstraints(),
 			SecurityContext: &corev1.PodSecurityContext{
-				FSGroup:   ptr.To(int64(0)),
-				RunAsUser: &rabbitmqUID,
+				FSGroup:      ptr.To(int64(0)),
+				RunAsUser:    &rabbitmqUID,
+				RunAsNonRoot: ptr.To(bool(true)),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
 			},
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
 			TerminationGracePeriodSeconds: builder.Instance.Spec.TerminationGracePeriodSeconds,
@@ -638,6 +642,18 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 											*builder.Instance.Spec.TerminationGracePeriodSeconds),
 								},
 							},
+						},
+					},
+					SecurityContext: &corev1.SecurityContext{
+						AllowPrivilegeEscalation: ptr.To(bool(false)),
+						Capabilities: &corev1.Capabilities{
+							Drop: []corev1.Capability{"ALL"},
+						},
+						ReadOnlyRootFilesystem: ptr.To(bool(true)),
+						RunAsNonRoot:           ptr.To((bool(true))),
+						Privileged:             ptr.To(bool(false)),
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
 						},
 					},
 				},
@@ -784,6 +800,18 @@ func setupContainer(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container 
 			{
 				Name:      "persistence",
 				MountPath: "/var/lib/rabbitmq/mnesia/",
+			},
+		},
+		SecurityContext: &corev1.SecurityContext{
+			AllowPrivilegeEscalation: ptr.To(bool(false)),
+			Capabilities: &corev1.Capabilities{
+				Drop: []corev1.Capability{"ALL"},
+			},
+			Privileged:             ptr.To(bool(false)),
+			ReadOnlyRootFilesystem: ptr.To(bool(true)),
+			RunAsNonRoot:           ptr.To(bool(true)),
+			SeccompProfile: &corev1.SeccompProfile{
+				Type: corev1.SeccompProfileTypeRuntimeDefault,
 			},
 		},
 	}

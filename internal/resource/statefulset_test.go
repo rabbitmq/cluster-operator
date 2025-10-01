@@ -1357,8 +1357,12 @@ default_pass = {{ .Data.data.password }}
 			rmqUID := int64(999)
 
 			expectedPodSecurityContext := &corev1.PodSecurityContext{
-				FSGroup:   ptr.To(int64(0)),
-				RunAsUser: &rmqUID,
+				FSGroup:      ptr.To(int64(0)),
+				RunAsUser:    &rmqUID,
+				RunAsNonRoot: ptr.To(bool(true)),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
 			}
 
 			Expect(statefulSet.Spec.Template.Spec.SecurityContext).To(Equal(expectedPodSecurityContext))
@@ -1417,6 +1421,18 @@ default_pass = {{ .Data.data.password }}
 						Name:      "rabbitmq-confd",
 						MountPath: "/tmp/default_user.conf",
 						SubPath:   "default_user.conf",
+					},
+				}),
+				"SecurityContext": BeEquivalentTo(&corev1.SecurityContext{
+					AllowPrivilegeEscalation: ptr.To(bool(false)),
+					Capabilities: &corev1.Capabilities{
+						Drop: []corev1.Capability{"ALL"},
+					},
+					Privileged:             ptr.To(bool(false)),
+					ReadOnlyRootFilesystem: ptr.To(bool(true)),
+					RunAsNonRoot:           ptr.To(bool(true)),
+					SeccompProfile: &corev1.SeccompProfile{
+						Type: corev1.SeccompProfileTypeRuntimeDefault,
 					},
 				}),
 			}))
@@ -1516,6 +1532,35 @@ default_pass = {{ .Data.data.password }}
 				Expect(container.Image).To(Equal("my-private-repo/rabbitmq:latest"))
 				Expect(statefulSet.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(corev1.LocalObjectReference{Name: "my-great-secret"}))
 			})
+		})
+
+		It("sets the container security context", func() {
+			instance.Spec.Resources = &corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{},
+				Limits:   corev1.ResourceList{},
+			}
+
+			builder = &resource.RabbitmqResourceBuilder{
+				Instance: &instance,
+				Scheme:   scheme,
+			}
+
+			stsBuilder := builder.StatefulSet()
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+			Expect(container.SecurityContext).To(BeEquivalentTo(&corev1.SecurityContext{
+				AllowPrivilegeEscalation: ptr.To(bool(false)),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{"ALL"},
+				},
+				Privileged:             ptr.To(bool(false)),
+				ReadOnlyRootFilesystem: ptr.To(bool(true)),
+				RunAsNonRoot:           ptr.To(bool(true)),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+			}))
 		})
 
 		It("sets the replica count of the StatefulSet to the instance value", func() {
