@@ -21,6 +21,7 @@ spec:
     - port: 6000  # stream replication, if streams are being used
       endPort: 6500
     - port: 25672 # clustering
+    - port: 35672 # CLI tooling
       endPort: 35682
   ingress:
   - from:
