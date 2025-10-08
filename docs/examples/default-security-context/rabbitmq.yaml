@@ -9,7 +9,9 @@ spec:
         template:
           spec:
             securityContext: {}
-            containers: []
+            containers:
+            - name: rabbitmq
+              securityContext: {}
             initContainers:
             - name: setup-container
               securityContext: {}

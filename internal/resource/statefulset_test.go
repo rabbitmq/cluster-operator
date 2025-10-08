@@ -2154,6 +2154,12 @@ default_pass = {{ .Data.data.password }}
 											SecurityContext: &corev1.SecurityContext{},
 										},
 									},
+									Containers: []corev1.Container{
+										{
+											Name:            "rabbitmq",
+											SecurityContext: &corev1.SecurityContext{},
+										},
+									},
 								},
 							},
 						},
@@ -2168,6 +2174,7 @@ default_pass = {{ .Data.data.password }}
 
 					Expect(statefulSet.Spec.Template.Spec.SecurityContext).To(BeNil())
 					Expect(statefulSet.Spec.Template.Spec.InitContainers[0].SecurityContext).To(BeNil())
+					Expect(statefulSet.Spec.Template.Spec.Containers[0].SecurityContext).To(BeNil())
 
 				})
 

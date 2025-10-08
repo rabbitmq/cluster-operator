@@ -296,7 +296,7 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 		patchedPodSpec.Containers[0].ReadinessProbe = rmqContainer.ReadinessProbe
 	}
 
-	// A user may wish to override the controller-set securityContext for the RabbitMQ & init containers so that the
+	// A user may wish to override the controller-set securityContext for the RabbitMQ, init containers, and containers so that the
 	// container runtime can override them. If the securityContext has been set to an empty struct, `strategicpatch.StrategicMergePatch`
 	// won't pick this up, so manually override it here.
 	if podSpecOverride.SecurityContext != nil && reflect.DeepEqual(*podSpecOverride.SecurityContext, corev1.PodSecurityContext{}) {
@@ -305,6 +305,11 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 	for i := range podSpecOverride.InitContainers {
 		if podSpecOverride.InitContainers[i].SecurityContext != nil && reflect.DeepEqual(*podSpecOverride.InitContainers[i].SecurityContext, corev1.SecurityContext{}) {
 			patchedPodSpec.InitContainers[i].SecurityContext = nil
+		}
+	}
+	for i := range podSpecOverride.Containers {
+		if podSpecOverride.Containers[i].SecurityContext != nil && reflect.DeepEqual(*podSpecOverride.Containers[i].SecurityContext, corev1.SecurityContext{}) {
+			patchedPodSpec.Containers[i].SecurityContext = nil
 		}
 	}
 
