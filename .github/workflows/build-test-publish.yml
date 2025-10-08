@@ -367,7 +367,7 @@ jobs:
   examples_matrix:
     runs-on: ubuntu-latest
     outputs:
-      examples_matrix: $${{ steps.list_examples.outputs.examples_matrix }}
+      examples_matrix: ${{ steps.list_examples.outputs.examples_matrix }}
     steps:
     - name: Check out code
       uses: actions/checkout@v5
@@ -376,7 +376,7 @@ jobs:
       id: list_examples
       run: |
         echo -n 'examples_matrix=' >> $GITHUB_OUTPUT
-        find "$PWD" -mindepth 1 -type d | jq -R -s -c 'split("\n") | map(select(length > 0))' >> $GITHUB_OUTPUT
+        find "$PWD/docs/examples" -mindepth 1 -type d | jq -R -s -c 'split("\n") | map(select(length > 0))' >> $GITHUB_OUTPUT
 
   test_doc_examples:
     name: Documented example tests
@@ -388,6 +388,12 @@ jobs:
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v5
+
+    - name: Install Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        check-latest: true
 
     - name: Download Operator artifact
       uses: actions/download-artifact@v5
@@ -429,7 +435,7 @@ jobs:
         [[ -e "$example"/.ci-skip ]] && exit 0
 
         make cert-manager
-        printf("apiVersion: cert-manager.io/v1\nkind: ClusterIssuer\nmetadata:\n  name: selfsigned-issuer\nspec:\n  selfSigned: {}\n") | kubectl apply -f -
+        printf "apiVersion: cert-manager.io/v1\nkind: ClusterIssuer\nmetadata:\n  name: selfsigned-issuer\nspec:\n  selfSigned: {}\n" | kubectl apply -f -
 
         pushd "$example"
           kubectl create namespace examples
