@@ -381,7 +381,6 @@ jobs:
   test_doc_examples:
     name: Documented example tests
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'pull_request' }}
     needs: [build_operator, examples_matrix]
     strategy:
       matrix:
