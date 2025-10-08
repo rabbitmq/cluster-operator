@@ -364,11 +364,27 @@ jobs:
         make cert-manager
         SUPPORT_VOLUME_EXPANSION=false make system-tests
 
+  examples_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      examples_matrix: ${{ steps.list_examples.outputs.examples_matrix }}
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v5
+
+    - name: List Examples
+      id: list_examples
+      run: |
+        echo -n 'examples_matrix=' >> $GITHUB_OUTPUT
+        find "$PWD/docs/examples" -mindepth 1 -type d | jq -R -s -c 'split("\n") | map(select(length > 0))' >> $GITHUB_OUTPUT
+
   test_doc_examples:
     name: Documented example tests
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'pull_request' }}
-    needs: build_operator
+    needs: [build_operator, examples_matrix]
+    strategy:
+      matrix:
+        example: ${{ fromJSON(needs.examples_matrix.outputs.examples_matrix) }}
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v5
@@ -407,13 +423,31 @@ jobs:
 
     - name: Install Operator build
       run: |
-        make destroy
         kind load image-archive /tmp/operator.tar --name examples-testing
         ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
 
-    - name: Documented example tests
-      run: docs/examples/test.sh
+    - name: Documented example ${{ matrix.example }} test
+      env:
+        example: ${{ matrix.example }}
+      run: |
+        # Exit early if this example is to be skipped in CI
+        [[ -e "$example"/.ci-skip ]] && exit 0
+
+        make cert-manager
+        printf "apiVersion: cert-manager.io/v1\nkind: ClusterIssuer\nmetadata:\n  name: selfsigned-issuer\nspec:\n  selfSigned: {}\n" | kubectl apply -f -
+
+        pushd "$example"
+          kubectl create namespace examples
+          kubectl config set-context --current --namespace=examples
+          [[ -e setup.sh ]] && ./setup.sh
+          kubectl apply -f rabbitmq.yaml --timeout=30s
+          kubectl wait -f rabbitmq.yaml --for=condition=AllReplicasReady --timeout=5m
+          kubectl wait -f rabbitmq.yaml --for=condition=ReconcileSuccess --timeout=5m
+          ./test.sh
+          kubectl delete -f rabbitmq.yaml --timeout=3m
+          kubectl delete namespace examples --timeout=10m
+        popd
 
     - name: Notify Google Chat
       if: failure()
@@ -421,7 +455,7 @@ jobs:
       with:
           webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
           jobStatus: ${{ job.status }}
-          title: Cluster Operator - Documented example tests
+          title: Cluster Operator - Documented example ${{ matrix.example }} test
 
   test_upgrade:
     name: Test upgrade of the operator
