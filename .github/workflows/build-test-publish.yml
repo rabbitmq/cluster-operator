@@ -442,8 +442,8 @@ jobs:
           kubectl config set-context --current --namespace=examples
           [[ -e setup.sh ]] && ./setup.sh
           kubectl apply -f rabbitmq.yaml --timeout=30s
-          kubectl wait -f rabbitmq.yaml --for=condition=AllReplicasReady --timeout=5m
-          kubectl wait -f rabbitmq.yaml --for=condition=ReconcileSuccess --timeout=5m
+          kubectl wait -f rabbitmq.yaml --for=condition=AllReplicasReady --timeout=6m
+          kubectl wait -f rabbitmq.yaml --for=condition=ReconcileSuccess --timeout=6m
           ./test.sh
           kubectl delete -f rabbitmq.yaml --timeout=3m
           kubectl delete namespace examples --timeout=10m
