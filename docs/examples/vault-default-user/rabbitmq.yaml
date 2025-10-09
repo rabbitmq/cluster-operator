@@ -9,5 +9,5 @@ spec:
       # Optionally, set Vault annotations as listed in
       # https://www.vaultproject.io/docs/platform/k8s/injector/annotations
       annotations:
-        vault.hashicorp.com/template-static-secret-render-interval: "15s"
+        vault.hashicorp.com/template-static-secret-render-interval: "5m"
       defaultUserPath: secret/data/rabbitmq/config
