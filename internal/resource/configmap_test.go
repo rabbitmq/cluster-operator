@@ -29,6 +29,7 @@ import (
 
 func defaultRabbitmqConf(instanceName string) string {
 	return iniString(`
+log.console                                = true
 queue_master_locator                       = min-masters
 disk_free_limit.absolute                   = 2GB
 cluster_partition_handling                 = pause_minority

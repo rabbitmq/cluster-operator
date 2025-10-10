@@ -29,6 +29,7 @@ import (
 const (
 	ServerConfigMapName = "server-conf"
 	defaultRabbitmqConf = `
+log.console = true
 queue_master_locator = min-masters
 disk_free_limit.absolute = 2GB
 cluster_partition_handling = pause_minority
