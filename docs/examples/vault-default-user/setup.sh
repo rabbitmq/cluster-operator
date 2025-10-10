@@ -14,7 +14,7 @@ helm repo update
 # For OpenShift deployments, also set the following:
 # --set "global.openshift=true"
 helm install vault hashicorp/vault \
-    --version 0.19.0 \
+    --version 0.31.0 \
     --set='server.dev.enabled=true' \
     --set='server.logLevel=debug' \
     --set='injector.logLevel=debug' \
