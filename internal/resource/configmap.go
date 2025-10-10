@@ -121,6 +121,15 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		}
 	}
 
+	// the way vault launches the rabbitmq container overrides the logging configuration
+	// this results in rabbitmq attempting to log to file, which breaks the securityContext
+	// when vault is enabled, explicitly configure console logging
+	if builder.Instance.VaultEnabled() {
+		if _, err := defaultSection.NewKey("log.console", "true"); err != nil {
+			return err
+		}
+	}
+
 	userConfiguration := ini.Empty()
 	userConfigurationSection := userConfiguration.Section("")
 

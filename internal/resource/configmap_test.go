@@ -551,6 +551,22 @@ CONSOLE_LOG=new`
 			})
 		})
 
+		When("the vault secret backend is configured", func() {
+			// the way vault launches the rabbitmq container overrides the logging configuration
+			// this results in rabbitmq attempting to log to file, which breaks the securityContext
+			// in order to ensure rabbitmq behaves correctly and logs to the console, explicitly configure it
+			It("configures console logging", func() {
+				instance.Spec.SecretBackend.Vault = &rabbitmqv1beta1.VaultSpec{
+					Role:            "rabbitmq",
+					DefaultUserPath: "secret/data/rabbitmq/config",
+				}
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKey("operatorDefaults.conf"))
+				operatorDefaults := configMap.Data["operatorDefaults.conf"]
+				Expect(operatorDefaults).To(ContainSubstring("log.console"))
+			})
+		})
+
 		// this is to ensure that pods are not restarted when instance labels are updated
 		It("does not update labels on the config map", func() {
 			configMap.Labels = map[string]string{
