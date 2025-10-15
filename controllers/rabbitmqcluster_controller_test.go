@@ -175,6 +175,33 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 	})
 
+	Context("default user from additionalConfig", func() {
+		BeforeEach(func() {
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-default-user-from-config",
+					Namespace: defaultNamespace,
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
+						AdditionalConfig: "default_user = my-user\ndefault_pass = my-password",
+					},
+				},
+			}
+
+			Expect(client.Create(ctx, cluster)).To(Succeed())
+			waitForClusterCreation(ctx, cluster, client)
+		})
+
+		It("should use the credentials from additionalConfig in the default-user secret", func() {
+			secretName := cluster.ChildResourceName("default-user")
+			secret, err := clientSet.CoreV1().Secrets(cluster.Namespace).Get(ctx, secretName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(secret.Data["username"])).To(Equal("my-user"))
+			Expect(string(secret.Data["password"])).To(Equal("my-password"))
+		})
+	})
+
 	Context("Annotations set on the instance", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
