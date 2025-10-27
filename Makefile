@@ -181,7 +181,7 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD)
 deploy-kind: manifests deploy-namespace-rbac ## Load operator image and deploy operator into current KinD cluster
 	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
 	@$(call check_defined, DOCKER_REGISTRY_SERVER, URL of docker registry containing the Operator image e.g. registry.my-company.com)
-	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
+	docker buildx build --build-arg=DOCKER_REGISTRY=$(DOCKER_REGISTRY_SERVER) --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	kind load docker-image $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 	kustomize build config/crd | kubectl apply -f -
 	kustomize build config/default/overlays/kind | sed 's@((operator_docker_image))@"$(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)"@' | kubectl apply -f -
@@ -205,7 +205,7 @@ generate-installation-manifest: | $(YTT)
 docker-build: ## Build the docker image with tag `latest`
 	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
 	@$(call check_defined, DOCKER_REGISTRY_SERVER, URL of docker registry containing the Operator image e.g. registry.my-company.com)
-	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):latest .
+	docker buildx build --build-arg=DOCKER_REGISTRY=$(DOCKER_REGISTRY_SERVER) --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):latest .
 
 docker-push: ## Push the docker image with tag `latest`
 	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
@@ -215,7 +215,7 @@ docker-push: ## Push the docker image with tag `latest`
 docker-build-dev:
 	@$(call check_defined, OPERATOR_IMAGE, path to the Operator image within the registry e.g. rabbitmq/cluster-operator)
 	@$(call check_defined, DOCKER_REGISTRY_SERVER, URL of docker registry containing the Operator image e.g. registry.my-company.com)
-	docker buildx build --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
+	docker buildx build --build-arg=DOCKER_REGISTRY=$(DOCKER_REGISTRY_SERVER) --build-arg=GIT_COMMIT=$(GIT_COMMIT) -t $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT) .
 	docker push $(DOCKER_REGISTRY_SERVER)/$(OPERATOR_IMAGE):$(GIT_COMMIT)
 
 # https://github.com/cert-manager/cmctl/releases
