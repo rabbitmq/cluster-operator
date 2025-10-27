@@ -16,39 +16,33 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqstatus "github.com/rabbitmq/cluster-operator/v2/internal/status"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var _ = Describe("ClusterAvailable", func() {
 	var (
-		childServiceEndpoints *corev1.Endpoints
-		existingCondition     *rabbitmqstatus.RabbitmqClusterCondition
+		childServiceEndpointSlice *discoveryv1.EndpointSlice
+		existingCondition         *rabbitmqstatus.RabbitmqClusterCondition
 	)
 
 	BeforeEach(func() {
-		childServiceEndpoints = &corev1.Endpoints{}
+		childServiceEndpointSlice = &discoveryv1.EndpointSlice{}
 	})
 
 	Context("condition status and reason", func() {
 		When("at least one service endpoint is published", func() {
 			BeforeEach(func() {
-				childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+				childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 					{
-						Addresses: []corev1.EndpointAddress{
-							{
-								IP: "1.2.3.4",
-							},
-							{
-								IP: "5.6.7.8",
-							},
-						},
+						Addresses: []string{"1.2.3.4", "5.6.7.8"},
 					},
 				}
 			})
 
 			It("returns a condition with state true", func() {
-				condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpoints}, existingCondition)
+				condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpointSlice}, existingCondition)
 
 				Expect(condition.Status).To(Equal(corev1.ConditionTrue))
 				Expect(condition.Reason).To(Equal("AtLeastOneEndpointAvailable"))
@@ -57,15 +51,15 @@ var _ = Describe("ClusterAvailable", func() {
 
 		When("no service endpoint is published", func() {
 			BeforeEach(func() {
-				childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+				childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 					{
-						Addresses: []corev1.EndpointAddress{},
+						Addresses: []string{},
 					},
 				}
 			})
 
 			It("returns a condition with state false", func() {
-				condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+				condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 
 				Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 				Expect(condition.Reason).To(Equal("NoEndpointsAvailable"))
@@ -75,11 +69,11 @@ var _ = Describe("ClusterAvailable", func() {
 
 		When("service endpoints do not exist", func() {
 			BeforeEach(func() {
-				childServiceEndpoints = nil
+				childServiceEndpointSlice = nil
 			})
 
 			It("returns a condition with state unknown", func() {
-				condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+				condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 				Expect(condition.Status).To(Equal(corev1.ConditionUnknown))
 				Expect(condition.Reason).To(Equal("CouldNotRetrieveEndpoints"))
 				Expect(condition.Message).NotTo(BeEmpty())
@@ -108,22 +102,15 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("remains true", func() {
 				BeforeEach(func() {
-					childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+					childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 						{
-							Addresses: []corev1.EndpointAddress{
-								{
-									IP: "1.2.3.4",
-								},
-								{
-									IP: "5.6.7.8",
-								},
-							},
+							Addresses: []string{"1.2.3.4", "5.6.7.8"},
 						},
 					}
 				})
 
 				It("does not update transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpointSlice}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -133,15 +120,15 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("transitions to false", func() {
 				BeforeEach(func() {
-					childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+					childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 						{
-							Addresses: []corev1.EndpointAddress{},
+							Addresses: []string{},
 						},
 					}
 				})
 
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -152,11 +139,11 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("transitions to unknown", func() {
 				BeforeEach(func() {
-					childServiceEndpoints = nil
+					childServiceEndpointSlice = nil
 				})
 
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -178,22 +165,15 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("transitions to true", func() {
 				BeforeEach(func() {
-					childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+					childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 						{
-							Addresses: []corev1.EndpointAddress{
-								{
-									IP: "1.2.3.4",
-								},
-								{
-									IP: "5.6.7.8",
-								},
-							},
+							Addresses: []string{"1.2.3.4", "5.6.7.8"},
 						},
 					}
 				})
 
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpointSlice}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -204,15 +184,15 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("remains false", func() {
 				BeforeEach(func() {
-					childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+					childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 						{
-							Addresses: []corev1.EndpointAddress{},
+							Addresses: []string{},
 						},
 					}
 				})
 
 				It("does not update transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -222,11 +202,11 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("transitions	to unknown", func() {
 				BeforeEach(func() {
-					childServiceEndpoints = nil
+					childServiceEndpointSlice = nil
 				})
 
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -248,22 +228,15 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("transitions to true", func() {
 				BeforeEach(func() {
-					childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+					childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 						{
-							Addresses: []corev1.EndpointAddress{
-								{
-									IP: "1.2.3.4",
-								},
-								{
-									IP: "5.6.7.8",
-								},
-							},
+							Addresses: []string{"1.2.3.4", "5.6.7.8"},
 						},
 					}
 				})
 
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpointSlice}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -274,15 +247,15 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("transitions to false", func() {
 				BeforeEach(func() {
-					childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+					childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 						{
-							Addresses: []corev1.EndpointAddress{},
+							Addresses: []string{},
 						},
 					}
 				})
 
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -293,11 +266,11 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("remains unknown", func() {
 				BeforeEach(func() {
-					childServiceEndpoints = nil
+					childServiceEndpointSlice = nil
 				})
 
 				It("does not update transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 
 					Expect(existingCondition).NotTo(BeNil())
 					existingConditionTime := existingCondition.LastTransitionTime.DeepCopy()
@@ -316,22 +289,15 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("transitions to true", func() {
 				BeforeEach(func() {
-					childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+					childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 						{
-							Addresses: []corev1.EndpointAddress{
-								{
-									IP: "1.2.3.4",
-								},
-								{
-									IP: "5.6.7.8",
-								},
-							},
+							Addresses: []string{"1.2.3.4", "5.6.7.8"},
 						},
 					}
 				})
 
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{&corev1.Pod{}, childServiceEndpointSlice}, existingCondition)
 
 					Expect(condition.LastTransitionTime).ToNot(Equal(emptyTime))
 				})
@@ -339,15 +305,15 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("transitions to false", func() {
 				BeforeEach(func() {
-					childServiceEndpoints.Subsets = []corev1.EndpointSubset{
+					childServiceEndpointSlice.Endpoints = []discoveryv1.Endpoint{
 						{
-							Addresses: []corev1.EndpointAddress{},
+							Addresses: []string{},
 						},
 					}
 				})
 
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 
 					Expect(condition.LastTransitionTime).ToNot(Equal(emptyTime))
 				})
@@ -355,11 +321,11 @@ var _ = Describe("ClusterAvailable", func() {
 
 			When("transitions to unknown", func() {
 				BeforeEach(func() {
-					childServiceEndpoints = nil
+					childServiceEndpointSlice = nil
 				})
 
 				It("updates transition time", func() {
-					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpoints}, existingCondition)
+					condition := rabbitmqstatus.ClusterAvailableCondition([]runtime.Object{childServiceEndpointSlice}, existingCondition)
 
 					Expect(condition.LastTransitionTime).ToNot(Equal(emptyTime))
 				})

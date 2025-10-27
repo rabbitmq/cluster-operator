@@ -24,6 +24,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"k8s.io/klog/v2"
@@ -153,7 +154,7 @@ func main() {
 		&corev1.ConfigMap{}:                {Label: rmqSelector},
 		&corev1.Secret{}:                   {Label: rmqSelector},
 		&corev1.ServiceAccount{}:           {Label: rmqSelector},
-		&corev1.Endpoints{}:                {Label: rmqSelector},
+		&discoveryv1.EndpointSlice{}:       {Label: rmqSelector},
 		&rbacv1.Role{}:                     {Label: rmqSelector},
 		&rbacv1.RoleBinding{}:              {Label: rmqSelector},
 	}

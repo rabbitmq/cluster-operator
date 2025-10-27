@@ -13,13 +13,14 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type ClusterAvailableConditionManager struct {
-	condition RabbitmqClusterCondition
-	endpoints *corev1.Endpoints
+	condition     RabbitmqClusterCondition
+	endpointslice *discoveryv1.EndpointSlice
 }
 
 func ClusterAvailableCondition(resources []runtime.Object,
@@ -32,7 +33,7 @@ func ClusterAvailableCondition(resources []runtime.Object,
 
 	for _, res := range resources {
 		switch resource := res.(type) {
-		case *corev1.Endpoints:
+		case *discoveryv1.EndpointSlice:
 			if resource == nil {
 				condition.Status = corev1.ConditionUnknown
 				condition.Reason = "CouldNotRetrieveEndpoints"
@@ -40,8 +41,8 @@ func ClusterAvailableCondition(resources []runtime.Object,
 				goto assignLastTransitionTime
 			}
 
-			for _, subset := range resource.Subsets {
-				if len(subset.Addresses) > 0 {
+			for _, endpoint := range resource.Endpoints {
+				if len(endpoint.Addresses) > 0 {
 					condition.Status = corev1.ConditionTrue
 					condition.Reason = "AtLeastOneEndpointAvailable"
 					goto assignLastTransitionTime
