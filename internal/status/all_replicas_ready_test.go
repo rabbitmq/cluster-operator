@@ -17,6 +17,7 @@ import (
 	rabbitmqstatus "github.com/rabbitmq/cluster-operator/v2/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -44,7 +45,7 @@ var _ = Describe("AllReplicasReady", func() {
 			})
 
 			It("returns the expected condition", func() {
-				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&corev1.Endpoints{}, sts}, oldCondition)
+				condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&discoveryv1.EndpointSlice{}, sts}, oldCondition)
 
 				By("having status true and reason message", func() {
 					Expect(condition.Status).To(Equal(corev1.ConditionTrue))
@@ -112,7 +113,7 @@ var _ = Describe("AllReplicasReady", func() {
 				})
 
 				It("updates the transition time", func() {
-					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&corev1.Endpoints{}, sts}, oldCondition)
+					condition := rabbitmqstatus.AllReplicasReadyCondition([]runtime.Object{&discoveryv1.EndpointSlice{}, sts}, oldCondition)
 					Expect(condition.LastTransitionTime).ToNot(Equal(emptyTime))
 				})
 			})

@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 
 	clientretry "k8s.io/client-go/util/retry"
@@ -43,6 +44,7 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -77,7 +79,6 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=pods/exec,verbs=create
 // +kubebuilder:rbac:groups="",resources=pods,verbs=update;get;list;watch
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;watch;list
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update
@@ -88,6 +89,8 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="discovery.k8s.io",resources=endpointslices,verbs=get;list
+// +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;watch;list
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
 
 func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -342,7 +345,8 @@ func (r *RabbitmqClusterReconciler) updateStatusConditions(ctx context.Context, 
 
 func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
 	sts := &appsv1.StatefulSet{}
-	endPoints := &corev1.Endpoints{}
+	endpointSliceList := &discoveryv1.EndpointSliceList{}
+	endpointSlice := &discoveryv1.EndpointSlice{}
 
 	if err := r.Get(ctx,
 		types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace},
@@ -352,15 +356,25 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *
 		sts = nil
 	}
 
-	if err := r.Get(ctx,
-		types.NamespacedName{Name: rmq.ChildResourceName(resource.ServiceSuffix), Namespace: rmq.Namespace},
-		endPoints); err != nil && !k8serrors.IsNotFound(err) {
+	selector, err := labels.Parse(fmt.Sprintf("%s=%s", discoveryv1.LabelServiceName, rmq.Name))
+	if err != nil {
 		return nil, err
-	} else if k8serrors.IsNotFound(err) {
-		endPoints = nil
 	}
 
-	return []runtime.Object{sts, endPoints}, nil
+	listOptions := client.ListOptions{
+		LabelSelector: selector,
+		Namespace:     rmq.Namespace,
+	}
+
+	if err := r.List(ctx, endpointSliceList, &listOptions); err != nil {
+		return nil, err
+	} else if len(endpointSliceList.Items) == 0 {
+		endpointSlice = nil
+	} else {
+		endpointSlice = &endpointSliceList.Items[0]
+	}
+
+	return []runtime.Object{sts, endpointSlice}, nil
 }
 
 func (r *RabbitmqClusterReconciler) setReconcileSuccess(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, condition corev1.ConditionStatus, reason, msg string) {

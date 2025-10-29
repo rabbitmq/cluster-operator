@@ -14,6 +14,7 @@ import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
@@ -484,19 +485,17 @@ var _ = Describe("RabbitmqCluster", func() {
 				Conditions:         nil,
 			}
 
-			endPoints := &corev1.Endpoints{
-				Subsets: []corev1.EndpointSubset{
+			endPointSlice := &discoveryv1.EndpointSlice{
+				Endpoints: []discoveryv1.Endpoint{
 					{
-						Addresses: []corev1.EndpointAddress{
-							{
-								IP: "127.0.0.1",
-							},
+						Addresses: []string{
+							"127.0.0.1",
 						},
 					},
 				},
 			}
 
-			rabbitmqClusterStatus.SetConditions([]runtime.Object{statefulset, endPoints})
+			rabbitmqClusterStatus.SetConditions([]runtime.Object{statefulset, endPointSlice})
 
 			Expect(rabbitmqClusterStatus.Conditions).To(HaveLen(4))
 			Expect(rabbitmqClusterStatus.Conditions[0].Type).To(Equal(status.AllReplicasReady))
