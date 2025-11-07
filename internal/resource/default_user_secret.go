@@ -42,6 +42,9 @@ func (builder *RabbitmqResourceBuilder) DefaultUserSecret() *DefaultUserSecretBu
 	return &DefaultUserSecretBuilder{builder}
 }
 
+// Build creates a Secret for the default RabbitMQ user.
+// If default_user and/or default_pass are specified in spec.rabbitmq.additionalConfig,
+// those values are used. Otherwise, credentials are randomly generated.
 func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 	var username, password string
 	additionalConfig := builder.Instance.Spec.Rabbitmq.AdditionalConfig
