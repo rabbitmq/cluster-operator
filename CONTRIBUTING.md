@@ -12,7 +12,7 @@ the expected behaviour, along with repro steps when possible. It is important to
 repro when possible, as it speeds up the triage and potential fix.
 
 We do not use GitHub issues for questions or support requests. For that purpose, it is better
-to use [RabbitMQ mailing list][rmq-users] or [RabbitMQ Slack #kubernetes channel][rabbitmq-slack].
+to use [github discussions][github-discussions], the [RabbitMQ mailing list][rmq-users],  [RabbitMQ Slack #kubernetes channel][rabbitmq-slack], or [RabbitMQ Discord][rabbitmq-discord].
 
 For support questions, we strongly encourage you to provide a way to
 reproduce the behavior you're observing, or at least sharing as much
@@ -20,6 +20,10 @@ relevant information as possible on the [RabbitMQ users mailing
 list][rmq-users]. This would include YAML manifests, Kubernetes version,
 RabbitMQ Operator logs and any other relevant information that might help
 to diagnose the problem.
+
+## Contributor License Agreement
+
+All contributors to RabbitMQ projects must sign the RabbitMQ [Contributor License Agreement][cla].
 
 ## Makefile
 
@@ -99,8 +103,10 @@ information on using pull requests.
 
 This project follows [Contributor Covenant](./CODE_OF_CONDUCT.md), version 2.0.
 
+[cla]: https://github.com/rabbitmq/cla
+[github-discussions]: https://github.com/rabbitmq/cluster-operator/discussions
 [rmq-users]: https://groups.google.com/forum/#!forum/rabbitmq-users
 [git-commit-msgs]: https://chris.beams.io/posts/git-commit/
 [github-fork]: https://help.github.com/articles/fork-a-repo/
 [rabbitmq-slack]: https://rabbitmq-slack.herokuapp.com/
-
+[rabbitmq-discord]: https://discord.com/invite/VwWnkG3GWy
