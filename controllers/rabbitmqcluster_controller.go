@@ -89,7 +89,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups="discovery.k8s.io",resources=endpointslices,verbs=get;list
+// +kubebuilder:rbac:groups="discovery.k8s.io",resources=endpointslices,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;watch;list
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
 
