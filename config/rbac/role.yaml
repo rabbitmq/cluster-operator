@@ -75,6 +75,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - rabbitmq.com
   resources:
