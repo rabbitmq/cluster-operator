@@ -49,6 +49,7 @@ func (builder *RoleBindingBuilder) Update(object client.Object) error {
 		{
 			Kind: "ServiceAccount",
 			Name: builder.Instance.ChildResourceName(serviceAccountName),
+			Namespace: builder.Instance.Namespace,
 		},
 	}
 
