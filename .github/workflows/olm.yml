@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set image tag to tagged release
         id: set_bundle_version
@@ -106,7 +106,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install Go
         uses: actions/setup-go@v6
@@ -161,7 +161,7 @@ jobs:
     needs: test-olm-package
     steps:
       - name: Checkout community-operators fork (OperatorHub)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: rabbitmq/community-operators
           # secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
@@ -202,7 +202,7 @@ jobs:
     if: ${{ github.event_name == 'release' || inputs.release == true }}
     steps:
       - name: Checkout community-operators-prod fork (Openshift Ecosystem)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: rabbitmq/community-operators-prod
           # secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
