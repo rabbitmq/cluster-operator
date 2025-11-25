@@ -1,4 +1,4 @@
-ARG GO_TAG=1.24
+ARG GO_TAG=1.25
 ARG DOCKER_REGISTRY=docker.io
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM ${DOCKER_REGISTRY}/library/golang:${GO_TAG} AS builder
