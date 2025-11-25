@@ -1,6 +1,6 @@
 module promtool
 
-go 1.24.6
+go 1.25.4
 
 tool github.com/prometheus/prometheus/cmd/promtool
 
