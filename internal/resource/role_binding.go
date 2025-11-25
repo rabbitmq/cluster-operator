@@ -47,8 +47,8 @@ func (builder *RoleBindingBuilder) Update(object client.Object) error {
 	}
 	roleBinding.Subjects = []rbacv1.Subject{
 		{
-			Kind: "ServiceAccount",
-			Name: builder.Instance.ChildResourceName(serviceAccountName),
+			Kind:      "ServiceAccount",
+			Name:      builder.Instance.ChildResourceName(serviceAccountName),
 			Namespace: builder.Instance.Namespace,
 		},
 	}
