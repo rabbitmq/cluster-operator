@@ -16,7 +16,7 @@ env:
   GO_VERSION: 'stable'
   # Taken from https://github.com/kubernetes-sigs/kind/releases/tag/v0.18.0
   # The image here should be listed under 'Images built for this release' for the version of kind in go.mod
-  KIND_NODE_IMAGE: "kindest/node:v1.32.0"
+  KIND_NODE_IMAGE: "kindest/node:v1.34.0"
   KIND_OLDEST_NODE_IMAGE: "kindest/node:v1.29.12"
   BASELINE_UPGRADE_VERSION: v2.1.0
 
