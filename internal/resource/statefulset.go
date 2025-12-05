@@ -20,6 +20,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"maps"
+
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 	appsv1 "k8s.io/api/apps/v1"
@@ -29,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/utils/ptr"
-	"maps"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -456,12 +457,17 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 
 	zero := k8sresource.MustParse("0Gi")
 	if builder.Instance.Spec.Persistence.Storage.Cmp(zero) == 0 {
-		volumes = append(volumes, corev1.Volume{
+		volume := corev1.Volume{
 			Name: "persistence",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
-		})
+		}
+		if builder.Instance.Spec.Persistence.EmptyDir != nil {
+			volume.VolumeSource.EmptyDir.SizeLimit = builder.Instance.Spec.Persistence.EmptyDir.SizeLimit
+			volume.VolumeSource.EmptyDir.Medium = builder.Instance.Spec.Persistence.EmptyDir.Medium
+		}
+		volumes = append(volumes, volume)
 	}
 
 	rabbitmqContainerVolumeMounts := []corev1.VolumeMount{

@@ -412,6 +412,24 @@ type RabbitmqClusterPersistenceSpec struct {
 	// See https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity for more info on the format of this field.
 	// +kubebuilder:default:="10Gi"
 	Storage *k8sresource.Quantity `json:"storage,omitempty"`
+	// EmptyDir configuration to be used when Storage is set to 0Gi.
+	// +optional
+	EmptyDir *RabbitmqClusterEmptyDirSpec `json:"emptyDir,omitempty"`
+}
+
+// RabbitmqClusterEmptyDirSpec contains configuration for EmptyDir volumes.
+type RabbitmqClusterEmptyDirSpec struct {
+	// Medium represents the storage medium for the EmptyDir volume.
+	// The default is "" which means to use the node's default medium.
+	// Must be an empty string (default) or Memory.
+	// More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+	// +optional
+	Medium corev1.StorageMedium `json:"medium,omitempty"`
+	// SizeLimit sets the size limit for EmptyDir volumes.
+	// The format of this field matches that defined by kubernetes/apimachinery.
+	// See https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity for more info on the format of this field.
+	// +optional
+	SizeLimit *k8sresource.Quantity `json:"sizeLimit,omitempty"`
 }
 
 // Settable attributes for the Service resource.

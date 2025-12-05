@@ -1334,6 +1334,30 @@ default_pass = {{ .Data.data.password }}
 
 				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(expectedVolume))
 			})
+
+			It("defines an emptyDir volume with sizeLimit and medium when storage == 0 and emptyDir config received", func() {
+				zero, _ := k8sresource.ParseQuantity("0")
+
+				stsBuilder := builder.StatefulSet()
+				stsBuilder.Instance.Spec.Persistence.Storage = &zero
+				stsBuilder.Instance.Spec.Persistence.EmptyDir = &rabbitmqv1beta1.RabbitmqClusterEmptyDirSpec{
+					SizeLimit: ptr.To(k8sresource.MustParse("500Mi")),
+					Medium:    corev1.StorageMediumMemory,
+				}
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				expectedVolume := corev1.Volume{
+					Name: "persistence",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{
+							SizeLimit: ptr.To(k8sresource.MustParse("500Mi")),
+							Medium:    corev1.StorageMediumMemory,
+						},
+					},
+				}
+
+				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(expectedVolume))
+			})
 		})
 
 		It("uses the correct service account", func() {
