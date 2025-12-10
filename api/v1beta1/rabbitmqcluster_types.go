@@ -351,8 +351,10 @@ type PersistentVolumeClaim struct {
 
 	// Spec defines the desired characteristics of a volume requested by a pod author.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
-	// +optional
-	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	// When using override.statefulSet.spec.volumeClaimTemplates, you must provide the complete
+	// template including spec.resources.requests.storage. Overrides replace the entire template.
+	// +kubebuilder:validation:Required
+	Spec corev1.PersistentVolumeClaimSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 }
 
 // TLSSpec allows for the configuration of TLS certificates to be used by RabbitMQ. Also allows for non-TLS traffic to be disabled.
