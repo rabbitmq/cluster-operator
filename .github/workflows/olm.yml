@@ -86,7 +86,7 @@ jobs:
         run: opm alpha bundle validate --tag ${{ env.REGISTRY }}/${{ env.IMAGE }} --image-builder docker
 
       - name: Upload manifests
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: bundle-manifest
           path: |
