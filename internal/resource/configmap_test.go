@@ -628,6 +628,12 @@ CONSOLE_LOG=new`
 				})
 			})
 		})
+
+		It("should parse multi-line config", func() {
+			instance.Spec.Rabbitmq.AdditionalConfig = "multi_line_value = \"\"\"\nfirst_line\nsecond_line\n\"\"\""
+			Expect(configMapBuilder.Update(configMap)).To(Succeed())
+			Expect(configMap.Data["userDefinedConfiguration.conf"]).To(Equal("multi_line_value = \"\"\"\nfirst_line\nsecond_line\n\"\"\"\n"))
+		})
 	})
 
 	Context("UpdateMayRequireStsRecreate", func() {
