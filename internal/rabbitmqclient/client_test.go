@@ -88,6 +88,7 @@ var _ = Describe("RabbitMQ Client", func() {
 
 			It("returns the correct base URL for TLS with pod IP", func() {
 				rmq.Spec.TLS.SecretName = "tls-secret"
+				rmq.Spec.TLS.DisableNonTLSListeners = true
 				podIP := "10.0.0.2"
 				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
 				Expect(err).NotTo(HaveOccurred())
@@ -96,6 +97,7 @@ var _ = Describe("RabbitMQ Client", func() {
 
 			It("returns an HTTP transport for TLS", func() {
 				rmq.Spec.TLS.SecretName = "tls-secret"
+				rmq.Spec.TLS.DisableNonTLSListeners = true
 				podIP := "10.0.0.1"
 				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
 				Expect(err).NotTo(HaveOccurred())
@@ -149,6 +151,7 @@ var _ = Describe("RabbitMQ Client", func() {
 		Context("when TLS is enabled", func() {
 			It("returns a TLS client", func() {
 				rmq.Spec.TLS.SecretName = "tls-secret"
+				rmq.Spec.TLS.DisableNonTLSListeners = true
 				podIP := "10.0.0.1"
 				client, err := GetRabbitmqClientForPod(ctx, k8sClient, rmq, podIP)
 				Expect(err).NotTo(HaveOccurred())

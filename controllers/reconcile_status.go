@@ -107,7 +107,7 @@ func (r *RabbitmqClusterReconciler) checkNodeQuorumStatus(ctx context.Context, r
 	logger := ctrl.LoggerFrom(ctx)
 
 	// Get client for this specific pod
-	rabbitClient, err := rabbitmqclient.GetRabbitmqClientForPod(ctx, r.Client, rmq, podIP)
+	rabbitClient, err := rabbitmqclient.GetRabbitmqClientForPod(ctx, r.APIReader, rmq, podIP)
 	if err != nil {
 		logger.V(1).Info("Failed to get client for pod", "pod", podName, "error", err)
 		return nodeQuorumCheck{

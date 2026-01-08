@@ -16,6 +16,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"strings"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
@@ -34,14 +35,14 @@ type ClientInfo struct {
 
 // GetRabbitmqClientForPod creates a rabbithole client for a specific pod using its IP address.
 // It fetches credentials from the default user secret and connects directly to the pod IP.
-func GetRabbitmqClientForPod(ctx context.Context, k8sClient client.Client, rmq *rabbitmqv1beta1.RabbitmqCluster, podIP string) (*rabbithole.Client, error) {
+func GetRabbitmqClientForPod(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster, podIP string) (*rabbithole.Client, error) {
 	info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
 	if err != nil {
 		return nil, err
 	}
 
 	var rabbitmqClient *rabbithole.Client
-	if rmq.Spec.TLS.SecretName != "" {
+	if rmq.Spec.TLS.DisableNonTLSListeners {
 		rabbitmqClient, err = rabbithole.NewTLSClient(info.BaseURL, info.Username, info.Password, info.Transport)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create TLS rabbithole client for pod: %w", err)
@@ -58,7 +59,7 @@ func GetRabbitmqClientForPod(ctx context.Context, k8sClient client.Client, rmq *
 
 // GetClientInfoForPod creates ClientInfo for a specific pod IP.
 // This is useful for checking individual pods instead of going through the service.
-func GetClientInfoForPod(ctx context.Context, k8sClient client.Client, rmq *rabbitmqv1beta1.RabbitmqCluster, podIP string) (*ClientInfo, error) {
+func GetClientInfoForPod(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster, podIP string) (*ClientInfo, error) {
 	// Fetch the default user secret
 	secretName := rmq.ChildResourceName("default-user")
 	secret := &corev1.Secret{}
@@ -88,14 +89,17 @@ func GetClientInfoForPod(ctx context.Context, k8sClient client.Client, rmq *rabb
 	// Create HTTP transport
 	var transport *http.Transport
 
-	// Check if TLS is enabled
-	if rmq.Spec.TLS.SecretName != "" {
+	// Use TLS only if there's no other alternative
+	if rmq.Spec.TLS.DisableNonTLSListeners {
 		port = 15671
 		scheme = "https"
 
 		// For TLS, we need to configure the transport
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true, // In production, you may want to verify certificates
+		tlsConfig := &tls.Config{}
+
+		certPool, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get system cert pool: %w", err)
 		}
 
 		// If there's a CA certificate, add it to the cert pool
@@ -105,16 +109,23 @@ func GetClientInfoForPod(ctx context.Context, k8sClient client.Client, rmq *rabb
 				Name:      rmq.Spec.TLS.CaSecretName,
 				Namespace: rmq.Namespace,
 			}, caSecret)
-			if err == nil {
-				if caCert, ok := caSecret.Data["ca.crt"]; ok {
-					certPool := x509.NewCertPool()
-					if certPool.AppendCertsFromPEM(caCert) {
-						tlsConfig.RootCAs = certPool
-						tlsConfig.InsecureSkipVerify = false
-					}
-				}
+			if err != nil {
+				return nil, fmt.Errorf("failed to get CA secret: %w", err)
 			}
+
+			caCert, ok := caSecret.Data["ca.crt"]
+			if !ok {
+				return nil, fmt.Errorf("CA certificate not found in secret %s", rmq.Spec.TLS.CaSecretName)
+			}
+			if !certPool.AppendCertsFromPEM(caCert) {
+				return nil, fmt.Errorf("failed to append CA certificate to cert pool")
+			}
+			tlsConfig.RootCAs = certPool
 		}
+
+		// https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pods
+		podIpDnsName := strings.ReplaceAll(podIP, ".", "-")
+		tlsConfig.ServerName = fmt.Sprintf("%s.%s.pod", podIpDnsName, rmq.Namespace)
 
 		transport = &http.Transport{
 			TLSClientConfig: tlsConfig,

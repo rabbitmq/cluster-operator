@@ -14,6 +14,10 @@ metadata:
 spec:
   dnsNames:
     - "*.tls-nodes.examples.svc.cluster.local"
+    - "*.tls.examples.svc.cluster.local"
+    - "*.tls.examples.svc"
+    - "*.examples.pod"
+    - "*.examples.pod.cluster.local"
   secretName: tls-secret
   issuerRef:
     kind: Issuer
