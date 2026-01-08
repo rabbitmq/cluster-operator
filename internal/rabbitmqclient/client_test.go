@@ -129,6 +129,14 @@ var _ = Describe("RabbitMQ Client", func() {
 	})
 
 	Describe("GetRabbitmqClientForPod", func() {
+		BeforeEach(func() {
+			k8sClient = fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(rmq).
+				WithObjects(secret).
+				Build()
+		})
+
 		Context("when TLS is disabled", func() {
 			It("returns a non-TLS client", func() {
 				podIP := "10.0.0.1"
