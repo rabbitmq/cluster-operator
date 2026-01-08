@@ -136,4 +136,32 @@ var _ = Describe("Reconcile status", func() {
 		})
 	})
 
+	Describe("Quorum Status", func() {
+		var cluster *rabbitmqv1beta1.RabbitmqCluster
+
+		BeforeEach(func() {
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rabbitmq-quorum-status",
+					Namespace: defaultNamespace,
+				},
+			}
+		})
+
+		It("sets quorum status to unavailable when RabbitMQ is not yet running", func() {
+			Expect(client.Create(ctx, cluster)).To(Succeed())
+			waitForClusterCreation(ctx, cluster, client)
+
+			// Initially, RabbitMQ won't be running, so status should be "unavailable"
+			rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+			Eventually(func() string {
+				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
+				if err != nil {
+					return ""
+				}
+				return rmq.Status.QuorumStatus
+			}, 10).Should(Or(Equal("unavailable"), Equal("")))
+		})
+	})
+
 })

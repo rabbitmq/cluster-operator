@@ -17,3 +17,5 @@ olm/catalog/catalog.y*ml
 # Act - source of secret values
 /.secrets
 /.vars
+# Cursor/Visual Studio Code
+*.code-workspace

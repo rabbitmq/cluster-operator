@@ -258,6 +258,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	// Update quorum status to indicate if the node is quorum critical
+	if err := r.updateQuorumStatus(ctx, rabbitmqCluster); err != nil {
+		logger.Info("Failed to update quorum status", "error", err)
+		// Don't fail reconciliation if quorum check fails
+	}
+
 	// By this point the StatefulSet may have finished deploying. Run any
 	// post-deploy steps if so, or requeue until the deployment is finished.
 	if requeueAfter, err := r.runRabbitmqCLICommandsIfAnnotated(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
