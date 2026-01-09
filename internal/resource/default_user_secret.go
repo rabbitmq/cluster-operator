@@ -22,8 +22,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"slices"
+
+	"github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 )
 
 const (
@@ -41,15 +42,40 @@ func (builder *RabbitmqResourceBuilder) DefaultUserSecret() *DefaultUserSecretBu
 	return &DefaultUserSecretBuilder{builder}
 }
 
+// Build creates a Secret for the default RabbitMQ user.
+// If default_user and/or default_pass are specified in spec.rabbitmq.additionalConfig,
+// those values are used. Otherwise, credentials are randomly generated.
 func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
-	username, err := generateUsername(24)
-	if err != nil {
-		return nil, err
+	var username, password string
+	additionalConfig := builder.Instance.Spec.Rabbitmq.AdditionalConfig
+	if additionalConfig != "" {
+		cfg, err := ini.Load([]byte(additionalConfig))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse additionalConfig: %w", err)
+		}
+		defaultSection := cfg.Section("")
+		if defaultSection.HasKey("default_user") {
+			username = defaultSection.Key("default_user").String()
+		}
+		if defaultSection.HasKey("default_pass") {
+			password = defaultSection.Key("default_pass").String()
+		}
 	}
 
-	password, err := randomEncodedString(24)
-	if err != nil {
-		return nil, err
+	if username == "" {
+		generatedUsername, err := generateUsername(24)
+		if err != nil {
+			return nil, err
+		}
+		username = generatedUsername
+	}
+
+	if password == "" {
+		generatedPassword, err := randomEncodedString(24)
+		if err != nil {
+			return nil, err
+		}
+		password = generatedPassword
 	}
 
 	defaultUserConf, err := generateDefaultUserConf(username, password)

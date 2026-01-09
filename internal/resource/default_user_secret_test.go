@@ -12,6 +12,7 @@ package resource_test
 import (
 	b64 "encoding/base64"
 	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
@@ -135,6 +136,24 @@ var _ = Describe("DefaultUserSecret", func() {
 				Expect(ok).To(BeTrue(), "Failed to find key 'type' ")
 				Expect(string(t)).To(Equal("rabbitmq"))
 			})
+		})
+	})
+
+	Context("Build with additionalConfig", func() {
+		It("should use the default_user and default_pass from additionalConfig", func() {
+			instance.Spec.Rabbitmq.AdditionalConfig = "default_user = my-user\ndefault_pass = my-password"
+			obj, err := defaultUserSecretBuilder.Build()
+			Expect(err).NotTo(HaveOccurred())
+			secret = obj.(*corev1.Secret)
+			Expect(string(secret.Data["username"])).To(Equal("my-user"))
+			Expect(string(secret.Data["password"])).To(Equal("my-password"))
+
+			defaultUserConf, ok := secret.Data["default_user.conf"]
+			Expect(ok).To(BeTrue(), "Failed to find a key \"default_user.conf\" in the generated Secret")
+			cfg, err := ini.Load(defaultUserConf)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.Section("").Key("default_user").Value()).To(Equal("my-user"))
+			Expect(cfg.Section("").Key("default_pass").Value()).To(Equal("my-password"))
 		})
 	})
 
