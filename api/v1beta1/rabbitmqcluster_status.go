@@ -22,6 +22,16 @@ type RabbitmqClusterStatus struct {
 	// observedGeneration is the most recent successful generation observed for this RabbitmqCluster. It corresponds to the
 	// RabbitmqCluster's generation, which is updated on mutation by the API Server.
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// QuorumStatus indicates whether any node in the cluster is quorum critical.
+	// Format: "<status> [(<details>)]"
+	// Examples:
+	//   - "ok" - no nodes are quorum critical
+	//   - "ok (1 unavailable)" - no critical nodes, but 1 node unreachable
+	//   - "quorum-critical: pod-0" - pod-0 is quorum critical
+	//   - "quorum-critical: pod-0, pod-2 (1 unavailable)" - multiple critical pods
+	//   - "unavailable" - all nodes unreachable or StatefulSet not ready
+	QuorumStatus string `json:"quorumStatus,omitempty"`
 }
 
 // Contains references to resources created with the RabbitmqCluster resource.

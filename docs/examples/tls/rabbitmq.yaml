@@ -6,3 +6,6 @@ spec:
   replicas: 1
   tls:
     secretName: tls-secret
+    disableNonTLSListeners: true
+    # This example uses a self-signed certificate, so the CA certificate is the same as the server certificate
+    caSecretName: tls-secret
