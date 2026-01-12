@@ -1,3 +1,5 @@
+//go:build integration
+
 // RabbitMQ Cluster Operator
 //
 // Copyright 2020 VMware, Inc. All Rights Reserved.
@@ -10,6 +12,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -26,10 +29,46 @@ var (
 	pluginBinaryPath = "./kubectl-rabbitmq-test-plugin"
 )
 
+func checkClusterOperatorReady() error {
+	// Check if cluster operator pods are running
+	cmd := exec.Command("kubectl", "get", "pods", "-A", "-l", "app.kubernetes.io/name=rabbitmq-cluster-operator", "-o", "jsonpath={.items[*].status.phase}")
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to check cluster operator pods: %w", err)
+	}
+
+	outputStr := strings.TrimSpace(string(output))
+	if outputStr == "" {
+		return fmt.Errorf("no cluster operator pods found - is the operator installed?")
+	}
+
+	// Check if at least one pod is Running
+	phases := strings.Fields(outputStr)
+	hasRunning := false
+	for _, phase := range phases {
+		if phase == "Running" {
+			hasRunning = true
+			break
+		}
+	}
+
+	if !hasRunning {
+		return fmt.Errorf("cluster operator pods exist but none are Running (phases: %s)", outputStr)
+	}
+
+	return nil
+}
+
 func TestMain(m *testing.M) {
 	cmd := exec.Command("go", "build", "-o", pluginBinaryPath, ".")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		log.Fatalf("failed to build plugin: %v\n%s", err, string(output))
+	}
+
+	// Check if cluster operator is ready before running tests
+	if err := checkClusterOperatorReady(); err != nil {
+		os.Remove(pluginBinaryPath)
+		log.Fatalf("Failed to run integration tests: %v", err)
 	}
 
 	code := m.Run()
@@ -39,7 +78,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func runPlugin(t *testing.T, args ...string) (string, error) {
+func runPlugin(_ *testing.T, args ...string) (string, error) {
 	cmd := exec.Command(pluginBinaryPath, args...)
 	output, err := cmd.CombinedOutput()
 	return string(output), err
@@ -96,7 +135,7 @@ func TestPluginIntegration(t *testing.T) {
 
 	t.Run("CreateWithFlags", func(t *testing.T) {
 		replicas := "3"
-		image := "rabbitmq:3.8.8"
+		image := "rabbitmq:4.0.5-management"
 		serviceType := "NodePort"
 		storageClass := "standard" // Assuming 'standard' storage class exists in the test env
 
