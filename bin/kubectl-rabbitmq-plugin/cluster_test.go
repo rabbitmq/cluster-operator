@@ -21,7 +21,9 @@ import (
 )
 
 func TestBuildRabbitmqCluster(t *testing.T) {
+	t.Parallel()
 	t.Run("minimal configuration", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{}
 		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
 
@@ -32,6 +34,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with replicas", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			Replicas: 3,
 		}
@@ -43,6 +46,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with image and pull secrets", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			Image:            "rabbitmq:3.12",
 			ImagePullSecrets: []string{"secret1", "secret2"},
@@ -57,6 +61,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with service configuration", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			ServiceType: "LoadBalancer",
 			ServiceAnnotations: map[string]string{
@@ -71,6 +76,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with storage configuration", func(t *testing.T) {
+		t.Parallel()
 		storageClass := "fast-ssd"
 		opts := ClusterOptions{
 			StorageClassName: storageClass,
@@ -85,6 +91,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with invalid storage size", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			StorageSize: "invalid",
 		}
@@ -95,6 +102,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with unlimited resources", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			UnlimitedResources: true,
 		}
@@ -107,6 +115,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with resource limits and requests", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			MemoryLimit:   "2Gi",
 			MemoryRequest: "1Gi",
@@ -132,6 +141,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with TLS configuration", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			TLSSecretName:          "tls-secret",
 			TLSCASecretName:        "ca-secret",
@@ -146,6 +156,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with additional plugins", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			AdditionalPlugins: []string{"rabbitmq_shovel", "rabbitmq_federation"},
 		}
@@ -158,6 +169,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with env config", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			EnvConfig: map[string]string{
 				"RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS": "-rabbit log_levels [{connection,debug}]",
@@ -172,6 +184,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with config files", func(t *testing.T) {
+		t.Parallel()
 		// Create temporary config files
 		additionalConfigContent := "log.console.level = debug\n"
 		additionalConfigFile, err := os.CreateTemp("", "additional-config-*.conf")
@@ -201,6 +214,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with invalid config file", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			AdditionalConfigFile: "/nonexistent/file.conf",
 		}
@@ -211,6 +225,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("with other configuration", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			TerminationGracePeriodSeconds: 604800,
 			DelayStartSeconds:             30,
@@ -229,6 +244,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	})
 
 	t.Run("marshals to valid YAML", func(t *testing.T) {
+		t.Parallel()
 		opts := ClusterOptions{
 			Replicas: 1,
 			Image:    "rabbitmq:3.12",
@@ -245,6 +261,7 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 }
 
 func TestJoinSorted(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		lines    []string
@@ -269,6 +286,7 @@ func TestJoinSorted(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := joinSorted(tt.lines)
 			assert.Equal(t, tt.expected, result)
 		})

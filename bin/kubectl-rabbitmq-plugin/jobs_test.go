@@ -16,6 +16,7 @@ import (
 )
 
 func TestCreatePerfTestJobYAML(t *testing.T) {
+	t.Parallel()
 	// This test validates the structure of the generated Job YAML
 	// without actually applying it to a cluster
 
@@ -75,6 +76,7 @@ func TestCreatePerfTestJobYAML(t *testing.T) {
 }
 
 func TestCreateStreamPerfTestJobYAML(t *testing.T) {
+	t.Parallel()
 	// This test validates the structure of the generated Job YAML
 	// without actually applying it to a cluster
 
