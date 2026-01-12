@@ -18,7 +18,7 @@ env:
   # The image here should be listed under 'Images built for this release' for the version of kind in go.mod
   KIND_NODE_IMAGE: "kindest/node:v1.32.0"
   KIND_OLDEST_NODE_IMAGE: "kindest/node:v1.29.12"
-  BASELINE_UPGRADE_VERSION: v2.1.0
+  BASELINE_UPGRADE_VERSION: v2.12.0
 
 jobs:
   kubectl_tests:
