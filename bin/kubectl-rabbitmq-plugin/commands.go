@@ -24,7 +24,7 @@ func newInstallClusterOperatorCmd(getExecutor func() *KubectlExecutor) *cobra.Co
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			executor := getExecutor()
-			return executor.Execute("apply", "-f", "https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml")
+			return executor.Execute("apply", "-f", "https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator-ghcr-io.yml")
 		},
 	}
 }
