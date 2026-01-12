@@ -15,6 +15,10 @@ $(PLUGIN_NAME): *.go go.mod go.sum
 clean:
 	rm -f $(PLUGIN_NAME)
 
+ifeq ($(CI),)
+TEST_CI_FLAGS := -coverprofile cover.out
+endif
+
 .PHONY: tests
 tests: build
-	go test -tags "$(TEST_TAGS)" -cover -parallel 4 -shuffle on -v -coverprofile cover.out .
+	go test -tags "$(TEST_TAGS)" -cover -parallel 4 -shuffle on -v $(TEST_CI_FLAGS) $(TEST_FLAGS) .

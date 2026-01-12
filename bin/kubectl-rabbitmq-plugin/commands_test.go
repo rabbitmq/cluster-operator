@@ -126,6 +126,10 @@ func TestPluginIntegration(t *testing.T) {
 			}
 			return false
 		}, 10*time.Minute, 5*time.Second, "AllReplicasReady condition should be True")
+		credentialsOutput, err := GetInstanceCredentials(NewKubectlExecutor("", false), "bats-default")
+		require.NoError(t, err)
+		assert.NotEmpty(t, credentialsOutput.Username)
+		assert.NotEmpty(t, credentialsOutput.Password)
 	})
 
 	t.Run("CreateWithInvalidFlag", func(t *testing.T) {
