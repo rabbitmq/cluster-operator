@@ -440,8 +440,8 @@ github.com/prometheus/procfs v0.19.2/go.mod h1:M0aotyiemPhBCM0z5w87kL22CxfcH05Zp
 github.com/rabbitmq/amqp091-go v1.9.0/go.mod h1:+jPrT9iY2eLjRaMSRHUhc3z14E/l85kv/f+6luSD3pc=
 github.com/rabbitmq/amqp091-go v1.10.0 h1:STpn5XsHlHGcecLmMFCtg7mqq0RnD+zFr4uzukfVhBw=
 github.com/rabbitmq/amqp091-go v1.10.0/go.mod h1:Hy4jKW5kQART1u+JkDTF9YYOQUHXqMuhrgxOEeS7G4o=
-github.com/rabbitmq/rabbitmq-stream-go-client v1.6.2 h1:K8KbfpX4Q4yp8tdHZpXzub5cpT/PyKucHjFriPsf5IE=
-github.com/rabbitmq/rabbitmq-stream-go-client v1.6.2/go.mod h1:EtSPYQhc5/tNJQiwhZTfYvCSV3BJ11KRSLxHSnmBPDY=
+github.com/rabbitmq/rabbitmq-stream-go-client v1.6.3 h1:TD93g6+CIGzHqIEtknvC1vBtcDddmTWVLZ8TGq46FBQ=
+github.com/rabbitmq/rabbitmq-stream-go-client v1.6.3/go.mod h1:hgdAUCOEBnT6QVVocy5ho857x4jox4yhjHDcUa/zGkM=
 github.com/redis/go-redis/extra/rediscmd/v9 v9.0.5 h1:EaDatTxkdHG+U3Bk4EUr+DZ7fOGwTfezUiUJMaIcaho=
 github.com/redis/go-redis/extra/rediscmd/v9 v9.0.5/go.mod h1:fyalQWdtzDBECAQFBJuQe5bzQ02jGd5Qcbgb97Flm7U=
 github.com/redis/go-redis/extra/redisotel/v9 v9.0.5 h1:EfpWLLCyXw8PSM2/XNJLjI3Pb27yVE+gIAfeqp8LUCc=
