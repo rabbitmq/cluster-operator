@@ -19,8 +19,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// ClusterOptions contains all configuration options for creating a RabbitmqCluster
-type ClusterOptions struct {
+// clusterOptions contains all configuration options for creating a RabbitmqCluster
+type clusterOptions struct {
 	// Basic configuration
 	Replicas         int32
 	Image            string
@@ -59,8 +59,8 @@ type ClusterOptions struct {
 	AutoEnableAllFeatureFlags     bool
 }
 
-// BuildRabbitmqCluster constructs a RabbitmqCluster resource from the provided options
-func BuildRabbitmqCluster(name string, opts ClusterOptions) (*v1beta1.RabbitmqCluster, error) {
+// buildRabbitmqCluster constructs a RabbitmqCluster resource from the provided options
+func buildRabbitmqCluster(name string, opts clusterOptions) (*v1beta1.RabbitmqCluster, error) {
 	cluster := &v1beta1.RabbitmqCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "rabbitmq.com/v1beta1",
@@ -220,8 +220,8 @@ func BuildRabbitmqCluster(name string, opts ClusterOptions) (*v1beta1.RabbitmqCl
 	return cluster, nil
 }
 
-// ApplyCluster marshals a RabbitmqCluster to YAML and applies it to the cluster
-func ApplyCluster(executor *KubectlExecutor, cluster *v1beta1.RabbitmqCluster) error {
+// applyCluster marshals a RabbitmqCluster to YAML and applies it to the cluster
+func applyCluster(executor *kubectlExecutor, cluster *v1beta1.RabbitmqCluster) error {
 	yamlData, err := yaml.Marshal(cluster)
 	if err != nil {
 		return fmt.Errorf("failed to marshal cluster yaml: %w", err)

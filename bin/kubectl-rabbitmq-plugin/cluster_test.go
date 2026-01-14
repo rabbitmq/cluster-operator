@@ -24,8 +24,8 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	t.Parallel()
 	t.Run("minimal configuration", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		opts := clusterOptions{}
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		assert.Equal(t, "test-cluster", cluster.Name)
@@ -35,10 +35,10 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with replicas", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			Replicas: 3,
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		require.NotNil(t, cluster.Spec.Replicas)
@@ -47,11 +47,11 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with image and pull secrets", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			Image:            "rabbitmq:3.12",
 			ImagePullSecrets: []string{"secret1", "secret2"},
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		assert.Equal(t, "rabbitmq:3.12", cluster.Spec.Image)
@@ -62,13 +62,13 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with service configuration", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			ServiceType: "LoadBalancer",
 			ServiceAnnotations: map[string]string{
 				"service.beta.kubernetes.io/aws-load-balancer-type": "nlb",
 			},
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		assert.Equal(t, corev1.ServiceType("LoadBalancer"), cluster.Spec.Service.Type)
@@ -78,11 +78,11 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 	t.Run("with storage configuration", func(t *testing.T) {
 		t.Parallel()
 		storageClass := "fast-ssd"
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			StorageClassName: storageClass,
 			StorageSize:      "20Gi",
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		assert.Equal(t, storageClass, *cluster.Spec.Persistence.StorageClassName)
@@ -92,10 +92,10 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with invalid storage size", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			StorageSize: "invalid",
 		}
-		_, err := BuildRabbitmqCluster("test-cluster", opts)
+		_, err := buildRabbitmqCluster("test-cluster", opts)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid storage size")
@@ -103,10 +103,10 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with unlimited resources", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			UnlimitedResources: true,
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		require.NotNil(t, cluster.Spec.Resources)
@@ -116,13 +116,13 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with resource limits and requests", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			MemoryLimit:   "2Gi",
 			MemoryRequest: "1Gi",
 			CPULimit:      "2000m",
 			CPURequest:    "1000m",
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		require.NotNil(t, cluster.Spec.Resources)
@@ -142,12 +142,12 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with TLS configuration", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			TLSSecretName:          "tls-secret",
 			TLSCASecretName:        "ca-secret",
 			DisableNonTLSListeners: true,
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		assert.Equal(t, "tls-secret", cluster.Spec.TLS.SecretName)
@@ -157,10 +157,10 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with additional plugins", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			AdditionalPlugins: []string{"rabbitmq_shovel", "rabbitmq_federation"},
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		assert.Len(t, cluster.Spec.Rabbitmq.AdditionalPlugins, 2)
@@ -170,13 +170,13 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with env config", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			EnvConfig: map[string]string{
 				"RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS": "-rabbit log_levels [{connection,debug}]",
 				"ERL_MAX_PORTS":                       "4096",
 			},
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		assert.Contains(t, cluster.Spec.Rabbitmq.EnvConfig, "RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=")
@@ -202,11 +202,11 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 		require.NoError(t, err)
 		advancedConfigFile.Close()
 
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			AdditionalConfigFile: additionalConfigFile.Name(),
 			AdvancedConfigFile:   advancedConfigFile.Name(),
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		assert.Equal(t, additionalConfigContent, cluster.Spec.Rabbitmq.AdditionalConfig)
@@ -215,10 +215,10 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with invalid config file", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			AdditionalConfigFile: "/nonexistent/file.conf",
 		}
-		_, err := BuildRabbitmqCluster("test-cluster", opts)
+		_, err := buildRabbitmqCluster("test-cluster", opts)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read additional config file")
@@ -226,13 +226,13 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("with other configuration", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			TerminationGracePeriodSeconds: 604800,
 			DelayStartSeconds:             30,
 			SkipPostDeploySteps:           true,
 			AutoEnableAllFeatureFlags:     true,
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 
 		require.NoError(t, err)
 		require.NotNil(t, cluster.Spec.TerminationGracePeriodSeconds)
@@ -245,11 +245,11 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 
 	t.Run("marshals to valid YAML", func(t *testing.T) {
 		t.Parallel()
-		opts := ClusterOptions{
+		opts := clusterOptions{
 			Replicas: 1,
 			Image:    "rabbitmq:3.12",
 		}
-		cluster, err := BuildRabbitmqCluster("test-cluster", opts)
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
 		require.NoError(t, err)
 
 		yamlData, err := yaml.Marshal(cluster)

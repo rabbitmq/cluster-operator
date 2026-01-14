@@ -15,22 +15,22 @@ import (
 	"strings"
 )
 
-// KubectlExecutor handles kubectl command execution with namespace configuration
-type KubectlExecutor struct {
+// kubectlExecutor handles kubectl command execution with namespace configuration
+type kubectlExecutor struct {
 	namespace     string
 	allNamespaces bool
 }
 
-// NewKubectlExecutor creates a new KubectlExecutor with the given namespace configuration
-func NewKubectlExecutor(namespace string, allNamespaces bool) *KubectlExecutor {
-	return &KubectlExecutor{
+// newKubectlExecutor creates a new kubectlExecutor with the given namespace configuration
+func newKubectlExecutor(namespace string, allNamespaces bool) *kubectlExecutor {
+	return &kubectlExecutor{
 		namespace:     namespace,
 		allNamespaces: allNamespaces,
 	}
 }
 
 // Execute runs a kubectl command and streams output to stdout/stderr
-func (k *KubectlExecutor) Execute(args ...string) error {
+func (k *kubectlExecutor) Execute(args ...string) error {
 	cmdArgs := k.buildArgs(args...)
 	if os.Getenv("KUBECTL_RABBITMQ_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "executing: kubectl %s\n", strings.Join(cmdArgs, " "))
@@ -44,7 +44,7 @@ func (k *KubectlExecutor) Execute(args ...string) error {
 }
 
 // ExecuteWithOutput runs a kubectl command and returns its output
-func (k *KubectlExecutor) ExecuteWithOutput(args ...string) ([]byte, error) {
+func (k *kubectlExecutor) ExecuteWithOutput(args ...string) ([]byte, error) {
 	cmdArgs := k.buildArgs(args...)
 	if os.Getenv("KUBECTL_RABBITMQ_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "executing: kubectl %s\n", strings.Join(cmdArgs, " "))
@@ -56,7 +56,7 @@ func (k *KubectlExecutor) ExecuteWithOutput(args ...string) ([]byte, error) {
 }
 
 // buildArgs constructs kubectl arguments with namespace flags placed correctly
-func (k *KubectlExecutor) buildArgs(args ...string) []string {
+func (k *kubectlExecutor) buildArgs(args ...string) []string {
 	// For kubectl, namespace flags should come after the subcommand
 	// e.g., "kubectl get --all-namespaces pods" not "kubectl --all-namespaces get pods"
 

@@ -13,14 +13,14 @@ import (
 	"fmt"
 )
 
-// Credentials holds RabbitMQ username and password
-type Credentials struct {
+// credentials holds RabbitMQ username and password
+type credentials struct {
 	Username string
 	Password string
 }
 
-// GetInstanceCredentials fetches the default user credentials for a RabbitMQ instance
-func GetInstanceCredentials(executor *KubectlExecutor, instanceName string) (*Credentials, error) {
+// getInstanceCredentials fetches the default user credentials for a RabbitMQ instance
+func getInstanceCredentials(executor *kubectlExecutor, instanceName string) (*credentials, error) {
 	secretName := fmt.Sprintf("%s-default-user", instanceName)
 
 	// Get username
@@ -45,7 +45,7 @@ func GetInstanceCredentials(executor *KubectlExecutor, instanceName string) (*Cr
 		return nil, fmt.Errorf("failed to decode password: %w", err)
 	}
 
-	return &Credentials{
+	return &credentials{
 		Username: string(username),
 		Password: string(password),
 	}, nil

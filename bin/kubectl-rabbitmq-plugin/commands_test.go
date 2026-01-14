@@ -126,7 +126,7 @@ func TestPluginIntegration(t *testing.T) {
 			}
 			return false
 		}, 10*time.Minute, 5*time.Second, "AllReplicasReady condition should be True")
-		credentialsOutput, err := GetInstanceCredentials(NewKubectlExecutor("", false), "bats-default")
+		credentialsOutput, err := getInstanceCredentials(newKubectlExecutor("", false), "bats-default")
 		require.NoError(t, err)
 		assert.NotEmpty(t, credentialsOutput.Username)
 		assert.NotEmpty(t, credentialsOutput.Password)

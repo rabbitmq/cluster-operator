@@ -37,8 +37,8 @@ It provides commands to create, list, manage, and debug RabbitMQ clusters runnin
 	rootCmd.PersistentFlags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "List resources across all namespaces")
 
 	// Create a function to get the executor based on current flag values
-	getExecutor := func() *KubectlExecutor {
-		return NewKubectlExecutor(namespace, allNamespaces)
+	getExecutor := func() *kubectlExecutor {
+		return newKubectlExecutor(namespace, allNamespaces)
 	}
 
 	// Add all subcommands - they will use getExecutor() to get the properly configured executor

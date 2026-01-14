@@ -15,8 +15,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// CreatePerfTestJob creates and applies a perf-test Job to the cluster
-func CreatePerfTestJob(executor *KubectlExecutor, instance string, creds *Credentials, args []string) error {
+// createPerfTestJob creates and applies a perf-test Job to the cluster
+func createPerfTestJob(executor *kubectlExecutor, instance string, creds *credentials, args []string) error {
 	jobArgs := []string{
 		"--uri",
 		fmt.Sprintf("amqp://%s:%s@%s", creds.Username, creds.Password, instance),
@@ -65,8 +65,8 @@ func CreatePerfTestJob(executor *KubectlExecutor, instance string, creds *Creden
 	return applyJobYAML(executor, job)
 }
 
-// CreateStreamPerfTestJob creates and applies a stream-perf-test Job to the cluster
-func CreateStreamPerfTestJob(executor *KubectlExecutor, instance string, creds *Credentials, args []string) error {
+// createStreamPerfTestJob creates and applies a stream-perf-test Job to the cluster
+func createStreamPerfTestJob(executor *kubectlExecutor, instance string, creds *credentials, args []string) error {
 	jobArgs := []string{
 		"--uris",
 		fmt.Sprintf("rabbitmq-stream://%s:%s@%s", creds.Username, creds.Password, instance),
@@ -109,7 +109,7 @@ func CreateStreamPerfTestJob(executor *KubectlExecutor, instance string, creds *
 }
 
 // applyJobYAML marshals a job definition to YAML and applies it to the cluster
-func applyJobYAML(executor *KubectlExecutor, job map[string]interface{}) error {
+func applyJobYAML(executor *kubectlExecutor, job map[string]interface{}) error {
 	yamlData, err := yaml.Marshal(job)
 	if err != nil {
 		return fmt.Errorf("failed to marshal job yaml: %w", err)

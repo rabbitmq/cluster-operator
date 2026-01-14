@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newInstallClusterOperatorCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newInstallClusterOperatorCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "install-cluster-operator",
 		Short: "Install the latest released RabbitMQ Cluster Operator",
@@ -29,7 +29,7 @@ func newInstallClusterOperatorCmd(getExecutor func() *KubectlExecutor) *cobra.Co
 	}
 }
 
-func newListCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newListCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List all RabbitMQ clusters",
@@ -41,8 +41,8 @@ func newListCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 	}
 }
 
-func newCreateCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
-	var opts ClusterOptions
+func newCreateCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
+	var opts clusterOptions
 
 	cmd := &cobra.Command{
 		Use:   "create INSTANCE",
@@ -52,12 +52,12 @@ func newCreateCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 			executor := getExecutor()
 			instanceName := args[0]
 
-			cluster, err := BuildRabbitmqCluster(instanceName, opts)
+			cluster, err := buildRabbitmqCluster(instanceName, opts)
 			if err != nil {
 				return fmt.Errorf("failed to build cluster: %w", err)
 			}
 
-			return ApplyCluster(executor, cluster)
+			return applyCluster(executor, cluster)
 		},
 	}
 
@@ -101,7 +101,7 @@ func newCreateCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 	return cmd
 }
 
-func newDeleteCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newDeleteCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete INSTANCE [INSTANCE...]",
 		Short: "Delete one or more RabbitMQ clusters",
@@ -118,7 +118,7 @@ func newDeleteCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 	}
 }
 
-func newGetCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newGetCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "get INSTANCE",
 		Short: "Get a RabbitMQ cluster and dependent objects",
@@ -131,7 +131,7 @@ func newGetCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 	}
 }
 
-func newDebugCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newDebugCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "debug INSTANCE",
 		Short: "Set log level to 'debug' on all nodes",
@@ -161,7 +161,7 @@ func newDebugCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 	}
 }
 
-func newTailCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newTailCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "tail INSTANCE",
 		Short: "Tail logs from all nodes (requires kubectl tail plugin)",
@@ -175,7 +175,7 @@ func newTailCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 	}
 }
 
-func newObserveCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newObserveCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "observe INSTANCE NODE",
 		Short: "Run 'rabbitmq-diagnostics observer' on a specific node",
@@ -190,7 +190,7 @@ func newObserveCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 	}
 }
 
-func newSecretsCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newSecretsCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "secrets INSTANCE",
 		Short: "Print default-user credentials for an instance",
@@ -199,7 +199,7 @@ func newSecretsCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 			executor := getExecutor()
 			instance := args[0]
 
-			creds, err := GetInstanceCredentials(executor, instance)
+			creds, err := getInstanceCredentials(executor, instance)
 			if err != nil {
 				return err
 			}
@@ -211,7 +211,7 @@ func newSecretsCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 	}
 }
 
-func newEnableAllFeatureFlagsCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newEnableAllFeatureFlagsCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "enable-all-feature-flags INSTANCE",
 		Short: "Enable all feature flags on an instance",
@@ -225,7 +225,7 @@ func newEnableAllFeatureFlagsCmd(getExecutor func() *KubectlExecutor) *cobra.Com
 	}
 }
 
-func newPauseReconciliationCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newPauseReconciliationCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "pause-reconciliation INSTANCE",
 		Short: "Pause reconciliation for an instance",
@@ -238,7 +238,7 @@ func newPauseReconciliationCmd(getExecutor func() *KubectlExecutor) *cobra.Comma
 	}
 }
 
-func newResumeReconciliationCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newResumeReconciliationCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "resume-reconciliation INSTANCE",
 		Short: "Resume reconciliation for an instance",
@@ -251,7 +251,7 @@ func newResumeReconciliationCmd(getExecutor func() *KubectlExecutor) *cobra.Comm
 	}
 }
 
-func newListPauseReconciliationInstancesCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newListPauseReconciliationInstancesCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list-pause-reconciliation-instances",
 		Short: "List all instances that have the pause reconciliation label",
@@ -263,7 +263,7 @@ func newListPauseReconciliationInstancesCmd(getExecutor func() *KubectlExecutor)
 	}
 }
 
-func newManageCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newManageCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "manage INSTANCE",
 		Short: "Open Management UI for an instance",
@@ -314,7 +314,7 @@ func newManageCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
 	}
 }
 
-func newPerfTestCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newPerfTestCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "perf-test INSTANCE [PERF_TEST_ARGS...]",
 		Short: "Create a Job to run perf-test against an instance",
@@ -341,18 +341,18 @@ To monitor perf-test, create a PodMonitor:
 			instance := args[0]
 			perfTestArgs := args[1:]
 
-			creds, err := GetInstanceCredentials(executor, instance)
+			creds, err := getInstanceCredentials(executor, instance)
 			if err != nil {
 				return err
 			}
 
-			return CreatePerfTestJob(executor, instance, creds, perfTestArgs)
+			return createPerfTestJob(executor, instance, creds, perfTestArgs)
 		},
 	}
 	return cmd
 }
 
-func newStreamPerfTestCmd(getExecutor func() *KubectlExecutor) *cobra.Command {
+func newStreamPerfTestCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "stream-perf-test INSTANCE [STREAM_PERF_TEST_ARGS...]",
 		Short: "Create a Job to run stream-perf-test against an instance",
@@ -366,12 +366,12 @@ See https://rabbitmq.github.io/rabbitmq-stream-java-client/snapshot/htmlsingle/ 
 			instance := args[0]
 			streamPerfTestArgs := args[1:]
 
-			creds, err := GetInstanceCredentials(executor, instance)
+			creds, err := getInstanceCredentials(executor, instance)
 			if err != nil {
 				return err
 			}
 
-			return CreateStreamPerfTestJob(executor, instance, creds, streamPerfTestArgs)
+			return createStreamPerfTestJob(executor, instance, creds, streamPerfTestArgs)
 		},
 	}
 	return cmd
