@@ -37,3 +37,13 @@ updates:
   directory: "/"
   schedule:
     interval: "weekly"
+- package-ecosystem: "gomod"
+  directory: "/bin/kubectl-rabbitmq-plugin/"
+  groups:
+    kubectl-rabbitmq-plugin:
+      patterns:
+      - '*'
+  schedule:
+    interval: "daily"
+  ignore:
+    - dependency-name: "github.com/rabbitmq/cluster-operator/v2"
