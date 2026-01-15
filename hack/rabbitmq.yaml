@@ -16,16 +16,26 @@ spec:
     `tail` subcommand requires the `tail` plugin. You can install it with `kubectl krew install tail`.
   platforms:
   - selector:
-      matchExpressions:
-      - key: os
-        operator: In
-        values:
-        - darwin
-        - linux
-    {{addURIAndSha "https://github.com/rabbitmq/cluster-operator/archive/{{ .TagName }}.tar.gz" .TagName }}
-    bin: kubectl-rabbitmq
-    files:
-    - from: cluster-operator-*/bin/kubectl-rabbitmq
-      to: .
-    - from: cluster-operator-*/LICENSE.txt
-      to: .
+      matchLabels:
+        os: darwin
+        arch: amd64
+    {{addURIAndSha "https://github.com/rabbitmq/cluster-operator/releases/download/{{ .TagName }}/kubectl-rabbitmq-{{ .TagName }}-darwin-amd64.tar.gz" .TagName }}
+    bin: kubectl-rabbitmq-{{ .TagName }}-darwin-amd64
+  - selector:
+      matchLabels:
+        os: darwin
+        arch: arm64
+    {{addURIAndSha "https://github.com/rabbitmq/cluster-operator/releases/download/{{ .TagName }}/kubectl-rabbitmq-{{ .TagName }}-darwin-arm64.tar.gz" .TagName }}
+    bin: kubectl-rabbitmq-{{ .TagName }}-darwin-arm64
+  - selector:
+      matchLabels:
+        os: linux
+        arch: amd64
+    {{addURIAndSha "https://github.com/rabbitmq/cluster-operator/releases/download/{{ .TagName }}/kubectl-rabbitmq-{{ .TagName }}-linux-amd64.tar.gz" .TagName }}
+    bin: kubectl-rabbitmq-{{ .TagName }}-linux-amd64
+  - selector:
+      matchLabels:
+        os: linux
+        arch: arm64
+    {{addURIAndSha "https://github.com/rabbitmq/cluster-operator/releases/download/{{ .TagName }}/kubectl-rabbitmq-{{ .TagName }}-linux-arm64.tar.gz" .TagName }}
+    bin: kubectl-rabbitmq-{{ .TagName }}-linux-arm64

@@ -33,8 +33,9 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v6
       with:
-        go-version: ${{ env.GO_VERSION }}
-        check-latest: true
+        go-version-file: bin/kubectl-rabbitmq-plugin/go.mod
+        cache-dependency-path: |
+          bin/kubectl-rabbitmq-plugin/go.sum
 
     - name: Install Carvel
       uses: carvel-dev/setup-action@v2.0.1
@@ -42,17 +43,11 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         only: ytt
 
-    - name: Install Bats
-      run: |
-        git clone https://github.com/bats-core/bats-core.git "$HOME"/bats-core
-        cd "$HOME"/bats-core
-        sudo ./install.sh /usr/local
-
     - name: Download Operator artifact
       uses: actions/download-artifact@v7
       with:
         name: operator_image
-        path: /tmp
+        path: ${{ runner.temp }}
 
     - name: Create KinD
       uses: helm/kind-action@v1
@@ -60,11 +55,11 @@ jobs:
         cluster_name: cluster-operator-testing
         node_image: ${{ env.KIND_NODE_IMAGE }}
 
-    - name: kubectl rabbitmq tests
+    - name: Deploy dev Operator
       env:
         IMG: "rabbitmqoperator/cluster-operator:${{ needs.build_operator.outputs.image_tag }}"
       run: |
-        kind load image-archive /tmp/operator.tar --name cluster-operator-testing
+        kind load image-archive ${{ runner.temp }}/operator.tar --name cluster-operator-testing
 
         make manifests deploy-namespace-rbac
         kubectl kustomize config/crd | kubectl apply -f-
@@ -74,7 +69,9 @@ jobs:
           -f config/ytt/never_pull.yaml \
           | kubectl apply -f-
 
-        make kubectl-plugin-tests
+    - name: Test kubectl plugin
+      working-directory: bin/kubectl-rabbitmq-plugin
+      run: make tests TEST_TAGS=integration
 
     - name: Notify Google Chat
       if: ${{ failure() && github.event_name != 'pull_request' }}
@@ -83,6 +80,40 @@ jobs:
           webhookUrl: '${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}'
           jobStatus: ${{ job.status }}
           title: Cluster Operator - RabbitMQ kubectl tests
+
+  build_kubectl_plugin:
+    name: Build kubectl plugin
+    runs-on: ubuntu-latest
+    needs: kubectl_tests
+    if: github.ref_type == 'tag'
+    strategy:
+      matrix:
+        os: [darwin, linux]
+        arch: [amd64, arm64]
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v6
+
+    - name: Install Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: bin/kubectl-rabbitmq-plugin/go.mod
+        cache-dependency-path: |
+          bin/kubectl-rabbitmq-plugin/go.sum
+
+    - name: Build kubectl plugin
+      working-directory: bin/kubectl-rabbitmq-plugin
+      run: make build PLUGIN_VERSION=${{ github.ref_name }} GO_OS=${{ matrix.os }} GO_ARCH=${{ matrix.arch }}
+
+    - name: Compress kubectl plugin
+      working-directory: bin/kubectl-rabbitmq-plugin
+      run: tar -cvzf kubectl-rabbitmq-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz kubectl-rabbitmq-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}
+
+    - name: Upload kubectl plugin artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: kubectl-rabbitmq-${{ matrix.os }}-${{ matrix.arch }}
+        path: bin/kubectl-rabbitmq-plugin/kubectl-rabbitmq-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
 
   unit_integration_tests:
     name: unit and integration tests
@@ -517,16 +548,20 @@ jobs:
   release:
     name: Release to GitHub Releases
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [system_tests, test_doc_examples, test_upgrade]
+    if: github.ref_type == 'tag'
+    needs: [system_tests, test_doc_examples, test_upgrade, build_kubectl_plugin]
     steps:
-    - name: Checkout
-      uses: actions/checkout@v6
-
     - name: Get operator manifest
       uses: actions/download-artifact@v7
       with:
         name: operator-manifests
+
+    - name: Get kubectl plugin artefacts
+      uses: actions/download-artifact@v7
+      with:
+        pattern: kubectl-rabbitmq-*
+        merge-multiple: true
+        path: bin/
 
     - name: Get release header
       uses: actions/download-artifact@v7
@@ -535,12 +570,12 @@ jobs:
 
     - name: Release
       uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
           cluster-operator.yml
           cluster-operator-quay-io.yml
           cluster-operator-ghcr-io.yml
+          bin/kubectl-rabbitmq-*
         generate_release_notes: true
         draft: true
         body_path: release-header.md
