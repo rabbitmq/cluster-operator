@@ -11,7 +11,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.27.5
 	github.com/onsi/gomega v1.39.0
 	github.com/rabbitmq/amqp091-go v1.10.0
-	github.com/rabbitmq/rabbitmq-stream-go-client v1.6.2
+	github.com/rabbitmq/rabbitmq-stream-go-client v1.6.3
 	golang.org/x/mod v0.32.0
 	golang.org/x/text v0.33.0
 	gopkg.in/ini.v1 v1.67.1
