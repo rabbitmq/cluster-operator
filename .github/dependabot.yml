@@ -20,7 +20,7 @@ updates:
 - package-ecosystem: "gomod"
   directory: "/internal/tools/"
   groups:
-    tools:
+    all:
       patterns:
       - '*'
   schedule:
@@ -28,19 +28,23 @@ updates:
 - package-ecosystem: "gomod"
   directory: "/internal/promtool/"
   groups:
-    promtool:
+    all:
       patterns:
       - '*'
   schedule:
     interval: "daily"
 - package-ecosystem: "github-actions"
   directory: "/"
+  groups:
+    actions:
+      patterns:
+      - '*'
   schedule:
     interval: "weekly"
 - package-ecosystem: "gomod"
   directory: "/bin/kubectl-rabbitmq-plugin/"
   groups:
-    kubectl-rabbitmq-plugin:
+    all:
       patterns:
       - '*'
   schedule:
