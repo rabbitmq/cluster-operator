@@ -71,43 +71,44 @@ var _ = Describe("RabbitMQ Client", func() {
 			})
 
 			It("returns client info with correct credentials", func() {
-				podIP := "10.0.0.1"
-				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
+				podName := "test-cluster-server-0"
+				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(info).NotTo(BeNil())
 				Expect(info.Username).To(Equal("test-user"))
 				Expect(info.Password).To(Equal("test-password"))
 			})
 
-			It("returns the correct base URL for non-TLS with pod IP", func() {
-				podIP := "10.0.0.1"
-				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
+			It("returns the correct base URL for non-TLS with pod DNS name", func() {
+				podName := "test-cluster-server-0"
+				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(info.BaseURL).To(Equal("http://10.0.0.1:15672"))
+				Expect(info.BaseURL).To(Equal("http://test-cluster-server-0.test-cluster-nodes.test-namespace.svc:15672"))
 			})
 
-			It("returns the correct base URL for TLS with pod IP", func() {
+			It("returns the correct base URL for TLS with pod DNS name", func() {
 				rmq.Spec.TLS.SecretName = "tls-secret"
 				rmq.Spec.TLS.DisableNonTLSListeners = true
-				podIP := "10.0.0.2"
-				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
+				podName := "test-cluster-server-1"
+				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(info.BaseURL).To(Equal("https://10.0.0.2:15671"))
+				Expect(info.BaseURL).To(Equal("https://test-cluster-server-1.test-cluster-nodes.test-namespace.svc:15671"))
 			})
 
-			It("returns an HTTP transport for TLS", func() {
+			It("returns an HTTP transport for TLS with correct ServerName", func() {
 				rmq.Spec.TLS.SecretName = "tls-secret"
 				rmq.Spec.TLS.DisableNonTLSListeners = true
-				podIP := "10.0.0.1"
-				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
+				podName := "test-cluster-server-0"
+				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(info.Transport).NotTo(BeNil())
 				Expect(info.Transport.TLSClientConfig).NotTo(BeNil())
+				Expect(info.Transport.TLSClientConfig.ServerName).To(Equal("test-cluster-server-0.test-cluster-nodes.test-namespace.svc"))
 			})
 
 			It("returns nil transport for non-TLS", func() {
-				podIP := "10.0.0.1"
-				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
+				podName := "test-cluster-server-0"
+				info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(info.Transport).To(BeNil())
 			})
@@ -122,8 +123,8 @@ var _ = Describe("RabbitMQ Client", func() {
 			})
 
 			It("returns an error", func() {
-				podIP := "10.0.0.1"
-				_, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
+				podName := "test-cluster-server-0"
+				_, err := GetClientInfoForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("failed to get default user secret"))
 			})
@@ -141,8 +142,8 @@ var _ = Describe("RabbitMQ Client", func() {
 
 		Context("when TLS is disabled", func() {
 			It("returns a non-TLS client", func() {
-				podIP := "10.0.0.1"
-				client, err := GetRabbitmqClientForPod(ctx, k8sClient, rmq, podIP)
+				podName := "test-cluster-server-0"
+				client, err := GetRabbitmqClientForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client).NotTo(BeNil())
 			})
@@ -152,8 +153,8 @@ var _ = Describe("RabbitMQ Client", func() {
 			It("returns a TLS client", func() {
 				rmq.Spec.TLS.SecretName = "tls-secret"
 				rmq.Spec.TLS.DisableNonTLSListeners = true
-				podIP := "10.0.0.1"
-				client, err := GetRabbitmqClientForPod(ctx, k8sClient, rmq, podIP)
+				podName := "test-cluster-server-0"
+				client, err := GetRabbitmqClientForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client).NotTo(BeNil())
 			})
@@ -168,8 +169,8 @@ var _ = Describe("RabbitMQ Client", func() {
 			})
 
 			It("returns an error", func() {
-				podIP := "10.0.0.1"
-				_, err := GetRabbitmqClientForPod(ctx, k8sClient, rmq, podIP)
+				podName := "test-cluster-server-0"
+				_, err := GetRabbitmqClientForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("failed to get default user secret"))
 			})
