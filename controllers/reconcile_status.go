@@ -103,11 +103,11 @@ func (r *RabbitmqClusterReconciler) getPodEndpoints(ctx context.Context, rmq *ra
 }
 
 // checkNodeQuorumStatus checks quorum status for a specific node/pod
-func (r *RabbitmqClusterReconciler) checkNodeQuorumStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, podIP string, podName string) nodeQuorumCheck {
+func (r *RabbitmqClusterReconciler) checkNodeQuorumStatus(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, podName string) nodeQuorumCheck {
 	logger := ctrl.LoggerFrom(ctx)
 
 	// Get client for this specific pod
-	rabbitClient, err := rabbitmqclient.GetRabbitmqClientForPod(ctx, r.APIReader, rmq, podIP)
+	rabbitClient, err := rabbitmqclient.GetRabbitmqClientForPod(ctx, r.APIReader, rmq, podName)
 	if err != nil {
 		logger.V(1).Info("Failed to get client for pod", "pod", podName, "error", err)
 		return nodeQuorumCheck{
@@ -173,25 +173,12 @@ func (r *RabbitmqClusterReconciler) checkQuorumStatus(ctx context.Context, rmq *
 			podName = endpoint.TargetRef.Name
 		}
 
-		// Get pod IP
-		if len(endpoint.Addresses) == 0 {
-			logger.V(1).Info("Endpoint has no addresses", "podName", podName)
-			resultsChan <- nodeQuorumCheck{
-				podName: podName,
-				status:  "unavailable",
-				err:     fmt.Errorf("no addresses for endpoint"),
-			}
-			continue
-		}
-
-		podIP := endpoint.Addresses[0]
-
 		wg.Add(1)
-		go func(ip, name string) {
+		go func(name string) {
 			defer wg.Done()
-			result := r.checkNodeQuorumStatus(ctx, rmq, ip, name)
+			result := r.checkNodeQuorumStatus(ctx, rmq, name)
 			resultsChan <- result
-		}(podIP, podName)
+		}(podName)
 	}
 
 	// Wait for all checks to complete

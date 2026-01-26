@@ -66,11 +66,36 @@ func TestMain(m *testing.M) {
 	}
 
 	// Check if cluster operator is ready before running tests
-	if err := checkClusterOperatorReady(); err != nil {
-		os.Remove(pluginBinaryPath)
-		log.Fatalf("Failed to run integration tests: %v", err)
+	// Retry for up to 2 minutes to handle CI startup delays
+	log.Println("Waiting for cluster operator to be ready...")
+
+	checkReady := func() bool {
+		if err := checkClusterOperatorReady(); err != nil {
+			log.Printf("Cluster operator not ready yet: %v", err)
+			return false
+		}
+		return true
 	}
 
+	// TestMain doesn't have access to *testing.T; therefore, we can't use require.Eventually from testify 😞
+	timeout := time.After(2 * time.Minute)
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			os.Remove(pluginBinaryPath)
+			log.Fatal("Timed out waiting for cluster operator to be ready after 2 minutes")
+		case <-ticker.C:
+			if checkReady() {
+				log.Println("Cluster operator is ready!")
+				goto ready
+			}
+		}
+	}
+
+ready:
 	code := m.Run()
 
 	os.Remove(pluginBinaryPath)

@@ -16,7 +16,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
-	"strings"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
@@ -33,10 +32,10 @@ type ClientInfo struct {
 	Transport *http.Transport
 }
 
-// GetRabbitmqClientForPod creates a rabbithole client for a specific pod using its IP address.
-// It fetches credentials from the default user secret and connects directly to the pod IP.
-func GetRabbitmqClientForPod(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster, podIP string) (*rabbithole.Client, error) {
-	info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podIP)
+// GetRabbitmqClientForPod creates a rabbithole client for a specific pod using its stable DNS name.
+// It fetches credentials from the default user secret and connects directly to the pod via its stable DNS.
+func GetRabbitmqClientForPod(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster, podName string) (*rabbithole.Client, error) {
+	info, err := GetClientInfoForPod(ctx, k8sClient, rmq, podName)
 	if err != nil {
 		return nil, err
 	}
@@ -57,9 +56,9 @@ func GetRabbitmqClientForPod(ctx context.Context, k8sClient client.Reader, rmq *
 	return rabbitmqClient, nil
 }
 
-// GetClientInfoForPod creates ClientInfo for a specific pod IP.
+// GetClientInfoForPod creates ClientInfo for a specific pod using its stable DNS name.
 // This is useful for checking individual pods instead of going through the service.
-func GetClientInfoForPod(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster, podIP string) (*ClientInfo, error) {
+func GetClientInfoForPod(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster, podName string) (*ClientInfo, error) {
 	// Fetch the default user secret
 	secretName := rmq.ChildResourceName("default-user")
 	secret := &corev1.Secret{}
@@ -82,12 +81,16 @@ func GetClientInfoForPod(ctx context.Context, k8sClient client.Reader, rmq *rabb
 		return nil, fmt.Errorf("password not found in secret %s", secretName)
 	}
 
-	// Build management API URL using pod IP
+	// Build management API URL using pod stable DNS name
 	var port int
 	var scheme string
 
 	// Create HTTP transport
 	var transport *http.Transport
+
+	// Construct the headless service name and pod FQDN
+	headlessServiceName := rmq.ChildResourceName("nodes")
+	podFQDN := fmt.Sprintf("%s.%s.%s.svc", podName, headlessServiceName, rmq.Namespace)
 
 	// Use TLS only if there's no other alternative
 	if rmq.Spec.TLS.DisableNonTLSListeners {
@@ -123,9 +126,9 @@ func GetClientInfoForPod(ctx context.Context, k8sClient client.Reader, rmq *rabb
 			tlsConfig.RootCAs = certPool
 		}
 
-		// https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pods
-		podIpDnsName := strings.ReplaceAll(podIP, ".", "-")
-		tlsConfig.ServerName = fmt.Sprintf("%s.%s.pod", podIpDnsName, rmq.Namespace)
+		// Use the pod's stable DNS name for TLS ServerName
+		// This matches the SAN entries users typically configure in their certificates
+		tlsConfig.ServerName = podFQDN
 
 		transport = &http.Transport{
 			TLSClientConfig: tlsConfig,
@@ -135,8 +138,8 @@ func GetClientInfoForPod(ctx context.Context, k8sClient client.Reader, rmq *rabb
 		scheme = "http"
 	}
 
-	// Use pod IP directly instead of service name
-	baseURL := fmt.Sprintf("%s://%s:%d", scheme, podIP, port)
+	// Use pod stable DNS name
+	baseURL := fmt.Sprintf("%s://%s:%d", scheme, podFQDN, port)
 
 	return &ClientInfo{
 		BaseURL:   baseURL,
