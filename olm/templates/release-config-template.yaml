@@ -1,0 +1,11 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:assert", "assert")
+
+---
+catalog_templates:
+#@ for version in data.values.supported_openshift_versions:
+  - template_name: #@ version + ".yaml"
+    channels: [stable]
+    #@ replaces = data.values.replaces
+    replaces: #@ replaces if replaces else assert.fail("replaces must be set")
+#@ end

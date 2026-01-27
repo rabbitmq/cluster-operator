@@ -1,0 +1,3 @@
+---
+#! See https://access.redhat.com/support/policy/updates/openshift#dates for the list of supported OpenShift versions
+supported_openshift_versions: ["4.17", "4.18", "4.19", "4.20"]

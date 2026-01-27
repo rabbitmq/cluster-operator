@@ -19,8 +19,9 @@ all::crd ## Default goal. Generates bundle manifests
 all::rbac
 all::deployment
 all::olm-manifests
+all::olm-release-config
 
-.PHONY: all crd rbac deployment olm-manifests clean
+.PHONY: all crd rbac deployment olm-manifests olm-release-config clean
 
 OLM_DIR = $(CURDIR)/olm/manifests
 $(OLM_DIR) :
@@ -55,6 +56,12 @@ olm-manifests: $(OLM_DIR) ## Render bundle manifests. Customise version using BU
 		--data-value version="$(BUNDLE_VERSION)" \
 		--data-value replaces="$(BUNDLE_REPLACES)" \
 		> $(OLM_DIR)/rabbitmq-cluster-operator.clusterserviceversion.yaml
+
+olm-release-config: $(OLM_DIR) ## Render release config manifests. Customise version using BUNDLE_VERSION and BUNDLE_CREATED_AT
+	ytt -f $(CURDIR)/olm/templates/release-config-template.yaml \
+		--data-value replaces="$(BUNDLE_REPLACES)" \
+		--data-values-file $(CURDIR)/olm/values-release.yaml \
+		> $(CURDIR)/olm/release-config.yaml
 
 clean:
 	rm -f -v $(CURDIR)/olm/manifests/*.y*ml
