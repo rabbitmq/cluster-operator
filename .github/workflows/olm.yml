@@ -93,6 +93,7 @@ jobs:
             olm/manifests
             olm/metadata
             olm/bundle.Dockerfile
+            olm/release-config.yaml
           if-no-files-found: error
           retention-days: 1
 
@@ -179,6 +180,7 @@ jobs:
           GH_PROMPT_DISABLED: 1
           # secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           GH_TOKEN: ${{ secrets.RABBITMQ_CI_TOKEN }}
+        # remove release config because this file is Red Hat marketplace specific
         run: |
           git config user.name "rabbitmq-ci"
           git config user.email ${{ secrets.RABBITMQ_CI_EMAIL }}
@@ -186,6 +188,7 @@ jobs:
           git checkout "rabbitmq-cluster-operator-$BUNDLE_VERSION"
           
           mkdir -pv operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"
+          rm -v -f olm-package-ci/release-config.yaml
           cp -v -fR olm-package-ci/* ./operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"/
           git add operators/rabbitmq-cluster-operator
           git commit -s -m "operator rabbitmq-cluster-operator release $BUNDLE_VERSION"
@@ -221,13 +224,15 @@ jobs:
           GH_PROMPT_DISABLED: 1
           # secret_rabbitmq/kv/Shared-Shared-RabbitMQ%2Frabbitmq-ci/details
           GH_TOKEN: ${{ secrets.RABBITMQ_CI_TOKEN }}
-        # IMPORTANT: this job does not open the PR automatically because the operator is configured differently in
-        # RedHat marketplace CI. In RedHat Marketplace, we have semver-mode for update strategy, and in operatorhub
-        # we have replaces-mode strategy.
+        # IMPORTANT: as of Jan 2026, the operator OLM manifests use File-Based-Catalog (FBC) format
+        # https://redhat-openshift-ecosystem.github.io/operator-pipelines/users/fbc_workflow/
         # https://k8s-operatorhub.github.io/community-operators/operator-ci-yaml/
-        # As workaround, this job will create the branch with the new version, and a maintainer will make adjustments
-        # before manually opening a PR.
-        # TODO(Zerpet): make update strategy consistent
+        #
+        # This enables us to use the auto-release workflow. Notice how the below `run` section does not
+        # `rm` the release config file.
+        # https://redhat-openshift-ecosystem.github.io/operator-pipelines/users/fbc_autorelease/
+        #
+        # The script removed the bundle.Dockerfile file because it is not needed for the FBC workflow.
         run: |
           git config user.name "rabbitmq-ci"
           git config user.email ${{ secrets.RABBITMQ_CI_EMAIL }}
@@ -235,7 +240,12 @@ jobs:
           git checkout "rabbitmq-cluster-operator-$BUNDLE_VERSION"
           
           mkdir -pv operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"
+          rm -v -f olm-package-ci/bundle.Dockerfile
           cp -v -fR olm-package-ci/* ./operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"/
           git add operators/rabbitmq-cluster-operator
           git commit -s -m "operator rabbitmq-cluster-operator release $BUNDLE_VERSION"
           git push --set-upstream origin "rabbitmq-cluster-operator-$BUNDLE_VERSION"
+
+          gh pr create --title "operator rabbitmq-cluster-operator (${{ env.BUNDLE_VERSION }})" \
+            --body "Update operator rabbitmq-cluster-operator (${{ needs.test-olm-package.outputs.olm_package_version }})" \
+            --repo redhat-openshift-ecosystem/community-operators-prod
