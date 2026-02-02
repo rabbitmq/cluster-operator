@@ -49,8 +49,8 @@ github.com/bshuster-repo/logrus-logstash-hook v1.0.0/go.mod h1:zsTqEiSzDgAa/8GZR
 github.com/bwesterb/go-ristretto v1.2.0/go.mod h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
 github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
-github.com/cert-manager/cert-manager v1.18.2 h1:H2P75ycGcTMauV3gvpkDqLdS3RSXonWF2S49QGA1PZE=
-github.com/cert-manager/cert-manager v1.18.2/go.mod h1:icDJx4kG9BCNpGjBvrmsFd99d+lXUvWdkkcrSSQdIiw=
+github.com/cert-manager/cert-manager v1.18.5 h1:Gx4FSpSPYcSC4MQf43QjbxDfyTEbwZgfZQs5Lq9QlBs=
+github.com/cert-manager/cert-manager v1.18.5/go.mod h1:HbPSO5MW/44wu19t84eY/K4c4/WwyPB4bA3uffOH92s=
 github.com/cert-manager/cmctl/v2 v2.3.0 h1:e0j7c5TnZO6CyBztYyHov2m50Li03pR6btvlKslfYTU=
 github.com/cert-manager/cmctl/v2 v2.3.0/go.mod h1:yrpAt7pFgUTUPJWKXV8WIGvg1rPZWDw4XU3mbuFuDSM=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
