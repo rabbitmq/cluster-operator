@@ -20,3 +20,4 @@ olm/release-config.yaml
 /.vars
 # Cursor/Visual Studio Code
 *.code-workspace
+bin/manager
