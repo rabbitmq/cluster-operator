@@ -874,6 +874,23 @@ var _ = Describe("StatefulSet", func() {
 			Expect(container.Env).To(ConsistOf(requiredEnvVariables))
 		})
 
+		It("sets default StartupProbe with rabbitmqctl eval command", func() {
+			stsBuilder := builder.StatefulSet()
+			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+			Expect(container.StartupProbe).NotTo(BeNil())
+			Expect(container.StartupProbe.ProbeHandler.Exec).NotTo(BeNil())
+			Expect(container.StartupProbe.ProbeHandler.Exec.Command).To(Equal([]string{
+				"/bin/bash", "-c",
+				"rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().' | grep -q '^true$'",
+			}))
+			Expect(container.StartupProbe.InitialDelaySeconds).To(BeEquivalentTo(10))
+			Expect(container.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
+			Expect(container.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))
+			Expect(container.StartupProbe.FailureThreshold).To(BeEquivalentTo(30))
+		})
+
 		Context("ExternalSecret", func() {
 			When("SecretBackend.ExternalSecret is set", func() {
 				JustBeforeEach(func() {
@@ -2274,6 +2291,45 @@ default_pass = {{ .Data.data.password }}
 						corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
 								Command: []string{"custom-liveness-probe", "arg1"},
+							},
+						},
+					))
+
+				})
+
+				It("can add/replace a StartupProbe", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											StartupProbe: &corev1.Probe{
+												ProbeHandler: corev1.ProbeHandler{
+													Exec: &corev1.ExecAction{
+														Command: []string{"custom-startup-probe", "arg1"},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+
+					builder = &resource.RabbitmqResourceBuilder{
+						Instance: &instance,
+						Scheme:   scheme,
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.Template.Spec.Containers[0].StartupProbe.ProbeHandler).To(Equal(
+						corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"custom-startup-probe", "arg1"},
 							},
 						},
 					))
