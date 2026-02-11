@@ -93,6 +93,21 @@ var _ = Describe("RabbitmqClusterController", func() {
 				))
 			})
 
+			By("setting the default StartupProbe", func() {
+				rabbitmqContainer := sts.Spec.Template.Spec.Containers[0]
+				Expect(rabbitmqContainer.Name).To(Equal("rabbitmq"))
+				Expect(rabbitmqContainer.StartupProbe).NotTo(BeNil())
+				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.Exec).NotTo(BeNil())
+				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.Exec.Command).To(Equal([]string{
+					"/bin/bash", "-c",
+					"rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().' | grep -q '^true$'",
+				}))
+				Expect(rabbitmqContainer.StartupProbe.InitialDelaySeconds).To(BeEquivalentTo(10))
+				Expect(rabbitmqContainer.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
+				Expect(rabbitmqContainer.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))
+				Expect(rabbitmqContainer.StartupProbe.FailureThreshold).To(BeEquivalentTo(30))
+			})
+
 			By("creating the server conf configmap", func() {
 				cfm := configMap(ctx, cluster, "server-conf")
 				Expect(cfm.Name).To(Equal(cluster.ChildResourceName("server-conf")))
@@ -1056,6 +1071,43 @@ var _ = Describe("RabbitmqClusterController", func() {
 				"FSGroup":   BeNil(),
 			}))
 			Expect(statefulSet(ctx, cluster).Spec.Template.Spec.InitContainers[0].SecurityContext).To(BeNil())
+		})
+
+		It("can override the StartupProbe", func() {
+			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.Containers = []corev1.Container{
+					{
+						Name: "rabbitmq",
+						StartupProbe: &corev1.Probe{
+							ProbeHandler: corev1.ProbeHandler{
+								Exec: &corev1.ExecAction{
+									Command: []string{"custom-startup-check"},
+								},
+							},
+							InitialDelaySeconds: 5,
+							TimeoutSeconds:      10,
+							PeriodSeconds:       15,
+							FailureThreshold:    20,
+						},
+					},
+				}
+			})).To(Succeed())
+
+			Eventually(func() *corev1.Probe {
+				sts := statefulSet(ctx, cluster)
+				rabbitmqContainer := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+				return rabbitmqContainer.StartupProbe
+			}, 3).Should(PointTo(MatchFields(IgnoreExtras, Fields{
+				"ProbeHandler": MatchFields(IgnoreExtras, Fields{
+					"Exec": PointTo(MatchFields(IgnoreExtras, Fields{
+						"Command": Equal([]string{"custom-startup-check"}),
+					})),
+				}),
+				"InitialDelaySeconds": BeEquivalentTo(5),
+				"TimeoutSeconds":      BeEquivalentTo(10),
+				"PeriodSeconds":       BeEquivalentTo(15),
+				"FailureThreshold":    BeEquivalentTo(20),
+			})))
 		})
 
 	})
