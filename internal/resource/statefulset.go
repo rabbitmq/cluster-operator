@@ -296,6 +296,9 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 	if rmqContainer.ReadinessProbe != nil {
 		patchedPodSpec.Containers[0].ReadinessProbe = rmqContainer.ReadinessProbe
 	}
+	if rmqContainer.StartupProbe != nil {
+		patchedPodSpec.Containers[0].StartupProbe = rmqContainer.StartupProbe
+	}
 
 	// A user may wish to override the controller-set securityContext for the RabbitMQ, init containers, and containers so that the
 	// container runtime can override them. If the securityContext has been set to an empty struct, `strategicpatch.StrategicMergePatch`
@@ -639,6 +642,19 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 						PeriodSeconds:       10,
 						SuccessThreshold:    1,
 						FailureThreshold:    3,
+					},
+					// TODO: Update this probe once we have an HTTP API endpoint for this
+					StartupProbe: &corev1.Probe{
+						ProbeHandler: corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"/bin/bash", "-c",
+									"rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().' | grep -q '^true$'"},
+							},
+						},
+						InitialDelaySeconds: 10,
+						TimeoutSeconds:      5,
+						PeriodSeconds:       10,
+						FailureThreshold:    30,
 					},
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.LifecycleHandler{
