@@ -6,8 +6,8 @@ require (
 	github.com/rabbitmq/cluster-operator/v2 v2.0.0-00010101000000-000000000000
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
-	k8s.io/api v0.35.0
-	k8s.io/apimachinery v0.35.0
+	k8s.io/api v0.35.1
+	k8s.io/apimachinery v0.35.1
 	sigs.k8s.io/yaml v1.6.0
 )
 
