@@ -820,6 +820,7 @@ var _ = Describe("StatefulSet", func() {
 			Entry(nil, "rabbitmq_web_mqtt", "web-mqtt", 15675),
 			Entry(nil, "rabbitmq_stomp", "stomp", 61613),
 			Entry(nil, "rabbitmq_web_stomp", "web-stomp", 15674),
+			Entry(nil, "rabbitmq_web_amqp", "web-amqp", 15678),
 			Entry(nil, "rabbitmq_stream", "stream", 5552),
 			Entry(nil, "rabbitmq_multi_dc_replication", "stream", 5552),
 			Entry(nil, "rabbitmq_stream_management", "stream", 5552),

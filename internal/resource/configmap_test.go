@@ -356,9 +356,9 @@ CONSOLE_LOG=new`
 				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
 			})
 
-			When("Web MQTT and Web STOMP are enabled", func() {
+			When("Web AMQP, Web MQTT and Web STOMP are enabled", func() {
 				It("adds TLS config for the additional plugins", func() {
-					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
+					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_web_amqp", "rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
 
 					instance.Name = "rabbit-tls"
 					instance.Spec.TLS.SecretName = "tls-secret"
@@ -393,7 +393,13 @@ CONSOLE_LOG=new`
 						web_stomp.ssl.port       = 15673
 						web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 						web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
-						web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key`)
+						web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+
+						web_amqp.tcp.port       = 15678
+						web_amqp.tls.port       = 15677
+						web_amqp.tls.cacertfile = /etc/rabbitmq-tls/ca.crt
+						web_amqp.tls.certfile   = /etc/rabbitmq-tls/tls.crt
+						web_amqp.tls.keyfile    = /etc/rabbitmq-tls/tls.key`)
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
 					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
@@ -496,6 +502,7 @@ CONSOLE_LOG=new`
 						},
 						Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
 							AdditionalPlugins: []rabbitmqv1beta1.Plugin{
+								"rabbitmq_web_amqp",
 								"rabbitmq_web_mqtt",
 								"rabbitmq_web_stomp",
 							},
@@ -532,7 +539,12 @@ CONSOLE_LOG=new`
 					web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 					web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 					web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
-					web_stomp.tcp.listener = none`)
+					web_stomp.tcp.listener = none
+
+					web_amqp.tls.port       = 15677
+					web_amqp.tls.cacertfile = /etc/rabbitmq-tls/ca.crt
+					web_amqp.tls.certfile   = /etc/rabbitmq-tls/tls.crt
+					web_amqp.tls.keyfile    = /etc/rabbitmq-tls/tls.key`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))

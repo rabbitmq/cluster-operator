@@ -1024,6 +1024,12 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 			ContainerPort: 15674,
 		})
 	}
+	if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "web-amqp",
+			ContainerPort: 15678,
+		})
+	}
 
 	if builder.Instance.StreamNeeded() {
 		ports = append(ports, corev1.ContainerPort{
@@ -1080,6 +1086,13 @@ func (builder *StatefulSetBuilder) updateContainerPorts() []corev1.ContainerPort
 			ports = append(ports, corev1.ContainerPort{
 				Name:          "web-stomp-tls",
 				ContainerPort: 15673,
+			})
+		}
+
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "web-amqp-tls",
+				ContainerPort: 15677,
 			})
 		}
 	}
@@ -1140,6 +1153,13 @@ func (builder *StatefulSetBuilder) updateContainerPortsOnlyTLSListeners() []core
 			ports = append(ports, corev1.ContainerPort{
 				Name:          "web-stomp-tls",
 				ContainerPort: 15673,
+			})
+		}
+
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
+			ports = append(ports, corev1.ContainerPort{
+				Name:          "web-amqp-tls",
+				ContainerPort: 15677,
 			})
 		}
 	}
