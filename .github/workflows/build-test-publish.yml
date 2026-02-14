@@ -106,7 +106,7 @@ jobs:
 
     - name: Compress kubectl plugin
       working-directory: bin/kubectl-rabbitmq-plugin
-      run: tar -cvzf kubectl-rabbitmq-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz kubectl-rabbitmq-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}
+      run: tar -cvzf kubectl-rabbitmq-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz kubectl-rabbitmq-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }} ../../LICENSE.txt ../../README.md
 
     - name: Upload kubectl plugin artifact
       uses: actions/upload-artifact@v6
