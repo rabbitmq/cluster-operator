@@ -231,6 +231,25 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 				}
 			}
 		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
+			if !builder.Instance.DisableNonTLSListeners() {
+				if _, err := userConfigurationSection.NewKey("web_amqp.tcp.port", "15678"); err != nil {
+					return err
+				}
+			}
+			if _, err := userConfigurationSection.NewKey("web_amqp.tls.port", "15677"); err != nil {
+				return err
+			}
+			if _, err := userConfigurationSection.NewKey("web_amqp.tls.cacertfile", caCertPath); err != nil {
+				return err
+			}
+			if _, err := userConfigurationSection.NewKey("web_amqp.tls.certfile", tlsCertPath); err != nil {
+				return err
+			}
+			if _, err := userConfigurationSection.NewKey("web_amqp.tls.keyfile", tlsKeyPath); err != nil {
+				return err
+			}
+		}
 	}
 
 	if builder.Instance.MemoryLimited() {

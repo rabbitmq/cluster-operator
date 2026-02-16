@@ -178,6 +178,15 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				AppProtocol: ptr.To("http"),
 			}
 		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
+			servicePortsMap["web-amqp"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        15678,
+				TargetPort:  intstr.FromInt(15678),
+				Name:        "web-amqp",
+				AppProtocol: ptr.To("http"),
+			}
+		}
 
 		if builder.Instance.StreamNeeded() {
 			servicePortsMap["stream"] = corev1.ServicePort{
@@ -271,6 +280,15 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15676,
 				Name:        "web-mqtt-tls",
 				TargetPort:  intstr.FromInt(15676),
+				AppProtocol: ptr.To("https"),
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
+			servicePortsMap["web-amqp-tls"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        15677,
+				Name:        "web-amqp-tls",
+				TargetPort:  intstr.FromInt(15677),
 				AppProtocol: ptr.To("https"),
 			}
 		}
