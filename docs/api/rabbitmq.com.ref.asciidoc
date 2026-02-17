@@ -114,6 +114,8 @@ More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-
 
 | *`spec`* __link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#persistentvolumeclaimspec-v1-core[$$PersistentVolumeClaimSpec$$]__ | Spec defines the desired characteristics of a volume requested by a pod author.
 More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
+When using override.statefulSet.spec.volumeClaimTemplates, you must provide the complete
+template including spec.resources.requests.storage. Overrides replace the entire template.
 |===
 
 

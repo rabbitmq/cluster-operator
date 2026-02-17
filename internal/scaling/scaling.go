@@ -48,7 +48,8 @@ func (p PersistenceScaler) Scale(ctx context.Context, rmq rabbitmqv1beta1.Rabbit
 
 	// desired storage capacity is smaller than the current capacity; we can't proceed lest we lose data
 	if err == nil && existingCapacity.Cmp(desiredCapacity) == 1 {
-		msg := "shrinking persistent volumes is not supported"
+		msg := fmt.Sprintf("shrinking persistent volumes is not supported (existing: %s, desired: %s)",
+			existingCapacity.String(), desiredCapacity.String())
 		logger.Error(errors.New("unsupported operation"), msg)
 		return errors.New(msg)
 	}
