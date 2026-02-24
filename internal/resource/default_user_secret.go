@@ -135,6 +135,7 @@ func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
 		"rabbitmq_stream":    "stream-port",
 		"rabbitmq_web_mqtt":  "web-mqtt-port",
 		"rabbitmq_web_stomp": "web-stomp-port",
+		"rabbitmq_web_amqp":  "web-amqp-port",
 	}
 	TLSPort := map[string]string{
 		"mqtt-port":      "8883",
@@ -142,6 +143,7 @@ func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
 		"stream-port":    "5551",
 		"web-mqtt-port":  "15676",
 		"web-stomp-port": "15673",
+		"web-amqp-port":  "15677",
 	}
 	port := map[string]string{
 		"mqtt-port":      "1883",
@@ -149,6 +151,7 @@ func (builder *DefaultUserSecretBuilder) updatePorts(secret *corev1.Secret) {
 		"stream-port":    "5552",
 		"web-mqtt-port":  "15675",
 		"web-stomp-port": "15674",
+		"web-amqp-port":  "15678",
 	}
 
 	if builder.Instance.Spec.TLS.SecretName != "" {

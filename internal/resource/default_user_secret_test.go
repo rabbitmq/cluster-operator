@@ -157,14 +157,15 @@ var _ = Describe("DefaultUserSecret", func() {
 		})
 	})
 
-	Context("when MQTT, STOMP, streams, WebMQTT, and WebSTOMP are enabled", func() {
-		It("adds the MQTT, STOMP, stream, WebMQTT, and WebSTOMP ports to the user secret", func() {
+	Context("when MQTT, STOMP, streams, WebAMQP, WebMQTT, and WebSTOMP are enabled", func() {
+		It("adds the MQTT, STOMP, stream, WebAMQP, WebMQTT, and WebSTOMP ports to the user secret", func() {
 			var port []byte
 
 			instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
 				"rabbitmq_mqtt",
 				"rabbitmq_stomp",
 				"rabbitmq_stream",
+				"rabbitmq_web_amqp",
 				"rabbitmq_web_mqtt",
 				"rabbitmq_web_stomp",
 			}
@@ -192,6 +193,10 @@ var _ = Describe("DefaultUserSecret", func() {
 			port, ok = secret.Data["web-stomp-port"]
 			Expect(ok).To(BeTrue(), "Failed to find key \"web-stomp-port\" in the generated Secret")
 			Expect(port).To(BeEquivalentTo("15674"))
+
+			port, ok = secret.Data["web-amqp-port"]
+			Expect(ok).To(BeTrue(), "Failed to find key \"web-amqp-port\" in the generated Secret")
+			Expect(port).To(BeEquivalentTo("15678"))
 		})
 	})
 
@@ -211,7 +216,7 @@ var _ = Describe("DefaultUserSecret", func() {
 		})
 
 		Context("when MQTT, STOMP, streams, WebMQTT, and WebSTOMP are enabled", func() {
-			It("adds the MQTTS, STOMPS, streams, WebMQTTS, and WebSTOMPS ports to the user secret", func() {
+			It("adds the MQTTS, STOMPS, streams, WebAMQPS, WebMQTTS, and WebSTOMPS ports to the user secret", func() {
 				var port []byte
 
 				instance.Spec.TLS.SecretName = "tls-secret"
@@ -221,6 +226,7 @@ var _ = Describe("DefaultUserSecret", func() {
 					"rabbitmq_stream",
 					"rabbitmq_web_mqtt",
 					"rabbitmq_web_stomp",
+					"rabbitmq_web_amqp",
 				}
 
 				obj, err := defaultUserSecretBuilder.Build()
@@ -246,6 +252,10 @@ var _ = Describe("DefaultUserSecret", func() {
 				port, ok = secret.Data["web-stomp-port"]
 				Expect(ok).To(BeTrue(), "Failed to find key \"web-stomp-port\" in the generated Secret")
 				Expect(port).To(BeEquivalentTo("15673"))
+
+				port, ok = secret.Data["web-amqp-port"]
+				Expect(ok).To(BeTrue(), "Failed to find key \"web-stomp-port\" in the generated Secret")
+				Expect(port).To(BeEquivalentTo("15677"))
 			})
 		})
 	})

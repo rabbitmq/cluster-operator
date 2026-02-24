@@ -153,12 +153,19 @@ var _ = Context("Services", func() {
 				})
 			})
 
-			When("rabbitmq_web_mqtt and rabbitmq_web_stomp are enabled", func() {
+			When("rabbitmq_web_amqp, rabbitmq_web_mqtt and rabbitmq_web_stomp are enabled", func() {
 				It("opens ports for those plugins", func() {
 					instance.Spec.TLS.CaSecretName = "caname"
-					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
+					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_amqp", "rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
+						{
+							Name:        "web-amqp-tls",
+							Protocol:    corev1.ProtocolTCP,
+							Port:        15677,
+							TargetPort:  intstr.FromInt(15677),
+							AppProtocol: ptr.To("https"),
+						},
 						{
 							Name:        "web-mqtt-tls",
 							Protocol:    corev1.ProtocolTCP,
@@ -586,6 +593,7 @@ var _ = Context("Services", func() {
 				Entry(nil, "rabbitmq_web_mqtt", "web-mqtt", 15675, ptr.To("http")),
 				Entry(nil, "rabbitmq_stomp", "stomp", 61613, ptr.To("stomp.github.io/stomp")),
 				Entry(nil, "rabbitmq_web_stomp", "web-stomp", 15674, ptr.To("http")),
+				Entry(nil, "rabbitmq_web_amqp", "web-amqp", 15678, ptr.To("http")),
 				Entry(nil, "rabbitmq_stream", "stream", 5552, ptr.To("rabbitmq.com/stream")),
 				Entry(nil, "rabbitmq_multi_dc_replication", "stream", 5552, ptr.To("rabbitmq.com/stream")),
 				Entry(nil, "rabbitmq_stream_management", "stream", 5552, ptr.To("rabbitmq.com/stream")),
