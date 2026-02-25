@@ -165,6 +165,54 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 				}
 			}
 		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.port", "15676"); err != nil {
+				return err
+			}
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.certfile", tlsCertPath); err != nil {
+				return err
+			}
+			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.keyfile", tlsKeyPath); err != nil {
+				return err
+			}
+			if builder.Instance.DisableNonTLSListeners() {
+				if _, err := userConfigurationSection.NewKey("web_mqtt.tcp.listener", "none"); err != nil {
+					return err
+				}
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.port", "15673"); err != nil {
+				return err
+			}
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.certfile", tlsCertPath); err != nil {
+				return err
+			}
+			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.keyfile", tlsKeyPath); err != nil {
+				return err
+			}
+			if builder.Instance.DisableNonTLSListeners() {
+				if _, err := userConfigurationSection.NewKey("web_stomp.tcp.listener", "none"); err != nil {
+					return err
+				}
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
+			if !builder.Instance.DisableNonTLSListeners() {
+				if _, err := userConfigurationSection.NewKey("web_amqp.tcp.port", "15678"); err != nil {
+					return err
+				}
+			}
+			if _, err := userConfigurationSection.NewKey("web_amqp.tls.port", "15677"); err != nil {
+				return err
+			}
+			if _, err := userConfigurationSection.NewKey("web_amqp.tls.certfile", tlsCertPath); err != nil {
+				return err
+			}
+			if _, err := userConfigurationSection.NewKey("web_amqp.tls.keyfile", tlsKeyPath); err != nil {
+				return err
+			}
+		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stream") {
 			if _, err := userConfigurationSection.NewKey("stream.listeners.ssl.default", "5551"); err != nil {
 				return err
@@ -194,59 +242,17 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 		}
 
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
-			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.port", "15676"); err != nil {
-				return err
-			}
 			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.cacertfile", caCertPath); err != nil {
 				return err
 			}
-			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.certfile", tlsCertPath); err != nil {
-				return err
-			}
-			if _, err := userConfigurationSection.NewKey("web_mqtt.ssl.keyfile", tlsKeyPath); err != nil {
-				return err
-			}
-			if builder.Instance.DisableNonTLSListeners() {
-				if _, err := userConfigurationSection.NewKey("web_mqtt.tcp.listener", "none"); err != nil {
-					return err
-				}
-			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
-			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.port", "15673"); err != nil {
-				return err
-			}
 			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.cacertfile", caCertPath); err != nil {
 				return err
 			}
-			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.certfile", tlsCertPath); err != nil {
-				return err
-			}
-			if _, err := userConfigurationSection.NewKey("web_stomp.ssl.keyfile", tlsKeyPath); err != nil {
-				return err
-			}
-			if builder.Instance.DisableNonTLSListeners() {
-				if _, err := userConfigurationSection.NewKey("web_stomp.tcp.listener", "none"); err != nil {
-					return err
-				}
-			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
-			if !builder.Instance.DisableNonTLSListeners() {
-				if _, err := userConfigurationSection.NewKey("web_amqp.tcp.port", "15678"); err != nil {
-					return err
-				}
-			}
-			if _, err := userConfigurationSection.NewKey("web_amqp.tls.port", "15677"); err != nil {
-				return err
-			}
 			if _, err := userConfigurationSection.NewKey("web_amqp.tls.cacertfile", caCertPath); err != nil {
-				return err
-			}
-			if _, err := userConfigurationSection.NewKey("web_amqp.tls.certfile", tlsCertPath); err != nil {
-				return err
-			}
-			if _, err := userConfigurationSection.NewKey("web_amqp.tls.keyfile", tlsKeyPath); err != nil {
 				return err
 			}
 		}

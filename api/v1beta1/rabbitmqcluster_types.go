@@ -364,7 +364,7 @@ type TLSSpec struct {
 	// Name of a Secret in the same Namespace as the RabbitmqCluster, containing the Certificate Authority's public certificate for TLS.
 	// The Secret must store this as ca.crt.
 	// This Secret can be created by running `kubectl create secret generic ca-secret --from-file=ca.crt=path/to/ca.crt`
-	// Used for mTLS, and TLS for rabbitmq_web_amqp, rabbitmq_web_stomp and rabbitmq_web_mqtt.
+	// Used for mTLS.
 	CaSecretName string `json:"caSecretName,omitempty"`
 	// When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ, management plugin and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt, web_amqp.
 	// Only TLS-enabled clients will be able to connect.
