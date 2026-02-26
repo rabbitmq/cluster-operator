@@ -155,7 +155,6 @@ var _ = Context("Services", func() {
 
 			When("rabbitmq_web_amqp, rabbitmq_web_mqtt and rabbitmq_web_stomp are enabled", func() {
 				It("opens ports for those plugins", func() {
-					instance.Spec.TLS.CaSecretName = "caname"
 					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_amqp", "rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
@@ -296,7 +295,6 @@ var _ = Context("Services", func() {
 			When("MQTT and Web-MQTT are enabled", func() {
 				It("exposes ports for both protocols", func() {
 					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_mqtt", "rabbitmq_web_mqtt"}
-					instance.Spec.TLS.CaSecretName = "my-ca"
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
 						{
@@ -320,7 +318,6 @@ var _ = Context("Services", func() {
 			When("STOMP and Web-STOMP are enabled", func() {
 				It("exposes ports for both protocols", func() {
 					instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_stomp", "rabbitmq_web_stomp"}
-					instance.Spec.TLS.CaSecretName = "my-ca"
 					Expect(serviceBuilder.Update(svc)).To(Succeed())
 					Expect(svc.Spec.Ports).To(ContainElements([]corev1.ServicePort{
 						{

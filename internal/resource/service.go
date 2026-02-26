@@ -232,6 +232,33 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				AppProtocol: ptr.To("mqtts"),
 			}
 		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
+			servicePortsMap["web-stomp-tls"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        15673,
+				Name:        "web-stomp-tls",
+				TargetPort:  intstr.FromInt(15673),
+				AppProtocol: ptr.To("https"),
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
+			servicePortsMap["web-mqtt-tls"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        15676,
+				Name:        "web-mqtt-tls",
+				TargetPort:  intstr.FromInt(15676),
+				AppProtocol: ptr.To("https"),
+			}
+		}
+		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
+			servicePortsMap["web-amqp-tls"] = corev1.ServicePort{
+				Protocol:    corev1.ProtocolTCP,
+				Port:        15677,
+				Name:        "web-amqp-tls",
+				TargetPort:  intstr.FromInt(15677),
+				AppProtocol: ptr.To("https"),
+			}
+		}
 		if builder.Instance.StreamNeeded() {
 			servicePortsMap["streams"] = corev1.ServicePort{
 				Protocol:    corev1.ProtocolTCP,
@@ -264,35 +291,6 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 		}
 	}
 
-	if builder.Instance.MutualTLSEnabled() {
-		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
-			servicePortsMap["web-stomp-tls"] = corev1.ServicePort{
-				Protocol:    corev1.ProtocolTCP,
-				Port:        15673,
-				Name:        "web-stomp-tls",
-				TargetPort:  intstr.FromInt(15673),
-				AppProtocol: ptr.To("https"),
-			}
-		}
-		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
-			servicePortsMap["web-mqtt-tls"] = corev1.ServicePort{
-				Protocol:    corev1.ProtocolTCP,
-				Port:        15676,
-				Name:        "web-mqtt-tls",
-				TargetPort:  intstr.FromInt(15676),
-				AppProtocol: ptr.To("https"),
-			}
-		}
-		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
-			servicePortsMap["web-amqp-tls"] = corev1.ServicePort{
-				Protocol:    corev1.ProtocolTCP,
-				Port:        15677,
-				Name:        "web-amqp-tls",
-				TargetPort:  intstr.FromInt(15677),
-				AppProtocol: ptr.To("https"),
-			}
-		}
-	}
 	return servicePortsMap
 }
 

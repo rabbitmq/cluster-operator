@@ -308,6 +308,46 @@ CONSOLE_LOG=new`
 				})
 			})
 
+			When("Web AMQP, Web MQTT and Web STOMP are enabled", func() {
+				It("adds TLS config for the additional plugins", func() {
+					additionalPlugins := []rabbitmqv1beta1.Plugin{"rabbitmq_web_amqp", "rabbitmq_web_mqtt", "rabbitmq_web_stomp"}
+
+					instance.Name = "rabbit-tls"
+					instance.Spec.TLS.SecretName = "tls-secret"
+					instance.Spec.Rabbitmq.AdditionalPlugins = additionalPlugins
+
+					expectedConfiguration := iniString(`ssl_options.certfile   = /etc/rabbitmq-tls/tls.crt
+						ssl_options.keyfile    = /etc/rabbitmq-tls/tls.key
+						listeners.ssl.default  = 5671
+
+						management.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+						management.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+						management.ssl.port       = 15671
+
+						prometheus.ssl.certfile = /etc/rabbitmq-tls/tls.crt
+						prometheus.ssl.keyfile   = /etc/rabbitmq-tls/tls.key
+						prometheus.ssl.port       = 15691
+						management.tcp.port       = 15672
+						prometheus.tcp.port       = 15692
+
+						web_mqtt.ssl.port       = 15676
+						web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+						web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+
+						web_stomp.ssl.port       = 15673
+						web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
+						web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
+
+						web_amqp.tcp.port       = 15678
+						web_amqp.tls.port       = 15677
+						web_amqp.tls.certfile   = /etc/rabbitmq-tls/tls.crt
+						web_amqp.tls.keyfile    = /etc/rabbitmq-tls/tls.key`)
+
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
+				})
+			})
+
 			It("preserves user configuration over Operator generated settings", func() {
 				instance.Name = "rabbit-tls-with-user-conf"
 				instance.Spec.TLS.SecretName = "tls-secret"
@@ -380,26 +420,28 @@ CONSOLE_LOG=new`
 						management.tcp.port       = 15672
 						prometheus.tcp.port       = 15692
 
-						ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
-						ssl_options.verify     = verify_peer
-						management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
-						prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 
 						web_mqtt.ssl.port       = 15676
-						web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 						web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 						web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 
 						web_stomp.ssl.port       = 15673
-						web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 						web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 						web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 
 						web_amqp.tcp.port       = 15678
 						web_amqp.tls.port       = 15677
-						web_amqp.tls.cacertfile = /etc/rabbitmq-tls/ca.crt
 						web_amqp.tls.certfile   = /etc/rabbitmq-tls/tls.crt
-						web_amqp.tls.keyfile    = /etc/rabbitmq-tls/tls.key`)
+						web_amqp.tls.keyfile    = /etc/rabbitmq-tls/tls.key
+
+						ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
+						ssl_options.verify     = verify_peer
+						management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+						prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+
+						web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+						web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+						web_amqp.tls.cacertfile = /etc/rabbitmq-tls/ca.crt`)
 
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
 					Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))
@@ -524,27 +566,28 @@ CONSOLE_LOG=new`
 
 					listeners.tcp = none
 
-					ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
-					ssl_options.verify     = verify_peer
-					management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
-					prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
-
 					web_mqtt.ssl.port       = 15676
-					web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 					web_mqtt.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 					web_mqtt.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 					web_mqtt.tcp.listener = none
 
 					web_stomp.ssl.port       = 15673
-					web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
 					web_stomp.ssl.certfile   = /etc/rabbitmq-tls/tls.crt
 					web_stomp.ssl.keyfile    = /etc/rabbitmq-tls/tls.key
 					web_stomp.tcp.listener = none
 
 					web_amqp.tls.port       = 15677
-					web_amqp.tls.cacertfile = /etc/rabbitmq-tls/ca.crt
 					web_amqp.tls.certfile   = /etc/rabbitmq-tls/tls.crt
-					web_amqp.tls.keyfile    = /etc/rabbitmq-tls/tls.key`)
+					web_amqp.tls.keyfile    = /etc/rabbitmq-tls/tls.key
+
+					ssl_options.cacertfile = /etc/rabbitmq-tls/ca.crt
+					ssl_options.verify     = verify_peer
+					management.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+					prometheus.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+
+					web_mqtt.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+					web_stomp.ssl.cacertfile = /etc/rabbitmq-tls/ca.crt
+					web_amqp.tls.cacertfile = /etc/rabbitmq-tls/ca.crt`)
 
 				Expect(configMapBuilder.Update(configMap)).To(Succeed())
 				Expect(configMap.Data).To(HaveKeyWithValue("userDefinedConfiguration.conf", expectedConfiguration))

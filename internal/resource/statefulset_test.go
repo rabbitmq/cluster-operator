@@ -595,6 +595,29 @@ var _ = Describe("StatefulSet", func() {
 				}))
 			})
 
+			It("opens tls ports when web-mqtt, web-stomp and web-amqp are configured", func() {
+				instance.Spec.TLS.SecretName = "tls-secret"
+				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_web_mqtt", "rabbitmq_web_stomp", "rabbitmq_web_amqp"}
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				rabbitmqContainerSpec := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+
+				Expect(rabbitmqContainerSpec.Ports).To(ContainElements([]corev1.ContainerPort{
+					{
+						Name:          "web-mqtt-tls",
+						ContainerPort: 15676,
+					},
+					{
+						Name:          "web-stomp-tls",
+						ContainerPort: 15673,
+					},
+					{
+						Name:          "web-amqp-tls",
+						ContainerPort: 15677,
+					},
+				}))
+			})
+
 			It("opens tls port for stream when rabbitmq_multi_dc_replication is enabled", func() {
 				instance.Spec.TLS.SecretName = "tls-secret"
 				instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{"rabbitmq_multi_dc_replication"}
