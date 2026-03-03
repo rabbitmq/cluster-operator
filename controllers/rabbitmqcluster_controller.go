@@ -350,9 +350,9 @@ func (r *RabbitmqClusterReconciler) updateStatusConditions(ctx context.Context, 
 }
 
 func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) ([]runtime.Object, error) {
+	var endpointSlice *discoveryv1.EndpointSlice
 	sts := &appsv1.StatefulSet{}
 	endpointSliceList := &discoveryv1.EndpointSliceList{}
-	endpointSlice := &discoveryv1.EndpointSlice{}
 
 	if err := r.Get(ctx,
 		types.NamespacedName{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace},
