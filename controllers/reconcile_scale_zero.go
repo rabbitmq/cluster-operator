@@ -81,7 +81,7 @@ func (r *RabbitmqClusterReconciler) saveReplicasBeforeZero(ctx context.Context, 
 // If the annotation rabbitmq.com/before-zero-replicas-configured exists it will be deleted.
 func (r *RabbitmqClusterReconciler) removeReplicasBeforeZeroAnnotationIfExists(ctx context.Context, cluster *v1beta1.RabbitmqCluster) {
 	if _, ok := cluster.Annotations[beforeZeroReplicasConfigured]; ok {
-		r.deleteAnnotation(ctx, cluster, beforeZeroReplicasConfigured)
+		_ = r.deleteAnnotation(ctx, cluster, beforeZeroReplicasConfigured)
 	}
 }
 
