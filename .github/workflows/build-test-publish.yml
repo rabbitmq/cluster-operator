@@ -161,7 +161,7 @@ jobs:
 
     - name: OCI Metadata
       id: meta
-      uses: docker/metadata-action@v5
+      uses: docker/metadata-action@v6
       with:
         # list of Docker images to use as base name for tags
         images: |
@@ -178,7 +178,7 @@ jobs:
       uses: docker/setup-qemu-action@v4
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     - name: Login to Docker Hub
       if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
@@ -205,7 +205,7 @@ jobs:
 
     - name: Build and push
       id: build
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       if: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v') }}
       with:
         context: .
@@ -224,7 +224,7 @@ jobs:
 
     - name: Build to TAR
       id: build_tar
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: .
         provenance: false
