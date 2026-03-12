@@ -14,8 +14,13 @@ import (
 
 func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster, desiredSts *appsv1.StatefulSet) error {
 	logger := ctrl.LoggerFrom(ctx)
-	desiredCapacity := persistenceStorageCapacity(desiredSts.Spec.VolumeClaimTemplates)
-	err := scaling.NewPersistenceScaler(r.Clientset).Scale(ctx, *rmq, desiredCapacity)
+	desiredCapacity, err := persistenceStorageCapacity(desiredSts.Spec.VolumeClaimTemplates)
+	if err != nil {
+		logger.Error(err, "failed to determine PVC capacity")
+		r.Recorder.Event(rmq, corev1.EventTypeWarning, "FailedReconcilePersistence", msg)
+		return err
+	}
+	err = scaling.NewPersistenceScaler(r.Clientset).Scale(ctx, *rmq, desiredCapacity)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to scale PVCs: %s", err.Error())
 		logger.Error(fmt.Errorf("hit an error while scaling PVC capacity: %w", err), msg)
@@ -24,11 +29,18 @@ func (r *RabbitmqClusterReconciler) reconcilePVC(ctx context.Context, rmq *rabbi
 	return err
 }
 
-func persistenceStorageCapacity(templates []corev1.PersistentVolumeClaim) k8sresource.Quantity {
+func persistenceStorageCapacity(templates []corev1.PersistentVolumeClaim) (k8sresource.Quantity, error) {
 	for _, t := range templates {
 		if t.Name == "persistence" {
-			return t.Spec.Resources.Requests[corev1.ResourceStorage]
+			storage := t.Spec.Resources.Requests[corev1.ResourceStorage]
+			if storage.IsZero() {
+				return storage, fmt.Errorf(
+					"PVC template 'persistence' is missing the storage request. " +
+						"If you are overriding the persistence template, please provide the full template definition including storage request and metadata")
+			}
+			return storage, nil
 		}
 	}
-	return k8sresource.MustParse("0")
+	// No persistence template found - this is valid for ephemeral storage (storage: "0Gi")
+	return k8sresource.MustParse("0"), nil
 }
