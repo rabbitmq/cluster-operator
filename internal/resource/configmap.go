@@ -33,9 +33,7 @@ log.console = true
 queue_master_locator = min-masters
 disk_free_limit.absolute = 2GB
 cluster_partition_handling = pause_minority
-cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-cluster_formation.k8s.host = kubernetes.default
-cluster_formation.k8s.address_type = hostname`
+cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s`
 
 	defaultTLSConf = `
 ssl_options.certfile = /etc/rabbitmq-tls/tls.crt
