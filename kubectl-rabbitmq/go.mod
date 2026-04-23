@@ -1,13 +1,13 @@
 module github.com/rabbitmq/cluster-operator/kubectl-rabbitmq
 
-go 1.25.9
+go 1.26.0
 
 require (
 	github.com/rabbitmq/cluster-operator/v2 v2.20.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.35.4
-	k8s.io/apimachinery v0.35.4
+	k8s.io/apimachinery v0.36.0
 	sigs.k8s.io/yaml v1.6.0
 )
 
