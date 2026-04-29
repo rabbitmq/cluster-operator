@@ -25,7 +25,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			rmq := &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{}},
 			}
-			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrue())
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrueBecause("fallback to old behavior when version is not annotated"))
 		})
 
 		It("returns true if version cannot be parsed", func() {
@@ -34,7 +34,7 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 					rabbitmqv1beta1.RabbitmqVersionAnnotation: "invalid",
 				}},
 			}
-			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrue())
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrueBecause("fallback to old behavior when version cannot be parsed"))
 		})
 
 		It("returns true if version is less than 4.1.0", func() {
@@ -43,10 +43,10 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 					rabbitmqv1beta1.RabbitmqVersionAnnotation: "3.13.0",
 				}},
 			}
-			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrue())
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrueBecause("version is less than 4.1.0"))
 
 			rmq.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.0.0"
-			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrue())
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrueBecause("version is less than 4.1.0"))
 		})
 
 		It("returns false if version is 4.1.0 or greater", func() {
@@ -55,13 +55,13 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 					rabbitmqv1beta1.RabbitmqVersionAnnotation: "4.1.0",
 				}},
 			}
-			Expect(resource.ShouldCreateRBAC(rmq)).To(BeFalse())
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeFalseBecause("RBAC resources are no longer required for 4.1.0 or greater"))
 
 			rmq.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.1.5"
-			Expect(resource.ShouldCreateRBAC(rmq)).To(BeFalse())
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeFalseBecause("RBAC resources are no longer required for 4.1.0 or greater"))
 
 			rmq.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.2.0"
-			Expect(resource.ShouldCreateRBAC(rmq)).To(BeFalse())
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeFalseBecause("RBAC resources are no longer required for 4.1.0 or greater"))
 		})
 	})
 

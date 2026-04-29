@@ -641,17 +641,17 @@ var _ = Describe("RabbitmqClusterController", func() {
 				Eventually(func() bool {
 					_, err := clientSet.CoreV1().ServiceAccounts(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
 					return apierrors.IsNotFound(err)
-				}, 5).Should(BeTrue())
+				}, 5).Should(BeTrueBecause("ServiceAccount should be deleted when version >= 4.1.0"))
 
 				Eventually(func() bool {
 					_, err := clientSet.RbacV1().Roles(cluster.Namespace).Get(ctx, cluster.ChildResourceName("peer-discovery"), metav1.GetOptions{})
 					return apierrors.IsNotFound(err)
-				}, 5).Should(BeTrue())
+				}, 5).Should(BeTrueBecause("Role should be deleted when version >= 4.1.0"))
 
 				Eventually(func() bool {
 					_, err := clientSet.RbacV1().RoleBindings(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
 					return apierrors.IsNotFound(err)
-				}, 5).Should(BeTrue())
+				}, 5).Should(BeTrueBecause("RoleBinding should be deleted when version >= 4.1.0"))
 			})
 		})
 
