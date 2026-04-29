@@ -20,6 +20,51 @@ import (
 )
 
 var _ = Describe("RabbitmqResourceBuilder", func() {
+	Context("ShouldCreateRBAC", func() {
+		It("returns true if version is not annotated", func() {
+			rmq := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{}},
+			}
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrue())
+		})
+
+		It("returns true if version cannot be parsed", func() {
+			rmq := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{
+					rabbitmqv1beta1.RabbitmqVersionAnnotation: "invalid",
+				}},
+			}
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrue())
+		})
+
+		It("returns true if version is less than 4.1.0", func() {
+			rmq := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{
+					rabbitmqv1beta1.RabbitmqVersionAnnotation: "3.13.0",
+				}},
+			}
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrue())
+
+			rmq.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.0.0"
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeTrue())
+		})
+
+		It("returns false if version is 4.1.0 or greater", func() {
+			rmq := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{
+					rabbitmqv1beta1.RabbitmqVersionAnnotation: "4.1.0",
+				}},
+			}
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeFalse())
+
+			rmq.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.1.5"
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeFalse())
+
+			rmq.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.2.0"
+			Expect(resource.ShouldCreateRBAC(rmq)).To(BeFalse())
+		})
+	})
+
 	Context("ResourceBuilders", func() {
 		var (
 			instance *rabbitmqv1beta1.RabbitmqCluster
@@ -77,6 +122,21 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 				resourceBuilders := builder.ResourceBuilders()
 				Expect(resourceBuilders).To(HaveLen(9))
 				Expect(resourceBuilders).NotTo(ContainElement(BeAssignableToTypeOf(&resource.DefaultUserSecretBuilder{})))
+			})
+		})
+
+		When("RabbitMQ version is 4.1.0 or greater", func() {
+			BeforeEach(func() {
+				instance.Annotations = map[string]string{
+					rabbitmqv1beta1.RabbitmqVersionAnnotation: "4.1.0",
+				}
+			})
+			It("returns all resource builders except for RBAC resources", func() {
+				resourceBuilders := builder.ResourceBuilders()
+				Expect(resourceBuilders).To(HaveLen(7))
+				Expect(resourceBuilders).NotTo(ContainElement(BeAssignableToTypeOf(&resource.ServiceAccountBuilder{})))
+				Expect(resourceBuilders).NotTo(ContainElement(BeAssignableToTypeOf(&resource.RoleBuilder{})))
+				Expect(resourceBuilders).NotTo(ContainElement(BeAssignableToTypeOf(&resource.RoleBindingBuilder{})))
 			})
 		})
 	})

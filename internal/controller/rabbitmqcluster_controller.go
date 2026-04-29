@@ -183,6 +183,20 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Scheme:   r.Scheme,
 	}
 
+	if !resource.ShouldCreateRBAC(rabbitmqCluster) {
+		// Ensure ServiceAccount, Role, and RoleBinding are deleted
+		for _, obj := range []client.Object{
+			&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: rabbitmqCluster.ChildResourceName("server"), Namespace: rabbitmqCluster.Namespace}},
+			&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: rabbitmqCluster.ChildResourceName("peer-discovery"), Namespace: rabbitmqCluster.Namespace}},
+			&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: rabbitmqCluster.ChildResourceName("server"), Namespace: rabbitmqCluster.Namespace}},
+		} {
+			if err := r.Client.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+				logger.Error(err, "Failed to delete RBAC resource")
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
 	builders := resourceBuilder.ResourceBuilders()
 
 	for _, builder := range builders {

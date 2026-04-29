@@ -617,6 +617,44 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})
 		})
 
+		When("the RabbitMQ version is upgraded to 4.1.0 or greater", func() {
+			It("deletes the ServiceAccount, Role, and RoleBinding", func() {
+				// First, ensure the resources exist
+				_, err := clientSet.CoreV1().ServiceAccounts(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = clientSet.RbacV1().Roles(cluster.Namespace).Get(ctx, cluster.ChildResourceName("peer-discovery"), metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = clientSet.RbacV1().RoleBindings(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				// Upgrade to 4.1.5
+				Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+					if r.Annotations == nil {
+						r.Annotations = make(map[string]string)
+					}
+					r.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.1.5"
+				})).To(Succeed())
+
+				// Verify the resources are deleted
+				Eventually(func() bool {
+					_, err := clientSet.CoreV1().ServiceAccounts(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+					return apierrors.IsNotFound(err)
+				}, 5).Should(BeTrue())
+
+				Eventually(func() bool {
+					_, err := clientSet.RbacV1().Roles(cluster.Namespace).Get(ctx, cluster.ChildResourceName("peer-discovery"), metav1.GetOptions{})
+					return apierrors.IsNotFound(err)
+				}, 5).Should(BeTrue())
+
+				Eventually(func() bool {
+					_, err := clientSet.RbacV1().RoleBindings(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+					return apierrors.IsNotFound(err)
+				}, 5).Should(BeTrue())
+			})
+		})
+
 		It("service type is updated", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
 				r.Spec.Service.Type = "NodePort"

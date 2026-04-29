@@ -10,6 +10,7 @@
 package resource
 
 import (
+	"github.com/Masterminds/semver/v3"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,6 +28,21 @@ type ResourceBuilder interface {
 	UpdateMayRequireStsRecreate() bool
 }
 
+func ShouldCreateRBAC(rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
+	version := rmq.GetRabbitMQVersion()
+	if version == rabbitmqv1beta1.VersionNotAnnotated {
+		return true
+	}
+
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return true
+	}
+
+	constraint, _ := semver.NewConstraint(">= 4.1.0")
+	return !constraint.Check(v)
+}
+
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() []ResourceBuilder {
 
 	builders := []ResourceBuilder{
@@ -36,11 +52,18 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() []ResourceBuilder {
 		builder.DefaultUserSecret(),
 		builder.RabbitmqPluginsConfigMap(),
 		builder.ServerConfigMap(),
-		builder.ServiceAccount(),
-		builder.Role(),
-		builder.RoleBinding(),
-		builder.StatefulSet(),
 	}
+
+	if ShouldCreateRBAC(builder.Instance) {
+		builders = append(builders,
+			builder.ServiceAccount(),
+			builder.Role(),
+			builder.RoleBinding(),
+		)
+	}
+
+	builders = append(builders, builder.StatefulSet())
+
 	if builder.Instance.VaultDefaultUserSecretEnabled() || builder.Instance.ExternalSecretEnabled() {
 		// do not create default-user K8s Secret
 		builders = slices.Delete(builders, 3, 3+1)

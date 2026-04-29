@@ -1415,6 +1415,28 @@ default_pass = {{ .Data.data.password }}
 			Expect(*statefulSet.Spec.Template.Spec.AutomountServiceAccountToken).To(BeTrue())
 		})
 
+		When("RabbitMQ version is 4.1.0 or greater", func() {
+			BeforeEach(func() {
+				instance.Annotations = map[string]string{
+					rabbitmqv1beta1.RabbitmqVersionAnnotation: "4.1.0",
+				}
+			})
+
+			It("omits the service account", func() {
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(BeEmpty())
+			})
+
+			It("does not explicitly mount the service account token", func() {
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				Expect(statefulSet.Spec.Template.Spec.AutomountServiceAccountToken).To(BeNil())
+			})
+		})
+
 		It("creates the required SecurityContext", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
