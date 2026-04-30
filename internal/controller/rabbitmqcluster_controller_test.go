@@ -618,7 +618,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 
 		When("the RabbitMQ version is upgraded to 4.1.0 or greater", func() {
-			It("deletes the ServiceAccount, Role, and RoleBinding", func() {
+			It("deletes the peer-discovery Role and RoleBinding but keeps the ServiceAccount", func() {
 				// First, ensure the resources exist
 				_, err := clientSet.CoreV1().ServiceAccounts(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -637,12 +637,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 					r.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.1.5"
 				})).To(Succeed())
 
-				// Verify the resources are deleted
-				Eventually(func() bool {
-					_, err := clientSet.CoreV1().ServiceAccounts(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
-					return apierrors.IsNotFound(err)
-				}, 5).Should(BeTrueBecause("ServiceAccount should be deleted when version >= 4.1.0"))
-
+				// Verify Role and RoleBinding are deleted
 				Eventually(func() bool {
 					_, err := clientSet.RbacV1().Roles(cluster.Namespace).Get(ctx, cluster.ChildResourceName("peer-discovery"), metav1.GetOptions{})
 					return apierrors.IsNotFound(err)
@@ -652,6 +647,12 @@ var _ = Describe("RabbitmqClusterController", func() {
 					_, err := clientSet.RbacV1().RoleBindings(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
 					return apierrors.IsNotFound(err)
 				}, 5).Should(BeTrueBecause("RoleBinding should be deleted when version >= 4.1.0"))
+
+				// Verify the ServiceAccount is kept (other integrations such as Vault Kubernetes auth may rely on it)
+				Consistently(func() bool {
+					_, err := clientSet.CoreV1().ServiceAccounts(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+					return err == nil
+				}, 3).Should(BeTrueBecause("ServiceAccount should be kept when version >= 4.1.0"))
 			})
 		})
 

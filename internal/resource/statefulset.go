@@ -692,10 +692,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			defaultUserCredentialUpdater(builder.Instance))
 	}
 
-	if ShouldCreateRBAC(builder.Instance) {
-		podTemplateSpec.Spec.ServiceAccountName = builder.Instance.ChildResourceName(serviceAccountName)
-		podTemplateSpec.Spec.AutomountServiceAccountToken = ptr.To(true)
-	}
+	podTemplateSpec.Spec.ServiceAccountName = builder.Instance.ChildResourceName(serviceAccountName)
+	podTemplateSpec.Spec.AutomountServiceAccountToken = ptr.To(true)
 
 	return podTemplateSpec
 }

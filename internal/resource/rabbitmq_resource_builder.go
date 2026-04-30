@@ -28,7 +28,26 @@ type ResourceBuilder interface {
 	UpdateMayRequireStsRecreate() bool
 }
 
-func ShouldCreateRBAC(rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
+// peerDiscoveryRBACConstraint is the semver constraint used to determine whether
+// peer-discovery RBAC (Role and RoleBinding) should be created. It is created
+// once at package scope to avoid repeated allocations.
+var peerDiscoveryRBACConstraint = mustNewConstraint(">= 4.1.0")
+
+// mustNewConstraint creates a semver constraint and panics if parsing fails.
+// This is only used for constant constraint strings that are always valid.
+func mustNewConstraint(c string) *semver.Constraints {
+	constraint, err := semver.NewConstraint(c)
+	if err != nil {
+		panic(err)
+	}
+	return constraint
+}
+
+// ShouldCreatePeerDiscoveryRBAC returns true if the peer-discovery Role and
+// RoleBinding should be created for this RabbitmqCluster. The ServiceAccount is
+// always created regardless of RabbitMQ version because other integrations (e.g.
+// Vault Kubernetes auth) may rely on it.
+func ShouldCreatePeerDiscoveryRBAC(rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
 	version := rmq.GetRabbitMQVersion()
 	if version == rabbitmqv1beta1.VersionNotAnnotated {
 		return true
@@ -39,8 +58,7 @@ func ShouldCreateRBAC(rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
 		return true
 	}
 
-	constraint, _ := semver.NewConstraint(">= 4.1.0")
-	return !constraint.Check(v)
+	return !peerDiscoveryRBACConstraint.Check(v)
 }
 
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() []ResourceBuilder {
@@ -52,11 +70,11 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() []ResourceBuilder {
 		builder.DefaultUserSecret(),
 		builder.RabbitmqPluginsConfigMap(),
 		builder.ServerConfigMap(),
+		builder.ServiceAccount(),
 	}
 
-	if ShouldCreateRBAC(builder.Instance) {
+	if ShouldCreatePeerDiscoveryRBAC(builder.Instance) {
 		builders = append(builders,
-			builder.ServiceAccount(),
 			builder.Role(),
 			builder.RoleBinding(),
 		)

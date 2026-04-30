@@ -1422,18 +1422,18 @@ default_pass = {{ .Data.data.password }}
 				}
 			})
 
-			It("omits the service account", func() {
+			It("still uses the correct service account", func() {
 				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-				Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(BeEmpty())
+				Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(Equal(instance.ChildResourceName("server")))
 			})
 
-			It("does not explicitly mount the service account token", func() {
+			It("still mounts the service account token in its pods", func() {
 				stsBuilder := builder.StatefulSet()
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
-				Expect(statefulSet.Spec.Template.Spec.AutomountServiceAccountToken).To(BeNil())
+				Expect(*statefulSet.Spec.Template.Spec.AutomountServiceAccountToken).To(BeTrue())
 			})
 		})
 
