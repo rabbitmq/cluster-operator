@@ -14,7 +14,7 @@ import (
 	"context"
 	"fmt"
 
-	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
+	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -23,6 +23,7 @@ import (
 type RabbitmqClient interface {
 	Overview() (*rabbithole.Overview, error)
 	HealthCheckNodeIsQuorumCritical() (rabbithole.HealthCheckStatus, error)
+	ListDeprecatedFeaturesUsed() ([]rabbithole.DeprecatedFeature, error)
 }
 
 // RabbitmqClientFactory creates a RabbitmqClient for a specific pod.

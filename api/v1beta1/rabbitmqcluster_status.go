@@ -32,6 +32,9 @@ type RabbitmqClusterStatus struct {
 	//   - "quorum-critical: pod-0, pod-2 (1 unavailable)" - multiple critical pods
 	//   - "unavailable" - all nodes unreachable or StatefulSet not ready
 	QuorumStatus string `json:"quorumStatus,omitempty"`
+
+	// DeprecatedFeaturesUsed exposes whether there are deprecated features in-use in a RabbitMQ server.
+	DeprecatedFeaturesUsed []string `json:"deprecatedFeaturesUsed,omitempty"`
 }
 
 // Contains references to resources created with the RabbitmqCluster resource.

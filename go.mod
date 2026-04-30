@@ -8,7 +8,7 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/go-logr/logr v1.4.3
 	github.com/go-stomp/stomp v2.1.4+incompatible
-	github.com/michaelklishin/rabbit-hole/v2 v2.16.0
+	github.com/michaelklishin/rabbit-hole/v3 v3.5.0
 	github.com/onsi/ginkgo/v2 v2.28.3
 	github.com/onsi/gomega v1.40.0
 	github.com/rabbitmq/amqp091-go v1.11.0

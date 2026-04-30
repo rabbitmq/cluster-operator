@@ -34,7 +34,7 @@ import (
 
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 
-	mgmtApi "github.com/michaelklishin/rabbit-hole/v2"
+	mgmtApi "github.com/michaelklishin/rabbit-hole/v3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/cloudflare/cfssl/csr"

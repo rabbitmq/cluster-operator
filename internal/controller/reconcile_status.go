@@ -249,3 +249,59 @@ func (r *RabbitmqClusterReconciler) updateQuorumStatus(ctx context.Context, rmq 
 	logger.Info("Updated quorum status", "status", newStatus)
 	return nil
 }
+
+// updateDeprecatedFeaturesUsed updates the DeprecatedFeaturesUsed field in the cluster status.
+func (r *RabbitmqClusterReconciler) updateDeprecatedFeaturesUsed(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+	logger := ctrl.LoggerFrom(ctx)
+
+	sts, err := r.statefulSet(ctx, rmq)
+	if err != nil {
+		return err
+	}
+	if !allReplicasReadyAndUpdated(sts) {
+		logger.V(1).Info("not all replicas ready yet; skipping deprecated features check")
+		return nil
+	}
+
+	podName := fmt.Sprintf("%s-0", rmq.ChildResourceName("server"))
+	rabbitClient, err := r.RabbitmqClientFactory.GetClientForPod(ctx, r.APIReader, rmq, podName)
+	if err != nil {
+		logger.V(1).Info("Failed to get client for pod", "pod", podName, "error", err)
+		return nil
+	}
+
+	deprecatedFeatures, err := rabbitClient.ListDeprecatedFeaturesUsed()
+	if err != nil {
+		logger.V(1).Info("Failed to get deprecated features from pod", "pod", podName, "error", err)
+		return nil
+	}
+
+	var newFeatures []string
+	for _, feature := range deprecatedFeatures {
+		newFeatures = append(newFeatures, feature.Name)
+	}
+
+	// Only update if the status has changed
+	if reflect.DeepEqual(rmq.Status.DeprecatedFeaturesUsed, newFeatures) {
+		return nil
+	}
+	// If both are empty (one nil, one empty slice), don't update
+	if len(rmq.Status.DeprecatedFeaturesUsed) == 0 && len(newFeatures) == 0 {
+		return nil
+	}
+
+	// Update the status
+	rmq.Status.DeprecatedFeaturesUsed = newFeatures
+	if err := r.Status().Update(ctx, rmq); err != nil {
+		if k8serrors.IsConflict(err) {
+			logger.Info("Failed to update deprecated features status due to conflict; will retry on next reconciliation",
+				"namespace", rmq.Namespace,
+				"name", rmq.Name)
+			return nil
+		}
+		return fmt.Errorf("failed to update deprecated features status: %w", err)
+	}
+
+	logger.Info("Updated deprecated features status", "deprecatedFeaturesUsed", newFeatures)
+	return nil
+}

@@ -285,6 +285,12 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// Don't fail reconciliation if quorum check fails
 	}
 
+	// Update deprecated features used
+	if err := r.updateDeprecatedFeaturesUsed(ctx, rabbitmqCluster); err != nil {
+		logger.Info("Failed to update deprecated features used", "error", err)
+		// Don't fail reconciliation if deprecated features check fails
+	}
+
 	// Annotate RabbitMQ and Erlang versions on the custom resource
 	if requeueAfter, err := r.reconcileRabbitmqVersionAnnotation(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
 		if err != nil {
