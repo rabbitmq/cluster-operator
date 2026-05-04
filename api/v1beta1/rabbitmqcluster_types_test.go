@@ -142,6 +142,26 @@ var _ = Describe("RabbitmqCluster", func() {
 				invalidSvc.Spec.Service.IPFamilyPolicy = &policy
 				Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalidSvc))).To(BeTrue())
 			})
+
+			By("rejecting envConfig with dollar-paren command substitution", func() {
+				invalid := generateRabbitmqClusterObject("rabbit-inject-dollar-paren")
+				invalid.Spec.Rabbitmq.EnvConfig = `NODENAME=rabbit@$(hostname)`
+				Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalid))).To(BeTrue())
+				Expect(k8sClient.Create(context.Background(), invalid)).To(MatchError(ContainSubstring("shell command substitution")))
+			})
+
+			By("rejecting envConfig with backtick command substitution", func() {
+				invalid := generateRabbitmqClusterObject("rabbit-inject-backtick")
+				invalid.Spec.Rabbitmq.EnvConfig = "NODENAME=rabbit@`hostname`"
+				Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalid))).To(BeTrue())
+				Expect(k8sClient.Create(context.Background(), invalid)).To(MatchError(ContainSubstring("shell command substitution")))
+			})
+
+			By("allowing envConfig with plain variable expansion", func() {
+				valid := generateRabbitmqClusterObject("rabbit-envconfig-plain-var")
+				valid.Spec.Rabbitmq.EnvConfig = "NODENAME=rabbit@$HOSTNAME"
+				Expect(k8sClient.Create(context.Background(), valid)).To(Succeed())
+			})
 		})
 
 		It("can be created with Erlang configuration", func() {

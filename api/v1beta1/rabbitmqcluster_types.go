@@ -401,6 +401,7 @@ type RabbitmqClusterConfigurationSpec struct {
 	// Modify to add to the rabbitmq-env.conf file. Modifying this property on an existing RabbitmqCluster will trigger a StatefulSet rolling restart and will cause rabbitmq downtime.
 	// For more information on env config, see https://www.rabbitmq.com/man/rabbitmq-env.conf.5.html
 	// +kubebuilder:validation:MaxLength:=100000
+	// +kubebuilder:validation:XValidation:rule="!self.contains('$(') && !self.contains('`')",message="envConfig must not contain shell command substitution ('$(...)' or backticks)"
 	EnvConfig string `json:"envConfig,omitempty"`
 	// Erlang Inet configuration to apply to the Erlang VM running rabbit.
 	// See also: https://www.erlang.org/doc/apps/erts/inet_cfg.html

@@ -10,6 +10,7 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -287,6 +288,10 @@ func (builder *ServerConfigMapBuilder) Update(object client.Object) error {
 
 	configMap.Data["userDefinedConfiguration.conf"] = rmqConfBuffer.String()
 
+	if err := validateEnvConfig(rmqProperties.EnvConfig); err != nil {
+		return err
+	}
+
 	updateProperty(configMap.Data, "advanced.config", rmqProperties.AdvancedConfig)
 	updateProperty(configMap.Data, "rabbitmq-env.conf", rmqProperties.EnvConfig)
 	updateProperty(configMap.Data, "erl_inetrc", rmqProperties.ErlangInetConfig)
@@ -366,4 +371,13 @@ func areAuthMechanismsConfigued(additionalConfig string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+var ErrInvalidEnvConfig = errors.New("spec.rabbitmq.envConfig must not contain shell command substitution ('$(...)' or backticks)")
+
+func validateEnvConfig(envConfig string) error {
+	if strings.Contains(envConfig, "$(") || strings.Contains(envConfig, "`") {
+		return ErrInvalidEnvConfig
+	}
+	return nil
 }
