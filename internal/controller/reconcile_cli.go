@@ -124,6 +124,9 @@ func statefulSetNeedsQueueRebalance(sts *appsv1.StatefulSet, rmq *rabbitmqv1beta
 }
 
 func allReplicasReadyAndUpdated(sts *appsv1.StatefulSet) bool {
+	if sts.Spec.Replicas == nil {
+		return false
+	}
 	return sts.Status.ReadyReplicas == *sts.Spec.Replicas && !statefulSetBeingUpdated(sts)
 }
 

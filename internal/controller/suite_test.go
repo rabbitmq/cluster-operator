@@ -160,6 +160,13 @@ func (f *fakeRabbitmqClientFactory) GetClientForPod(ctx context.Context, k8sClie
 	return f.client, nil
 }
 
+func (f *fakeRabbitmqClientFactory) GetClientForService(ctx context.Context, k8sClient runtimeClient.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster) (rabbitmqclient.RabbitmqClient, error) {
+	if f.client == nil {
+		return &fakeRabbitmqClient{}, nil
+	}
+	return f.client, nil
+}
+
 type fakeRabbitmqClient struct {
 	overview           *rabbithole.Overview
 	deprecatedFeatures []rabbithole.DeprecatedFeature

@@ -119,9 +119,10 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeWarning,
 			"PausedReconciliation", fmt.Sprintf("label '%s' is set to true", pauseReconciliationLabel))
 
+		patch := client.MergeFrom(rabbitmqCluster.DeepCopy())
 		rabbitmqCluster.Status.SetCondition(status.NoWarnings, corev1.ConditionFalse, "reconciliation paused")
-		if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
-			logger.Error(writerErr, "Error trying to Update NoWarnings condition state")
+		if writerErr := r.Status().Patch(ctx, rabbitmqCluster, patch); writerErr != nil {
+			logger.Error(writerErr, "Error trying to Patch NoWarnings condition state")
 		}
 		return ctrl.Result{}, nil
 	}
@@ -285,12 +286,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// Don't fail reconciliation if quorum check fails
 	}
 
-	// Update deprecated features used
-	if err := r.updateDeprecatedFeaturesUsed(ctx, rabbitmqCluster); err != nil {
-		logger.Info("Failed to update deprecated features used", "error", err)
-		// Don't fail reconciliation if deprecated features check fails
-	}
-
 	// Annotate RabbitMQ and Erlang versions on the custom resource
 	if requeueAfter, err := r.reconcileRabbitmqVersionAnnotation(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
 		if err != nil {
@@ -367,13 +362,14 @@ func (r *RabbitmqClusterReconciler) updateStatusConditions(ctx context.Context, 
 
 	oldConditions := make([]status.RabbitmqClusterCondition, len(rmq.Status.Conditions))
 	copy(oldConditions, rmq.Status.Conditions)
+	patch := client.MergeFrom(rmq.DeepCopy())
 	rmq.Status.SetConditions(childResources)
 
 	if !reflect.DeepEqual(rmq.Status.Conditions, oldConditions) {
-		if err = r.Status().Update(ctx, rmq); err != nil {
+		if err = r.Status().Patch(ctx, rmq, patch); err != nil {
 			// FIXME: must fetch again to avoid the conflict
 			if k8serrors.IsConflict(err) {
-				logger.Info("failed to update status because of conflict; requeueing...",
+				logger.Info("failed to patch status because of conflict; requeueing...",
 					"namespace", rmq.Namespace,
 					"name", rmq.Name)
 				return 2 * time.Second, nil
@@ -419,9 +415,10 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *
 }
 
 func (r *RabbitmqClusterReconciler) setReconcileSuccess(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, condition corev1.ConditionStatus, reason, msg string) {
+	patch := client.MergeFrom(rabbitmqCluster.DeepCopy())
 	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, condition, reason, msg)
-	if writerErr := r.Status().Update(ctx, rabbitmqCluster); writerErr != nil {
-		ctrl.LoggerFrom(ctx).Error(writerErr, "Failed to update Custom Resource status",
+	if writerErr := r.Status().Patch(ctx, rabbitmqCluster, patch); writerErr != nil {
+		ctrl.LoggerFrom(ctx).Error(writerErr, "Failed to patch Custom Resource status",
 			"namespace", rabbitmqCluster.Namespace,
 			"name", rabbitmqCluster.Name)
 	}

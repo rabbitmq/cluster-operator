@@ -416,31 +416,6 @@ var _ = Describe("Reconcile CLI", func() {
 			))
 		})
 
-		It("fetches and sets deprecated features when call is successful", func() {
-			fakeRabbitmqFactory.client = &fakeRabbitmqClient{
-				deprecatedFeatures: []rabbithole.DeprecatedFeature{
-					{Name: "feature1"},
-					{Name: "feature2"},
-				},
-				err: nil,
-			}
-
-			sts := statefulSet(ctx, cluster)
-			sts.Status.ReadyReplicas = 1
-			sts.Status.Replicas = 1
-			sts.Status.CurrentReplicas = 1
-			sts.Status.UpdatedReplicas = 1
-			sts.Status.CurrentRevision = sts.Status.UpdateRevision
-			Expect(client.Status().Update(ctx, sts)).To(Succeed())
-
-			Eventually(func() []string {
-				rmq := &rabbitmqv1beta1.RabbitmqCluster{}
-				err := client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)
-				Expect(err).ToNot(HaveOccurred())
-				return rmq.Status.DeprecatedFeaturesUsed
-			}, 5).Should(Equal([]string{"feature1", "feature2"}))
-		})
-
 		It("updates annotations when RabbitMQ and Erlang versions change after upgrade", func() {
 			rmq := &rabbitmqv1beta1.RabbitmqCluster{}
 			Expect(client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)).To(Succeed())

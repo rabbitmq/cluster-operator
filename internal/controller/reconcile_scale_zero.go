@@ -12,6 +12,7 @@ import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const beforeZeroReplicasConfigured = "rabbitmq.com/before-zero-replicas-configured"
@@ -87,6 +88,7 @@ func (r *RabbitmqClusterReconciler) removeReplicasBeforeZeroAnnotationIfExists(c
 
 func (r *RabbitmqClusterReconciler) recordEventsAndSetCondition(ctx context.Context, cluster *v1beta1.RabbitmqCluster, condType status.RabbitmqClusterConditionType, condStatus corev1.ConditionStatus, eventType, reason, msg string) error {
 	r.Recorder.Event(cluster, eventType, reason, msg)
+	patch := client.MergeFrom(cluster.DeepCopy())
 	cluster.Status.SetCondition(condType, condStatus, reason, msg)
-	return r.Status().Update(ctx, cluster)
+	return r.Status().Patch(ctx, cluster, patch)
 }
