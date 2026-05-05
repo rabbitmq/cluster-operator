@@ -3,6 +3,7 @@ module github.com/rabbitmq/cluster-operator/v2
 go 1.26.2
 
 require (
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/cloudflare/cfssl v1.6.5
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/go-logr/logr v1.4.3
@@ -25,7 +26,6 @@ require (
 
 require (
 	cel.dev/expr v0.25.1 // indirect
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
