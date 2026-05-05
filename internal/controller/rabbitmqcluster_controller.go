@@ -186,14 +186,14 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	builders := resourceBuilder.ResourceBuilders()
 
 	for _, builder := range builders {
-		resource, err := builder.Build()
+		obj, err := builder.Build()
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 		// only StatefulSetBuilder returns true
 		if builder.UpdateMayRequireStsRecreate() {
-			sts := resource.(*appsv1.StatefulSet)
+			sts := obj.(*appsv1.StatefulSet)
 
 			current, err := r.statefulSet(ctx, rabbitmqCluster)
 			if client.IgnoreNotFound(err) != nil {
@@ -236,13 +236,17 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		var operationResult controllerutil.OperationResult
 		err = clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
 			var apiError error
-			operationResult, apiError = controllerutil.CreateOrUpdate(ctx, r.Client, resource, func() error {
-				return builder.Update(resource)
+			operationResult, apiError = controllerutil.CreateOrUpdate(ctx, r.Client, obj, func() error {
+				return builder.Update(obj)
 			})
 			return apiError
 		})
-		r.logAndRecordOperationResult(logger, rabbitmqCluster, resource, operationResult, err)
+		r.logAndRecordOperationResult(logger, rabbitmqCluster, obj, operationResult, err)
 		if err != nil {
+			if errors.Is(err, resource.ErrInvalidEnvConfig) {
+				r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "InvalidConfiguration", err.Error())
+				return ctrl.Result{}, nil
+			}
 			r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "Error", err.Error())
 			return ctrl.Result{}, err
 		}

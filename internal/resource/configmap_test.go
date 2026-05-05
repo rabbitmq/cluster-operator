@@ -257,6 +257,30 @@ CONSOLE_LOG=new`
 					})
 				})
 			})
+
+			Context("shell command substitution", func() {
+			DescribeTable("rejects envConfig containing command substitution",
+				func(envConfig string) {
+					instance.Spec.Rabbitmq.EnvConfig = envConfig
+					Expect(configMapBuilder.Update(configMap)).To(MatchError(resource.ErrInvalidEnvConfig))
+				},
+					Entry("dollar-paren substitution", `NODENAME=rabbit@$(hostname)`),
+					Entry("backtick substitution", "NODENAME=rabbit@`hostname`"),
+					Entry("multiline with dollar-paren", "USE_LONGNAME=true\nNODENAME=$(hostname)"),
+					Entry("embedded dollar-paren", `SECRET=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)`),
+				)
+
+				DescribeTable("allows envConfig with plain variable expansion",
+					func(envConfig string) {
+						instance.Spec.Rabbitmq.EnvConfig = envConfig
+						Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					},
+					Entry("dollar-brace expansion", `NODENAME=rabbit@${HOSTNAME}`),
+					Entry("dollar expansion", `NODENAME=rabbit@$HOSTNAME`),
+					Entry("plain key=value", `USE_LONGNAME=true`),
+					Entry("multiple plain assignments", "USE_LONGNAME=true\nCONSOLE_LOG=new"),
+				)
+			})
 		})
 
 		Context("TLS", func() {
