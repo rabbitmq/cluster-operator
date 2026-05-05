@@ -10,11 +10,12 @@
 package resource
 
 import (
+	"slices"
+
 	"github.com/Masterminds/semver/v3"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"slices"
 )
 
 type RabbitmqResourceBuilder struct {
@@ -80,6 +81,9 @@ func (builder *RabbitmqResourceBuilder) ResourceBuilders() []ResourceBuilder {
 		)
 	}
 
+	// Appending StatefulSet builder separately because the order of the builders is important
+	// The SA, ConfigMap, and Secret need to be created before the StatefulSet. Otherwise, Pods
+	// created by the StatefulSet will block on the creation of dependent resources.
 	builders = append(builders, builder.StatefulSet())
 
 	if builder.Instance.VaultDefaultUserSecretEnabled() || builder.Instance.ExternalSecretEnabled() {
