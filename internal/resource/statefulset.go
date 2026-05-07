@@ -593,8 +593,6 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 			ImagePullSecrets:              builder.Instance.Spec.ImagePullSecrets,
 			TerminationGracePeriodSeconds: builder.Instance.Spec.TerminationGracePeriodSeconds,
-			ServiceAccountName:            builder.Instance.ChildResourceName(serviceAccountName),
-			AutomountServiceAccountToken:  ptr.To(true),
 			Affinity:                      builder.Instance.Spec.Affinity,
 			Tolerations:                   builder.Instance.Spec.Tolerations,
 			InitContainers:                []corev1.Container{setupContainer(builder.Instance)},
@@ -693,6 +691,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		podTemplateSpec.Spec.Containers = append(podTemplateSpec.Spec.Containers,
 			defaultUserCredentialUpdater(builder.Instance))
 	}
+
+	podTemplateSpec.Spec.ServiceAccountName = builder.Instance.ChildResourceName(serviceAccountName)
+	podTemplateSpec.Spec.AutomountServiceAccountToken = ptr.To(true)
+
 	return podTemplateSpec
 }
 

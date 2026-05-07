@@ -90,10 +90,10 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;create;patch
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="discovery.k8s.io",resources=endpointslices,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=endpoints,verbs=get;watch;list
-// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;delete
 
 func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := ctrl.LoggerFrom(ctx)
@@ -181,6 +181,21 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	resourceBuilder := resource.RabbitmqResourceBuilder{
 		Instance: rabbitmqCluster,
 		Scheme:   r.Scheme,
+	}
+
+	if !resource.ShouldCreatePeerDiscoveryRBAC(rabbitmqCluster) {
+		// Ensure peer-discovery Role and RoleBinding are deleted.
+		// The ServiceAccount is intentionally kept because other integrations
+		// (e.g. Vault Kubernetes auth) may rely on it.
+		for _, obj := range []client.Object{
+			&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: rabbitmqCluster.ChildResourceName("peer-discovery"), Namespace: rabbitmqCluster.Namespace}},
+			&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: rabbitmqCluster.ChildResourceName("server"), Namespace: rabbitmqCluster.Namespace}},
+		} {
+			if err := r.Client.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+				logger.Error(err, "Failed to delete peer-discovery RBAC resource")
+				return ctrl.Result{}, err
+			}
+		}
 	}
 
 	builders := resourceBuilder.ResourceBuilders()

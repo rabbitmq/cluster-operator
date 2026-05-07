@@ -654,7 +654,7 @@ func waitForRabbitmqNotRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluste
 		}
 
 		return string(output)
-	}, podCreationTimeout, 1).Should(Equal("'False'"))
+	}, podCreationTimeout, 2).Should(Equal("'False'"))
 
 	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
 }
@@ -679,7 +679,7 @@ func waitForRabbitmqRunningWithOffset(cluster *rabbitmqv1beta1.RabbitmqCluster, 
 		}
 
 		return string(output)
-	}, podCreationTimeout, 1).Should(Equal("'True'"))
+	}, podCreationTimeout, 2).Should(Equal("'True'"))
 
 	ExpectWithOffset(callStackOffset, err).NotTo(HaveOccurred())
 }

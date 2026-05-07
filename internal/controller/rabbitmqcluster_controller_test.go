@@ -617,6 +617,45 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})
 		})
 
+		When("the RabbitMQ version is upgraded to 4.1.0 or greater", func() {
+			It("deletes the peer-discovery Role and RoleBinding but keeps the ServiceAccount", func() {
+				// First, ensure the resources exist
+				_, err := clientSet.CoreV1().ServiceAccounts(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = clientSet.RbacV1().Roles(cluster.Namespace).Get(ctx, cluster.ChildResourceName("peer-discovery"), metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = clientSet.RbacV1().RoleBindings(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				// Upgrade to 4.1.5
+				Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+					if r.Annotations == nil {
+						r.Annotations = make(map[string]string)
+					}
+					r.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.1.5"
+				})).To(Succeed())
+
+				// Verify Role and RoleBinding are deleted
+				Eventually(func() bool {
+					_, err := clientSet.RbacV1().Roles(cluster.Namespace).Get(ctx, cluster.ChildResourceName("peer-discovery"), metav1.GetOptions{})
+					return apierrors.IsNotFound(err)
+				}, 5).Should(BeTrueBecause("Role should be deleted when version >= 4.1.0"))
+
+				Eventually(func() bool {
+					_, err := clientSet.RbacV1().RoleBindings(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+					return apierrors.IsNotFound(err)
+				}, 5).Should(BeTrueBecause("RoleBinding should be deleted when version >= 4.1.0"))
+
+				// Verify the ServiceAccount is kept (other integrations such as Vault Kubernetes auth may rely on it)
+				Consistently(func() bool {
+					_, err := clientSet.CoreV1().ServiceAccounts(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+					return err == nil
+				}, 3).Should(BeTrueBecause("ServiceAccount should be kept when version >= 4.1.0"))
+			})
+		})
+
 		It("service type is updated", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
 				r.Spec.Service.Type = "NodePort"
