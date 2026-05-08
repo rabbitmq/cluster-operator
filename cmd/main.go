@@ -262,19 +262,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	deprecatedFeaturesCheckInterval := 5 * time.Minute
-	if envInterval := getEnvInDuration("DEPRECATED_FEATURES_CHECK_INTERVAL"); envInterval != 0 {
-		deprecatedFeaturesCheckInterval = envInterval
-	}
+	if _, disabled := os.LookupEnv("DISABLE_DEPRECATED_FEATURES_CHECK"); !disabled {
+		deprecatedFeaturesCheckInterval := 5 * time.Minute
+		if envInterval := getEnvInDuration("DEPRECATED_FEATURES_CHECK_INTERVAL"); envInterval != 0 {
+			deprecatedFeaturesCheckInterval = envInterval
+		}
 
-	if err = (&controllers.DeprecatedFeatureReconciler{
-		Client:                mgr.GetClient(),
-		APIReader:             mgr.GetAPIReader(),
-		RabbitmqClientFactory: &rabbitmqclient.DefaultRabbitmqClientFactory{},
-		Interval:              deprecatedFeaturesCheckInterval,
-	}).SetupWithManager(mgr); err != nil {
-		log.Error(err, "unable to create controller", "controller", "deprecated-feature-controller")
-		os.Exit(1)
+		if err = (&controllers.DeprecatedFeatureReconciler{
+			Client:                mgr.GetClient(),
+			APIReader:             mgr.GetAPIReader(),
+			RabbitmqClientFactory: &rabbitmqclient.DefaultRabbitmqClientFactory{},
+			Interval:              deprecatedFeaturesCheckInterval,
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "unable to create controller", "controller", "deprecated-feature-controller")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 
