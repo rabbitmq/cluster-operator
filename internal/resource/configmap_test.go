@@ -259,11 +259,11 @@ CONSOLE_LOG=new`
 			})
 
 			Context("shell command substitution", func() {
-			DescribeTable("rejects envConfig containing command substitution",
-				func(envConfig string) {
-					instance.Spec.Rabbitmq.EnvConfig = envConfig
-					Expect(configMapBuilder.Update(configMap)).To(MatchError(resource.ErrInvalidEnvConfig))
-				},
+				DescribeTable("rejects envConfig containing command substitution",
+					func(envConfig string) {
+						instance.Spec.Rabbitmq.EnvConfig = envConfig
+						Expect(configMapBuilder.Update(configMap)).To(MatchError(resource.ErrInvalidEnvConfig))
+					},
 					Entry("dollar-paren substitution", `NODENAME=rabbit@$(hostname)`),
 					Entry("backtick substitution", "NODENAME=rabbit@`hostname`"),
 					Entry("multiline with dollar-paren", "USE_LONGNAME=true\nNODENAME=$(hostname)"),
