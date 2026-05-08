@@ -3,7 +3,7 @@ module github.com/rabbitmq/cluster-operator/v2
 go 1.26.2
 
 require (
-	github.com/Masterminds/semver/v3 v3.4.0
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/cloudflare/cfssl v1.6.5
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/go-logr/logr v1.4.3
