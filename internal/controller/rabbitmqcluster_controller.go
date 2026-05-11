@@ -304,7 +304,6 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// Set ReconcileSuccess to true and update observedGeneration after all reconciliation steps have finished with no error
-	rabbitmqCluster.Status.ObservedGeneration = rabbitmqCluster.GetGeneration()
 	r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionTrue, "Success", "Finish reconciling")
 
 	logger.Info("Finished reconciling")
@@ -417,6 +416,9 @@ func (r *RabbitmqClusterReconciler) getChildResources(ctx context.Context, rmq *
 func (r *RabbitmqClusterReconciler) setReconcileSuccess(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, condition corev1.ConditionStatus, reason, msg string) {
 	patch := client.MergeFrom(rabbitmqCluster.DeepCopy())
 	rabbitmqCluster.Status.SetCondition(status.ReconcileSuccess, condition, reason, msg)
+	if condition == corev1.ConditionTrue {
+		rabbitmqCluster.Status.ObservedGeneration = rabbitmqCluster.GetGeneration()
+	}
 	if writerErr := r.Status().Patch(ctx, rabbitmqCluster, patch); writerErr != nil {
 		ctrl.LoggerFrom(ctx).Error(writerErr, "Failed to patch Custom Resource status",
 			"namespace", rabbitmqCluster.Namespace,
