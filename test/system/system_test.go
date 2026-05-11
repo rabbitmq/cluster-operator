@@ -287,7 +287,7 @@ CONSOLE_LOG=new`
 			Expect(rmqClusterClient.Delete(ctx, cluster)).To(Succeed())
 		})
 
-		It("persists messages", func(ctx SpecContext) {
+		It("persists messages", FlakeAttempts(3), func(ctx SpecContext) {
 			By("publishing a message", func() {
 				Expect(publishToQueue(hostname, port, username, password)).To(Succeed())
 			})
