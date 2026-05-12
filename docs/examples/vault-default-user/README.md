@@ -61,7 +61,7 @@ This is how it works:
 The `default-user-credential-updater` image can be overriden:
 ```
    vault:
-      defaultUserUpdaterImage: "rabbitmqoperator/default-user-credential-updater:1.0.1"
+      defaultUserUpdaterImage: "ghcr.io/rabbitmq/default-user-credential-updater:1.0.1"
       ...
 ```
 
