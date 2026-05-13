@@ -131,29 +131,154 @@ var _ = Describe("RabbitMQ Client", func() {
 		})
 	})
 
+	Describe("GetClientInfoForService", func() {
+		var rabbitmqService *corev1.Service
+
+		BeforeEach(func() {
+			rabbitmqService = &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: namespace,
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{Name: "management", Port: 15672, Protocol: corev1.ProtocolTCP},
+					},
+				},
+			}
+		})
+
+		When("the secret and service exist", func() {
+			BeforeEach(func() {
+				k8sClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(rmq, secret, rabbitmqService).
+					Build()
+			})
+
+			It("returns client info with correct credentials", func() {
+				info, err := getClientInfoForService(ctx, k8sClient, rmq)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(info).NotTo(BeNil())
+				Expect(info.Username).To(Equal("test-user"))
+				Expect(info.Password).To(Equal("test-password"))
+			})
+
+			It("returns the correct base URL for non-TLS using the main Service DNS name", func() {
+				info, err := getClientInfoForService(ctx, k8sClient, rmq)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(info.BaseURL).To(Equal("http://test-cluster.test-namespace.svc:15672"))
+			})
+
+			It("returns the correct base URL for TLS using the main Service DNS name", func() {
+				rmq.Spec.TLS.SecretName = "tls-secret"
+				rmq.Spec.TLS.DisableNonTLSListeners = true
+				rabbitmqService.Spec.Ports = []corev1.ServicePort{
+					{Name: "management-tls", Port: 15671, Protocol: corev1.ProtocolTCP},
+				}
+				k8sClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(rmq, secret, rabbitmqService).
+					Build()
+				info, err := getClientInfoForService(ctx, k8sClient, rmq)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(info.BaseURL).To(Equal("https://test-cluster.test-namespace.svc:15671"))
+			})
+
+			It("returns an HTTP transport for TLS with correct ServerName", func() {
+				rmq.Spec.TLS.SecretName = "tls-secret"
+				rmq.Spec.TLS.DisableNonTLSListeners = true
+				rabbitmqService.Spec.Ports = []corev1.ServicePort{
+					{Name: "management-tls", Port: 15671, Protocol: corev1.ProtocolTCP},
+				}
+				k8sClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(rmq, secret, rabbitmqService).
+					Build()
+				info, err := getClientInfoForService(ctx, k8sClient, rmq)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(info.Transport).NotTo(BeNil())
+				Expect(info.Transport.TLSClientConfig).NotTo(BeNil())
+				Expect(info.Transport.TLSClientConfig.ServerName).To(Equal("test-cluster.test-namespace.svc"))
+			})
+
+			It("returns nil transport for non-TLS", func() {
+				info, err := getClientInfoForService(ctx, k8sClient, rmq)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(info.Transport).To(BeNil())
+			})
+		})
+
+		When("the service does not exist", func() {
+			BeforeEach(func() {
+				k8sClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(rmq, secret).
+					Build()
+			})
+
+			It("returns an error", func() {
+				_, err := getClientInfoForService(ctx, k8sClient, rmq)
+				Ω(err).Should(MatchError(ContainSubstring("failed to get rabbitmq service")))
+			})
+		})
+
+		When("the secret does not exist", func() {
+			BeforeEach(func() {
+				k8sClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(rmq, rabbitmqService).
+					Build()
+			})
+
+			It("returns an error", func() {
+				_, err := getClientInfoForService(ctx, k8sClient, rmq)
+				Ω(err).Should(MatchError(ContainSubstring("failed to get default user secret")))
+			})
+		})
+	})
+
 	Describe("DefaultRabbitmqClientFactory", func() {
 		var factory RabbitmqClientFactory
+		var rabbitmqService *corev1.Service
 
 		BeforeEach(func() {
 			factory = &DefaultRabbitmqClientFactory{}
+			rabbitmqService = &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: namespace,
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{Name: "management", Port: 15672, Protocol: corev1.ProtocolTCP},
+						{Name: "management-tls", Port: 15671, Protocol: corev1.ProtocolTCP},
+					},
+				},
+			}
 			k8sClient = fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(rmq).
-				WithObjects(secret).
+				WithObjects(rmq, secret, rabbitmqService).
 				Build()
 		})
 
-		Context("when TLS is disabled", func() {
-			It("returns a non-TLS client", func() {
+		When("TLS is disabled", func() {
+			It("returns a non-TLS client for pod", func() {
 				podName := "test-cluster-server-0"
 				client, err := factory.GetClientForPod(ctx, k8sClient, rmq, podName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client).NotTo(BeNil())
 			})
+
+			It("returns a non-TLS client for service", func() {
+				client, err := factory.GetClientForService(ctx, k8sClient, rmq)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client).NotTo(BeNil())
+			})
 		})
 
-		Context("when TLS is enabled", func() {
-			It("returns a TLS client", func() {
+		When("TLS is enabled", func() {
+			It("returns a TLS client for pod", func() {
 				rmq.Spec.TLS.SecretName = "tls-secret"
 				rmq.Spec.TLS.DisableNonTLSListeners = true
 				podName := "test-cluster-server-0"
@@ -161,21 +286,47 @@ var _ = Describe("RabbitMQ Client", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client).NotTo(BeNil())
 			})
+
+			It("returns a TLS client for service", func() {
+				rmq.Spec.TLS.SecretName = "tls-secret"
+				rmq.Spec.TLS.DisableNonTLSListeners = true
+				client, err := factory.GetClientForService(ctx, k8sClient, rmq)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client).NotTo(BeNil())
+			})
 		})
 
-		Context("when the secret does not exist", func() {
+		When("the secret does not exist", func() {
 			BeforeEach(func() {
 				k8sClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(rmq).
+					WithObjects(rmq, rabbitmqService).
 					Build()
 			})
 
-			It("returns an error", func() {
+			It("returns an error for pod", func() {
 				podName := "test-cluster-server-0"
 				_, err := factory.GetClientForPod(ctx, k8sClient, rmq, podName)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to get default user secret"))
+				Ω(err).Should(MatchError(ContainSubstring("failed to get default user secret")))
+			})
+
+			It("returns an error for service", func() {
+				_, err := factory.GetClientForService(ctx, k8sClient, rmq)
+				Ω(err).Should(MatchError(ContainSubstring("failed to get default user secret")))
+			})
+		})
+
+		When("the service does not exist", func() {
+			BeforeEach(func() {
+				k8sClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(rmq, secret).
+					Build()
+			})
+
+			It("returns an error for service client", func() {
+				_, err := factory.GetClientForService(ctx, k8sClient, rmq)
+				Ω(err).Should(MatchError(ContainSubstring("failed to get rabbitmq service")))
 			})
 		})
 	})

@@ -20,7 +20,7 @@ import (
 
 	"k8s.io/client-go/util/retry"
 
-	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
+	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
@@ -160,9 +160,17 @@ func (f *fakeRabbitmqClientFactory) GetClientForPod(ctx context.Context, k8sClie
 	return f.client, nil
 }
 
+func (f *fakeRabbitmqClientFactory) GetClientForService(ctx context.Context, k8sClient runtimeClient.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster) (rabbitmqclient.RabbitmqClient, error) {
+	if f.client == nil {
+		return &fakeRabbitmqClient{}, nil
+	}
+	return f.client, nil
+}
+
 type fakeRabbitmqClient struct {
-	overview *rabbithole.Overview
-	err      error
+	overview           *rabbithole.Overview
+	deprecatedFeatures []rabbithole.DeprecatedFeature
+	err                error
 }
 
 func (f *fakeRabbitmqClient) Overview() (*rabbithole.Overview, error) {
@@ -173,6 +181,13 @@ func (f *fakeRabbitmqClient) Overview() (*rabbithole.Overview, error) {
 		}, nil
 	}
 	return f.overview, f.err
+}
+
+func (f *fakeRabbitmqClient) ListDeprecatedFeaturesUsed() ([]rabbithole.DeprecatedFeature, error) {
+	if f.deprecatedFeatures == nil && f.err == nil {
+		return []rabbithole.DeprecatedFeature{}, nil
+	}
+	return f.deprecatedFeatures, f.err
 }
 
 func (f *fakeRabbitmqClient) HealthCheckNodeIsQuorumCritical() (rabbithole.HealthCheckStatus, error) {

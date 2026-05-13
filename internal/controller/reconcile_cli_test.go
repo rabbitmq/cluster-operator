@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
+	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	"k8s.io/apimachinery/pkg/types"

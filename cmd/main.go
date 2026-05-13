@@ -36,6 +36,7 @@ import (
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	controllers "github.com/rabbitmq/cluster-operator/v2/internal/controller"
+	"github.com/rabbitmq/cluster-operator/v2/internal/rabbitmqclient"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -259,6 +260,23 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", controllerName)
 		os.Exit(1)
+	}
+
+	if _, disabled := os.LookupEnv("DISABLE_DEPRECATED_FEATURES_CHECK"); !disabled {
+		deprecatedFeaturesCheckInterval := 5 * time.Minute
+		if envInterval := getEnvInDuration("DEPRECATED_FEATURES_CHECK_INTERVAL"); envInterval != 0 {
+			deprecatedFeaturesCheckInterval = envInterval
+		}
+
+		if err = (&controllers.DeprecatedFeatureReconciler{
+			Client:                mgr.GetClient(),
+			APIReader:             mgr.GetAPIReader(),
+			RabbitmqClientFactory: &rabbitmqclient.DefaultRabbitmqClientFactory{},
+			Interval:              deprecatedFeaturesCheckInterval,
+		}).SetupWithManager(mgr); err != nil {
+			log.Error(err, "unable to create controller", "controller", "deprecated-feature-controller")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 

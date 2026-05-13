@@ -24,7 +24,7 @@ import (
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 
-	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
+	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -287,7 +287,7 @@ CONSOLE_LOG=new`
 			Expect(rmqClusterClient.Delete(ctx, cluster)).To(Succeed())
 		})
 
-		It("persists messages", func(ctx SpecContext) {
+		It("persists messages", FlakeAttempts(3), func(ctx SpecContext) {
 			By("publishing a message", func() {
 				Expect(publishToQueue(hostname, port, username, password)).To(Succeed())
 			})

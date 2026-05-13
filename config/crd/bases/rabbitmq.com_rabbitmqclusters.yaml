@@ -5508,6 +5508,11 @@ spec:
                         - namespace
                       type: object
                   type: object
+                deprecatedFeaturesUsed:
+                  description: DeprecatedFeaturesUsed exposes whether there are deprecated features in-use in a RabbitMQ server.
+                  items:
+                    type: string
+                  type: array
                 observedGeneration:
                   description: |-
                     observedGeneration is the most recent successful generation observed for this RabbitmqCluster. It corresponds to the

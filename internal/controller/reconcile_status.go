@@ -63,9 +63,10 @@ func (r *RabbitmqClusterReconciler) reconcileStatus(ctx context.Context, rmq *ra
 	}
 
 	if !reflect.DeepEqual(rmq.Status.DefaultUser, defaultUserStatus) || !reflect.DeepEqual(rmq.Status.Binding, binding) {
+		patch := client.MergeFrom(rmq.DeepCopy())
 		rmq.Status.DefaultUser = defaultUserStatus
 		rmq.Status.Binding = binding
-		if err := r.Status().Update(ctx, rmq); err != nil {
+		if err := r.Status().Patch(ctx, rmq, patch); err != nil {
 			return err
 		}
 	}
@@ -234,11 +235,12 @@ func (r *RabbitmqClusterReconciler) updateQuorumStatus(ctx context.Context, rmq 
 	}
 
 	// Update the status
+	patch := client.MergeFrom(rmq.DeepCopy())
 	rmq.Status.QuorumStatus = newStatus
-	if err := r.Status().Update(ctx, rmq); err != nil {
+	if err := r.Status().Patch(ctx, rmq, patch); err != nil {
 		// If it's a conflict error, just log it - we'll retry on the next reconciliation
 		if k8serrors.IsConflict(err) {
-			logger.Info("Failed to update quorum status due to conflict; will retry on next reconciliation",
+			logger.Info("Failed to patch quorum status due to conflict; will retry on next reconciliation",
 				"namespace", rmq.Namespace,
 				"name", rmq.Name)
 			return nil

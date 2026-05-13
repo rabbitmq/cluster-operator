@@ -451,6 +451,7 @@ Examples:
   - "quorum-critical: pod-0" - pod-0 is quorum critical
   - "quorum-critical: pod-0, pod-2 (1 unavailable)" - multiple critical pods
   - "unavailable" - all nodes unreachable or StatefulSet not ready
+| *`deprecatedFeaturesUsed`* __string array__ | DeprecatedFeaturesUsed exposes whether there are deprecated features in-use in a RabbitMQ server.
 |===
 
 

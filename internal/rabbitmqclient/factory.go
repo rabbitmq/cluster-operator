@@ -14,7 +14,7 @@ import (
 	"context"
 	"fmt"
 
-	rabbithole "github.com/michaelklishin/rabbit-hole/v2"
+	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -23,35 +23,47 @@ import (
 type RabbitmqClient interface {
 	Overview() (*rabbithole.Overview, error)
 	HealthCheckNodeIsQuorumCritical() (rabbithole.HealthCheckStatus, error)
+	ListDeprecatedFeaturesUsed() ([]rabbithole.DeprecatedFeature, error)
 }
 
-// RabbitmqClientFactory creates a RabbitmqClient for a specific pod.
+// RabbitmqClientFactory creates a RabbitmqClient targeting either a specific pod or the cluster Service.
 type RabbitmqClientFactory interface {
 	GetClientForPod(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster, podName string) (RabbitmqClient, error)
+	GetClientForService(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster) (RabbitmqClient, error)
 }
 
 // DefaultRabbitmqClientFactory is the default implementation of RabbitmqClientFactory.
 type DefaultRabbitmqClientFactory struct{}
 
+func newRabbitholeClientFromInfo(rmq *rabbitmqv1beta1.RabbitmqCluster, info *ClientInfo) (RabbitmqClient, error) {
+	if rmq.Spec.TLS.DisableNonTLSListeners {
+		rabbitmqClient, err := rabbithole.NewTLSClient(info.BaseURL, info.Username, info.Password, info.Transport)
+		if err != nil {
+			return nil, err
+		}
+		return rabbitmqClient, nil
+	}
+	rabbitmqClient, err := rabbithole.NewClient(info.BaseURL, info.Username, info.Password)
+	if err != nil {
+		return nil, err
+	}
+	return rabbitmqClient, nil
+}
+
 // GetClientForPod creates a real rabbithole client for a specific pod.
 func (f *DefaultRabbitmqClientFactory) GetClientForPod(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster, podName string) (RabbitmqClient, error) {
 	info, err := getClientInfoForPod(ctx, k8sClient, rmq, podName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get client info for pod: %w", err)
 	}
+	return newRabbitholeClientFromInfo(rmq, info)
+}
 
-	var rabbitmqClient *rabbithole.Client
-	if rmq.Spec.TLS.DisableNonTLSListeners {
-		rabbitmqClient, err = rabbithole.NewTLSClient(info.BaseURL, info.Username, info.Password, info.Transport)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create TLS rabbithole client for pod: %w", err)
-		}
-	} else {
-		rabbitmqClient, err = rabbithole.NewClient(info.BaseURL, info.Username, info.Password)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create rabbithole client for pod: %w", err)
-		}
+// GetClientForService creates a real rabbithole client using the main Service that exposes the management API.
+func (f *DefaultRabbitmqClientFactory) GetClientForService(ctx context.Context, k8sClient client.Reader, rmq *rabbitmqv1beta1.RabbitmqCluster) (RabbitmqClient, error) {
+	info, err := getClientInfoForService(ctx, k8sClient, rmq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client info for service: %w", err)
 	}
-
-	return rabbitmqClient, nil
+	return newRabbitholeClientFromInfo(rmq, info)
 }
