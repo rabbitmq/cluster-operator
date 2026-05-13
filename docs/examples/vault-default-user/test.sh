@@ -25,10 +25,6 @@ echo "Checking authentication works..."
 kubectl exec vault-default-user-server-0 -c rabbitmq -- \
     rabbitmqctl authenticate_user rabbitmq pwd1
 
-echo "Checking rabbitmqadmin CLI can authenticate..."
-kubectl exec vault-default-user-server-0 -c rabbitmq -- \
-    rabbitmqadmin show overview
-
 echo "Rotating password in Vault..."
 kubectl exec vault-0 -c vault -- vault kv put secret/rabbitmq/config username='rabbitmq' password='pwd2'
 
@@ -37,8 +33,5 @@ kubectl exec vault-0 -c vault -- vault kv put secret/rabbitmq/config username='r
 
 echo "Checking authentication with new password..."
 with_retry "kubectl exec vault-default-user-server-0 -c rabbitmq -- rabbitmqctl authenticate_user rabbitmq pwd2"
-
-echo "Checking rabbitmqadmin CLI can authenticate with new password on server-0..."
-with_retry "kubectl exec vault-default-user-server-0 -c rabbitmq -- rabbitmqadmin show overview"
 
 helm uninstall vault

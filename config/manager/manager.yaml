@@ -41,7 +41,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: rabbitmqoperator/cluster-operator-dev:latest
+        image: ghcr.io/rabbitmq/cluster-operator:latest
         name: operator
         ports:
         - containerPort: 8080

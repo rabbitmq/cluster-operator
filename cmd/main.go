@@ -69,9 +69,9 @@ func main() {
 		probeAddr               string
 		secureMetrics           bool
 		enableHTTP2             bool
-		defaultRabbitmqImage    = "rabbitmq:4.1.3-management"
+		defaultRabbitmqImage    = "rabbitmq:4.2.6-management"
 		controlRabbitmqImage    = false
-		defaultUserUpdaterImage = "rabbitmqoperator/default-user-credential-updater:1.0.2"
+		defaultUserUpdaterImage = "ghcr.io/rabbitmq/default-user-credential-updater:1.0.14"
 		defaultImagePullSecrets = ""
 		tlsOpts                 []func(*tls.Config)
 	)
