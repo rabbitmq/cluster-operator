@@ -22,7 +22,7 @@ func (r *RabbitmqClusterReconciler) reconcileOperatorDefaults(ctx context.Contex
 		}
 	}
 
-	if rabbitmqCluster.Spec.ImagePullSecrets == nil {
+	if rabbitmqCluster.Spec.ImagePullSecrets == nil && r.DefaultImagePullSecrets != "" {
 		// split the comma separated list of default image pull secrets from
 		// the 'DEFAULT_IMAGE_PULL_SECRETS' env var, but ignore empty strings.
 		for reference := range strings.SplitSeq(r.DefaultImagePullSecrets, ",") {
@@ -30,8 +30,10 @@ func (r *RabbitmqClusterReconciler) reconcileOperatorDefaults(ctx context.Contex
 				rabbitmqCluster.Spec.ImagePullSecrets = append(rabbitmqCluster.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: reference})
 			}
 		}
-		if requeue, err := r.updateRabbitmqCluster(ctx, rabbitmqCluster, "image pull secrets"); err != nil {
-			return requeue, err
+		if len(rabbitmqCluster.Spec.ImagePullSecrets) > 0 {
+			if requeue, err := r.updateRabbitmqCluster(ctx, rabbitmqCluster, "image pull secrets"); err != nil {
+				return requeue, err
+			}
 		}
 	}
 
