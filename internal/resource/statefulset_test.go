@@ -923,10 +923,29 @@ var _ = Describe("StatefulSet", func() {
 				Expect(container.StartupProbe.ProbeHandler.HTTPGet).NotTo(BeNil())
 				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/api/health/checks/reached-target-cluster-size"))
 				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Port.IntValue()).To(Equal(15672))
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
 				Expect(container.StartupProbe.InitialDelaySeconds).To(BeEquivalentTo(10))
 				Expect(container.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
 				Expect(container.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))
 				Expect(container.StartupProbe.FailureThreshold).To(BeEquivalentTo(30))
+			})
+
+			When("DisableNonTLSListeners is true", func() {
+				BeforeEach(func() {
+					instance.Spec.TLS.DisableNonTLSListeners = true
+				})
+
+				It("sets StartupProbe with HTTPS target cluster size health check on port 15671", func() {
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(container.StartupProbe).NotTo(BeNil())
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet).NotTo(BeNil())
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/api/health/checks/reached-target-cluster-size"))
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet.Port.IntValue()).To(Equal(15671))
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTPS))
+				})
 			})
 		})
 

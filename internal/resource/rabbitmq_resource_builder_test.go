@@ -65,6 +65,48 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 		})
 	})
 
+	Context("ShouldUseHTTPTargetClusterSizeHealthCheck", func() {
+		It("returns false if version is not annotated", func() {
+			rmq := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{}},
+			}
+			Expect(resource.ShouldUseHTTPTargetClusterSizeHealthCheck(rmq)).To(BeFalseBecause("version is not annotated"))
+		})
+
+		It("returns false if version cannot be parsed", func() {
+			rmq := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{
+					rabbitmqv1beta1.RabbitmqVersionAnnotation: "invalid",
+				}},
+			}
+			Expect(resource.ShouldUseHTTPTargetClusterSizeHealthCheck(rmq)).To(BeFalseBecause("version cannot be parsed"))
+		})
+
+		It("returns false if version is less than 4.2.4", func() {
+			rmq := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{
+					rabbitmqv1beta1.RabbitmqVersionAnnotation: "3.13.0",
+				}},
+			}
+			Expect(resource.ShouldUseHTTPTargetClusterSizeHealthCheck(rmq)).To(BeFalseBecause("version is less than 4.2.4"))
+
+			rmq.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.2.3"
+			Expect(resource.ShouldUseHTTPTargetClusterSizeHealthCheck(rmq)).To(BeFalseBecause("version is less than 4.2.4"))
+		})
+
+		It("returns true if version is 4.2.4 or greater", func() {
+			rmq := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{
+					rabbitmqv1beta1.RabbitmqVersionAnnotation: "4.2.4",
+				}},
+			}
+			Expect(resource.ShouldUseHTTPTargetClusterSizeHealthCheck(rmq)).To(BeTrueBecause("version is 4.2.4 or greater"))
+
+			rmq.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.3.0"
+			Expect(resource.ShouldUseHTTPTargetClusterSizeHealthCheck(rmq)).To(BeTrueBecause("version is 4.2.4 or greater"))
+		})
+	})
+
 	Context("ResourceBuilders", func() {
 		var (
 			instance *rabbitmqv1beta1.RabbitmqCluster

@@ -577,11 +577,19 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 
 	var startupProbe *corev1.Probe
 	if ShouldUseHTTPTargetClusterSizeHealthCheck(builder.Instance) {
+		startupProbePort := 15672
+		startupProbeScheme := corev1.URISchemeHTTP
+		if builder.Instance.DisableNonTLSListeners() {
+			startupProbePort = 15671
+			startupProbeScheme = corev1.URISchemeHTTPS
+		}
+
 		startupProbe = &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
-					Path: "/api/health/checks/reached-target-cluster-size",
-					Port: intstr.FromInt(15672),
+					Path:   "/api/health/checks/reached-target-cluster-size",
+					Port:   intstr.FromInt(startupProbePort),
+					Scheme: startupProbeScheme,
 				},
 			},
 			InitialDelaySeconds: 10,
