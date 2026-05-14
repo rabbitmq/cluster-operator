@@ -575,6 +575,22 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		volumes = append(volumes, tlsProjectedVolume)
 	}
 
+	var startupProbe *corev1.Probe
+	if ShouldUseHTTPTargetClusterSizeHealthCheck(builder.Instance) {
+		startupProbe = &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/api/health/checks/reached-target-cluster-size",
+					Port: intstr.FromInt(15672),
+				},
+			},
+			InitialDelaySeconds: 10,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       10,
+			FailureThreshold:    30,
+		}
+	}
+
 	rabbitmqUID := int64(999)
 	podTemplateSpec := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -641,19 +657,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 						SuccessThreshold:    1,
 						FailureThreshold:    3,
 					},
-					// TODO: Update this probe once we have an HTTP API endpoint for this
-					StartupProbe: &corev1.Probe{
-						ProbeHandler: corev1.ProbeHandler{
-							Exec: &corev1.ExecAction{
-								Command: []string{"/bin/bash", "-c",
-									"rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().' | grep -q '^true$'"},
-							},
-						},
-						InitialDelaySeconds: 10,
-						TimeoutSeconds:      5,
-						PeriodSeconds:       10,
-						FailureThreshold:    30,
-					},
+					StartupProbe: startupProbe,
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.LifecycleHandler{
 							Exec: &corev1.ExecAction{

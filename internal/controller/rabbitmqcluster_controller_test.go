@@ -93,19 +93,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 				))
 			})
 
-			By("setting the default StartupProbe", func() {
+			By("not setting a default StartupProbe", func() {
 				rabbitmqContainer := sts.Spec.Template.Spec.Containers[0]
 				Expect(rabbitmqContainer.Name).To(Equal("rabbitmq"))
-				Expect(rabbitmqContainer.StartupProbe).NotTo(BeNil())
-				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.Exec).NotTo(BeNil())
-				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.Exec.Command).To(Equal([]string{
-					"/bin/bash", "-c",
-					"rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().' | grep -q '^true$'",
-				}))
-				Expect(rabbitmqContainer.StartupProbe.InitialDelaySeconds).To(BeEquivalentTo(10))
-				Expect(rabbitmqContainer.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
-				Expect(rabbitmqContainer.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))
-				Expect(rabbitmqContainer.StartupProbe.FailureThreshold).To(BeEquivalentTo(30))
+				Expect(rabbitmqContainer.StartupProbe).To(BeNil())
 			})
 
 			By("creating the server conf configmap", func() {

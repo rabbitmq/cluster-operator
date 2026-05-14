@@ -898,21 +898,36 @@ var _ = Describe("StatefulSet", func() {
 			Expect(container.Env).To(ConsistOf(requiredEnvVariables))
 		})
 
-		It("sets default StartupProbe with rabbitmqctl eval command", func() {
+		It("does not set a StartupProbe by default", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
-			Expect(container.StartupProbe).NotTo(BeNil())
-			Expect(container.StartupProbe.ProbeHandler.Exec).NotTo(BeNil())
-			Expect(container.StartupProbe.ProbeHandler.Exec.Command).To(Equal([]string{
-				"/bin/bash", "-c",
-				"rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().' | grep -q '^true$'",
-			}))
-			Expect(container.StartupProbe.InitialDelaySeconds).To(BeEquivalentTo(10))
-			Expect(container.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
-			Expect(container.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))
-			Expect(container.StartupProbe.FailureThreshold).To(BeEquivalentTo(30))
+			Expect(container.StartupProbe).To(BeNil())
+		})
+
+		When("RabbitMQ version is 4.2.4 or greater", func() {
+			BeforeEach(func() {
+				if instance.Annotations == nil {
+					instance.Annotations = make(map[string]string)
+				}
+				instance.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = "4.2.4"
+			})
+
+			It("sets StartupProbe with HTTP target cluster size health check", func() {
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.StartupProbe).NotTo(BeNil())
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet).NotTo(BeNil())
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/api/health/checks/reached-target-cluster-size"))
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Port.IntValue()).To(Equal(15672))
+				Expect(container.StartupProbe.InitialDelaySeconds).To(BeEquivalentTo(10))
+				Expect(container.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
+				Expect(container.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))
+				Expect(container.StartupProbe.FailureThreshold).To(BeEquivalentTo(30))
+			})
 		})
 
 		Context("ExternalSecret", func() {

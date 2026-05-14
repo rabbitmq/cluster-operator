@@ -34,6 +34,10 @@ type ResourceBuilder interface {
 // once at package scope to avoid repeated allocations.
 var peerDiscoveryRBACConstraint = mustNewConstraint(">= 4.1.0")
 
+// targetClusterSizeHealthCheckConstraint is the semver constraint used to determine whether
+// to use the HTTP target cluster size health check.
+var targetClusterSizeHealthCheckConstraint = mustNewConstraint(">= 4.2.4")
+
 // mustNewConstraint creates a semver constraint and panics if parsing fails.
 // This is only used for constant constraint strings that are always valid.
 func mustNewConstraint(c string) *semver.Constraints {
@@ -60,6 +64,22 @@ func ShouldCreatePeerDiscoveryRBAC(rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
 	}
 
 	return !peerDiscoveryRBACConstraint.Check(v)
+}
+
+// ShouldUseHTTPTargetClusterSizeHealthCheck returns true if the HTTP health check
+// for reaching target cluster size should be used (RabbitMQ >= 4.2.4).
+func ShouldUseHTTPTargetClusterSizeHealthCheck(rmq *rabbitmqv1beta1.RabbitmqCluster) bool {
+	version := rmq.GetRabbitMQVersion()
+	if version == rabbitmqv1beta1.VersionNotAnnotated {
+		return false
+	}
+
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return false
+	}
+
+	return targetClusterSizeHealthCheckConstraint.Check(v)
 }
 
 func (builder *RabbitmqResourceBuilder) ResourceBuilders() []ResourceBuilder {
