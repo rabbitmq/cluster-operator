@@ -439,6 +439,11 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 
 	if image := os.Getenv("RABBITMQ_IMAGE"); image != "" {
 		cluster.Spec.Image = image
+	} else {
+		if cluster.Annotations == nil {
+			cluster.Annotations = make(map[string]string)
+		}
+		cluster.Annotations["rabbitmq.com/version"] = "4.2.4"
 	}
 	if secret := os.Getenv("RABBITMQ_IMAGE_PULL_SECRET"); secret != "" {
 		cluster.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
