@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	storagev1 "k8s.io/api/storage/v1"
 
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -439,6 +440,25 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 
 	if image := os.Getenv("RABBITMQ_IMAGE"); image != "" {
 		cluster.Spec.Image = image
+
+		if cluster.Annotations == nil {
+			cluster.Annotations = make(map[string]string)
+		}
+
+		parts := strings.Split(image, ":")
+		if len(parts) > 1 {
+			tag := parts[len(parts)-1]
+			versionStr := strings.Split(tag, "-")[0]
+
+			if versionStr == "management" || versionStr == "latest" || versionStr == "main" {
+				cluster.Annotations["rabbitmq.com/version"] = "4.2.4"
+			} else {
+				_, err := semver.NewVersion(versionStr)
+				if err == nil {
+					cluster.Annotations["rabbitmq.com/version"] = versionStr
+				}
+			}
+		}
 	} else {
 		if cluster.Annotations == nil {
 			cluster.Annotations = make(map[string]string)
