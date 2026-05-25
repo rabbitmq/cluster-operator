@@ -130,7 +130,7 @@ func TestPluginIntegration(t *testing.T) {
 	})
 
 	t.Run("CreateCluster", func(t *testing.T) {
-		runPlugin(t, "create", "bats-default", "--unlimited")
+		runPlugin(t, "create", "bats-default", "--unlimited", "--rabbitmq-version", "4.2.4")
 		require.Eventually(t, func() bool {
 			out := runKubectl(t, "get", "rabbitmqcluster", "bats-default", "-o", "json")
 			var result struct {
