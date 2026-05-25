@@ -65,6 +65,7 @@ func newCreateCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	cmd.Flags().Int32Var(&opts.Replicas, "replicas", 1, "Number of replicas")
 	cmd.Flags().StringVar(&opts.Image, "image", "", "RabbitMQ image")
 	cmd.Flags().StringSliceVar(&opts.ImagePullSecrets, "image-pull-secret", []string{}, "Image pull secret (repeatable)")
+	cmd.Flags().StringVarP(&opts.RabbitmqVersion, "rabbitmq-version", "v", "", "RabbitMQ version to create (e.g. 4.2.4)")
 
 	// Service configuration
 	cmd.Flags().StringVar(&opts.ServiceType, "service", "ClusterIP", "Service type (ClusterIP, LoadBalancer, NodePort)")

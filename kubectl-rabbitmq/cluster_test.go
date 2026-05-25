@@ -243,6 +243,31 @@ func TestBuildRabbitmqCluster(t *testing.T) {
 		assert.True(t, cluster.Spec.AutoEnableAllFeatureFlags)
 	})
 
+	t.Run("with rabbitmq-version and image NOT set", func(t *testing.T) {
+		t.Parallel()
+		opts := clusterOptions{
+			RabbitmqVersion: "4.2.4",
+		}
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
+
+		require.NoError(t, err)
+		assert.Equal(t, "4.2.4", cluster.Annotations[v1beta1.RabbitmqVersionAnnotation])
+		assert.Equal(t, "rabbitmq:4.2.4-management", cluster.Spec.Image)
+	})
+
+	t.Run("with rabbitmq-version and image set", func(t *testing.T) {
+		t.Parallel()
+		opts := clusterOptions{
+			RabbitmqVersion: "4.2.4",
+			Image:           "my-custom-image:latest",
+		}
+		cluster, err := buildRabbitmqCluster("test-cluster", opts)
+
+		require.NoError(t, err)
+		assert.Equal(t, "4.2.4", cluster.Annotations[v1beta1.RabbitmqVersionAnnotation])
+		assert.Equal(t, "my-custom-image:latest", cluster.Spec.Image)
+	})
+
 	t.Run("marshals to valid YAML", func(t *testing.T) {
 		t.Parallel()
 		opts := clusterOptions{

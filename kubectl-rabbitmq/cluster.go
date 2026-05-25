@@ -57,6 +57,8 @@ type clusterOptions struct {
 	DelayStartSeconds             int32
 	SkipPostDeploySteps           bool
 	AutoEnableAllFeatureFlags     bool
+
+	RabbitmqVersion string
 }
 
 // buildRabbitmqCluster constructs a RabbitmqCluster resource from the provided options
@@ -78,6 +80,15 @@ func buildRabbitmqCluster(name string, opts clusterOptions) (*v1beta1.RabbitmqCl
 	}
 	if opts.Image != "" {
 		cluster.Spec.Image = opts.Image
+	}
+	if opts.RabbitmqVersion != "" {
+		if cluster.Annotations == nil {
+			cluster.Annotations = make(map[string]string)
+		}
+		cluster.Annotations[v1beta1.RabbitmqVersionAnnotation] = opts.RabbitmqVersion
+		if opts.Image == "" {
+			cluster.Spec.Image = fmt.Sprintf("rabbitmq:%s-management", opts.RabbitmqVersion)
+		}
 	}
 	if len(opts.ImagePullSecrets) > 0 {
 		for _, secret := range opts.ImagePullSecrets {
