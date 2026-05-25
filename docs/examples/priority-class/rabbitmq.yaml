@@ -2,7 +2,10 @@ apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster
 metadata:
   name: priority-class
+  annotations:
+    rabbitmq.com/version: "4.3"
 spec:
+  image: rabbitmq:4.3-management
   override:
     statefulSet:
       spec:
