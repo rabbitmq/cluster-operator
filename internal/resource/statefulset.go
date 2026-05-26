@@ -584,6 +584,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			startupProbeScheme = corev1.URISchemeHTTPS
 		}
 
+		// Health check endpoint does not require authentication
 		startupProbe = &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
