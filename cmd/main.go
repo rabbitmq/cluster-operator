@@ -34,9 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
-	controllers "github.com/rabbitmq/cluster-operator/v2/internal/controller"
-	"github.com/rabbitmq/cluster-operator/v2/internal/rabbitmqclient"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -45,6 +42,11 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
+	controllers "github.com/rabbitmq/cluster-operator/v2/internal/controller"
+	"github.com/rabbitmq/cluster-operator/v2/internal/rabbitmqclient"
+	webhookv1beta1 "github.com/rabbitmq/cluster-operator/v2/internal/webhook/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -275,6 +277,16 @@ func main() {
 			Interval:              deprecatedFeaturesCheckInterval,
 		}).SetupWithManager(mgr); err != nil {
 			log.Error(err, "unable to create controller", "controller", "deprecated-feature-controller")
+			os.Exit(1)
+		}
+	}
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1beta1.SetupRabbitmqClusterWebhookWithManager(mgr, webhookv1beta1.RabbitmqClusterCustomDefaulter{
+			DefaultRabbitmqImage:    defaultRabbitmqImage,
+			DefaultImagePullSecrets: defaultImagePullSecrets,
+			DefaultUserUpdaterImage: defaultUserUpdaterImage,
+		}); err != nil {
+			log.Error(err, "unable to create webhook", "webhook", "RabbitmqCluster")
 			os.Exit(1)
 		}
 	}
