@@ -15,6 +15,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,31 +26,18 @@ import (
 )
 
 var _ = Describe("reconcileOperatorDefaults", func() {
-	When("DEFAULT_IMAGE_PULL_SECRETS is empty", func() {
-		It("does not Update the cluster when ImagePullSecrets is nil", func() {
+	When("ControlRabbitmqImage is false", func() {
+		It("does not call Update", func() {
 			ctx := context.Background()
 
 			scheme := runtime.NewScheme()
 			Expect(corev1.AddToScheme(scheme)).To(Succeed())
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 
-			presetUserUpdaterImage := "preset-uu-image:1.0"
 			cluster := &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-no-defaults",
+					Name:      "test-no-update",
 					Namespace: "default",
-				},
-				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					// Pre-set Image and DefaultUserUpdaterImage so the only branch
-					// in reconcileOperatorDefaults that could trigger an Update is
-					// the ImagePullSecrets one we are testing.
-					Image: "preset-image:1.0",
-					SecretBackend: rabbitmqv1beta1.SecretBackend{
-						Vault: &rabbitmqv1beta1.VaultSpec{
-							DefaultUserPath:         "some-path",
-							DefaultUserUpdaterImage: &presetUserUpdaterImage,
-						},
-					},
 				},
 			}
 
@@ -70,25 +58,60 @@ var _ = Describe("reconcileOperatorDefaults", func() {
 				Scheme:                  scheme,
 				DefaultRabbitmqImage:    "default-rabbit-image:stable",
 				DefaultUserUpdaterImage: "default-uu-image:unstable",
-				DefaultImagePullSecrets: "",
+				DefaultImagePullSecrets: "secret-1,secret-2",
+				ControlRabbitmqImage:    false,
 			}
 
-			By("invoking reconcileOperatorDefaults with empty DefaultImagePullSecrets")
 			requeue, err := reconciler.reconcileOperatorDefaults(ctx, cluster)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(requeue).To(BeZero())
-
-			By("not calling Update on the cluster")
 			Expect(updateCallCount).To(Equal(0))
+		})
+	})
 
-			By("leaving in-memory ImagePullSecrets as nil")
-			Expect(cluster.Spec.ImagePullSecrets).To(BeNil())
+	When("ControlRabbitmqImage is true", func() {
+		It("enforces the default image and user updater image", func() {
+			ctx := context.Background()
 
-			By("leaving the persisted ImagePullSecrets as nil")
-			fetched := &rabbitmqv1beta1.RabbitmqCluster{}
-			Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(cluster), fetched)).To(Succeed())
-			Expect(fetched.Spec.ImagePullSecrets).To(BeNil())
+			scheme := runtime.NewScheme()
+			Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+
+			cluster := &rabbitmqv1beta1.RabbitmqCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-control-image",
+					Namespace: "default",
+				},
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Image: "user-set-image:1.0",
+					SecretBackend: rabbitmqv1beta1.SecretBackend{
+						Vault: &rabbitmqv1beta1.VaultSpec{
+							DefaultUserPath: "some-path",
+						},
+					},
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(cluster).
+				Build()
+
+			reconciler := &RabbitmqClusterReconciler{
+				Client:                  fakeClient,
+				Scheme:                  scheme,
+				DefaultRabbitmqImage:    "controlled-image:latest",
+				DefaultUserUpdaterImage: "controlled-uu-image:latest",
+				ControlRabbitmqImage:    true,
+			}
+
+			requeue, err := reconciler.reconcileOperatorDefaults(ctx, cluster)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(requeue).To(BeZero())
+			Expect(cluster.Spec.Image).To(Equal("controlled-image:latest"))
+			Expect(cluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage).To(PointTo(Equal("controlled-uu-image:latest")))
 		})
 	})
 })
