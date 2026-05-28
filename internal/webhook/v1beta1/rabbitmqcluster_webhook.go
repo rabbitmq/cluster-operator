@@ -27,7 +27,7 @@ import (
 	rabbitmqcomv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 )
 
-var rabbitmqclusterlog = logf.Log.WithName("rabbitmqcluster-resource")
+var rabbitmqclusterlog = logf.Log.WithName("rabbitmqcluster-webhook")
 
 // SetupRabbitmqClusterWebhookWithManager registers the webhook for RabbitmqCluster in the manager.
 func SetupRabbitmqClusterWebhookWithManager(mgr ctrl.Manager, defaulter RabbitmqClusterCustomDefaulter) error {
