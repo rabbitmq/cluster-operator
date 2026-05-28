@@ -26,8 +26,8 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	controllers "github.com/rabbitmq/cluster-operator/v2/internal/controller"
-	webhookv1beta1 "github.com/rabbitmq/cluster-operator/v2/internal/webhook/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/rabbitmqclient"
+	webhookv1beta1 "github.com/rabbitmq/cluster-operator/v2/internal/webhook/v1beta1"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
