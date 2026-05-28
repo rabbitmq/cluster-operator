@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"k8s.io/client-go/util/retry"
 
@@ -25,6 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	controllers "github.com/rabbitmq/cluster-operator/v2/internal/controller"
+	webhookv1beta1 "github.com/rabbitmq/cluster-operator/v2/internal/webhook/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/rabbitmqclient"
 
 	"k8s.io/client-go/kubernetes"
@@ -80,6 +82,9 @@ var _ = BeforeSuite(func() {
 		Config: &rest.Config{
 			Host: fmt.Sprintf("http://localhost:218%d", GinkgoParallelProcess()),
 		},
+		WebhookInstallOptions: envtest.WebhookInstallOptions{
+			Paths: []string{filepath.Join("..", "..", "config", "webhook")},
+		},
 	}
 
 	cfg, err := testEnv.Start()
@@ -92,11 +97,24 @@ var _ = BeforeSuite(func() {
 	clientSet, err = kubernetes.NewForConfig(cfg)
 	Expect(err).NotTo(HaveOccurred())
 
+	webhookInstallOptions := &testEnv.WebhookInstallOptions
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 		Metrics: server.Options{
 			BindAddress: "0",
 		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Host:    webhookInstallOptions.LocalServingHost,
+			Port:    webhookInstallOptions.LocalServingPort,
+			CertDir: webhookInstallOptions.LocalServingCertDir,
+		}),
+	})
+	Expect(err).ToNot(HaveOccurred())
+
+	err = webhookv1beta1.SetupRabbitmqClusterWebhookWithManager(mgr, webhookv1beta1.RabbitmqClusterCustomDefaulter{
+		DefaultRabbitmqImage:    defaultRabbitmqImage,
+		DefaultImagePullSecrets: defaultImagePullSecrets,
+		DefaultUserUpdaterImage: defaultUserUpdaterImage,
 	})
 	Expect(err).ToNot(HaveOccurred())
 
