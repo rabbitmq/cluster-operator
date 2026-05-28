@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2" // nolint:revive,staticcheck
 )
@@ -88,16 +89,28 @@ func InstallCertManager() error {
 	if _, err := Run(cmd); err != nil {
 		return err
 	}
-	// Wait for cert-manager-webhook to be ready, which can take time if cert-manager
-	// was re-installed after uninstalling on a cluster.
-	cmd = exec.Command("kubectl", "wait", "deployment.apps/cert-manager-webhook",
-		"--for", "condition=Available",
-		"--namespace", "cert-manager",
-		"--timeout", "5m",
-	)
-
-	_, err := Run(cmd)
-	return err
+	// Wait for all three cert-manager components to be Available.
+	for _, deployment := range []string{"cert-manager", "cert-manager-cainjector", "cert-manager-webhook"} {
+		cmd = exec.Command("kubectl", "wait", "deployment.apps/"+deployment,
+			"--for", "condition=Available",
+			"--namespace", "cert-manager",
+			"--timeout", "5m",
+		)
+		if _, err := Run(cmd); err != nil {
+			return err
+		}
+	}
+	// Probe until the cert-manager webhook accepts connections. The cainjector needs
+	// extra time after pod readiness to inject the CA bundle into its own webhook config.
+	deadline := time.Now().Add(2 * time.Minute)
+	for time.Now().Before(deadline) {
+		probe := exec.Command("kubectl", "get", "certificates.cert-manager.io", "--all-namespaces")
+		if _, err := Run(probe); err == nil {
+			return nil
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return fmt.Errorf("cert-manager webhook not ready after 2 minutes")
 }
 
 // IsCertManagerCRDsInstalled checks if any Cert Manager CRDs are installed
