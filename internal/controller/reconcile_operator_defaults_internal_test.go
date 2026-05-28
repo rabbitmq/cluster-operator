@@ -27,8 +27,7 @@ import (
 
 var _ = Describe("reconcileOperatorDefaults", func() {
 	When("ControlRabbitmqImage is false", func() {
-		It("does not call Update", func() {
-			ctx := context.Background()
+		It("does not call Update", func(ctx SpecContext) {
 
 			scheme := runtime.NewScheme()
 			Expect(corev1.AddToScheme(scheme)).To(Succeed())
@@ -71,8 +70,7 @@ var _ = Describe("reconcileOperatorDefaults", func() {
 	})
 
 	When("ControlRabbitmqImage is true", func() {
-		It("enforces the default image and user updater image", func() {
-			ctx := context.Background()
+		It("enforces the default image and user updater image", func(ctx SpecContext) {
 
 			scheme := runtime.NewScheme()
 			Expect(corev1.AddToScheme(scheme)).To(Succeed())
