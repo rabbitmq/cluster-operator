@@ -58,7 +58,7 @@ CRD_REF_DOCS_VERSION ?= v0.3.0
 YJ_VERSION ?= v5.1.0
 YTT_VERSION ?= v0.55.1
 CMCTL_VERSION ?= v2.5.0
-KIND_VERSION ?= v0.31.0
+KIND_VERSION ?= v0.32.0
 CERT_MANAGER_VERSION ?= v1.15.1
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
