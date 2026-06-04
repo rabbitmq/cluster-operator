@@ -1854,6 +1854,60 @@ default_pass = {{ .Data.data.password }}
 				Expect(string(statefulSet.Spec.PersistentVolumeClaimRetentionPolicy.WhenDeleted)).To(Equal("Retain"))
 			})
 
+			It("does not set owner references on PVC templates when retaining PVCs after deletion", func() {
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+							WhenDeleted: appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+							WhenScaled:  appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+						},
+					},
+				}
+
+				stsBuilder := builder.StatefulSet()
+				obj, err := stsBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+				statefulSet := obj.(*appsv1.StatefulSet)
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].OwnerReferences).To(BeEmpty())
+			})
+
+			It("does not set owner references on PVC templates when persistentVolumeClaimRetentionPolicy whenDeleted is not provided", func() {
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+							WhenScaled: appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+						},
+					},
+				}
+
+				stsBuilder := builder.StatefulSet()
+				obj, err := stsBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+				statefulSet := obj.(*appsv1.StatefulSet)
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].OwnerReferences).To(BeEmpty())
+			})
+
+			It("keeps owner references on PVC templates when deleting PVCs after deletion", func() {
+				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+							WhenDeleted: appsv1.DeletePersistentVolumeClaimRetentionPolicyType,
+							WhenScaled:  appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+						},
+					},
+				}
+
+				stsBuilder := builder.StatefulSet()
+				obj, err := stsBuilder.Build()
+				Expect(err).NotTo(HaveOccurred())
+				statefulSet := obj.(*appsv1.StatefulSet)
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].OwnerReferences).To(HaveLen(1))
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].OwnerReferences[0].Name).To(Equal(instance.Name))
+			})
+
 			It("overrides the PVC list", func() {
 				storageClass := "my-storage-class"
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{

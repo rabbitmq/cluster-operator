@@ -3,12 +3,15 @@ package controllers_test
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -25,7 +28,7 @@ var _ = Describe("Persistence", func() {
 	BeforeEach(func() {
 		cluster = &rabbitmqv1beta1.RabbitmqCluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rabbitmq-persistence",
+				Name:      fmt.Sprintf("rabbitmq-persistence-%d", time.Now().UnixNano()),
 				Namespace: defaultNamespace,
 			},
 			Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
@@ -34,6 +37,11 @@ var _ = Describe("Persistence", func() {
 		}
 		Expect(client.Create(ctx, cluster)).To(Succeed())
 		waitForClusterCreation(ctx, cluster, client)
+	})
+
+	AfterEach(func() {
+		err := client.Delete(ctx, cluster)
+		Expect(err == nil || apierrors.IsNotFound(err)).To(BeTrue())
 	})
 
 	It("does not allow PVC shrink", func() {
@@ -77,5 +85,51 @@ var _ = Describe("Persistence", func() {
 				"with reason: FailedReconcilePVC " +
 				"and message: shrinking persistent volumes is not supported"))
 		})
+	})
+
+	It("removes RabbitmqCluster owner references from existing PVCs when retaining PVCs after deletion", func() {
+		pvcName := cluster.PVCName(0)
+		pvc := &corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pvcName,
+				Namespace: defaultNamespace,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion:         rabbitmqv1beta1.GroupVersion.String(),
+						Kind:               "RabbitmqCluster",
+						Name:               cluster.Name,
+						UID:                cluster.UID,
+						Controller:         ptr.To(true),
+						BlockOwnerDeletion: ptr.To(false),
+					},
+				},
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				Resources: corev1.VolumeResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: k8sresource.MustParse("10Gi"),
+					},
+				},
+			},
+		}
+		_, err := clientSet.CoreV1().PersistentVolumeClaims(defaultNamespace).Create(ctx, pvc, metav1.CreateOptions{})
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+			r.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+				Spec: &rabbitmqv1beta1.StatefulSetSpec{
+					PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+						WhenDeleted: appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+						WhenScaled:  appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+					},
+				},
+			}
+		})).To(Succeed())
+
+		Eventually(func() []metav1.OwnerReference {
+			pvc, err := clientSet.CoreV1().PersistentVolumeClaims(defaultNamespace).Get(ctx, pvcName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			return pvc.OwnerReferences
+		}, 5).Should(BeEmpty())
 	})
 })

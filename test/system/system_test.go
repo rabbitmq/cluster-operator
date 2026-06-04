@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"golang.org/x/mod/semver"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
@@ -314,6 +315,51 @@ CONSOLE_LOG=new`
 				Expect(pvc.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
 		}, SpecTimeout(time.Minute*3))
+
+		It("retains PVCs when deleting a RabbitmqCluster with persistentVolumeClaimRetentionPolicy.whenDeleted=Retain", func(ctx SpecContext) {
+			k8sVersion, err := clientSet.Discovery().ServerVersion()
+			Expect(err).NotTo(HaveOccurred())
+			if semver.Compare(k8sVersion.GitVersion, "v1.32.0") < 0 {
+				Skip("StatefulSet persistentVolumeClaimRetentionPolicy is GA in Kubernetes 1.32+")
+			}
+
+			retainCluster := newRabbitmqCluster(namespace, fmt.Sprintf("retain-pvc-rabbit-%d", time.Now().UnixNano()))
+			retainCluster.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+				Spec: &rabbitmqv1beta1.StatefulSetSpec{
+					PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+						WhenDeleted: appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+						WhenScaled:  appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+					},
+				},
+			}
+			pvcName := retainCluster.PVCName(0)
+			defer func() {
+				_ = rmqClusterClient.Delete(ctx, retainCluster)
+				_ = clientSet.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, pvcName, metav1.DeleteOptions{})
+			}()
+
+			Expect(createRabbitmqCluster(ctx, rmqClusterClient, retainCluster)).To(Succeed())
+			waitForRabbitmqRunning(retainCluster)
+			By("creating a PVC without RabbitmqCluster owner references", func() {
+				Eventually(func() []metav1.OwnerReference {
+					pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return pvc.OwnerReferences
+				}, k8sQueryTimeout, 1).Should(BeEmpty())
+			})
+
+			By("deleting the RabbitmqCluster", func() {
+				Expect(rmqClusterClient.Delete(ctx, retainCluster)).To(Succeed())
+			})
+
+			By("retaining the PVC after RabbitmqCluster deletion", func() {
+				Consistently(func() error {
+					_, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
+					return err
+				}, 30*time.Second, 2*time.Second).Should(Succeed())
+			})
+
+		}, SpecTimeout(time.Minute*5))
 	})
 
 	Context("Persistence expansion", Label("persistence_expansion"), func() {
