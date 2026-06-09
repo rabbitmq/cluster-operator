@@ -13,8 +13,8 @@ require (
 	github.com/onsi/gomega v1.41.0
 	github.com/rabbitmq/amqp091-go v1.11.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.8.1
-	golang.org/x/mod v0.36.0
-	golang.org/x/text v0.37.0
+	golang.org/x/mod v0.37.0
+	golang.org/x/text v0.38.0
 	gopkg.in/ini.v1 v1.67.3
 	k8s.io/api v0.36.1
 	k8s.io/apimachinery v0.36.1
