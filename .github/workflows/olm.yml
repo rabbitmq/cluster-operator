@@ -125,6 +125,8 @@ jobs:
 
       - name: Kind Cluster
         uses: helm/kind-action@v1
+        with:
+          version: v0.31.0
 
       - name: Install OLM
         run: |
@@ -188,14 +190,14 @@ jobs:
           git config user.email ${{ secrets.RABBITMQ_CI_EMAIL }}
           git branch "rabbitmq-cluster-operator-$BUNDLE_VERSION"
           git checkout "rabbitmq-cluster-operator-$BUNDLE_VERSION"
-          
+
           mkdir -pv operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"
           rm -v -f olm-package-ci/release-config.yaml
           cp -v -fR olm-package-ci/* ./operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"/
           git add operators/rabbitmq-cluster-operator
           git commit -s -m "operator rabbitmq-cluster-operator release $BUNDLE_VERSION"
           git push --set-upstream origin "rabbitmq-cluster-operator-$BUNDLE_VERSION"
-          
+
           gh pr create --title "operator rabbitmq-cluster-operator (${{ env.BUNDLE_VERSION }})" \
             --body "Update operator rabbitmq-cluster-operator (${{ needs.test-olm-package.outputs.olm_package_version }})" \
             --repo k8s-operatorhub/community-operators
@@ -240,7 +242,7 @@ jobs:
           git config user.email ${{ secrets.RABBITMQ_CI_EMAIL }}
           git branch "rabbitmq-cluster-operator-$BUNDLE_VERSION"
           git checkout "rabbitmq-cluster-operator-$BUNDLE_VERSION"
-          
+
           mkdir -pv operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"
           rm -v -f olm-package-ci/bundle.Dockerfile
           cp -v -fR olm-package-ci/* ./operators/rabbitmq-cluster-operator/"$BUNDLE_VERSION"/

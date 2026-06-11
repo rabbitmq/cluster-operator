@@ -13,10 +13,11 @@ on:
     branches: [ "main" ]
 
 env:
-  # Taken from https://github.com/kubernetes-sigs/kind/releases/tag/v0.18.0
-  # The image here should be listed under 'Images built for this release' for the version of kind in go.mod
-  KIND_NODE_IMAGE: "kindest/node:v1.32.0"
-  KIND_OLDEST_NODE_IMAGE: "kindest/node:v1.29.12"
+  # Taken from https://github.com/kubernetes-sigs/kind/releases/tag/v0.31.0
+  # The image here should be listed under 'Images built for this release' for the version of kind in listed below
+  KIND_VERSION: "v0.31.0"
+  KIND_NODE_IMAGE: "kindest/node:v1.35.0"
+  KIND_OLDEST_NODE_IMAGE: "kindest/node:v1.31.14"
   BASELINE_UPGRADE_VERSION: v2.12.0
 
 jobs:
@@ -49,6 +50,7 @@ jobs:
     - name: Create KinD
       uses: helm/kind-action@v1
       with:
+        version: ${{ env.KIND_VERSION }}
         cluster_name: cluster-operator-testing
         node_image: ${{ env.KIND_NODE_IMAGE }}
 
@@ -287,6 +289,7 @@ jobs:
     - name: Create KinD
       uses: helm/kind-action@v1
       with:
+        version: ${{ env.KIND_VERSION }}
         cluster_name: system-testing
         node_image: ${{ env.KIND_NODE_IMAGE }}
 
@@ -357,6 +360,7 @@ jobs:
     - name: Create KinD
       uses: helm/kind-action@v1
       with:
+        version: ${{ env.KIND_VERSION }}
         cluster_name: system-testing-oldest-k8s
         node_image: ${{ env.KIND_OLDEST_NODE_IMAGE }}
 
@@ -443,6 +447,7 @@ jobs:
     - name: Create KinD
       uses: helm/kind-action@v1
       with:
+        version: ${{ env.KIND_VERSION }}
         cluster_name: examples-testing
         node_image: ${{ env.KIND_NODE_IMAGE }}
 
@@ -512,6 +517,7 @@ jobs:
     - name: Create KinD
       uses: helm/kind-action@v1
       with:
+        version: ${{ env.KIND_VERSION }}
         cluster_name: upgrade-testing
         node_image: ${{ env.KIND_NODE_IMAGE }}
 
