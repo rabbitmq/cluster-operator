@@ -383,10 +383,10 @@ CONSOLE_LOG=new`
 				cluster.Spec.Replicas = ptr.To(int32(3))
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+						corev1.ResourceMemory: k8sresource.MustParse("1Gi"),
 					},
 					Limits: corev1.ResourceList{
-						corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+						corev1.ResourceMemory: k8sresource.MustParse("1Gi"),
 					},
 				}
 
@@ -444,10 +444,10 @@ CONSOLE_LOG=new`
 				}
 				cluster.Spec.Resources = &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+						corev1.ResourceMemory: k8sresource.MustParse("1Gi"),
 					},
 					Limits: corev1.ResourceList{
-						corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+						corev1.ResourceMemory: k8sresource.MustParse("1Gi"),
 					},
 				}
 				Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
@@ -579,10 +579,10 @@ CONSOLE_LOG=new`
 			}
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+					corev1.ResourceMemory: k8sresource.MustParse("1Gi"),
 				},
 				Limits: corev1.ResourceList{
-					corev1.ResourceMemory: k8sresource.MustParse("700Mi"),
+					corev1.ResourceMemory: k8sresource.MustParse("1Gi"),
 				},
 			}
 			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
