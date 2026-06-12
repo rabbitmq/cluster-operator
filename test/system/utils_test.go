@@ -276,9 +276,7 @@ func publishToQueueAMQPS(message, username, password, hostname, amqpsPort, caFil
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = ch.Close()
-	}()
+	// Channel will be closed when the connection is closed
 
 	q, err := ch.QueueDeclare(
 		"test-queue", // name
@@ -962,6 +960,7 @@ func createCertificateChain(hostname string, caCertWriter, certWriter, keyWriter
 }
 
 func publishAndConsumeMQTTMsg(hostname, port, username, password string, overWebSocket bool, tlsConfig *tls.Config) {
+	GinkgoHelper()
 	url := fmt.Sprintf("tcp://%s:%s", hostname, port)
 	if overWebSocket {
 		url = fmt.Sprintf("ws://%s:%s/ws", hostname, port)
@@ -983,28 +982,28 @@ func publishAndConsumeMQTTMsg(hostname, port, username, password string, overWeb
 	c := mqtt.NewClient(opts)
 
 	var token mqtt.Token
-	EventuallyWithOffset(1, func() bool {
+	EventuallyWithOffset(1, func() error {
 		token = c.Connect()
 		// Waits for the network request to reach the destination and receive a response
 		if !token.WaitTimeout(30 * time.Second) {
-			fmt.Printf("Timed out\n")
-			return false
+			fmt.Printf("Timed out on token !")
+			return fmt.Errorf("timed out waiting for token")
 		}
 
-		if err := token.Error(); err == nil {
-			fmt.Printf("Connected !\n")
-			return true
+		if err := token.Error(); err != nil {
+			fmt.Printf("Error connecting !\n")
+			return err
 		}
-		return false
-	}, 30, 20).Should(BeTrue(), "Expected to be able to connect to MQTT port")
+		return nil
+	}, 30, 20).Should(Succeed(), "Expected to be able to connect to MQTT port")
 
 	topic := "tests/mqtt"
 	msgReceived := false
 
 	handler := func(client mqtt.Client, msg mqtt.Message) {
-		defer GinkgoRecover()
-		ExpectWithOffset(1, msg.Topic()).To(Equal(topic))
-		ExpectWithOffset(1, string(msg.Payload())).To(Equal("test message MQTT"))
+		GinkgoHelper()
+		ExpectWithOffset(2, msg.Topic()).To(Equal(topic))
+		ExpectWithOffset(2, string(msg.Payload())).To(Equal("test message MQTT"))
 		msgReceived = true
 	}
 
@@ -1096,6 +1095,7 @@ func publishAndConsumeSTOMPMsg(hostname, port, username, password string, tlsCon
 }
 
 func publishAndConsumeStreamMsg(host, port, username, password string) {
+	GinkgoHelper()
 	portInt, err := strconv.Atoi(port)
 	Expect(err).ToNot(HaveOccurred())
 
