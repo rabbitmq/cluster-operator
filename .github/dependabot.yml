@@ -1,13 +1,15 @@
 version: 2
+
+multi-ecosystem-groups:
+  gomod:
+    schedule:
+      interval: "daily"
+
 updates:
 - package-ecosystem: "gomod"
   directory: "/"
-  groups:
-    all:
-      patterns:
-      - '*'
-  schedule:
-    interval: "daily"
+  patterns:
+  - '*'
   ignore:
     - dependency-name: "k8s.io/api"
       versions: ["0.19.x"]
@@ -17,6 +19,14 @@ updates:
       versions: ["0.19.x"]
     - dependency-name: "github.com/go-logr/logr"
       versions: ["0.2.x"]
+  multi-ecosystem-group: "gomod"
+- package-ecosystem: "gomod"
+  directory: "/kubectl-rabbitmq/"
+  patterns:
+  - '*'
+  ignore:
+    - dependency-name: "github.com/rabbitmq/cluster-operator/v2"
+  multi-ecosystem-group: "gomod"
 - package-ecosystem: "github-actions"
   directory: "/"
   groups:
@@ -25,13 +35,3 @@ updates:
       - '*'
   schedule:
     interval: "weekly"
-- package-ecosystem: "gomod"
-  directory: "/kubectl-rabbitmq/"
-  groups:
-    all:
-      patterns:
-      - '*'
-  schedule:
-    interval: "daily"
-  ignore:
-    - dependency-name: "github.com/rabbitmq/cluster-operator/v2"
