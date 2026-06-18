@@ -411,6 +411,11 @@ docker-build-dev:
 ##@ Cert Manager
 
 .PHONY: cert-manager
+.PHONY: wait-for-webhook
+wait-for-webhook: ## Wait for the mutating webhook CA bundle to be injected
+	@echo "Waiting for the mutating webhook CA bundle to be injected..."
+	@timeout 120s bash -c 'until $(KUBECTL) get mutatingwebhookconfigurations.admissionregistration.k8s.io mutating-webhook-configuration -o jsonpath="{.webhooks[0].clientConfig.caBundle}" 2>/dev/null | grep -q "[a-zA-Z0-9]"; do sleep 2; done' || (echo "Timeout waiting for CA bundle injection" && exit 1)
+
 cert-manager: cmctl ## Setup cert-manager. Use CERT_MANAGER_VERSION to customise the version e.g. CERT_MANAGER_VERSION="v1.15.1"
 	@echo "Installing Cert Manager"
 	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml

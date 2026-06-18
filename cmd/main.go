@@ -289,6 +289,10 @@ func main() {
 			log.Error(err, "unable to create webhook", "webhook", "RabbitmqCluster")
 			os.Exit(1)
 		}
+		if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
+			log.Error(err, "unable to set up ready check for webhook")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 

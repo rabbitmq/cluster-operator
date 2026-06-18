@@ -41,6 +41,7 @@ current_generation="$(kubectl --namespace default get sts operator-upgrade-serve
 
 kubectl apply -f $UPGRADE_MANIFEST
 kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+make wait-for-webhook
 sleep 30
 kubectl wait rabbitmqcluster operator-upgrade --for=condition=AllReplicasReady --timeout=5m
 kubectl wait rabbitmqcluster operator-upgrade --for=condition=ReconcileSuccess --timeout=5m

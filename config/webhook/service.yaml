@@ -21,3 +21,4 @@ spec:
       targetPort: 9443
   selector:
     app.kubernetes.io/name: rabbitmq-cluster-operator
+    app.kubernetes.io/component: rabbitmq-operator

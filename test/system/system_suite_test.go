@@ -100,6 +100,15 @@ var _ = SynchronizedBeforeSuite(
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 			return operatorDeployment.Status.ReadyReplicas
 		}, 10, 1).Should(BeNumerically("==", 1), "Expected to have Operator Pod Ready")
+
+		// Wait for the mutating webhook CA bundle to be injected by cert-manager
+		Eventually(func() string {
+			mwc, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, "mutating-webhook-configuration", metav1.GetOptions{})
+			if err != nil || len(mwc.Webhooks) == 0 {
+				return ""
+			}
+			return string(mwc.Webhooks[0].ClientConfig.CABundle)
+		}, 60, 1).ShouldNot(BeEmpty(), "Expected MutatingWebhookConfiguration CA bundle to be injected")
 	},
 )
 

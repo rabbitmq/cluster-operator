@@ -62,6 +62,8 @@ jobs:
         kustomize build config/namespace/base | kubectl apply -f -
         make cert-manager
         kustomize build config/default | bin/ytt -f- -f config/ytt/overlay-manager-image.yaml --data-value operator_image="${IMG}" -f config/ytt/never_pull.yaml | kubectl apply -f -
+        kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+        make wait-for-webhook
 
     - name: Test kubectl plugin
       working-directory: kubectl-rabbitmq
@@ -320,6 +322,7 @@ jobs:
         make cert-manager
         ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+        make wait-for-webhook
 
     - name: System tests
       env:
@@ -391,6 +394,7 @@ jobs:
         make cert-manager
         ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+        make wait-for-webhook
 
     - name: System tests
       env:
@@ -464,6 +468,7 @@ jobs:
         make cert-manager
         ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+        make wait-for-webhook
 
     - name: Documented example ${{ matrix.example }} test
       env:
@@ -525,6 +530,7 @@ jobs:
     - name: Install Operator build
       run: |
         kind load image-archive ${{ runner.temp }}/operator-image/operator.tar --name upgrade-testing
+        make cert-manager
 
     - name: Get operator manifest
       uses: actions/download-artifact@v8
