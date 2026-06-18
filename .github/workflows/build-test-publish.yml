@@ -324,6 +324,9 @@ jobs:
         KIND_NODE_IMAGE: ${{ env.KIND_NODE_IMAGE }}
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
         RABBITMQ_SERVICE_TYPE: NodePort
+        # RabbitMQ 3.13.7 predates the /health/checks/reached-target-cluster-size HTTP endpoint,
+        # so fall back to the legacy rabbitmqctl-based startup probe for that image only.
+        RABBITMQ_CLUSTER_ANNOTATION: ${{ matrix.rabbitmq-image == 'rabbitmq:3.13.7-management' && 'rabbitmq.com/legacy-startup-probe=true' || '' }}
       # 'make deploy-kind' builds the image locally. We should avoid using that target, because we have already built
       # the image in a previous job
       run: |
@@ -395,6 +398,9 @@ jobs:
         KIND_NODE_IMAGE: ${{ env.KIND_OLDEST_NODE_IMAGE }}
         RABBITMQ_IMAGE: ${{ matrix.rabbitmq-image }}
         RABBITMQ_SERVICE_TYPE: NodePort
+        # RabbitMQ 3.13.7 predates the /health/checks/reached-target-cluster-size HTTP endpoint,
+        # so fall back to the legacy rabbitmqctl-based startup probe for that image only.
+        RABBITMQ_CLUSTER_ANNOTATION: ${{ matrix.rabbitmq-image == 'rabbitmq:3.13.7-management' && 'rabbitmq.com/legacy-startup-probe=true' || '' }}
       # make system-tests will install required tools e.g. ginkgo
       run: |
         make cert-manager

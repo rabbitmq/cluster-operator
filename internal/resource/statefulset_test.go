@@ -763,6 +763,15 @@ var _ = Describe("StatefulSet", func() {
 					Expect(TCPProbe.Port.Type).To(Equal(intstr.String))
 					Expect(TCPProbe.Port.StrVal).To(Equal("amqps"))
 				})
+
+				It("sets StartupProbe to use HTTPS on management-tls port", func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet).NotTo(BeNil())
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/api/health/checks/reached-target-cluster-size"))
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet.Port).To(Equal(intstr.FromString("management-tls")))
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTPS))
+				})
 			})
 		})
 
@@ -898,21 +907,45 @@ var _ = Describe("StatefulSet", func() {
 			Expect(container.Env).To(ConsistOf(requiredEnvVariables))
 		})
 
-		It("sets default StartupProbe with rabbitmqctl eval command", func() {
+		It("sets default StartupProbe using HTTP management API", func() {
 			stsBuilder := builder.StatefulSet()
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 			Expect(container.StartupProbe).NotTo(BeNil())
-			Expect(container.StartupProbe.ProbeHandler.Exec).NotTo(BeNil())
-			Expect(container.StartupProbe.ProbeHandler.Exec.Command).To(Equal([]string{
-				"/bin/bash", "-c",
-				"rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().' | grep -q '^true$'",
-			}))
+			Expect(container.StartupProbe.ProbeHandler.HTTPGet).NotTo(BeNil())
+			Expect(container.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/api/health/checks/reached-target-cluster-size"))
+			Expect(container.StartupProbe.ProbeHandler.HTTPGet.Port).To(Equal(intstr.FromString("management")))
+			Expect(container.StartupProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
 			Expect(container.StartupProbe.InitialDelaySeconds).To(BeEquivalentTo(10))
 			Expect(container.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
 			Expect(container.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))
 			Expect(container.StartupProbe.FailureThreshold).To(BeEquivalentTo(30))
+		})
+
+		When("annotation rabbitmq.com/legacy-startup-probe is present", func() {
+			BeforeEach(func() {
+				instance.Annotations = map[string]string{
+					rabbitmqv1beta1.LegacyStartupProbeAnnotation: "true",
+				}
+			})
+
+			It("uses legacy exec StartupProbe with rabbitmqctl eval command", func() {
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.StartupProbe).NotTo(BeNil())
+				Expect(container.StartupProbe.ProbeHandler.Exec).NotTo(BeNil())
+				Expect(container.StartupProbe.ProbeHandler.Exec.Command).To(Equal([]string{
+					"/bin/bash", "-c",
+					"[[ \"true\" == \"$(rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().')\" ]]",
+				}))
+				Expect(container.StartupProbe.InitialDelaySeconds).To(BeEquivalentTo(10))
+				Expect(container.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
+				Expect(container.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))
+				Expect(container.StartupProbe.FailureThreshold).To(BeEquivalentTo(30))
+			})
 		})
 
 		Context("ExternalSecret", func() {

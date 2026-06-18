@@ -641,19 +641,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 						SuccessThreshold:    1,
 						FailureThreshold:    3,
 					},
-					// TODO: Update this probe once we have an HTTP API endpoint for this
-					StartupProbe: &corev1.Probe{
-						ProbeHandler: corev1.ProbeHandler{
-							Exec: &corev1.ExecAction{
-								Command: []string{"/bin/bash", "-c",
-									"rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().' | grep -q '^true$'"},
-							},
-						},
-						InitialDelaySeconds: 10,
-						TimeoutSeconds:      5,
-						PeriodSeconds:       10,
-						FailureThreshold:    30,
-					},
+					StartupProbe: builder.startupProbe(),
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.LifecycleHandler{
 							Exec: &corev1.ExecAction{
@@ -702,6 +690,44 @@ func (builder *StatefulSetBuilder) rabbitmqConfigurationIsSet() bool {
 	return builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" ||
 		builder.Instance.Spec.Rabbitmq.EnvConfig != "" ||
 		builder.Instance.Spec.Rabbitmq.ErlangInetConfig != ""
+}
+
+func (builder *StatefulSetBuilder) startupProbe() *corev1.Probe {
+	if _, ok := builder.Instance.Annotations[rabbitmqv1beta1.LegacyStartupProbeAnnotation]; ok {
+		return &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/bash", "-c",
+						"[[ \"true\" == \"$(rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().')\" ]]"},
+				},
+			},
+			InitialDelaySeconds: 10,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       10,
+			FailureThreshold:    30,
+		}
+	}
+
+	port := intstr.FromString("management")
+	scheme := corev1.URISchemeHTTP
+	if builder.Instance.DisableNonTLSListeners() {
+		port = intstr.FromString("management-tls")
+		scheme = corev1.URISchemeHTTPS
+	}
+
+	return &corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path:   "/api/health/checks/reached-target-cluster-size",
+				Port:   port,
+				Scheme: scheme,
+			},
+		},
+		InitialDelaySeconds: 10,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		FailureThreshold:    30,
+	}
 }
 
 func defaultUserCredentialUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {

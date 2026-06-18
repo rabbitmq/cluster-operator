@@ -27,6 +27,7 @@ const (
 	RabbitmqVersionAnnotation              = "rabbitmq.com/version"
 	ErlangVersionAnnotation                = "rabbitmq.com/erlang-version"
 	VersionNotAnnotated                    = "VersionNotAnnotated"
+	LegacyStartupProbeAnnotation           = "rabbitmq.com/legacy-startup-probe"
 )
 
 // +kubebuilder:object:root=true
