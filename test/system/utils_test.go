@@ -444,6 +444,17 @@ func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.Rabbitm
 		}
 	}
 
+	// RABBITMQ_CLUSTER_ANNOTATION, in "key=value" form, annotates every cluster
+	// created by the system tests so the operator can detect them (e.g. for StartupProbe).
+	if annotationSpec := os.Getenv("RABBITMQ_CLUSTER_ANNOTATION"); annotationSpec != "" {
+		if key, value, found := strings.Cut(annotationSpec, "="); found {
+			if cluster.Annotations == nil {
+				cluster.Annotations = map[string]string{}
+			}
+			cluster.Annotations[key] = value
+		}
+	}
+
 	return cluster
 }
 

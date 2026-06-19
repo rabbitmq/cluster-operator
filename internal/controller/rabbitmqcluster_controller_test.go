@@ -97,11 +97,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 				rabbitmqContainer := sts.Spec.Template.Spec.Containers[0]
 				Expect(rabbitmqContainer.Name).To(Equal("rabbitmq"))
 				Expect(rabbitmqContainer.StartupProbe).NotTo(BeNil())
-				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.Exec).NotTo(BeNil())
-				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.Exec.Command).To(Equal([]string{
-					"/bin/bash", "-c",
-					"rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().' | grep -q '^true$'",
-				}))
+				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.HTTPGet).NotTo(BeNil())
+				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/api/health/checks/reached-target-cluster-size"))
+				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.HTTPGet.Port).To(Equal(intstr.FromString("management")))
+				Expect(rabbitmqContainer.StartupProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
 				Expect(rabbitmqContainer.StartupProbe.InitialDelaySeconds).To(BeEquivalentTo(10))
 				Expect(rabbitmqContainer.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
 				Expect(rabbitmqContainer.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))

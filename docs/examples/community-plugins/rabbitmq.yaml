@@ -2,6 +2,8 @@ apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster
 metadata:
   name: community-plugins
+  annotations:
+    "rabbitmq.com/legacy-startup-probe": "true"
 spec:
   replicas: 1
   image: rabbitmq:3.13-management
