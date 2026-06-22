@@ -484,6 +484,8 @@ jobs:
           kubectl config set-context --current --namespace=examples
           [[ -e setup.sh ]] && ./setup.sh
 
+          timeout 120s bash -c 'until out=$(kubectl create --dry-run=server -f rabbitmq.yaml 2>&1); do if echo "$out" | grep -q "connection refused"; then sleep 2; else break; fi; done' || (echo "Timeout waiting for webhook service" && exit 1)
+
           kubectl apply -f rabbitmq.yaml --timeout=30s
           kubectl wait -f rabbitmq.yaml --for=condition=AllReplicasReady --timeout=5m
           kubectl wait -f rabbitmq.yaml --for=condition=ReconcileSuccess --timeout=5m
