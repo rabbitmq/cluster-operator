@@ -11,19 +11,28 @@ import (
 )
 
 var _ = Describe("ReconcileOperatorDefaults", func() {
-	Context("with operator defaults configured", func() {
+	Context("with defaults already applied (as the mutating webhook would)", func() {
 		var cluster *rabbitmqv1beta1.RabbitmqCluster
 
 		BeforeEach(func() {
+			// Simulate what the mutating webhook sets at admission time.
+			userUpdaterImage := defaultUserUpdaterImage
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-default",
 					Namespace: "default",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Image: defaultRabbitmqImage,
+					ImagePullSecrets: []corev1.LocalObjectReference{
+						{Name: "image-secret-1"},
+						{Name: "image-secret-2"},
+						{Name: "image-secret-3"},
+					},
 					SecretBackend: rabbitmqv1beta1.SecretBackend{
 						Vault: &rabbitmqv1beta1.VaultSpec{
-							DefaultUserPath: "some-path",
+							DefaultUserPath:         "some-path",
+							DefaultUserUpdaterImage: &userUpdaterImage,
 						},
 					},
 				},
@@ -33,28 +42,22 @@ var _ = Describe("ReconcileOperatorDefaults", func() {
 			waitForClusterCreation(ctx, cluster, client)
 		})
 
-		It("handles operator defaults correctly", func() {
+		It("propagates defaults to child resources", func() {
 			fetchedCluster := &rabbitmqv1beta1.RabbitmqCluster{}
 			Expect(client.Get(ctx, k8sclient.ObjectKeyFromObject(cluster), fetchedCluster)).To(Succeed())
 
-			By("setting the image spec with the default image")
+			By("preserving the image set by the webhook")
 			Expect(fetchedCluster.Spec.Image).To(Equal(defaultRabbitmqImage))
 
-			By("setting the default user updater image to the controller default")
+			By("preserving the default user updater image set by the webhook")
 			Expect(fetchedCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage).To(PointTo(Equal(defaultUserUpdaterImage)))
 
-			By("setting the default imagePullSecrets")
+			By("propagating imagePullSecrets to the StatefulSet")
 			Expect(statefulSet(ctx, cluster).Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(
 				[]corev1.LocalObjectReference{
-					{
-						Name: "image-secret-1",
-					},
-					{
-						Name: "image-secret-2",
-					},
-					{
-						Name: "image-secret-3",
-					},
+					{Name: "image-secret-1"},
+					{Name: "image-secret-2"},
+					{Name: "image-secret-3"},
 				},
 			))
 		})

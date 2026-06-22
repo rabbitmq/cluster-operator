@@ -26,6 +26,8 @@ The script `test.sh` will be executed **after** `AllReplicasReady` condition is 
 object. The script `test.sh` should exit with code 0 if all assertions were successful; the script `test.sh` should
 exit with non-zero code if any test or assertion failed. The same is expected for `setup.sh`.
 
+Note: The testing framework automatically performs a dry-run of the example's `rabbitmq.yaml` before actually applying it. This ensures that the mutating webhook is fully reachable and prevents intermittent "connection refused" errors during test execution.
+
 If the example should not run any tests because of the reasons mentioned above, the folder should contain
 a file `.ci-skip`, so that the example is not considered in our tests.
 

@@ -7,7 +7,7 @@ domain: rabbitmq.com
 layout:
 - go.kubebuilder.io/v4
 projectName: cluster-operator
-repo: github.com/rabbitmq/cluster-operator
+repo: github.com/rabbitmq/cluster-operator/v2
 resources:
 - api:
     crdVersion: v1
@@ -18,6 +18,9 @@ resources:
   domain: rabbitmq.com
   group: rabbitmq.com
   kind: RabbitmqCluster
-  path: github.com/rabbitmq/cluster-operator/api/v1beta1
+  path: github.com/rabbitmq/cluster-operator/v2/api/v1beta1
   version: v1beta1
+  webhooks:
+    defaulting: true
+    webhookVersion: v1
 version: "3"

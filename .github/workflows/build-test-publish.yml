@@ -60,7 +60,10 @@ jobs:
       run: |
         kind load image-archive ${{ runner.temp }}/operator.tar --name cluster-operator-testing
         kustomize build config/namespace/base | kubectl apply -f -
+        make cert-manager
         kustomize build config/default | bin/ytt -f- -f config/ytt/overlay-manager-image.yaml --data-value operator_image="${IMG}" -f config/ytt/never_pull.yaml | kubectl apply -f -
+        kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+        make wait-for-webhook
 
     - name: Test kubectl plugin
       working-directory: kubectl-rabbitmq
@@ -316,8 +319,10 @@ jobs:
     - name: Install Operator build
       run: |
         kind load image-archive ${{ runner.temp }}/operator-image/operator.tar --name system-testing
+        make cert-manager
         ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+        make wait-for-webhook
 
     - name: System tests
       env:
@@ -330,7 +335,6 @@ jobs:
       # 'make deploy-kind' builds the image locally. We should avoid using that target, because we have already built
       # the image in a previous job
       run: |
-        make cert-manager
         SUPPORT_VOLUME_EXPANSION=false make system-tests
 
     - name: Dry-run example YAMLs
@@ -390,8 +394,10 @@ jobs:
     - name: Install Operator build
       run: |
         kind load image-archive ${{ runner.temp }}/operator-image/operator.tar --name system-testing-oldest-k8s
+        make cert-manager
         ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+        make wait-for-webhook
 
     - name: System tests
       env:
@@ -403,7 +409,6 @@ jobs:
         RABBITMQ_CLUSTER_ANNOTATION: ${{ matrix.rabbitmq-image == 'rabbitmq:3.13.7-management' && 'rabbitmq.com/legacy-startup-probe=true' || '' }}
       # make system-tests will install required tools e.g. ginkgo
       run: |
-        make cert-manager
         SUPPORT_VOLUME_EXPANSION=false make system-tests
 
   examples_matrix:
@@ -466,8 +471,10 @@ jobs:
     - name: Install Operator build
       run: |
         kind load image-archive ${{ runner.temp }}/operator-image/operator.tar --name examples-testing
+        make cert-manager
         ytt -f tmp/cluster-operator.yml -f config/ytt/never_pull.yaml | kubectl apply -f-
         kubectl --namespace=rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator
+        make wait-for-webhook
 
     - name: Documented example ${{ matrix.example }} test
       env:
@@ -476,13 +483,14 @@ jobs:
         # Exit early if this example is to be skipped in CI
         [[ -e "$example"/.ci-skip ]] && exit 0
 
-        make cert-manager
         printf "apiVersion: cert-manager.io/v1\nkind: ClusterIssuer\nmetadata:\n  name: selfsigned-issuer\nspec:\n  selfSigned: {}\n" | kubectl apply -f -
 
         pushd "$example"
           kubectl create namespace examples
           kubectl config set-context --current --namespace=examples
           [[ -e setup.sh ]] && ./setup.sh
+
+          timeout 120s bash -c 'until out=$(kubectl create --dry-run=server -f rabbitmq.yaml 2>&1); do if echo "$out" | grep -q "connection refused"; then sleep 2; else break; fi; done' || (echo "Timeout waiting for webhook service" && exit 1)
 
           kubectl apply -f rabbitmq.yaml --timeout=30s
           kubectl wait -f rabbitmq.yaml --for=condition=AllReplicasReady --timeout=5m
@@ -530,6 +538,7 @@ jobs:
     - name: Install Operator build
       run: |
         kind load image-archive ${{ runner.temp }}/operator-image/operator.tar --name upgrade-testing
+        make cert-manager
 
     - name: Get operator manifest
       uses: actions/download-artifact@v8
