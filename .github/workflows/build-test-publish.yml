@@ -28,7 +28,7 @@ jobs:
       - build_operator
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install Go
       uses: actions/setup-go@v6
@@ -88,7 +88,7 @@ jobs:
         arch: [amd64, arm64]
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install Go
       uses: actions/setup-go@v6
@@ -117,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install Go
       uses: actions/setup-go@v6
@@ -126,7 +126,7 @@ jobs:
 
     - name: Cache tools
       id: cache-tools
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: bin
         key: ${{ runner.os }}-tools-${{ hashFiles('Makefile') }}-${{ hashFiles('go.mod') }}
@@ -162,7 +162,7 @@ jobs:
       packages: 'write'
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install Go
       id: set-go
@@ -246,7 +246,7 @@ jobs:
 
     - name: Cache tools
       id: cache-tools
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: bin
         key: ${{ runner.os }}-tools-${{ hashFiles('Makefile') }}-${{ hashFiles('go.mod') }}
@@ -282,7 +282,7 @@ jobs:
         - pivotalrabbitmq/rabbitmq:main-otp27
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install Go
       uses: actions/setup-go@v6
@@ -357,7 +357,7 @@ jobs:
         - rabbitmq:management
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install Go
       uses: actions/setup-go@v6
@@ -417,7 +417,7 @@ jobs:
       examples_matrix: ${{ steps.list_examples.outputs.examples_matrix }}
     steps:
     - name: Check out code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: List Examples
       id: list_examples
@@ -434,7 +434,7 @@ jobs:
         example: ${{ fromJSON(needs.examples_matrix.outputs.examples_matrix) }}
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install Go
       uses: actions/setup-go@v6
@@ -515,7 +515,7 @@ jobs:
     needs: build_operator
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install Go
       uses: actions/setup-go@v6
