@@ -32,14 +32,14 @@ replacements:
 - source:
     kind: Service
     version: v1
-    name: webhook-service
+    name: cluster-operator-webhook-service
     fieldPath: .metadata.name
   targets:
   - select:
       kind: Certificate
       group: cert-manager.io
       version: v1
-      name: serving-cert
+      name: cluster-operator-serving-cert
     fieldPaths:
     - .spec.dnsNames.0
     - .spec.dnsNames.1
@@ -50,14 +50,14 @@ replacements:
 - source:
     kind: Service
     version: v1
-    name: webhook-service
+    name: cluster-operator-webhook-service
     fieldPath: .metadata.namespace
   targets:
   - select:
       kind: Certificate
       group: cert-manager.io
       version: v1
-      name: serving-cert
+      name: cluster-operator-serving-cert
     fieldPaths:
     - .spec.dnsNames.0
     - .spec.dnsNames.1
@@ -69,7 +69,7 @@ replacements:
     kind: Certificate
     group: cert-manager.io
     version: v1
-    name: serving-cert
+    name: cluster-operator-serving-cert
     fieldPath: .metadata.namespace
   targets:
   - select:
@@ -84,7 +84,7 @@ replacements:
     kind: Certificate
     group: cert-manager.io
     version: v1
-    name: serving-cert
+    name: cluster-operator-serving-cert
     fieldPath: .metadata.name
   targets:
   - select:
