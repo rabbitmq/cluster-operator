@@ -1,3 +1,5 @@
 resources:
 - manifests.yaml
 - service.yaml
+
+namePrefix: cluster-operator-

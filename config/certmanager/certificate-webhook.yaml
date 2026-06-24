@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: cluster-operator
     app.kubernetes.io/managed-by: kustomize
-  name: serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
+  name: cluster-operator-serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
   namespace: system
 spec:
   # SERVICE_NAME and SERVICE_NAMESPACE will be substituted by kustomize
@@ -17,4 +17,4 @@ spec:
   issuerRef:
     kind: Issuer
     name: selfsigned-issuer
-  secretName: webhook-server-cert
+  secretName: cluster-operator-webhook-server-cert

@@ -103,7 +103,7 @@ var _ = SynchronizedBeforeSuite(
 
 		// Wait for the mutating webhook CA bundle to be injected by cert-manager
 		Eventually(func() string {
-			mwc, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, "mutating-webhook-configuration", metav1.GetOptions{})
+			mwc, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, "cluster-operator-mutating-webhook-configuration", metav1.GetOptions{})
 			if err != nil || len(mwc.Webhooks) == 0 {
 				return ""
 			}
