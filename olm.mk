@@ -42,7 +42,7 @@ deployment: ## Extract deployment spec. Customise using QUAY_IO_OPERATOR_IMAGE
 			--data-value operator_image=$(QUAY_IO_OPERATOR_IMAGE) \
 			-f olm/templates/cluster-operator-namespace-scope-overlay.yml \
 		> tmp/cluster-operator.yml
-	yq '{"spec": .spec}' tmp/cluster-operator.yml > tmp/spec.yaml
+	yq 'select(.kind == "Deployment") | {"spec": .spec}' tmp/cluster-operator.yml > tmp/spec.yaml
 
 BUNDLE_CREATED_AT ?= $(shell date +'%Y-%m-%dT%H:%M:%S')
 BUNDLE_VERSION ?= 0.0.0

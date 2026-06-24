@@ -172,3 +172,25 @@ spec:
       supported: true
     - type: AllNamespaces
       supported: true
+
+  webhookdefinitions:
+    - type: MutatingAdmissionWebhook
+      admissionReviewVersions:
+        - v1
+      containerPort: 9443
+      targetPort: 9443
+      deploymentName: rabbitmq-cluster-operator
+      failurePolicy: Fail
+      generateName: mrabbitmqcluster-v1beta1.kb.io
+      rules:
+        - apiGroups:
+            - rabbitmq.com
+          apiVersions:
+            - v1beta1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - rabbitmqclusters
+      sideEffects: None
+      webhookPath: /mutate-rabbitmq-com-v1beta1-rabbitmqcluster

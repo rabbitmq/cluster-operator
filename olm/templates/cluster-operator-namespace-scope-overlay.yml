@@ -7,6 +7,11 @@
 spec:
   template:
     spec:
+      #@overlay/match missing_ok=True
+      volumes:
+      #@overlay/match by=overlay.subset({"name": "webhook-certs"}),expects="0+"
+      #@overlay/remove
+      -
       containers:
       #@overlay/match by=overlay.subset({"name": "operator"}),expects="1+"
       -
@@ -16,3 +21,11 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.annotations['olm.targetNamespaces']
+        #! Required to remove the webhook-certs volume mount
+        #! because upstream operator has it, and OLM handles
+        #! the volume mounts
+        #@overlay/match missing_ok=True
+        volumeMounts:
+        #@overlay/match by=overlay.subset({"name": "webhook-certs"}),expects="0+"
+        #@overlay/remove
+        -
