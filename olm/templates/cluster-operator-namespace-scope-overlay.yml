@@ -9,7 +9,7 @@ spec:
     spec:
       #@overlay/match missing_ok=True
       volumes:
-      #@overlay/match by=overlay.subset({"name": "webhook-certs"}),expects="0+"
+      #@overlay/match by=overlay.subset({"name": "cluster-operator-webhook-certs"}),expects="0+"
       #@overlay/remove
       -
       containers:
@@ -26,6 +26,6 @@ spec:
         #! the volume mounts
         #@overlay/match missing_ok=True
         volumeMounts:
-        #@overlay/match by=overlay.subset({"name": "webhook-certs"}),expects="0+"
+        #@overlay/match by=overlay.subset({"name": "cluster-operator-webhook-certs"}),expects="0+"
         #@overlay/remove
         -

@@ -108,17 +108,50 @@ catalog-push: ## Push catalog image. Customise using REGISTRY and CATALOG_IMAGE
 
 catalog-deploy: ## Deploy a catalog source to an existing k8s
 	kubectl apply -f $(CURDIR)/olm/assets/operator-group.yaml
-	ytt -f $(CURDIR)/olm/assets/catalog-source.yaml --data-value image="$(REGISTRY)/$(CATALOG_IMAGE)" | kubectl apply -f-
+	ytt -f $(CURDIR)/olm/assets/catalog-source.yaml \
+		-f $(CURDIR)/olm/assets/catalog-source-overlay.yml \
+		--data-value image="$(REGISTRY)/$(CATALOG_IMAGE)" \
+		--data-value secret_name="$(DOCKER_REGISTRY_SECRET)" | kubectl apply -f-
 	kubectl apply -f $(CURDIR)/olm/assets/subscription.yaml
 
 catalog-undeploy: ## Delete all catalog assets from k8s
 	kubectl delete -f $(CURDIR)/olm/assets/subscription.yaml --ignore-not-found
 	kubectl delete -f $(CURDIR)/olm/manifests/ --ignore-not-found
 	kubectl delete -f $(CURDIR)/olm/assets/operator-group.yaml --ignore-not-found
-	ytt -f $(CURDIR)/olm/assets/catalog-source.yaml --data-value image="$(REGISTRY)/$(CATALOG_IMAGE)" | kubectl delete -f- --ignore-not-found
+	ytt -f $(CURDIR)/olm/assets/catalog-source.yaml \
+		-f $(CURDIR)/olm/assets/catalog-source-overlay.yml \
+		--data-value image="$(REGISTRY)/$(CATALOG_IMAGE)" \
+		--data-value secret_name="$(DOCKER_REGISTRY_SECRET)" | kubectl delete -f- --ignore-not-found
 
 catalog-clean: ## Delete manifest files for catalog
 	rm -v -f $(CURDIR)/olm/catalog/*.y*ml
+
+.PHONY: catalog-pull-secret
+catalog-pull-secret: ## Create a docker registry secret and export it to ns-1 namespace
+	kubectl create namespace secrets --dry-run=client -o yaml | kubectl apply -f -
+	kubectl create namespace ns-1 --dry-run=client -o yaml | kubectl apply -f -
+	kubectl create secret docker-registry $(DOCKER_REGISTRY_SECRET) \
+		--docker-server=$(DOCKER_REGISTRY_SERVER) \
+		--docker-username=$(DOCKER_REGISTRY_USERNAME) \
+		--docker-password=$(DOCKER_REGISTRY_PASSWORD) \
+		--namespace secrets \
+		--dry-run=client -o yaml | kubectl apply -f -
+	echo "apiVersion: secretgen.carvel.dev/v1alpha1" > tmp/secret-export.yaml
+	echo "kind: SecretExport" >> tmp/secret-export.yaml
+	echo "metadata:" >> tmp/secret-export.yaml
+	echo "  name: $(DOCKER_REGISTRY_SECRET)" >> tmp/secret-export.yaml
+	echo "  namespace: secrets" >> tmp/secret-export.yaml
+	echo "spec:" >> tmp/secret-export.yaml
+	echo "  toNamespace: ns-1" >> tmp/secret-export.yaml
+	echo "---" >> tmp/secret-export.yaml
+	echo "apiVersion: secretgen.carvel.dev/v1alpha1" >> tmp/secret-export.yaml
+	echo "kind: SecretImport" >> tmp/secret-export.yaml
+	echo "metadata:" >> tmp/secret-export.yaml
+	echo "  name: $(DOCKER_REGISTRY_SECRET)" >> tmp/secret-export.yaml
+	echo "  namespace: ns-1" >> tmp/secret-export.yaml
+	echo "spec:" >> tmp/secret-export.yaml
+	echo "  fromNamespace: secrets" >> tmp/secret-export.yaml
+	kubectl apply -f tmp/secret-export.yaml
 
 catalog-all::catalog-replace-bundle
 catalog-all::catalog-build
