@@ -32,3 +32,29 @@ webhooks:
     resources:
     - rabbitmqclusters
   sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-rabbitmq-com-v1beta1-rabbitmqcluster
+  failurePolicy: Fail
+  name: vrabbitmqcluster-v1beta1.kb.io
+  rules:
+  - apiGroups:
+    - rabbitmq.com
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - rabbitmqclusters
+  sideEffects: None

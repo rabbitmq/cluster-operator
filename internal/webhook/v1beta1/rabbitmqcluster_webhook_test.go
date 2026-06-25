@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	rabbitmqcomv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 )
@@ -110,5 +111,84 @@ var _ = Describe("RabbitmqCluster Webhook", func() {
 			Expect(defaulter.Default(context.Background(), obj)).To(Succeed())
 			Expect(obj.Spec.SecretBackend.Vault).To(BeNil())
 		})
+	})
+
+	Context("override validation", func() {
+		var validator RabbitmqClusterCustomValidator
+
+		BeforeEach(func() {
+			validator = RabbitmqClusterCustomValidator{}
+		})
+
+		It("allows a cluster with no override", func() {
+			_, err := validator.ValidateCreate(context.Background(), obj)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("allows a cluster with a safe pod spec override", func() {
+			obj.Spec.Override.StatefulSet = &rabbitmqcomv1beta1.StatefulSet{
+				Spec: &rabbitmqcomv1beta1.StatefulSetSpec{
+					Template: &rabbitmqcomv1beta1.PodTemplateSpec{
+						Spec: &corev1.PodSpec{
+							Containers: []corev1.Container{
+								{Name: "rabbitmq", Image: "rabbitmq:custom"},
+							},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.Background(), obj)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		DescribeTableSubtree("rejecting forbidden fields",
+			func(podSpec *corev1.PodSpec, expectedFragment string) {
+				BeforeEach(func() {
+					obj.Spec.Override.StatefulSet = &rabbitmqcomv1beta1.StatefulSet{
+						Spec: &rabbitmqcomv1beta1.StatefulSetSpec{
+							Template: &rabbitmqcomv1beta1.PodTemplateSpec{Spec: podSpec},
+						},
+					}
+				})
+
+				It("rejects forbidden fields in create", func() {
+					_, err := validator.ValidateCreate(context.Background(), obj)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(expectedFragment))
+				})
+
+				It("rejects forbidden fields in update", func() {
+					_, err := validator.ValidateUpdate(context.Background(), obj, obj)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(expectedFragment))
+				})
+			},
+			Entry("hostPID", &corev1.PodSpec{HostPID: true}, "hostPID"),
+			Entry("hostNetwork", &corev1.PodSpec{HostNetwork: true}, "hostNetwork"),
+			Entry("hostIPC", &corev1.PodSpec{HostIPC: true}, "hostIPC"),
+			Entry("serviceAccountName", &corev1.PodSpec{ServiceAccountName: "other-sa"}, "serviceAccountName"),
+			Entry("hostPath volume", &corev1.PodSpec{
+				Volumes: []corev1.Volume{
+					{Name: "host-vol", VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{Path: "/"},
+					}},
+				},
+			}, "hostPath"),
+			Entry("privileged container", &corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "evil", SecurityContext: &corev1.SecurityContext{Privileged: ptr.To(true)}},
+				},
+			}, "privileged"),
+			Entry("privileged initContainer", &corev1.PodSpec{
+				InitContainers: []corev1.Container{
+					{Name: "evil-init", SecurityContext: &corev1.SecurityContext{Privileged: ptr.To(true)}},
+				},
+			}, "privileged"),
+			Entry("allowPrivilegeEscalation container", &corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "esc", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: ptr.To(true)}},
+				},
+			}, "allowPrivilegeEscalation"),
+		)
 	})
 })
