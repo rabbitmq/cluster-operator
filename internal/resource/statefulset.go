@@ -204,6 +204,7 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 		copyObjectMeta(&sts.Spec.Template.ObjectMeta, *stsOverride.Spec.Template.EmbeddedObjectMeta)
 	}
 	if stsOverride.Spec.Template.Spec != nil {
+		sanitizePodSpecOverride(stsOverride.Spec.Template.Spec)
 		patchedPodSpec, err := patchPodSpec(&sts.Spec.Template.Spec, stsOverride.Spec.Template.Spec)
 		if err != nil {
 			return err
@@ -211,7 +212,58 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 		sts.Spec.Template.Spec = patchedPodSpec
 	}
 
+	// Unconditionally restore operator-controlled identity fields that must not be overridden.
+	sts.Spec.Template.Spec.ServiceAccountName = instance.ChildResourceName(serviceAccountName)
+	sts.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
+
 	return nil
+}
+
+// sanitizePodSpecOverride removes fields from a pod spec override that would grant
+// host-level or privileged access. This is a reconcile-time defense-in-depth layer;
+// the admission webhook is the primary enforcement point.
+func sanitizePodSpecOverride(podSpecOverride *corev1.PodSpec) {
+	logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
+
+	podSpecOverride.HostPID = false
+	podSpecOverride.HostNetwork = false
+	podSpecOverride.HostIPC = false
+	podSpecOverride.ServiceAccountName = ""
+
+	filtered := podSpecOverride.Volumes[:0]
+	for _, vol := range podSpecOverride.Volumes {
+		if vol.HostPath != nil {
+			logger.Info("ignoring hostPath volume in override", "volume", vol.Name)
+			continue
+		}
+		filtered = append(filtered, vol)
+	}
+	podSpecOverride.Volumes = filtered
+
+	for i := range podSpecOverride.Containers {
+		sc := podSpecOverride.Containers[i].SecurityContext
+		if sc == nil {
+			continue
+		}
+		if sc.Privileged != nil && *sc.Privileged {
+			sc.Privileged = ptr.To(false)
+		}
+		if sc.AllowPrivilegeEscalation != nil && *sc.AllowPrivilegeEscalation {
+			sc.AllowPrivilegeEscalation = ptr.To(false)
+		}
+	}
+	for i := range podSpecOverride.InitContainers {
+		sc := podSpecOverride.InitContainers[i].SecurityContext
+		if sc == nil {
+			continue
+		}
+		if sc.Privileged != nil && *sc.Privileged {
+			sc.Privileged = ptr.To(false)
+		}
+		if sc.AllowPrivilegeEscalation != nil && *sc.AllowPrivilegeEscalation {
+			sc.AllowPrivilegeEscalation = ptr.To(false)
+		}
+	}
 }
 
 func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime.Scheme) ([]corev1.PersistentVolumeClaim, error) {

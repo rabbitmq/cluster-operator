@@ -2691,11 +2691,130 @@ default_pass = {{ .Data.data.password }}
 				Expect(extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq").Image).To(Equal("override-image"))
 			})
 		})
-	})
 
-	Context("UpdateMayRequireStsRecreate", func() {
-		It("returns true", func() {
-			Expect(stsBuilder.UpdateMayRequireStsRecreate()).To(BeTrue())
+		Context("override security sanitization", func() {
+			When("hostPID, hostNetwork, or hostIPC are added to the override spec", func() {
+				It("strips hostPID, hostNetwork, hostIPC from the override before patching", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									HostPID:     true,
+									HostNetwork: true,
+									HostIPC:     true,
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					Expect(statefulSet.Spec.Template.Spec.HostPID).To(BeFalse())
+					Expect(statefulSet.Spec.Template.Spec.HostNetwork).To(BeFalse())
+					Expect(statefulSet.Spec.Template.Spec.HostIPC).To(BeFalse())
+				})
+			})
+
+			When("a different serviceAccount is used in the override", func() {
+				It("restores the operator-assigned serviceAccountName", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									ServiceAccountName: "attacker-sa",
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(Equal(instance.ChildResourceName("server")))
+				})
+
+			})
+
+			When("overrides do not set a pod spec", func() {
+				It("preserves operator serviceAccountName when no pod spec override is set", func() {
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(Equal(instance.ChildResourceName("server")))
+				})
+			})
+
+			When("hostPath volumes are added in the override", func() {
+				It("removes hostPath volumes from the override", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Volumes: []corev1.Volume{
+										{
+											Name: "host-root",
+											VolumeSource: corev1.VolumeSource{
+												HostPath: &corev1.HostPathVolumeSource{Path: "/"},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					for _, v := range statefulSet.Spec.Template.Spec.Volumes {
+						Expect(v.HostPath).To(BeNil(), "no hostPath volume should survive sanitization")
+					}
+				})
+			})
+
+			When("overrides set privilege escalation", func() {
+				It("forces privileged=false", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											SecurityContext: &corev1.SecurityContext{
+												Privileged: ptr.To(true),
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					rmq := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(rmq.SecurityContext).NotTo(BeNil())
+					Expect(rmq.SecurityContext.Privileged).To(PointTo(BeFalse()))
+				})
+
+				It("sets allowPrivilegeEscalation=false for initContainer", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									InitContainers: []corev1.Container{
+										{
+											Name: "setup",
+											SecurityContext: &corev1.SecurityContext{
+												AllowPrivilegeEscalation: ptr.To(true),
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					init := extractContainer(statefulSet.Spec.Template.Spec.InitContainers, "setup")
+					Expect(init.SecurityContext).NotTo(BeNil())
+					Expect(init.SecurityContext.AllowPrivilegeEscalation).To(PointTo(BeFalse()))
+				})
+			})
 		})
 	})
 })
