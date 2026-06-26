@@ -412,11 +412,13 @@ docker-build-dev:
 
 .PHONY: cert-manager
 .PHONY: wait-for-webhook
-wait-for-webhook: ## Wait for the mutating webhook CA bundle to be injected
+wait-for-webhook: ## Wait for webhook CA bundles to be injected and the webhook service to be ready
 	@echo "Waiting for the mutating webhook CA bundle to be injected..."
-	@timeout 120s bash -c 'until $(KUBECTL) get mutatingwebhookconfigurations.admissionregistration.k8s.io cluster-operator-mutating-webhook-configuration -o jsonpath="{.webhooks[0].clientConfig.caBundle}" 2>/dev/null | grep -q "[a-zA-Z0-9]"; do sleep 2; done' || (echo "Timeout waiting for CA bundle injection" && exit 1)
+	@timeout 120s bash -c 'until $(KUBECTL) get mutatingwebhookconfigurations.admissionregistration.k8s.io cluster-operator-mutating-webhook-configuration -o jsonpath="{.webhooks[0].clientConfig.caBundle}" 2>/dev/null | grep -q "[a-zA-Z0-9]"; do sleep 2; done' || (echo "Timeout waiting for mutating webhook CA bundle injection" && exit 1)
+	@echo "Waiting for the validating webhook CA bundle to be injected..."
+	@timeout 120s bash -c 'until $(KUBECTL) get validatingwebhookconfigurations.admissionregistration.k8s.io cluster-operator-validating-webhook-configuration -o jsonpath="{.webhooks[0].clientConfig.caBundle}" 2>/dev/null | grep -q "[a-zA-Z0-9]"; do sleep 2; done' || (echo "Timeout waiting for validating webhook CA bundle injection" && exit 1)
 	@echo "Waiting for the webhook service to be reachable..."
-	@timeout 120s bash -c 'until out=$$($(KUBECTL) create --dry-run=server -f config/samples/rabbitmq_v1beta1_rabbitmqcluster.yaml 2>&1); do if echo "$$out" | grep -q "connection refused"; then sleep 2; else break; fi; done' || (echo "Timeout waiting for webhook service" && exit 1)
+	@timeout 120s bash -c 'until out=$$($(KUBECTL) create --dry-run=server -f config/samples/rabbitmq_v1beta1_rabbitmqcluster.yaml 2>&1); do if echo "$$out" | grep -qE "connection refused|x509|certificate"; then sleep 2; else break; fi; done' || (echo "Timeout waiting for webhook service" && exit 1)
 
 cert-manager: cmctl ## Setup cert-manager. Use CERT_MANAGER_VERSION to customise the version e.g. CERT_MANAGER_VERSION="v1.15.1"
 	@echo "Installing Cert Manager"
