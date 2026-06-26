@@ -1,0 +1,11 @@
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:data", "data")
+
+#@ if getattr(data.values, "secret_name", "") != "":
+#@overlay/match by=overlay.subset({"kind": "CatalogSource"})
+---
+spec:
+  #@overlay/match missing_ok=True
+  secrets:
+    - #@ data.values.secret_name
+#@ end
