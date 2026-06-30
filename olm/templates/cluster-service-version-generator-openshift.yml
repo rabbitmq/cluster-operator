@@ -194,3 +194,23 @@ spec:
             - rabbitmqclusters
       sideEffects: None
       webhookPath: /mutate-rabbitmq-com-v1beta1-rabbitmqcluster
+    - type: ValidatingAdmissionWebhook
+      admissionReviewVersions:
+        - v1
+      containerPort: 9443
+      targetPort: 9443
+      deploymentName: rabbitmq-cluster-operator
+      failurePolicy: Fail
+      generateName: vrabbitmqcluster-v1beta1.kb.io
+      rules:
+        - apiGroups:
+            - rabbitmq.com
+          apiVersions:
+            - v1beta1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - rabbitmqclusters
+      sideEffects: None
+      webhookPath: /validate-rabbitmq-com-v1beta1-rabbitmqcluster
