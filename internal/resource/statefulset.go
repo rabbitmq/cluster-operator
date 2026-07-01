@@ -195,6 +195,9 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 
 	if stsOverride.Spec.PersistentVolumeClaimRetentionPolicy != nil {
 		sts.Spec.PersistentVolumeClaimRetentionPolicy = stsOverride.Spec.PersistentVolumeClaimRetentionPolicy
+		if RetainsPersistentVolumeClaimsOnDelete(sts.Spec.PersistentVolumeClaimRetentionPolicy) && sts.ResourceVersion == "" {
+			removeRabbitmqClusterOwnerReferencesFromVolumeClaimTemplates(instance, sts.Spec.VolumeClaimTemplates)
+		}
 	}
 
 	if stsOverride.Spec.Template == nil {
@@ -296,6 +299,37 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 	disableBlockOwnerDeletion(pvc)
 
 	return []corev1.PersistentVolumeClaim{pvc}, nil
+}
+
+func RetainsPersistentVolumeClaimsOnDelete(policy *appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy) bool {
+	return policy != nil && policy.WhenDeleted != appsv1.DeletePersistentVolumeClaimRetentionPolicyType
+}
+
+func removeRabbitmqClusterOwnerReferencesFromVolumeClaimTemplates(instance *rabbitmqv1beta1.RabbitmqCluster, pvcs []corev1.PersistentVolumeClaim) {
+	for i := range pvcs {
+		pvcs[i].OwnerReferences, _ = RemoveRabbitmqClusterOwnerReferences(pvcs[i].OwnerReferences, instance)
+	}
+}
+
+func RemoveRabbitmqClusterOwnerReferences(ownerReferences []metav1.OwnerReference, instance *rabbitmqv1beta1.RabbitmqCluster) ([]metav1.OwnerReference, bool) {
+	filtered := ownerReferences[:0]
+	removed := false
+	for _, ownerReference := range ownerReferences {
+		if ownerReference.APIVersion == rabbitmqv1beta1.GroupVersion.String() &&
+			ownerReference.Kind == "RabbitmqCluster" &&
+			ownerReference.Name == instance.Name {
+			removed = true
+			continue
+		}
+		filtered = append(filtered, ownerReference)
+	}
+	if !removed {
+		return ownerReferences, false
+	}
+	if len(filtered) == 0 {
+		return nil, true
+	}
+	return filtered, true
 }
 
 // required for OpenShift compatibility, see https://github.com/rabbitmq/cluster-operator/issues/234
