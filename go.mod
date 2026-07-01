@@ -16,11 +16,11 @@ require (
 	golang.org/x/mod v0.37.0
 	golang.org/x/text v0.38.0
 	gopkg.in/ini.v1 v1.67.3
-	k8s.io/api v0.36.1
+	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2
-	k8s.io/client-go v0.36.1
+	k8s.io/client-go v0.36.2
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2
+	k8s.io/utils v0.0.0-20260626114624-be93311217bd
 	sigs.k8s.io/controller-runtime v0.24.1
 )
 
