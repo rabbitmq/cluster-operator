@@ -8,12 +8,12 @@
     insecureSkipVerify: false
     ca:
       secret:
-        name: metrics-server-cert
+        name: rabbitmq-cluster-operator-metrics-server-cert
         key: ca.crt
     cert:
       secret:
-        name: metrics-server-cert
+        name: rabbitmq-cluster-operator-metrics-server-cert
         key: tls.crt
     keySecret:
-      name: metrics-server-cert
+      name: rabbitmq-cluster-operator-metrics-server-cert
       key: tls.key
