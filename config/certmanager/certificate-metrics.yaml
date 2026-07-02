@@ -17,4 +17,4 @@ spec:
   issuerRef:
     kind: Issuer
     name: selfsigned-issuer
-  secretName: metrics-server-cert
+  secretName: rabbitmq-cluster-operator-metrics-server-cert

@@ -19,7 +19,7 @@ spec:
         # certificate verification, exposing the system to potential man-in-the-middle attacks.
         # For production environments, it is recommended to use cert-manager for automatic TLS certificate management.
         # To apply this configuration, enable cert-manager and use the patch located at config/prometheus/servicemonitor_tls_patch.yaml,
-        # which securely references the certificate from the 'metrics-server-cert' secret.
+        # which securely references the certificate from the 'rabbitmq-cluster-operator-metrics-server-cert' secret.
         insecureSkipVerify: true
   selector:
     matchLabels:

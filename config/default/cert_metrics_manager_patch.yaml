@@ -19,7 +19,7 @@
   value:
     name: metrics-certs
     secret:
-      secretName: metrics-server-cert
+      secretName: rabbitmq-cluster-operator-metrics-server-cert
       optional: false
       items:
         - key: ca.crt
