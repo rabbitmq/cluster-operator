@@ -69,6 +69,35 @@ var _ = Describe("Deploy", func() {
 		container := deploy.Spec.Template.Spec.Containers[0]
 		Expect(container.Image).To(ContainSubstring("rabbitmqoperator/cluster-operator"))
 
+		By("waiting for the cluster operator webhook service endpoints to be ready")
+		// OLM creates the webhook Service (named "<deploymentName>-service") only once the
+		// operator's mutating/validating webhook configurations are registered, and it takes
+		// a moment longer for the operator pod to actually be reachable behind it. Without this
+		// wait, creating the RabbitmqCluster object below can race the webhook coming up, causing
+		// the apiserver to fail calling it with "connection refused".
+		Eventually(func() (io.Writer, error) {
+			c := exec.Command(
+				kubectl,
+				"-n",
+				ns,
+				"get",
+				"endpoints",
+				"rabbitmq-cluster-operator-service",
+				"--output",
+				`go-template='{{ range .subsets }}{{ range .addresses }}{{ .ip }}{{ end }}{{ end }}'`,
+			)
+			b := gb.NewBuffer()
+			s, err := ge.Start(c, b, b)
+			if err != nil {
+				return nil, err
+			}
+			<-s.Exited
+			return b, nil
+		}).
+			WithTimeout(time.Minute * 2).
+			WithPolling(time.Second).
+			Should(gb.Say(`\d+\.\d+\.\d+\.\d+`))
+
 		By("creating a rabbitmq object")
 		c = exec.Command(kubectl, "-n", ns, "create", "-f-")
 		c.Stdin = strings.NewReader(sampleRabbitmqCluster)
