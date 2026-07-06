@@ -72,7 +72,7 @@ func main() {
 		probeAddr               string
 		secureMetrics           bool
 		enableHTTP2             bool
-		defaultRabbitmqImage    = "rabbitmq:4.2.6-management"
+		defaultRabbitmqImage    = "rabbitmq:4.3.2-management"
 		controlRabbitmqImage    = false
 		defaultUserUpdaterImage = "ghcr.io/rabbitmq/default-user-credential-updater:1.0.14"
 		defaultImagePullSecrets = ""
