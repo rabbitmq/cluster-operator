@@ -45,7 +45,6 @@ CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GINKGO_CLI ?= $(LOCALBIN)/ginkgo
 GOVULNCHECK ?= $(LOCALBIN)/govulncheck
-CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 YJ ?= $(LOCALBIN)/yj
 YTT ?= $(LOCALBIN)/ytt
 CMCTL ?= $(LOCALBIN)/cmctl
@@ -54,7 +53,6 @@ CMCTL ?= $(LOCALBIN)/cmctl
 KUSTOMIZE_VERSION ?= v5.8.1
 CONTROLLER_TOOLS_VERSION ?= v0.21.0
 GOVULNCHECK_VERSION ?= v1.5.0
-CRD_REF_DOCS_VERSION ?= v0.3.0
 YJ_VERSION ?= v5.1.0
 YTT_VERSION ?= v0.55.1
 CMCTL_VERSION ?= v2.5.0
@@ -133,11 +131,6 @@ govulncheck: $(GOVULNCHECK) ## Download govulncheck locally if necessary.
 $(GOVULNCHECK): $(LOCALBIN)
 	$(call go-install-tool,$(GOVULNCHECK),golang.org/x/vuln/cmd/govulncheck,$(GOVULNCHECK_VERSION))
 
-.PHONY: crd-ref-docs
-crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
-$(CRD_REF_DOCS): $(LOCALBIN)
-	$(call go-install-tool,$(CRD_REF_DOCS),github.com/elastic/crd-ref-docs,$(CRD_REF_DOCS_VERSION))
-
 .PHONY: yj
 yj: $(YJ) ## Download yj (YAML/JSON converter) locally if necessary.
 $(YJ): $(LOCALBIN)
@@ -176,7 +169,7 @@ $(KIND): $(LOCALBIN)
 	ln -sf "$$(realpath "$(KIND)-$(KIND_VERSION)-$(platform)-$(ARCHITECTURE)")" "$(KIND)"
 
 .PHONY: install-tools
-install-tools: kustomize controller-gen envtest ginkgo-cli govulncheck crd-ref-docs yj ytt kind ## Install all tooling required to configure and build this repo
+install-tools: kustomize controller-gen envtest ginkgo-cli govulncheck yj ytt kind ## Install all tooling required to configure and build this repo
 	@echo "All tools installed successfully"
 
 ##@ Testing
@@ -259,15 +252,6 @@ manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
 	./hack/add-notice-to-yaml.sh config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml
 	./hack/add-notice-to-yaml.sh config/webhook/manifests.yaml
 
-.PHONY: api-reference
-api-reference: crd-ref-docs ## Generate API reference documentation
-	"$(CRD_REF_DOCS)" \
-		--source-path ./api/v1beta1 \
-		--config ./docs/api/autogen/config.yaml \
-		--templates-dir ./docs/api/autogen/templates \
-		--output-path ./docs/api/rabbitmq.com.ref.asciidoc \
-		--max-depth 30
-
 .PHONY: checks
 checks::fmt ## Runs fmt + vet + govulncheck against the current code
 checks::vet
@@ -290,7 +274,7 @@ vuln: govulncheck ## Run govulncheck against code
 
 # Generate code & docs
 .PHONY: generate
-generate: controller-gen api-reference ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations
+generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations
 	"$(CONTROLLER_GEN)" object:headerFile=./hack/NOTICE.go.txt paths=./api/...
 	"$(CONTROLLER_GEN)" object:headerFile=./hack/NOTICE.go.txt paths=./internal/status/...
 
