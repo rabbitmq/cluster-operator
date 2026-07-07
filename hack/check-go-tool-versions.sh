@@ -53,14 +53,12 @@ check_go_version() {
 # Read current versions from Makefile
 KUSTOMIZE_VERSION=$(grep '^KUSTOMIZE_VERSION' "$MAKEFILE" | awk -F'= ' '{print $2}')
 CONTROLLER_TOOLS_VERSION=$(grep '^CONTROLLER_TOOLS_VERSION' "$MAKEFILE" | awk -F'= ' '{print $2}')
-CRD_REF_DOCS_VERSION=$(grep '^CRD_REF_DOCS_VERSION' "$MAKEFILE" | awk -F'= ' '{print $2}')
 YJ_VERSION=$(grep '^YJ_VERSION' "$MAKEFILE" | awk -F'= ' '{print $2}')
 GOVULNCHECK_VERSION=$(grep '^GOVULNCHECK_VERSION' "$MAKEFILE" | awk -F'= ' '{print $2}')
 
 # Check each Go tool
 check_go_version "KUSTOMIZE_VERSION" "sigs.k8s.io/kustomize/kustomize/v5" "$KUSTOMIZE_VERSION" "https://github.com/kubernetes-sigs/kustomize"
 check_go_version "CONTROLLER_TOOLS_VERSION" "sigs.k8s.io/controller-tools" "$CONTROLLER_TOOLS_VERSION" "https://github.com/kubernetes-sigs/controller-tools"
-check_go_version "CRD_REF_DOCS_VERSION" "github.com/elastic/crd-ref-docs" "$CRD_REF_DOCS_VERSION" "https://github.com/elastic/crd-ref-docs"
 check_go_version "YJ_VERSION" "github.com/sclevine/yj/v5" "$YJ_VERSION" "https://github.com/sclevine/yj"
 check_go_version "GOVULNCHECK_VERSION" "golang.org/x/vuln" "$GOVULNCHECK_VERSION" "https://github.com/golang/vuln"
 
