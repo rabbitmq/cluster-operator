@@ -13,8 +13,8 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/rabbitmq/amqp091-go v1.12.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.8.1
-	golang.org/x/mod v0.37.0
-	golang.org/x/text v0.39.0
+	golang.org/x/mod v0.38.0
+	golang.org/x/text v0.40.0
 	gopkg.in/ini.v1 v1.67.3
 	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2
@@ -104,7 +104,7 @@ require (
 	golang.org/x/exp v0.0.0-20260603202125-055de637280b // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/term v0.44.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
