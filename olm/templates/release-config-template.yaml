@@ -3,7 +3,7 @@
 
 ---
 catalog_templates:
-#@ for version in data.values.supported_openshift_versions:
+#@ for version in data.values.catalog_template_names:
   - template_name: #@ version + ".yaml"
     channels: [stable]
     #@ replaces = data.values.replaces

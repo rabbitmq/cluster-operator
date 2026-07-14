@@ -4,5 +4,10 @@ createdAt: '2025-05-02T09:11:31'
 image: quay.io/rabbitmqoperator/cluster-operator:2.14.0
 version: 2.14.0
 replaces: rabbitmq-cluster-operator.v2.13.0
-#! See https://access.redhat.com/support/policy/updates/openshift#dates for the list of supported OpenShift versions
-supported_openshift_versions: ["4.17", "4.18", "4.19"]
+#! Must mirror the `template_name` entries under `fbc.catalog_mapping` in the RH fork's
+#! operators/rabbitmq-cluster-operator/ci.yaml — NOT the full list of OCP versions we support.
+#! Adding support for a new OCP minor that reuses an existing template (the common case) is done
+#! by editing `catalog_names` on that template's entry in the fork's ci.yaml directly — no change
+#! needed here. Only add a new entry here (and a matching new template + catalog_mapping entry in
+#! the fork) when a genuinely new/incompatible catalog template must be introduced.
+catalog_template_names: ["v4.17", "v4.18"]
