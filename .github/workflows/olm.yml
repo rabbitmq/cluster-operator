@@ -257,6 +257,12 @@ jobs:
         # https://redhat-openshift-ecosystem.github.io/operator-pipelines/users/fbc_autorelease/
         #
         # The script removed the bundle.Dockerfile file because it is not needed for the FBC workflow.
+        #
+        # NOTE: enabling support for a new OpenShift minor version that reuses an existing catalog
+        # template is NOT done here. It requires a separate, manual PR against the fork's
+        # operators/rabbitmq-cluster-operator/ci.yaml, adding the new version to the relevant
+        # `fbc.catalog_mapping[].catalog_names` entry. See olm/values-release.yaml and
+        # https://redhat-openshift-ecosystem.github.io/operator-pipelines/users/operator-ci-yaml/
         run: |
           git config user.name "rabbitmq-ci"
           git config user.email ${{ secrets.RABBITMQ_CI_EMAIL }}
