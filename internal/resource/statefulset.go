@@ -105,7 +105,7 @@ func (builder *StatefulSetBuilder) Update(object client.Object) error {
 	//Update Strategy
 	sts.Spec.UpdateStrategy = appsv1.StatefulSetUpdateStrategy{
 		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-			Partition: ptr.To(int32(0)),
+			Partition: new(int32(0)),
 		},
 		Type: appsv1.RollingUpdateStatefulSetStrategyType,
 	}
@@ -214,7 +214,7 @@ func applyStsOverride(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *runtime
 
 	// Unconditionally restore operator-controlled identity fields that must not be overridden.
 	sts.Spec.Template.Spec.ServiceAccountName = instance.ChildResourceName(serviceAccountName)
-	sts.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
+	sts.Spec.Template.Spec.AutomountServiceAccountToken = new(true)
 
 	return nil
 }
@@ -246,10 +246,19 @@ func sanitizePodSpecOverride(podSpecOverride *corev1.PodSpec) {
 			continue
 		}
 		if sc.Privileged != nil && *sc.Privileged {
-			sc.Privileged = ptr.To(false)
+			sc.Privileged = new(false)
 		}
 		if sc.AllowPrivilegeEscalation != nil && *sc.AllowPrivilegeEscalation {
-			sc.AllowPrivilegeEscalation = ptr.To(false)
+			sc.AllowPrivilegeEscalation = new(false)
+		}
+		if sc.RunAsUser != nil && *sc.RunAsUser == 0 {
+			sc.RunAsUser = nil
+		}
+		if sc.RunAsNonRoot != nil && !*sc.RunAsNonRoot {
+			sc.RunAsNonRoot = new(true)
+		}
+		if sc.Capabilities != nil {
+			sc.Capabilities.Add = nil
 		}
 	}
 	for i := range podSpecOverride.InitContainers {
@@ -258,10 +267,19 @@ func sanitizePodSpecOverride(podSpecOverride *corev1.PodSpec) {
 			continue
 		}
 		if sc.Privileged != nil && *sc.Privileged {
-			sc.Privileged = ptr.To(false)
+			sc.Privileged = new(false)
 		}
 		if sc.AllowPrivilegeEscalation != nil && *sc.AllowPrivilegeEscalation {
-			sc.AllowPrivilegeEscalation = ptr.To(false)
+			sc.AllowPrivilegeEscalation = new(false)
+		}
+		if sc.RunAsUser != nil && *sc.RunAsUser == 0 {
+			sc.RunAsUser = nil
+		}
+		if sc.RunAsNonRoot != nil && !*sc.RunAsNonRoot {
+			sc.RunAsNonRoot = new(true)
+		}
+		if sc.Capabilities != nil {
+			sc.Capabilities.Add = nil
 		}
 	}
 }
@@ -302,7 +320,7 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 func disableBlockOwnerDeletion(pvc corev1.PersistentVolumeClaim) {
 	refs := pvc.OwnerReferences
 	for i := range refs {
-		refs[i].BlockOwnerDeletion = ptr.To(false)
+		refs[i].BlockOwnerDeletion = new(false)
 	}
 }
 
@@ -587,7 +605,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		})
 
 		secretEnforced := true
-		filePermissions := ptr.To(int32(400))
+		filePermissions := new(int32(400))
 		tlsProjectedVolume := corev1.Volume{
 			Name: "rabbitmq-tls",
 			VolumeSource: corev1.VolumeSource{
@@ -636,9 +654,9 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		Spec: corev1.PodSpec{
 			TopologySpreadConstraints: builder.defaultTopologySpreadConstraints(),
 			SecurityContext: &corev1.PodSecurityContext{
-				FSGroup:      ptr.To(int64(0)),
+				FSGroup:      new(int64(0)),
 				RunAsUser:    &rabbitmqUID,
-				RunAsNonRoot: ptr.To(bool(true)),
+				RunAsNonRoot: new(bool(true)),
 				SeccompProfile: &corev1.SeccompProfile{
 					Type: corev1.SeccompProfileTypeRuntimeDefault,
 				},
@@ -710,13 +728,13 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 						},
 					},
 					SecurityContext: &corev1.SecurityContext{
-						AllowPrivilegeEscalation: ptr.To(bool(false)),
+						AllowPrivilegeEscalation: new(bool(false)),
 						Capabilities: &corev1.Capabilities{
 							Drop: []corev1.Capability{"ALL"},
 						},
-						ReadOnlyRootFilesystem: ptr.To(bool(true)),
-						RunAsNonRoot:           ptr.To((bool(true))),
-						Privileged:             ptr.To(bool(false)),
+						ReadOnlyRootFilesystem: new(bool(true)),
+						RunAsNonRoot:           new((bool(true))),
+						Privileged:             new(bool(false)),
 						SeccompProfile: &corev1.SeccompProfile{
 							Type: corev1.SeccompProfileTypeRuntimeDefault,
 						},
@@ -733,7 +751,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	}
 
 	podTemplateSpec.Spec.ServiceAccountName = builder.Instance.ChildResourceName(serviceAccountName)
-	podTemplateSpec.Spec.AutomountServiceAccountToken = ptr.To(true)
+	podTemplateSpec.Spec.AutomountServiceAccountToken = new(true)
 
 	return podTemplateSpec
 }
@@ -910,13 +928,13 @@ func setupContainer(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container 
 			},
 		},
 		SecurityContext: &corev1.SecurityContext{
-			AllowPrivilegeEscalation: ptr.To(bool(false)),
+			AllowPrivilegeEscalation: new(bool(false)),
 			Capabilities: &corev1.Capabilities{
 				Drop: []corev1.Capability{"ALL"},
 			},
-			Privileged:             ptr.To(bool(false)),
-			ReadOnlyRootFilesystem: ptr.To(bool(true)),
-			RunAsNonRoot:           ptr.To(bool(true)),
+			Privileged:             new(bool(false)),
+			ReadOnlyRootFilesystem: new(bool(true)),
+			RunAsNonRoot:           new(bool(true)),
 			SeccompProfile: &corev1.SeccompProfile{
 				Type: corev1.SeccompProfileTypeRuntimeDefault,
 			},

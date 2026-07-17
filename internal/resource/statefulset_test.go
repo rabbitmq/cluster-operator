@@ -2815,6 +2815,61 @@ default_pass = {{ .Data.data.password }}
 					Expect(init.SecurityContext.AllowPrivilegeEscalation).To(PointTo(BeFalse()))
 				})
 			})
+
+			When("override sets runAsUser=0", func() {
+				It("does not let the container run as root", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											SecurityContext: &corev1.SecurityContext{
+												RunAsUser:    ptr.To(int64(0)),
+												RunAsNonRoot: ptr.To(false),
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					rmq := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(rmq.SecurityContext.RunAsUser).NotTo(PointTo(BeNumerically("==", 0)),
+						"override does not let a CR author force the container to run as root")
+				})
+			})
+
+			When("override adds capabilities", func() {
+				It("does not add those capabilities", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											SecurityContext: &corev1.SecurityContext{
+												Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"SYS_ADMIN"}},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					rmq := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(rmq.SecurityContext.Capabilities.Add).To(BeEmpty(),
+						"override does not let a CR author add SYS_ADMIN to the container's capability set")
+				})
+			})
 		})
 	})
 })
