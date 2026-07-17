@@ -112,6 +112,15 @@ func validatePodSpecOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error 
 		if c.SecurityContext != nil && c.SecurityContext.AllowPrivilegeEscalation != nil && *c.SecurityContext.AllowPrivilegeEscalation {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "allowPrivilegeEscalation"), "allowPrivilegeEscalation is not permitted in override"))
 		}
+		if c.SecurityContext != nil && c.SecurityContext.RunAsUser != nil && *c.SecurityContext.RunAsUser == 0 {
+			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsUser"), "runAsUser 0 is not permitted in override"))
+		}
+		if c.SecurityContext != nil && c.SecurityContext.RunAsNonRoot != nil && *c.SecurityContext.RunAsNonRoot == false {
+			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsNonRoot"), "runAsNonRoot false is not permitted in override"))
+		}
+		if c.SecurityContext != nil && c.SecurityContext.Capabilities != nil && c.SecurityContext.Capabilities.Add != nil {
+			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "capabilities"), "adding capabilities is not permitted in override"))
+		}
 	}
 	for i, c := range podSpec.InitContainers {
 		cPath := specPath.Child("initContainers").Index(i)
@@ -120,6 +129,15 @@ func validatePodSpecOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error 
 		}
 		if c.SecurityContext != nil && c.SecurityContext.AllowPrivilegeEscalation != nil && *c.SecurityContext.AllowPrivilegeEscalation {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "allowPrivilegeEscalation"), "allowPrivilegeEscalation is not permitted in override"))
+		}
+		if c.SecurityContext != nil && c.SecurityContext.RunAsUser != nil && *c.SecurityContext.RunAsUser == 0 {
+			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsUser"), "runAsUser 0 is not permitted in override"))
+		}
+		if c.SecurityContext != nil && c.SecurityContext.RunAsNonRoot != nil && *c.SecurityContext.RunAsNonRoot == false {
+			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsNonRoot"), "runAsNonRoot false is not permitted in override"))
+		}
+		if c.SecurityContext != nil && c.SecurityContext.Capabilities != nil && c.SecurityContext.Capabilities.Add != nil {
+			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "capabilities"), "adding capabilities is not permitted in override"))
 		}
 	}
 

@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	rabbitmqcomv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 )
@@ -176,19 +175,53 @@ var _ = Describe("RabbitmqCluster Webhook", func() {
 			}, "hostPath"),
 			Entry("privileged container", &corev1.PodSpec{
 				Containers: []corev1.Container{
-					{Name: "evil", SecurityContext: &corev1.SecurityContext{Privileged: ptr.To(true)}},
+					{Name: "evil", SecurityContext: &corev1.SecurityContext{Privileged: new(true)}},
 				},
 			}, "privileged"),
 			Entry("privileged initContainer", &corev1.PodSpec{
 				InitContainers: []corev1.Container{
-					{Name: "evil-init", SecurityContext: &corev1.SecurityContext{Privileged: ptr.To(true)}},
+					{Name: "evil-init", SecurityContext: &corev1.SecurityContext{Privileged: new(true)}},
 				},
 			}, "privileged"),
 			Entry("allowPrivilegeEscalation container", &corev1.PodSpec{
 				Containers: []corev1.Container{
-					{Name: "esc", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: ptr.To(true)}},
+					{Name: "esc", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: new(true)}},
 				},
 			}, "allowPrivilegeEscalation"),
+			Entry("root runAsUser", &corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "evil-user", SecurityContext: &corev1.SecurityContext{RunAsUser: new(int64(0))}},
+				},
+			}, "runAsUser"),
+			Entry("root runAsUser initContainer", &corev1.PodSpec{
+				InitContainers: []corev1.Container{
+					{Name: "evil-init-user", SecurityContext: &corev1.SecurityContext{RunAsUser: new(int64(0))}},
+				},
+			}, "runAsUser"),
+			Entry("runAsNonRoot", &corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "evil-runAsRoot", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: new(false)}},
+				},
+			}, "runAsNonRoot"),
+			Entry("init runAsNonRoot", &corev1.PodSpec{
+				InitContainers: []corev1.Container{
+					{Name: "evil-runAsRoot-init", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: new(false)}},
+				},
+			}, "runAsNonRoot"),
+			Entry("capabilities", &corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "evil-capabilities", SecurityContext: &corev1.SecurityContext{
+						Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"SYS_ADMIN"}},
+					}},
+				},
+			}, "capabilities"),
+			Entry("init capabilities", &corev1.PodSpec{
+				InitContainers: []corev1.Container{
+					{Name: "evil-capabilities", SecurityContext: &corev1.SecurityContext{
+						Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"SYS_ADMIN"}},
+					}},
+				},
+			}, "capabilities"),
 		)
 	})
 })
