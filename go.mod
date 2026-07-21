@@ -6,12 +6,12 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/cloudflare/cfssl v1.6.5
 	github.com/eclipse/paho.mqtt.golang v1.5.1
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/michaelklishin/rabbit-hole/v3 v3.5.0
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
-	github.com/rabbitmq/amqp091-go v1.12.0
+	github.com/rabbitmq/amqp091-go v1.13.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.8.2
 	golang.org/x/mod v0.38.0
 	golang.org/x/text v0.40.0
