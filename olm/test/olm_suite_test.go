@@ -2,11 +2,12 @@ package olm_test
 
 import (
 	"fmt"
-	ge "github.com/onsi/gomega/gexec"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
+
+	ge "github.com/onsi/gomega/gexec"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

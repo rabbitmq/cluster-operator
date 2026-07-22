@@ -11,6 +11,7 @@ package resource_test
 
 import (
 	b64 "encoding/base64"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 

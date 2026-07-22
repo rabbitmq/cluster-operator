@@ -12,8 +12,9 @@ package system_test
 import (
 	"context"
 	"os"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"testing"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

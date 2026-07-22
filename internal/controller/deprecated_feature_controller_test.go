@@ -12,7 +12,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -88,7 +87,7 @@ var _ = Describe("Deprecated Feature Controller", func() {
 				}, sts)
 			}).Should(Succeed())
 
-			sts.Spec.Replicas = ptr.To(int32(1))
+			sts.Spec.Replicas = new(int32(1))
 			Expect(client.Update(ctx, sts)).To(Succeed())
 
 			sts.Status.ReadyReplicas = 1
@@ -137,7 +136,7 @@ var _ = Describe("Deprecated Feature Controller", func() {
 				}, sts)
 			}).Should(Succeed())
 
-			sts.Spec.Replicas = ptr.To(int32(1))
+			sts.Spec.Replicas = new(int32(1))
 			Expect(client.Update(ctx, sts)).To(Succeed())
 
 			sts.Status.ReadyReplicas = 1

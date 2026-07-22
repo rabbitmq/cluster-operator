@@ -1033,12 +1033,12 @@ default_pass = {{ .Data.data.password }}
 }
 
 func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
-	altNames := ""
+	var altNames strings.Builder
 	var i int32
 	for i = range ptr.Deref(instance.Spec.Replicas, 1) {
-		altNames += fmt.Sprintf(",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace))
+		altNames.WriteString(fmt.Sprintf(",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace)))
 	}
-	return strings.TrimPrefix(altNames, ",")
+	return strings.TrimPrefix(altNames.String(), ",")
 }
 
 func generateVaultTLSTemplate(commonName, altNames string, vaultPath string, ipSans string, tlsAttribute string) string {

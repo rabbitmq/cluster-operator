@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("Reconcile rabbitmq Configurations", func() {
@@ -98,7 +97,7 @@ var _ = Describe("Reconcile rabbitmq Configurations", func() {
 			Expect(sts.Annotations).ShouldNot(HaveKey("rabbitmq.com/lastRestartAt"))
 
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				r.Spec.Replicas = ptr.To(int32(5))
+				r.Spec.Replicas = new(int32(5))
 			})).To(Succeed())
 
 			Consistently(func() map[string]string {
