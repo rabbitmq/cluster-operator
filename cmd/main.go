@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/rabbitmq/cluster-operator/v2/pkg/profiling"
 
@@ -163,6 +164,9 @@ func main() {
 		LeaderElectionNamespace: operatorNamespace,
 		LeaderElectionID:        "rabbitmq-cluster-operator-leader-election",
 		// Namespace is deprecated. Advice is to use Cache.Namespaces instead
+		WebhookServer: webhook.NewServer(webhook.Options{
+			TLSOpts: tlsOpts,
+		}),
 	}
 
 	if secureMetrics {
