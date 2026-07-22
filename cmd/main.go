@@ -206,6 +206,7 @@ func main() {
 	options.Cache.ByObject = map[client.Object]cache.ByObject{
 		&rabbitmqv1beta1.RabbitmqCluster{}: {},
 		&appsv1.StatefulSet{}:              {Label: rmqSelector},
+		&corev1.Pod{}:                      {Label: rmqSelector},
 		&corev1.Service{}:                  {Label: rmqSelector},
 		&corev1.ConfigMap{}:                {Label: rmqSelector},
 		&corev1.Secret{}:                   {Label: rmqSelector},
