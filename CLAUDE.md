@@ -101,7 +101,7 @@ Envtest binaries are downloaded to `testbin/`. If asset setup fails: `make clean
 |-----|---------|---------|
 | `OPERATOR_NAMESPACE` | (required) | Namespace where operator runs |
 | `OPERATOR_SCOPE_NAMESPACE` | (all) | Comma-separated namespaces to watch |
-| `DEFAULT_RABBITMQ_IMAGE` | `rabbitmq:4.2.6-management` | Default RabbitMQ image |
+| `DEFAULT_RABBITMQ_IMAGE` | `rabbitmq:4.3.2-management` | Default RabbitMQ image |
 | `DISABLE_DEPRECATED_FEATURES_CHECK` | enabled | Set to disable deprecation checks |
 | `ENABLE_DEBUG_PPROF` | false | Enable pprof endpoints |
 
