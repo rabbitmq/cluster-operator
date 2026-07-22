@@ -12,8 +12,8 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      control-plane: controller-manager
-      app.kubernetes.io/name: cluster-operator
+      app.kubernetes.io/name: rabbitmq-cluster-operator
+      app.kubernetes.io/component: rabbitmq-operator
   policyTypes:
     - Ingress
   ingress:
