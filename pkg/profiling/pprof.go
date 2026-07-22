@@ -3,6 +3,7 @@ package profiling
 import (
 	"net/http"
 	"net/http/pprof"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 

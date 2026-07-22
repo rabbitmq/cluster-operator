@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/rabbitmq/cluster-operator/v2/api/v1beta1"

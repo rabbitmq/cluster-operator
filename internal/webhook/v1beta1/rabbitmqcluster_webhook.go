@@ -115,7 +115,7 @@ func validatePodSpecOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error 
 		if c.SecurityContext != nil && c.SecurityContext.RunAsUser != nil && *c.SecurityContext.RunAsUser == 0 {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsUser"), "runAsUser 0 is not permitted in override"))
 		}
-		if c.SecurityContext != nil && c.SecurityContext.RunAsNonRoot != nil && *c.SecurityContext.RunAsNonRoot == false {
+		if c.SecurityContext != nil && c.SecurityContext.RunAsNonRoot != nil && !*c.SecurityContext.RunAsNonRoot {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsNonRoot"), "runAsNonRoot false is not permitted in override"))
 		}
 		if c.SecurityContext != nil && c.SecurityContext.Capabilities != nil && c.SecurityContext.Capabilities.Add != nil {
@@ -133,7 +133,7 @@ func validatePodSpecOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error 
 		if c.SecurityContext != nil && c.SecurityContext.RunAsUser != nil && *c.SecurityContext.RunAsUser == 0 {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsUser"), "runAsUser 0 is not permitted in override"))
 		}
-		if c.SecurityContext != nil && c.SecurityContext.RunAsNonRoot != nil && *c.SecurityContext.RunAsNonRoot == false {
+		if c.SecurityContext != nil && c.SecurityContext.RunAsNonRoot != nil && !*c.SecurityContext.RunAsNonRoot {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsNonRoot"), "runAsNonRoot false is not permitted in override"))
 		}
 		if c.SecurityContext != nil && c.SecurityContext.Capabilities != nil && c.SecurityContext.Capabilities.Add != nil {

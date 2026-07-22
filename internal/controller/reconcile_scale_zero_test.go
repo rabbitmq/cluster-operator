@@ -9,7 +9,6 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -28,14 +27,14 @@ var _ = Describe("Cluster scale to zero", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: ptr.To(int32(2)),
+					Replicas: new(int32(2)),
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
 
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				r.Spec.Replicas = ptr.To(int32(0))
+				r.Spec.Replicas = new(int32(0))
 			})).To(Succeed())
 
 			Eventually(func() int32 {
@@ -89,14 +88,14 @@ var _ = Describe("Cluster scale from zero", func() {
 					},
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: ptr.To(int32(0)),
+					Replicas: new(int32(0)),
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
 
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				r.Spec.Replicas = ptr.To(int32(2))
+				r.Spec.Replicas = new(int32(2))
 			})).To(Succeed())
 
 			Eventually(func() int32 {
@@ -150,14 +149,14 @@ var _ = Describe("Cluster scale from zero to less replicas configured", Ordered,
 					},
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: ptr.To(int32(0)),
+					Replicas: new(int32(0)),
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
 
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
-				r.Spec.Replicas = ptr.To(int32(1))
+				r.Spec.Replicas = new(int32(1))
 			})).To(Succeed())
 
 			Consistently(func() int32 {

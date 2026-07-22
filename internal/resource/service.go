@@ -13,8 +13,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"k8s.io/utils/ptr"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -131,7 +129,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        5672,
 			TargetPort:  intstr.FromInt(5672),
 			Name:        "amqp",
-			AppProtocol: ptr.To("amqp"),
+			AppProtocol: new("amqp"),
 		}
 
 		servicePortsMap["management"] = corev1.ServicePort{
@@ -139,7 +137,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        15672,
 			TargetPort:  intstr.FromInt(15672),
 			Name:        "management",
-			AppProtocol: ptr.To("http"),
+			AppProtocol: new("http"),
 		}
 
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
@@ -148,7 +146,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        1883,
 				TargetPort:  intstr.FromInt(1883),
 				Name:        "mqtt",
-				AppProtocol: ptr.To("mqtt"),
+				AppProtocol: new("mqtt"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
@@ -157,7 +155,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15675,
 				TargetPort:  intstr.FromInt(15675),
 				Name:        "web-mqtt",
-				AppProtocol: ptr.To("http"),
+				AppProtocol: new("http"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
@@ -166,7 +164,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        61613,
 				TargetPort:  intstr.FromInt(61613),
 				Name:        "stomp",
-				AppProtocol: ptr.To("stomp.github.io/stomp"),
+				AppProtocol: new("stomp.github.io/stomp"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
@@ -175,7 +173,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15674,
 				TargetPort:  intstr.FromInt(15674),
 				Name:        "web-stomp",
-				AppProtocol: ptr.To("http"),
+				AppProtocol: new("http"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
@@ -184,7 +182,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15678,
 				TargetPort:  intstr.FromInt(15678),
 				Name:        "web-amqp",
-				AppProtocol: ptr.To("http"),
+				AppProtocol: new("http"),
 			}
 		}
 
@@ -194,7 +192,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        5552,
 				TargetPort:  intstr.FromInt(5552),
 				Name:        "stream",
-				AppProtocol: ptr.To("rabbitmq.com/stream"),
+				AppProtocol: new("rabbitmq.com/stream"),
 			}
 		}
 	}
@@ -205,14 +203,14 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        5671,
 			TargetPort:  intstr.FromInt(5671),
 			Name:        "amqps",
-			AppProtocol: ptr.To("amqps"),
+			AppProtocol: new("amqps"),
 		}
 		servicePortsMap["management-tls"] = corev1.ServicePort{
 			Protocol:    corev1.ProtocolTCP,
 			Port:        15671,
 			TargetPort:  intstr.FromInt(15671),
 			Name:        "management-tls",
-			AppProtocol: ptr.To("https"),
+			AppProtocol: new("https"),
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_stomp") {
 			servicePortsMap["stomps"] = corev1.ServicePort{
@@ -220,7 +218,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        61614,
 				Name:        "stomps",
 				TargetPort:  intstr.FromInt(61614),
-				AppProtocol: ptr.To("stomp.github.io/stomp-tls"),
+				AppProtocol: new("stomp.github.io/stomp-tls"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_mqtt") {
@@ -229,7 +227,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        8883,
 				Name:        "mqtts",
 				TargetPort:  intstr.FromInt(8883),
-				AppProtocol: ptr.To("mqtts"),
+				AppProtocol: new("mqtts"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_stomp") {
@@ -238,7 +236,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15673,
 				Name:        "web-stomp-tls",
 				TargetPort:  intstr.FromInt(15673),
-				AppProtocol: ptr.To("https"),
+				AppProtocol: new("https"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_mqtt") {
@@ -247,7 +245,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15676,
 				Name:        "web-mqtt-tls",
 				TargetPort:  intstr.FromInt(15676),
-				AppProtocol: ptr.To("https"),
+				AppProtocol: new("https"),
 			}
 		}
 		if builder.Instance.AdditionalPluginEnabled("rabbitmq_web_amqp") {
@@ -256,7 +254,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        15677,
 				Name:        "web-amqp-tls",
 				TargetPort:  intstr.FromInt(15677),
-				AppProtocol: ptr.To("https"),
+				AppProtocol: new("https"),
 			}
 		}
 		if builder.Instance.StreamNeeded() {
@@ -265,7 +263,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 				Port:        5551,
 				Name:        "streams",
 				TargetPort:  intstr.FromInt(5551),
-				AppProtocol: ptr.To("rabbitmq.com/stream-tls"),
+				AppProtocol: new("rabbitmq.com/stream-tls"),
 			}
 		}
 
@@ -279,7 +277,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        15691,
 			TargetPort:  intstr.FromInt(15691),
 			Name:        "prometheus-tls",
-			AppProtocol: ptr.To("prometheus.io/metric-tls"),
+			AppProtocol: new("prometheus.io/metric-tls"),
 		}
 	} else {
 		servicePortsMap["prometheus"] = corev1.ServicePort{
@@ -287,7 +285,7 @@ func (builder *ServiceBuilder) generateServicePortsMap() map[string]corev1.Servi
 			Port:        15692,
 			TargetPort:  intstr.FromInt(15692),
 			Name:        "prometheus",
-			AppProtocol: ptr.To("prometheus.io/metrics"),
+			AppProtocol: new("prometheus.io/metrics"),
 		}
 	}
 

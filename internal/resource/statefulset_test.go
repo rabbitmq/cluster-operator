@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("StatefulSet", func() {
@@ -126,8 +125,8 @@ var _ = Describe("StatefulSet", func() {
 								Kind:               "RabbitmqCluster",
 								Name:               instance.Name,
 								UID:                "",
-								Controller:         ptr.To(true),
-								BlockOwnerDeletion: ptr.To(false),
+								Controller:         new(true),
+								BlockOwnerDeletion: new(false),
 							},
 						},
 						Annotations: map[string]string{},
@@ -275,7 +274,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 			updateStrategy := appsv1.StatefulSetUpdateStrategy{
 				RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-					Partition: ptr.To(int32(0)),
+					Partition: new(int32(0)),
 				},
 				Type: appsv1.RollingUpdateStatefulSetStrategyType,
 			}
@@ -529,7 +528,7 @@ var _ = Describe("StatefulSet", func() {
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: "tls-secret",
 										},
-										Optional: ptr.To(true),
+										Optional: new(true),
 										Items: []corev1.KeyToPath{
 											{Key: "tls.crt", Path: "tls.crt"},
 											{Key: "tls.key", Path: "tls.key"},
@@ -537,7 +536,7 @@ var _ = Describe("StatefulSet", func() {
 									},
 								},
 							},
-							DefaultMode: ptr.To(int32(400)),
+							DefaultMode: new(int32(400)),
 						},
 					},
 				}))
@@ -664,7 +663,7 @@ var _ = Describe("StatefulSet", func() {
 											LocalObjectReference: corev1.LocalObjectReference{
 												Name: "tls-secret",
 											},
-											Optional: ptr.To(true),
+											Optional: new(true),
 											Items: []corev1.KeyToPath{
 												{Key: "tls.crt", Path: "tls.crt"},
 												{Key: "tls.key", Path: "tls.key"},
@@ -676,14 +675,14 @@ var _ = Describe("StatefulSet", func() {
 											LocalObjectReference: corev1.LocalObjectReference{
 												Name: "mutual-tls-secret",
 											},
-											Optional: ptr.To(true),
+											Optional: new(true),
 											Items: []corev1.KeyToPath{
 												{Key: "ca.crt", Path: "ca.crt"},
 											},
 										},
 									},
 								},
-								DefaultMode: ptr.To(int32(400)),
+								DefaultMode: new(int32(400)),
 							},
 						},
 					}))
@@ -1055,7 +1054,7 @@ default_pass = {{ .Data.data.password }}
 					})
 					When("disabled", func() {
 						BeforeEach(func() {
-							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = ptr.To("")
+							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = new("")
 						})
 						It("does not deploy sidecar container", func() {
 							Expect(sidecar).To(Equal(corev1.Container{}))
@@ -1064,7 +1063,7 @@ default_pass = {{ .Data.data.password }}
 
 					When("enabled", func() {
 						BeforeEach(func() {
-							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = ptr.To("updater-img")
+							instance.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = new("updater-img")
 						})
 						It("configures default credential updater sidecar container", func() {
 							expectedContainer := corev1.Container{
@@ -1415,7 +1414,7 @@ default_pass = {{ .Data.data.password }}
 				stsBuilder := builder.StatefulSet()
 				stsBuilder.Instance.Spec.Persistence.Storage = &zero
 				stsBuilder.Instance.Spec.Persistence.EmptyDir = &rabbitmqv1beta1.RabbitmqClusterEmptyDirSpec{
-					SizeLimit: ptr.To(k8sresource.MustParse("500Mi")),
+					SizeLimit: new(k8sresource.MustParse("500Mi")),
 					Medium:    corev1.StorageMediumMemory,
 				}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
@@ -1424,7 +1423,7 @@ default_pass = {{ .Data.data.password }}
 					Name: "persistence",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{
-							SizeLimit: ptr.To(k8sresource.MustParse("500Mi")),
+							SizeLimit: new(k8sresource.MustParse("500Mi")),
 							Medium:    corev1.StorageMediumMemory,
 						},
 					},
@@ -1477,9 +1476,9 @@ default_pass = {{ .Data.data.password }}
 			rmqUID := int64(999)
 
 			expectedPodSecurityContext := &corev1.PodSecurityContext{
-				FSGroup:      ptr.To(int64(0)),
+				FSGroup:      new(int64(0)),
 				RunAsUser:    &rmqUID,
-				RunAsNonRoot: ptr.To(bool(true)),
+				RunAsNonRoot: new(bool(true)),
 				SeccompProfile: &corev1.SeccompProfile{
 					Type: corev1.SeccompProfileTypeRuntimeDefault,
 				},
@@ -1544,13 +1543,13 @@ default_pass = {{ .Data.data.password }}
 					},
 				}),
 				"SecurityContext": BeEquivalentTo(&corev1.SecurityContext{
-					AllowPrivilegeEscalation: ptr.To(bool(false)),
+					AllowPrivilegeEscalation: new(bool(false)),
 					Capabilities: &corev1.Capabilities{
 						Drop: []corev1.Capability{"ALL"},
 					},
-					Privileged:             ptr.To(bool(false)),
-					ReadOnlyRootFilesystem: ptr.To(bool(true)),
-					RunAsNonRoot:           ptr.To(bool(true)),
+					Privileged:             new(bool(false)),
+					ReadOnlyRootFilesystem: new(bool(true)),
+					RunAsNonRoot:           new(bool(true)),
 					SeccompProfile: &corev1.SeccompProfile{
 						Type: corev1.SeccompProfileTypeRuntimeDefault,
 					},
@@ -1559,7 +1558,7 @@ default_pass = {{ .Data.data.password }}
 		})
 
 		It("sets TerminationGracePeriodSeconds in podTemplate as provided in instance spec", func() {
-			instance.Spec.TerminationGracePeriodSeconds = ptr.To(int64(10))
+			instance.Spec.TerminationGracePeriodSeconds = new(int64(10))
 			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
@@ -1569,7 +1568,7 @@ default_pass = {{ .Data.data.password }}
 			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 			gracePeriodSeconds := statefulSet.Spec.Template.Spec.TerminationGracePeriodSeconds
-			Expect(gracePeriodSeconds).To(Equal(ptr.To(int64(10))))
+			Expect(gracePeriodSeconds).To(Equal(new(int64(10))))
 
 			// TerminationGracePeriodSeconds is used to set commands timeouts in the preStop hook
 			expectedPreStopCommand := []string{"/bin/bash", "-c", "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 10 && rabbitmq-upgrade await_online_synchronized_mirror -t 10 || true && rabbitmq-upgrade drain -t 10"}
@@ -1670,13 +1669,13 @@ default_pass = {{ .Data.data.password }}
 
 			container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 			Expect(container.SecurityContext).To(BeEquivalentTo(&corev1.SecurityContext{
-				AllowPrivilegeEscalation: ptr.To(bool(false)),
+				AllowPrivilegeEscalation: new(bool(false)),
 				Capabilities: &corev1.Capabilities{
 					Drop: []corev1.Capability{"ALL"},
 				},
-				Privileged:             ptr.To(bool(false)),
-				ReadOnlyRootFilesystem: ptr.To(bool(true)),
-				RunAsNonRoot:           ptr.To(bool(true)),
+				Privileged:             new(bool(false)),
+				ReadOnlyRootFilesystem: new(bool(true)),
+				RunAsNonRoot:           new(bool(true)),
 				SeccompProfile: &corev1.SeccompProfile{
 					Type: corev1.SeccompProfileTypeRuntimeDefault,
 				},
@@ -1684,7 +1683,7 @@ default_pass = {{ .Data.data.password }}
 		})
 
 		It("sets the replica count of the StatefulSet to the instance value", func() {
-			instance.Spec.Replicas = ptr.To(int32(3))
+			instance.Spec.Replicas = new(int32(3))
 			builder = &resource.RabbitmqResourceBuilder{
 				Instance: &instance,
 				Scheme:   scheme,
@@ -1820,7 +1819,7 @@ default_pass = {{ .Data.data.password }}
 			It("overrides statefulSet.spec.replicas", func() {
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						Replicas: ptr.To(int32(10)),
+						Replicas: new(int32(10)),
 					},
 				}
 
@@ -1859,7 +1858,7 @@ default_pass = {{ .Data.data.password }}
 						UpdateStrategy: &appsv1.StatefulSetUpdateStrategy{
 							Type: "OnDelete",
 							RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-								Partition: ptr.To(int32(1)),
+								Partition: new(int32(1)),
 							},
 						},
 					},
@@ -1937,8 +1936,8 @@ default_pass = {{ .Data.data.password }}
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
-									Controller:         ptr.To(true),
-									BlockOwnerDeletion: ptr.To(false),
+									Controller:         new(true),
+									BlockOwnerDeletion: new(false),
 								},
 							},
 						},
@@ -1961,8 +1960,8 @@ default_pass = {{ .Data.data.password }}
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
-									Controller:         ptr.To(true),
-									BlockOwnerDeletion: ptr.To(false),
+									Controller:         new(true),
+									BlockOwnerDeletion: new(false),
 								},
 							},
 						},
@@ -2026,8 +2025,8 @@ default_pass = {{ .Data.data.password }}
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
-									Controller:         ptr.To(true),
-									BlockOwnerDeletion: ptr.To(false),
+									Controller:         new(true),
+									BlockOwnerDeletion: new(false),
 								},
 							},
 						},
@@ -2050,8 +2049,8 @@ default_pass = {{ .Data.data.password }}
 									Kind:               "RabbitmqCluster",
 									Name:               instance.Name,
 									UID:                "",
-									Controller:         ptr.To(true),
-									BlockOwnerDeletion: ptr.To(false),
+									Controller:         new(true),
+									BlockOwnerDeletion: new(false),
 								},
 							},
 						},
@@ -2662,11 +2661,11 @@ default_pass = {{ .Data.data.password }}
 
 			It("ensures override takes precedence when same property is set both at the top level and at the override level", func() {
 				instance.Spec.Image = "should-be-replaced-image"
-				instance.Spec.Replicas = ptr.To(int32(2))
+				instance.Spec.Replicas = new(int32(2))
 
 				instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						Replicas: ptr.To(int32(4)),
+						Replicas: new(int32(4)),
 						Template: &rabbitmqv1beta1.PodTemplateSpec{
 							Spec: &corev1.PodSpec{
 								Containers: []corev1.Container{
@@ -2776,7 +2775,7 @@ default_pass = {{ .Data.data.password }}
 										{
 											Name: "rabbitmq",
 											SecurityContext: &corev1.SecurityContext{
-												Privileged: ptr.To(true),
+												Privileged: new(true),
 											},
 										},
 									},
@@ -2800,7 +2799,7 @@ default_pass = {{ .Data.data.password }}
 										{
 											Name: "setup",
 											SecurityContext: &corev1.SecurityContext{
-												AllowPrivilegeEscalation: ptr.To(true),
+												AllowPrivilegeEscalation: new(true),
 											},
 										},
 									},
@@ -2826,8 +2825,8 @@ default_pass = {{ .Data.data.password }}
 										{
 											Name: "rabbitmq",
 											SecurityContext: &corev1.SecurityContext{
-												RunAsUser:    ptr.To(int64(0)),
-												RunAsNonRoot: ptr.To(false),
+												RunAsUser:    new(int64(0)),
+												RunAsNonRoot: new(false),
 											},
 										},
 									},
@@ -2906,11 +2905,11 @@ func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 			Namespace: "foo-namespace",
 		},
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-			Replicas:                      ptr.To(int32(1)),
+			Replicas:                      new(int32(1)),
 			Image:                         "rabbitmq-image-from-cr",
 			ImagePullSecrets:              []corev1.LocalObjectReference{{Name: "my-super-secret"}},
-			TerminationGracePeriodSeconds: ptr.To(int64(604800)),
-			DelayStartSeconds:             ptr.To(int32(30)),
+			TerminationGracePeriodSeconds: new(int64(604800)),
+			DelayStartSeconds:             new(int32(30)),
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Type:        "this-is-a-service",
 				Annotations: map[string]string{},

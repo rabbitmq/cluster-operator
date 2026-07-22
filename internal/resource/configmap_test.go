@@ -13,8 +13,6 @@ import (
 	"bytes"
 	"fmt"
 
-	"k8s.io/utils/ptr"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
@@ -152,7 +150,7 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 		It("sets cluster size hint", func() {
 			builder.Instance.Spec.Rabbitmq.AdditionalConfig = ""
-			builder.Instance.Spec.Replicas = ptr.To(int32(100))
+			builder.Instance.Spec.Replicas = new(int32(100))
 
 			Expect(configMapBuilder.Update(configMap)).To(Succeed())
 			operatorDefaultConf, err := ini.Load([]byte(configMap.Data["operatorDefaults.conf"]))
@@ -480,7 +478,7 @@ CONSOLE_LOG=new`
 						Name: "rabbit-tls",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: ptr.To(int32(1)),
+						Replicas: new(int32(1)),
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:             "some-secret",
 							DisableNonTLSListeners: true,
@@ -512,7 +510,7 @@ CONSOLE_LOG=new`
 						Name: "rabbit-tls",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: ptr.To(int32(1)),
+						Replicas: new(int32(1)),
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:             "some-secret",
 							DisableNonTLSListeners: true,
@@ -560,7 +558,7 @@ CONSOLE_LOG=new`
 						Name: "rabbit-tls",
 					},
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-						Replicas: ptr.To(int32(1)),
+						Replicas: new(int32(1)),
 						TLS: rabbitmqv1beta1.TLSSpec{
 							SecretName:             "some-secret",
 							CaSecretName:           "some-mutual-secret",
@@ -693,14 +691,14 @@ CONSOLE_LOG=new`
 			})
 			When("the only config change is cluster formation nodes", func() {
 				It("does not require the StatefulSet to be restarted", func() {
-					instance.Spec.Replicas = ptr.To(int32(3))
+					instance.Spec.Replicas = new(int32(3))
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
 					Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeFalse())
 				})
 			})
 			When("config change includes more than cluster formation nodes", func() {
 				It("requires the StatefulSet to be restarted", func() {
-					instance.Spec.Replicas = ptr.To(int32(3))
+					instance.Spec.Replicas = new(int32(3))
 					instance.Spec.Rabbitmq.AdditionalConfig = "foo = bar"
 					Expect(configMapBuilder.Update(configMap)).To(Succeed())
 					Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeTrue())

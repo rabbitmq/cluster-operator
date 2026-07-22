@@ -8,7 +8,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,7 +75,7 @@ var _ = Describe("Reconcile CLI", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: ptr.To(int32(3)),
+					Replicas: new(int32(3)),
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -223,7 +222,7 @@ var _ = Describe("Reconcile CLI", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:            ptr.To(int32(3)),
+					Replicas:            new(int32(3)),
 					SkipPostDeploySteps: true,
 				},
 			}
@@ -281,7 +280,7 @@ var _ = Describe("Reconcile CLI", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas:            ptr.To(int32(1)),
+					Replicas:            new(int32(1)),
 					SkipPostDeploySteps: false,
 				},
 			}
@@ -340,7 +339,7 @@ var _ = Describe("Reconcile CLI", func() {
 					Namespace: defaultNamespace,
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
-					Replicas: ptr.To(int32(1)),
+					Replicas: new(int32(1)),
 				},
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
