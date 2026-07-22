@@ -13,6 +13,7 @@ package rabbitmqclient
 import (
 	"context"
 	"fmt"
+	"time"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole/v3"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
@@ -36,17 +37,20 @@ type RabbitmqClientFactory interface {
 type DefaultRabbitmqClientFactory struct{}
 
 func newRabbitholeClientFromInfo(rmq *rabbitmqv1beta1.RabbitmqCluster, info *ClientInfo) (RabbitmqClient, error) {
+	const managementAPITimeout = 1 * time.Minute
 	if rmq.Spec.TLS.DisableNonTLSListeners {
 		rabbitmqClient, err := rabbithole.NewTLSClient(info.BaseURL, info.Username, info.Password, info.Transport)
 		if err != nil {
 			return nil, err
 		}
+		rabbitmqClient.SetTimeout(managementAPITimeout)
 		return rabbitmqClient, nil
 	}
 	rabbitmqClient, err := rabbithole.NewClient(info.BaseURL, info.Username, info.Password)
 	if err != nil {
 		return nil, err
 	}
+	rabbitmqClient.SetTimeout(managementAPITimeout)
 	return rabbitmqClient, nil
 }
 
