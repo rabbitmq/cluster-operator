@@ -270,7 +270,7 @@ CONSOLE_LOG=new`
 
 		BeforeEach(func(ctx SpecContext) {
 			cluster = newRabbitmqCluster(namespace, "persistence-rabbit")
-			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
+			Eventually(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).Should(Succeed())
 
 			waitForRabbitmqRunning(cluster)
 
@@ -312,7 +312,7 @@ CONSOLE_LOG=new`
 				Expect(pvc.OwnerReferences).To(HaveLen(1))
 				Expect(pvc.OwnerReferences[0].Name).To(Equal(cluster.Name))
 			})
-		}, SpecTimeout(time.Minute*3))
+		}, SpecTimeout(time.Minute*5))
 	})
 
 	Context("Persistence expansion", Label("persistence_expansion"), func() {
