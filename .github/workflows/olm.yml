@@ -64,7 +64,7 @@ jobs:
         run: scripts/print-previous-version.bash | tee -a "$GITHUB_OUTPUT"
 
       - name: Openshift tools
-        uses: redhat-actions/openshift-tools-installer@v1
+        uses: redhat-actions/openshift-tools-installer@v2
         with:
           # Using GitHub source because the Openshift mirror source binary file does not match the expected name
           # pattern. In the mirror, the filename is opm-rhel8, and the Action is expecting the name as opm-${OS}-${ARCH}
