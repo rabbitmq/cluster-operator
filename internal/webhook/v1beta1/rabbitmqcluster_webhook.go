@@ -118,6 +118,9 @@ func validatePodSpecOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error 
 		if c.SecurityContext != nil && c.SecurityContext.RunAsNonRoot != nil && !*c.SecurityContext.RunAsNonRoot {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsNonRoot"), "runAsNonRoot false is not permitted in override"))
 		}
+		if c.SecurityContext != nil && c.SecurityContext.ReadOnlyRootFilesystem != nil && !*c.SecurityContext.ReadOnlyRootFilesystem {
+			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "readOnlyRootFilesystem"), "readOnlyRootFilesystem false is not permitted in override"))
+		}
 		if c.SecurityContext != nil && c.SecurityContext.Capabilities != nil && c.SecurityContext.Capabilities.Add != nil {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "capabilities"), "adding capabilities is not permitted in override"))
 		}
@@ -135,6 +138,9 @@ func validatePodSpecOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error 
 		}
 		if c.SecurityContext != nil && c.SecurityContext.RunAsNonRoot != nil && !*c.SecurityContext.RunAsNonRoot {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "runAsNonRoot"), "runAsNonRoot false is not permitted in override"))
+		}
+		if c.SecurityContext != nil && c.SecurityContext.ReadOnlyRootFilesystem != nil && !*c.SecurityContext.ReadOnlyRootFilesystem {
+			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "readOnlyRootFilesystem"), "readOnlyRootFilesystem false is not permitted in override"))
 		}
 		if c.SecurityContext != nil && c.SecurityContext.Capabilities != nil && c.SecurityContext.Capabilities.Add != nil {
 			allErrs = append(allErrs, field.Forbidden(cPath.Child("securityContext", "capabilities"), "adding capabilities is not permitted in override"))
