@@ -260,6 +260,9 @@ func sanitizePodSpecOverride(podSpecOverride *corev1.PodSpec) {
 		if sc.Capabilities != nil {
 			sc.Capabilities.Add = nil
 		}
+		if sc.ReadOnlyRootFilesystem != nil {
+			sc.ReadOnlyRootFilesystem = new(true)
+		}
 	}
 	for i := range podSpecOverride.InitContainers {
 		sc := podSpecOverride.InitContainers[i].SecurityContext
@@ -280,6 +283,9 @@ func sanitizePodSpecOverride(podSpecOverride *corev1.PodSpec) {
 		}
 		if sc.Capabilities != nil {
 			sc.Capabilities.Add = nil
+		}
+		if sc.ReadOnlyRootFilesystem != nil {
+			sc.ReadOnlyRootFilesystem = new(true)
 		}
 	}
 }

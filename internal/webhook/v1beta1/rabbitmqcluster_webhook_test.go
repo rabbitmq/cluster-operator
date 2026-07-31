@@ -222,6 +222,16 @@ var _ = Describe("RabbitmqCluster Webhook", func() {
 					}},
 				},
 			}, "capabilities"),
+			Entry("readOnlyRootFilesystem", &corev1.PodSpec{
+				InitContainers: []corev1.Container{
+					{Name: "evil-writeRootFs-init", SecurityContext: &corev1.SecurityContext{ReadOnlyRootFilesystem: new(false)}},
+				},
+			}, "readOnlyRootFilesystem"),
+			Entry("readOnlyRootFilesystem", &corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "evil-writeRootFs-init", SecurityContext: &corev1.SecurityContext{ReadOnlyRootFilesystem: new(false)}},
+				},
+			}, "readOnlyRootFilesystem"),
 		)
 	})
 })

@@ -2843,6 +2843,56 @@ default_pass = {{ .Data.data.password }}
 				})
 			})
 
+			When("override unsets readOnlyRootFilesystem", func() {
+				It("sets readOnlyRootFilesystem=true for initContainer", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									InitContainers: []corev1.Container{
+										{
+											Name: "setup",
+											SecurityContext: &corev1.SecurityContext{
+												ReadOnlyRootFilesystem: new(false),
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					init := extractContainer(statefulSet.Spec.Template.Spec.InitContainers, "setup")
+					Expect(init.SecurityContext).NotTo(BeNil())
+					Expect(init.SecurityContext.ReadOnlyRootFilesystem).To(PointTo(BeTrue()))
+				})
+
+				It("sets readOnlyRootFilesystem=true for container", func() {
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "setup",
+											SecurityContext: &corev1.SecurityContext{
+												ReadOnlyRootFilesystem: new(false),
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+					containers := extractContainer(statefulSet.Spec.Template.Spec.Containers, "setup")
+					Expect(containers.SecurityContext).NotTo(BeNil())
+					Expect(containers.SecurityContext.ReadOnlyRootFilesystem).To(PointTo(BeTrue()))
+				})
+			})
+
 			When("override adds capabilities", func() {
 				It("does not add those capabilities", func() {
 					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
