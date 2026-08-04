@@ -304,14 +304,6 @@ CONSOLE_LOG=new`
 				Expect(err).NotTo(HaveOccurred())
 				Expect(message.Payload).To(Equal("hello"))
 			})
-
-			By("setting owner reference to persistence volume claim successfully", func() {
-				pvcName := "persistence-" + statefulSetPodName(cluster, 0)
-				pvc, err := clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, pvcName, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pvc.OwnerReferences).To(HaveLen(1))
-				Expect(pvc.OwnerReferences[0].Name).To(Equal(cluster.Name))
-			})
 		}, SpecTimeout(time.Minute*3))
 	})
 

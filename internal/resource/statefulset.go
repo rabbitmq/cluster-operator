@@ -70,6 +70,10 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 			},
 			VolumeClaimTemplates: pvc,
 			PodManagementPolicy:  appsv1.ParallelPodManagement,
+			PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+				WhenDeleted: appsv1.DeletePersistentVolumeClaimRetentionPolicyType,
+				WhenScaled:  appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+			},
 		},
 	}
 
@@ -313,11 +317,6 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 			StorageClassName: instance.Spec.Persistence.StorageClassName,
 		},
 	}
-
-	if err := controllerutil.SetControllerReference(instance, &pvc, scheme); err != nil {
-		return []corev1.PersistentVolumeClaim{}, fmt.Errorf("failed setting controller reference: %w", err)
-	}
-	disableBlockOwnerDeletion(pvc)
 
 	return []corev1.PersistentVolumeClaim{pvc}, nil
 }

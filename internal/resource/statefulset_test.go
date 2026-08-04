@@ -102,6 +102,19 @@ var _ = Describe("StatefulSet", func() {
 			q, _ := k8sresource.ParseQuantity("21Gi")
 			Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(q))
 		})
+
+		It("sets the persistent volume claim retention policy", func() {
+			obj, err := stsBuilder.Build()
+			Expect(err).ToNot(HaveOccurred())
+
+			statefulSet := obj.(*appsv1.StatefulSet)
+			Expect(statefulSet.Spec.PersistentVolumeClaimRetentionPolicy).ToNot(BeNil())
+			Expect(statefulSet.Spec.PersistentVolumeClaimRetentionPolicy).
+				To(HaveField("WhenDeleted", BeEquivalentTo("Delete")))
+			Expect(statefulSet.Spec.PersistentVolumeClaimRetentionPolicy).
+				To(HaveField("WhenScaled", BeEquivalentTo("Retain")))
+		})
+
 		Context("PVC template", func() {
 			It("creates the required PersistentVolumeClaim", func() {
 				q, _ := k8sresource.ParseQuantity("10Gi")
@@ -119,17 +132,8 @@ var _ = Describe("StatefulSet", func() {
 							"app.kubernetes.io/component": "rabbitmq",
 							"app.kubernetes.io/part-of":   "rabbitmq",
 						},
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								APIVersion:         "rabbitmq.com/v1beta1",
-								Kind:               "RabbitmqCluster",
-								Name:               instance.Name,
-								UID:                "",
-								Controller:         new(true),
-								BlockOwnerDeletion: new(false),
-							},
-						},
-						Annotations: map[string]string{},
+						Annotations:     map[string]string{},
+						OwnerReferences: nil, // expecting nil explicitly, to check that it is not set
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -177,6 +181,7 @@ var _ = Describe("StatefulSet", func() {
 				Expect(statefulSet.Spec.VolumeClaimTemplates).To(BeEmpty())
 			})
 		})
+
 		Context("Override", func() {
 			It("overrides statefulSet.spec.selector", func() {
 				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
@@ -1693,67 +1698,68 @@ default_pass = {{ .Data.data.password }}
 			Expect(*statefulSet.Spec.Replicas).To(Equal(int32(3)))
 		})
 
-		It("updates the PersistentVolumeClaim storage capacity", func() {
-			defaultCapacity, _ := k8sresource.ParseQuantity("10Gi")
+		Context("Persistent Volume Claim template", func() {
+			It("updates the PersistentVolumeClaim storage capacity", func() {
+				defaultCapacity, _ := k8sresource.ParseQuantity("10Gi")
 
-			statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "persistence",
-						Namespace: instance.Namespace,
-					},
-					Spec: corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-						Resources: corev1.VolumeResourceRequirements{
-							Requests: map[corev1.ResourceName]k8sresource.Quantity{
-								corev1.ResourceStorage: defaultCapacity,
-							},
+				statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "persistence",
+							Namespace: instance.Namespace,
 						},
-					},
-				},
-			}
-
-			newCapacity, _ := k8sresource.ParseQuantity("21Gi")
-			stsBuilder.Instance.Spec.Persistence.Storage = &newCapacity
-			Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-			Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(newCapacity))
-		})
-
-		When("spec.persistence.storage is provided and the default pvc is also configured in override", func() {
-			It("sets the default pvc to what's provided in override", func() {
-				seven := k8sresource.MustParse("7Gi")
-				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
-					Spec: &rabbitmqv1beta1.StatefulSetSpec{
-						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
-							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
-									Name:      "persistence",
-									Namespace: instance.Namespace,
-								},
-								Spec: corev1.PersistentVolumeClaimSpec{
-									Resources: corev1.VolumeResourceRequirements{
-										Requests: corev1.ResourceList{
-											corev1.ResourceStorage: seven,
-										},
-									},
-									StorageClassName: nil,
+						Spec: corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+							Resources: corev1.VolumeResourceRequirements{
+								Requests: map[corev1.ResourceName]k8sresource.Quantity{
+									corev1.ResourceStorage: defaultCapacity,
 								},
 							},
 						},
 					},
 				}
-				stsBuilder := builder.StatefulSet()
-				obj, err := stsBuilder.Build()
-				Expect(err).NotTo(HaveOccurred())
-				statefulSet := obj.(*appsv1.StatefulSet)
 
 				newCapacity, _ := k8sresource.ParseQuantity("21Gi")
 				stsBuilder.Instance.Spec.Persistence.Storage = &newCapacity
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
-
-				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(seven))
+				Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(newCapacity))
 			})
 
+			When("spec.persistence.storage is provided and the default pvc is also configured in override", func() {
+				It("sets the default pvc to what's provided in override", func() {
+					seven := k8sresource.MustParse("7Gi")
+					builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
+								{
+									EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
+										Name:      "persistence",
+										Namespace: instance.Namespace,
+									},
+									Spec: corev1.PersistentVolumeClaimSpec{
+										Resources: corev1.VolumeResourceRequirements{
+											Requests: corev1.ResourceList{
+												corev1.ResourceStorage: seven,
+											},
+										},
+										StorageClassName: nil,
+									},
+								},
+							},
+						},
+					}
+					stsBuilder := builder.StatefulSet()
+					obj, err := stsBuilder.Build()
+					Expect(err).NotTo(HaveOccurred())
+					statefulSet := obj.(*appsv1.StatefulSet)
+
+					newCapacity, _ := k8sresource.ParseQuantity("21Gi")
+					stsBuilder.Instance.Spec.Persistence.Storage = &newCapacity
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests["storage"]).To(Equal(seven))
+				})
+			})
 		})
 
 		When("stateful set override are provided", func() {
