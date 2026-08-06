@@ -269,8 +269,14 @@ CONSOLE_LOG=new`
 		)
 
 		BeforeEach(func(ctx SpecContext) {
-			cluster = newRabbitmqCluster(namespace, "persistence-rabbit")
-			Expect(createRabbitmqCluster(ctx, rmqClusterClient, cluster)).To(Succeed())
+			// The AfterEach wait can be cut short by the spec deadline, so retry the create too.
+			Eventually(ctx, func() error {
+				cluster = newRabbitmqCluster(namespace, "persistence-rabbit")
+				return createRabbitmqCluster(ctx, rmqClusterClient, cluster)
+			}).
+				WithTimeout(clusterDeletionTimeout).
+				WithPolling(2 * time.Second).
+				Should(Succeed())
 
 			waitForRabbitmqRunning(cluster)
 
@@ -283,7 +289,9 @@ CONSOLE_LOG=new`
 		})
 
 		AfterEach(func(ctx SpecContext) {
-			Expect(rmqClusterClient.Delete(ctx, cluster)).To(Succeed())
+			// A FlakeAttempts retry recreates this name milliseconds after we return, so block
+			// until the cluster is actually gone.
+			deleteRabbitmqClusterAndWait(ctx, rmqClusterClient, cluster)
 		})
 
 		It("persists messages", FlakeAttempts(3), func(ctx SpecContext) {
@@ -304,7 +312,8 @@ CONSOLE_LOG=new`
 				Expect(err).NotTo(HaveOccurred())
 				Expect(message.Payload).To(Equal("hello"))
 			})
-		}, SpecTimeout(time.Minute*3))
+			// The deadline covers the whole attempt, teardown included, and resets on each retry.
+		}, SpecTimeout(time.Minute*5))
 	})
 
 	Context("Persistence expansion", Label("persistence_expansion"), func() {
