@@ -25,13 +25,20 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
+	controllers "github.com/rabbitmq/cluster-operator/v2/internal/controller"
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
@@ -810,6 +817,62 @@ var _ = Describe("RabbitmqClusterController", func() {
 					}
 					return "ReconcileSuccess status: condition not present"
 				}, 5).Should(Equal("ReconcileSuccess status: False"))
+			})
+		})
+
+		When("the resource builder fails", func() {
+			var (
+				fakeClient runtimeClient.Client
+				reconciler *controllers.RabbitmqClusterReconciler
+			)
+
+			BeforeEach(func() {
+				storage := k8sresource.MustParse("10Gi")
+				cluster.Spec.Persistence.Storage = &storage
+				cluster.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"my-label": "my-value"},
+						},
+					},
+				}
+
+				scheme := runtime.NewScheme()
+				Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
+				Expect(corev1.AddToScheme(scheme)).To(Succeed())
+				Expect(appsv1.AddToScheme(scheme)).To(Succeed())
+				Expect(rbacv1.AddToScheme(scheme)).To(Succeed())
+				Expect(discoveryv1.AddToScheme(scheme)).To(Succeed())
+
+				fakeClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(cluster).
+					WithStatusSubresource(&rabbitmqv1beta1.RabbitmqCluster{}).
+					Build()
+
+				reconciler = &controllers.RabbitmqClusterReconciler{
+					Client:    fakeClient,
+					APIReader: fakeClient,
+					Scheme:    scheme,
+					Recorder:  record.NewFakeRecorder(10),
+				}
+			})
+
+			It("sets ReconcileSuccess to False", func() {
+				_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: crName, Namespace: defaultNamespace}})
+				Expect(err).To(HaveOccurred())
+
+				updated := &rabbitmqv1beta1.RabbitmqCluster{}
+				Expect(fakeClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: defaultNamespace}, updated)).To(Succeed())
+
+				var reconcileSuccess *status.RabbitmqClusterCondition
+				for i := range updated.Status.Conditions {
+					if updated.Status.Conditions[i].Type == status.ReconcileSuccess {
+						reconcileSuccess = &updated.Status.Conditions[i]
+					}
+				}
+				Expect(reconcileSuccess).NotTo(BeNil(), "expected a ReconcileSuccess condition to be set")
+				Expect(reconcileSuccess.Status).To(Equal(corev1.ConditionFalse))
 			})
 		})
 	})

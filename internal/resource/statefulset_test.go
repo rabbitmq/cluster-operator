@@ -191,6 +191,13 @@ var _ = Describe("StatefulSet", func() {
 								"my-label": "my-label",
 							},
 						},
+						Template: &rabbitmqv1beta1.PodTemplateSpec{
+							EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
+								Labels: map[string]string{
+									"my-label": "my-label",
+								},
+							},
+						},
 					},
 				}
 
@@ -198,6 +205,22 @@ var _ = Describe("StatefulSet", func() {
 				Expect(err).NotTo(HaveOccurred())
 				statefulSet := obj.(*appsv1.StatefulSet)
 				Expect(statefulSet.Spec.Selector.MatchLabels).To(Equal(map[string]string{"my-label": "my-label"}))
+			})
+
+			It("rejects a selector override that doesn't match the pod template labels", func() {
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"my-label": "my-label",
+							},
+						},
+					},
+				}
+
+				_, err := stsBuilder.Build()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("selector does not match"))
 			})
 
 			It("overrides statefulSet.spec.serviceName", func() {

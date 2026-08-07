@@ -204,6 +204,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	for _, builder := range builders {
 		obj, err := builder.Build()
 		if err != nil {
+			r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, "Error", err.Error())
 			return ctrl.Result{}, err
 		}
 

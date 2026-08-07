@@ -90,6 +90,16 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 			sts.Spec.ServiceName = overrideSts.Spec.ServiceName
 		}
 
+		// The selector must match the pod template's labels or the API server rejects the
+		// StatefulSet outright; since this same override is regenerated on every reconcile,
+		// an inconsistent selector would otherwise fail forever.
+		var templateLabelOverrides map[string]string
+		if overrideSts.Spec.Template != nil && overrideSts.Spec.Template.EmbeddedObjectMeta != nil {
+			templateLabelOverrides = overrideSts.Spec.Template.EmbeddedObjectMeta.Labels
+		}
+		if err := metadata.ValidateStatefulSetSelector(overrideSts.Spec.Selector, builder.Instance.Name, templateLabelOverrides); err != nil {
+			return nil, fmt.Errorf("invalid statefulSet override: %w", err)
+		}
 	}
 
 	return sts, nil
