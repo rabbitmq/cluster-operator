@@ -233,5 +233,62 @@ var _ = Describe("RabbitmqCluster Webhook", func() {
 				},
 			}, "readOnlyRootFilesystem"),
 		)
+
+		Context("selector override", func() {
+			It("allows a selector override that matches the operator's default labels", func() {
+				obj.Spec.Override.StatefulSet = &rabbitmqcomv1beta1.StatefulSet{
+					Spec: &rabbitmqcomv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app.kubernetes.io/name": obj.Name},
+						},
+					},
+				}
+				_, err := validator.ValidateCreate(context.Background(), obj)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("allows a selector override matched by an added pod template label", func() {
+				obj.Spec.Override.StatefulSet = &rabbitmqcomv1beta1.StatefulSet{
+					Spec: &rabbitmqcomv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"my-label": "my-value"},
+						},
+						Template: &rabbitmqcomv1beta1.PodTemplateSpec{
+							EmbeddedObjectMeta: &rabbitmqcomv1beta1.EmbeddedObjectMeta{
+								Labels: map[string]string{"my-label": "my-value"},
+							},
+						},
+					},
+				}
+				_, err := validator.ValidateCreate(context.Background(), obj)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("rejects a selector override that doesn't match the pod template labels on create", func() {
+				obj.Spec.Override.StatefulSet = &rabbitmqcomv1beta1.StatefulSet{
+					Spec: &rabbitmqcomv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"my-label": "my-value"},
+						},
+					},
+				}
+				_, err := validator.ValidateCreate(context.Background(), obj)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("selector does not match"))
+			})
+
+			It("rejects a selector override that doesn't match the pod template labels on update", func() {
+				obj.Spec.Override.StatefulSet = &rabbitmqcomv1beta1.StatefulSet{
+					Spec: &rabbitmqcomv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"my-label": "my-value"},
+						},
+					},
+				}
+				_, err := validator.ValidateUpdate(context.Background(), obj, obj)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("selector does not match"))
+			})
+		})
 	})
 })

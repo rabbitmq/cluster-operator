@@ -10,7 +10,12 @@
 package metadata
 
 import (
+	"fmt"
+	"maps"
 	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 type label map[string]string
@@ -39,4 +44,33 @@ func LabelSelector(instanceName string) label {
 	return label{
 		"app.kubernetes.io/name": instanceName,
 	}
+}
+
+// ValidateStatefulSetSelector checks that a StatefulSet selector override is satisfied by the
+// StatefulSet's pod template labels: the operator's own labels (Label(instanceName)) plus any
+// labels added via the pod template's metadata override.
+//
+// Kubernetes requires spec.selector to match spec.template.metadata.labels on every StatefulSet
+// create and update; if it doesn't, the API server rejects the object outright. Since the
+// operator regenerates the same StatefulSet on every reconcile, an inconsistent override causes
+// a permanent reconciliation failure.
+func ValidateStatefulSetSelector(selector *metav1.LabelSelector, instanceName string, templateLabelOverrides map[string]string) error {
+	if selector == nil {
+		return nil
+	}
+
+	s, err := metav1.LabelSelectorAsSelector(selector)
+	if err != nil {
+		return fmt.Errorf("invalid selector: %w", err)
+	}
+
+	templateLabels := map[string]string(Label(instanceName))
+	maps.Copy(templateLabels, templateLabelOverrides)
+
+	if !s.Matches(labels.Set(templateLabels)) {
+		return fmt.Errorf("selector does not match the StatefulSet pod template labels %v; "+
+			"add the missing labels via spec.override.statefulSet.spec.template.metadata.labels", templateLabels)
+	}
+
+	return nil
 }
