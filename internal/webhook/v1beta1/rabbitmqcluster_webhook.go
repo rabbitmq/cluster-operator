@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	rabbitmqcomv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
+	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 )
 
 var rabbitmqclusterlog = logf.Log.WithName("rabbitmqcluster-webhook")
@@ -63,12 +64,18 @@ type RabbitmqClusterCustomValidator struct{}
 
 // ValidateCreate implements admission.Validator.
 func (v *RabbitmqClusterCustomValidator) ValidateCreate(_ context.Context, obj *rabbitmqcomv1beta1.RabbitmqCluster) (admission.Warnings, error) {
-	return nil, validatePodSpecOverride(obj)
+	if err := validatePodSpecOverride(obj); err != nil {
+		return nil, err
+	}
+	return nil, validateStatefulSetSelectorOverride(obj)
 }
 
 // ValidateUpdate implements admission.Validator.
 func (v *RabbitmqClusterCustomValidator) ValidateUpdate(_ context.Context, _, newObj *rabbitmqcomv1beta1.RabbitmqCluster) (admission.Warnings, error) {
-	return nil, validatePodSpecOverride(newObj)
+	if err := validatePodSpecOverride(newObj); err != nil {
+		return nil, err
+	}
+	return nil, validateStatefulSetSelectorOverride(newObj)
 }
 
 // ValidateDelete implements admission.Validator.
@@ -152,6 +159,33 @@ func validatePodSpecOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error 
 			schema.GroupKind{Group: "rabbitmq.com", Kind: "RabbitmqCluster"},
 			cluster.Name,
 			allErrs,
+		)
+	}
+	return nil
+}
+
+// validateStatefulSetSelectorOverride rejects a spec.override.statefulSet.spec.selector (or,
+// absent an explicit selector override, the operator's default selector) that isn't satisfied
+// by the StatefulSet's pod template labels; Kubernetes requires the two to match on every
+// create and update. This also catches a pod-template-label override that, on its own, breaks
+// the match against the default selector.
+func validateStatefulSetSelectorOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error {
+	override := cluster.Spec.Override.StatefulSet
+	if override == nil || override.Spec == nil {
+		return nil
+	}
+
+	var templateLabelOverrides map[string]string
+	if override.Spec.Template != nil && override.Spec.Template.EmbeddedObjectMeta != nil {
+		templateLabelOverrides = override.Spec.Template.EmbeddedObjectMeta.Labels
+	}
+
+	if err := metadata.ValidateStatefulSetSelector(override.Spec.Selector, cluster.Name, templateLabelOverrides); err != nil {
+		fieldPath := field.NewPath("spec", "override", "statefulSet", "spec", "selector")
+		return apierrors.NewInvalid(
+			schema.GroupKind{Group: "rabbitmq.com", Kind: "RabbitmqCluster"},
+			cluster.Name,
+			field.ErrorList{field.Invalid(fieldPath, override.Spec.Selector, err.Error())},
 		)
 	}
 	return nil

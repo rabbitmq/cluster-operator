@@ -191,6 +191,13 @@ var _ = Describe("StatefulSet", func() {
 								"my-label": "my-label",
 							},
 						},
+						Template: &rabbitmqv1beta1.PodTemplateSpec{
+							EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
+								Labels: map[string]string{
+									"my-label": "my-label",
+								},
+							},
+						},
 					},
 				}
 
@@ -198,6 +205,53 @@ var _ = Describe("StatefulSet", func() {
 				Expect(err).NotTo(HaveOccurred())
 				statefulSet := obj.(*appsv1.StatefulSet)
 				Expect(statefulSet.Spec.Selector.MatchLabels).To(Equal(map[string]string{"my-label": "my-label"}))
+			})
+
+			It("rejects a selector override that doesn't match the pod template labels", func() {
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"my-label": "my-label",
+							},
+						},
+					},
+				}
+
+				_, err := stsBuilder.Build()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("selector does not match"))
+				Expect(err).To(MatchError(resource.ErrInvalidStatefulSetSelectorOverride))
+			})
+
+			It("rejects a pod template label override that breaks the default selector match, even with no explicit selector override", func() {
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						Template: &rabbitmqv1beta1.PodTemplateSpec{
+							EmbeddedObjectMeta: &rabbitmqv1beta1.EmbeddedObjectMeta{
+								Labels: map[string]string{
+									"app.kubernetes.io/name": "renamed",
+								},
+							},
+						},
+					},
+				}
+
+				_, err := stsBuilder.Build()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("selector does not match"))
+			})
+
+			It("rejects an explicit empty selector override, since it would match every pod in the namespace", func() {
+				builder.Instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+					Spec: &rabbitmqv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{},
+					},
+				}
+
+				_, err := stsBuilder.Build()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("must not be empty"))
 			})
 
 			It("overrides statefulSet.spec.serviceName", func() {

@@ -10,7 +10,12 @@
 package metadata
 
 import (
+	"fmt"
+	"maps"
 	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 type label map[string]string
@@ -39,4 +44,40 @@ func LabelSelector(instanceName string) label {
 	return label{
 		"app.kubernetes.io/name": instanceName,
 	}
+}
+
+// ValidateStatefulSetSelector checks that a StatefulSet selector override is satisfied by the
+// StatefulSet's pod template labels: the operator's own labels (Label(instanceName)) plus any
+// labels added via the pod template's metadata override. A nil selector defaults to the
+// operator's own LabelSelector(instanceName), matching what the StatefulSet builder does when
+// no selector override is present.
+//
+// Kubernetes requires spec.selector to match spec.template.metadata.labels on every StatefulSet
+// create and update, and rejects a selector that doesn't select on any label (since that would
+// match every pod in the namespace); if either requirement is violated, the API server rejects
+// the object outright. Since the operator regenerates the same StatefulSet on every reconcile,
+// an inconsistent override causes a permanent reconciliation failure.
+func ValidateStatefulSetSelector(selector *metav1.LabelSelector, instanceName string, templateLabelOverrides map[string]string) error {
+	if selector == nil {
+		selector = &metav1.LabelSelector{MatchLabels: LabelSelector(instanceName)}
+	}
+
+	if len(selector.MatchLabels) == 0 && len(selector.MatchExpressions) == 0 {
+		return fmt.Errorf("selector must not be empty")
+	}
+
+	s, err := metav1.LabelSelectorAsSelector(selector)
+	if err != nil {
+		return fmt.Errorf("invalid selector: %w", err)
+	}
+
+	templateLabels := map[string]string(Label(instanceName))
+	maps.Copy(templateLabels, templateLabelOverrides)
+
+	if !s.Matches(labels.Set(templateLabels)) {
+		return fmt.Errorf("selector does not match the StatefulSet pod template labels %v; "+
+			"add the missing labels via spec.override.statefulSet.spec.template.metadata.labels", templateLabels)
+	}
+
+	return nil
 }

@@ -204,6 +204,11 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	for _, builder := range builders {
 		obj, err := builder.Build()
 		if err != nil {
+			reason := "Error"
+			if errors.Is(err, resource.ErrInvalidStatefulSetSelectorOverride) {
+				reason = "InvalidStatefulSetSelectorOverride"
+			}
+			r.setReconcileSuccess(ctx, rabbitmqCluster, corev1.ConditionFalse, reason, err.Error())
 			return ctrl.Result{}, err
 		}
 
