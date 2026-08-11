@@ -11,6 +11,7 @@ package resource
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -42,6 +43,11 @@ const (
 	defaultPVCName      string = "persistence"
 	DeletionMarker      string = "skipPreStopChecks"
 )
+
+// ErrInvalidStatefulSetSelectorOverride wraps a spec.override.statefulSet.spec.selector that
+// doesn't match the StatefulSet's pod template labels, so callers can distinguish this failure
+// class from other errors returned by StatefulSetBuilder.Build().
+var ErrInvalidStatefulSetSelectorOverride = errors.New("invalid statefulset selector override")
 
 type StatefulSetBuilder struct {
 	*RabbitmqResourceBuilder
@@ -98,7 +104,7 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 			templateLabelOverrides = overrideSts.Spec.Template.EmbeddedObjectMeta.Labels
 		}
 		if err := metadata.ValidateStatefulSetSelector(overrideSts.Spec.Selector, builder.Instance.Name, templateLabelOverrides); err != nil {
-			return nil, fmt.Errorf("invalid statefulSet override: %w", err)
+			return nil, fmt.Errorf("%w: %w", ErrInvalidStatefulSetSelectorOverride, err)
 		}
 	}
 

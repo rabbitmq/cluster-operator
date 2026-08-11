@@ -289,6 +289,46 @@ var _ = Describe("RabbitmqCluster Webhook", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("selector does not match"))
 			})
+
+			It("rejects a pod template label override that breaks the default selector match, even with no explicit selector override", func() {
+				obj.Spec.Override.StatefulSet = &rabbitmqcomv1beta1.StatefulSet{
+					Spec: &rabbitmqcomv1beta1.StatefulSetSpec{
+						Template: &rabbitmqcomv1beta1.PodTemplateSpec{
+							EmbeddedObjectMeta: &rabbitmqcomv1beta1.EmbeddedObjectMeta{
+								Labels: map[string]string{"app.kubernetes.io/name": "renamed"},
+							},
+						},
+					},
+				}
+				_, err := validator.ValidateCreate(context.Background(), obj)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("selector does not match"))
+			})
+
+			It("allows a pod template label override that doesn't touch the default selector label", func() {
+				obj.Spec.Override.StatefulSet = &rabbitmqcomv1beta1.StatefulSet{
+					Spec: &rabbitmqcomv1beta1.StatefulSetSpec{
+						Template: &rabbitmqcomv1beta1.PodTemplateSpec{
+							EmbeddedObjectMeta: &rabbitmqcomv1beta1.EmbeddedObjectMeta{
+								Labels: map[string]string{"extra": "label"},
+							},
+						},
+					},
+				}
+				_, err := validator.ValidateCreate(context.Background(), obj)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("rejects an explicit empty selector override, since it would match every pod in the namespace", func() {
+				obj.Spec.Override.StatefulSet = &rabbitmqcomv1beta1.StatefulSet{
+					Spec: &rabbitmqcomv1beta1.StatefulSetSpec{
+						Selector: &metav1.LabelSelector{},
+					},
+				}
+				_, err := validator.ValidateCreate(context.Background(), obj)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("must not be empty"))
+			})
 		})
 	})
 })

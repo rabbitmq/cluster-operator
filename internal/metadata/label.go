@@ -48,15 +48,22 @@ func LabelSelector(instanceName string) label {
 
 // ValidateStatefulSetSelector checks that a StatefulSet selector override is satisfied by the
 // StatefulSet's pod template labels: the operator's own labels (Label(instanceName)) plus any
-// labels added via the pod template's metadata override.
+// labels added via the pod template's metadata override. A nil selector defaults to the
+// operator's own LabelSelector(instanceName), matching what the StatefulSet builder does when
+// no selector override is present.
 //
 // Kubernetes requires spec.selector to match spec.template.metadata.labels on every StatefulSet
-// create and update; if it doesn't, the API server rejects the object outright. Since the
-// operator regenerates the same StatefulSet on every reconcile, an inconsistent override causes
-// a permanent reconciliation failure.
+// create and update, and rejects a selector that doesn't select on any label (since that would
+// match every pod in the namespace); if either requirement is violated, the API server rejects
+// the object outright. Since the operator regenerates the same StatefulSet on every reconcile,
+// an inconsistent override causes a permanent reconciliation failure.
 func ValidateStatefulSetSelector(selector *metav1.LabelSelector, instanceName string, templateLabelOverrides map[string]string) error {
 	if selector == nil {
-		return nil
+		selector = &metav1.LabelSelector{MatchLabels: LabelSelector(instanceName)}
+	}
+
+	if len(selector.MatchLabels) == 0 && len(selector.MatchExpressions) == 0 {
+		return fmt.Errorf("selector must not be empty")
 	}
 
 	s, err := metav1.LabelSelectorAsSelector(selector)

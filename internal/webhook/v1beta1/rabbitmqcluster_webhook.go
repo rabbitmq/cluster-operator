@@ -164,12 +164,14 @@ func validatePodSpecOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error 
 	return nil
 }
 
-// validateStatefulSetSelectorOverride rejects a spec.override.statefulSet.spec.selector that
-// isn't satisfied by the StatefulSet's pod template labels; Kubernetes requires the two to
-// match on every create and update.
+// validateStatefulSetSelectorOverride rejects a spec.override.statefulSet.spec.selector (or,
+// absent an explicit selector override, the operator's default selector) that isn't satisfied
+// by the StatefulSet's pod template labels; Kubernetes requires the two to match on every
+// create and update. This also catches a pod-template-label override that, on its own, breaks
+// the match against the default selector.
 func validateStatefulSetSelectorOverride(cluster *rabbitmqcomv1beta1.RabbitmqCluster) error {
 	override := cluster.Spec.Override.StatefulSet
-	if override == nil || override.Spec == nil || override.Spec.Selector == nil {
+	if override == nil || override.Spec == nil {
 		return nil
 	}
 
