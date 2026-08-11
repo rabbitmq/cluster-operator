@@ -50,6 +50,7 @@ import (
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/message"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -62,6 +63,11 @@ import (
 const podCreationTimeout = 10 * time.Minute
 const portReadinessTimeout = 1 * time.Minute
 const k8sQueryTimeout = 1 * time.Minute
+const clusterDeletionTimeout = 90 * time.Second
+
+// A create is rejected while a cluster of the same name is still terminating, so the retry needs
+// to cover a deletion.
+const clusterCreationTimeout = clusterDeletionTimeout
 
 type featureFlag struct {
 	Name  string
@@ -505,6 +511,32 @@ func updateRabbitmqCluster(ctx context.Context, client client.Client, name, name
 
 func createRabbitmqCluster(ctx context.Context, client client.Client, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
 	return client.Create(ctx, rabbitmqCluster)
+}
+
+// deleteRabbitmqClusterAndWait deletes a RabbitmqCluster and waits for it to disappear. Delete only
+// marks it: the operator's finalizer keeps the object in Terminating for a few seconds, and
+// recreating the same name before then fails with "object is being deleted ... already exists".
+func deleteRabbitmqClusterAndWait(ctx context.Context, c client.Client, cluster *rabbitmqv1beta1.RabbitmqCluster) {
+	GinkgoHelper()
+
+	Expect(client.IgnoreNotFound(c.Delete(ctx, cluster))).To(Succeed())
+
+	key := types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}
+	Eventually(ctx, func() error {
+		var current rabbitmqv1beta1.RabbitmqCluster
+		err := c.Get(ctx, key, &current)
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("RabbitmqCluster %s is still present (deletionTimestamp: %v, finalizers: %v)",
+			key, current.DeletionTimestamp, current.Finalizers)
+	}).
+		WithTimeout(clusterDeletionTimeout).
+		WithPolling(2 * time.Second).
+		Should(Succeed())
 }
 
 func statefulSetPodName(cluster *rabbitmqv1beta1.RabbitmqCluster, index int) string {
