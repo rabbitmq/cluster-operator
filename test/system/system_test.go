@@ -274,7 +274,7 @@ CONSOLE_LOG=new`
 				cluster = newRabbitmqCluster(namespace, "persistence-rabbit")
 				return createRabbitmqCluster(ctx, rmqClusterClient, cluster)
 			}).
-				WithTimeout(clusterDeletionTimeout).
+				WithTimeout(clusterCreationTimeout).
 				WithPolling(2 * time.Second).
 				Should(Succeed())
 

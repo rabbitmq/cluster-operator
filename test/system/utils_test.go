@@ -65,6 +65,10 @@ const portReadinessTimeout = 1 * time.Minute
 const k8sQueryTimeout = 1 * time.Minute
 const clusterDeletionTimeout = 90 * time.Second
 
+// A create is rejected while a cluster of the same name is still terminating, so the retry needs
+// to cover a deletion.
+const clusterCreationTimeout = clusterDeletionTimeout
+
 type featureFlag struct {
 	Name  string
 	State string
