@@ -1,6 +1,6 @@
 module github.com/rabbitmq/cluster-operator/kubectl-rabbitmq
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/rabbitmq/cluster-operator/v2 v2.22.1
