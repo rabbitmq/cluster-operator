@@ -1,0 +1,165 @@
+---
+name: Test OLM bundle (PR)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'olm/**'
+      - 'olm.mk'
+      - 'config/**'
+      - 'api/**'
+      - 'Dockerfile'
+      - '.github/workflows/olm-pr.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-olm-bundle-pr:
+    name: Build and test the OLM bundle against a local registry
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: localhost:5000
+      BUNDLE_VERSION: 0.0.0-pr${{ github.event.pull_request.number }}.${{ github.run_number }}
+      OPERATOR_IMAGE_REF: localhost:5000/rabbitmqoperator/cluster-operator:0.0.0-pr${{ github.event.pull_request.number }}.${{ github.run_number }}
+      IMAGE: rabbitmq-for-kubernetes-olm-cluster-operator:0.0.0-pr${{ github.event.pull_request.number }}.${{ github.run_number }}
+      CATALOG_IMAGE: test-catalog:pr-${{ github.event.pull_request.number }}.${{ github.run_number }}
+
+    # Fork PRs have no access to quay.io push credentials, so the operator,
+    # bundle, and catalog images are built and pushed to an ephemeral,
+    # unauthenticated registry instead. Kind nodes reach it via
+    # olm/kind-config-local-registry.yaml.
+    # https://docs.docker.com/build/ci/github-actions/local-registry/
+    # https://kind.sigs.k8s.io/docs/user/local-registry/
+    services:
+      registry:
+        image: registry:3
+        ports:
+          - 127.0.0.1:5000:5000
+        # Named explicitly so the Kind containerd mirror config and the
+        # "Connect local registry to the Kind network" step below can
+        # address it by a stable hostname.
+        options: --name kind-registry --restart=always
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set previous version
+        id: set_previous_version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/print-previous-version.bash | tee -a "$GITHUB_OUTPUT"
+
+      - name: Build and push operator image
+        # make docker-build runs `docker buildx build` without --load/--push,
+        # so it relies on the runner's default (docker-driver) builder to
+        # land the image in the local image store. Do NOT add
+        # docker/setup-buildx-action here: it switches to the
+        # docker-container driver, which cannot reach localhost:5000 on the
+        # host and would break both this build and the push below.
+        run: |
+          make docker-build IMG="${{ env.OPERATOR_IMAGE_REF }}"
+          docker push "${{ env.OPERATOR_IMAGE_REF }}"
+
+      - name: OpenShift Tools Installer
+        uses: redhat-actions/openshift-tools-installer@v3
+        with:
+          # Using GitHub source because the Openshift mirror source binary file does not match the expected name
+          # pattern. In the mirror, the filename is opm-rhel8, and the Action is expecting the name as opm-${OS}-${ARCH}
+          source: github
+          github_pat: ${{ github.token }}
+          opm: latest
+
+      - name: Install Carvel tooling
+        uses: carvel-dev/setup-action@v2.2.0
+        with:
+          token: ${{ github.token }}
+          only: ytt
+
+      - name: Create OLM bundle manifests
+        env:
+          # PR runs build/push the operator image from the PR's own source (see
+          # "Build and push operator image" above), so the CSV exercises the
+          # PR's actual code rather than the last published release.
+          QUAY_IO_OPERATOR_IMAGE: ${{ env.OPERATOR_IMAGE_REF }}
+          BUNDLE_REPLACES: rabbitmq-cluster-operator.${{ steps.set_previous_version.outputs.PREVIOUS_VERSION }}
+        run: make -f olm.mk crd rbac deployment olm-manifests
+
+      - name: Create OLM Package
+        run: make -f olm.mk docker-build docker-push
+
+      - name: Validate bundle manifests
+        run: opm alpha bundle validate --tag "${{ env.REGISTRY }}/${{ env.IMAGE }}" --image-builder docker
+
+      - name: Install Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: "go.mod"
+
+      - name: Kind Cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: cluster-operator-olm
+          config: olm/kind-config-local-registry.yaml
+          # Pinned for reproducibility; the certs.d containerd registry
+          # config (olm/kind-config-local-registry.yaml) needs kind v0.27+
+          # to pick this node image's containerd, which is well past that.
+          # https://kind.sigs.k8s.io/docs/user/local-registry/
+          node_image: kindest/node:v1.35.1
+
+      - name: Configure node registry mirror
+        # Kind's containerd config_path patch (olm/kind-config-local-registry.yaml)
+        # only enables the certs.d mechanism; each node still needs a hosts.toml
+        # telling containerd where "localhost:5000" actually resolves to.
+        # https://kind.sigs.k8s.io/docs/user/local-registry/
+        run: |
+          REGISTRY_DIR="/etc/containerd/certs.d/${{ env.REGISTRY }}"
+          for node in $(kind get nodes --name cluster-operator-olm); do
+            docker exec "${node}" mkdir -p "${REGISTRY_DIR}"
+            cat <<EOF | docker exec -i "${node}" cp /dev/stdin "${REGISTRY_DIR}/hosts.toml"
+          [host."http://kind-registry:5000"]
+          EOF
+          done
+
+      - name: Connect local registry to the Kind network
+        run: docker network connect kind kind-registry
+
+      - name: Install OLM
+        run: |
+          curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.32.0/install.sh -o install.sh
+          chmod +x install.sh
+          ./install.sh v0.32.0
+
+      - name: Deploy test catalog
+        run: make -f olm.mk catalog-all
+
+      - name: Run OLM tests
+        id: olm_tests
+        # The test suite is sensible to the working directory, and go-test always sets the working directory
+        # to the package path (i.e. olm/test). As a workaround, we compile the test in a binary, and then
+        # run it from the repo root directory
+        run: |
+          go test -c -o olm.test ./olm/test/
+          ./olm.test
+
+      - name: Collect operator logs on failure
+        if: ${{ !cancelled() && steps.olm_tests.outcome == 'failure' }}
+        run: |
+          kubectl logs -n ns-1 deployment/rabbitmq-cluster-operator > cluster-operator.log
+          kubectl -n ns-1 describe sub sub-to-rabbitmq-cluster-operator > subscription.log
+          kubectl -n ns-1 get csv,pods -o wide > resources.log
+
+      - name: Upload cluster operator logs
+        if: ${{ !cancelled() && steps.olm_tests.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          path: |
+            cluster-operator.log
+            subscription.log
+            resources.log
+          name: cluster-operator-olm-log
+          retention-days: 4
