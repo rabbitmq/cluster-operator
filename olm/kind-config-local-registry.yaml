@@ -1,0 +1,13 @@
+---
+# Enables containerd's certs.d registry config directory on Kind nodes, so a
+# hosts.toml dropped into /etc/containerd/certs.d/localhost:5000 (see the
+# "Configure node registry mirror" step in olm-pr.yml) can redirect pulls for
+# localhost:5000 to the kind-registry container over the "kind" Docker network.
+# The older `registry.mirrors` directive is unsupported on newer node images.
+# https://kind.sigs.k8s.io/docs/user/local-registry/
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry]
+    config_path = "/etc/containerd/certs.d"
