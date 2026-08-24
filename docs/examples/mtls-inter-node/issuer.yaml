@@ -1,0 +1,46 @@
+# Bootstraps a local Certificate Authority for the inter-node mTLS certificates issued by the
+# cert-manager CSI driver, following the standard cert-manager "self-signed root" pattern:
+#
+#   1. A selfSigned Issuer, used only to bootstrap the CA below.
+#   2. A CA Certificate, signed by the selfSigned issuer, stored in a Secret.
+#   3. A CA-type Issuer, backed by that Secret. This is the one rabbitmq.yaml's
+#      spec.tls.interNode.issuerRef points at.
+#
+# spec.tls.interNode.issuerRef must point at a CA-type issuer: the operator-generated Erlang
+# distribution TLS terms reference cacertfile unconditionally, and the CSI driver only writes
+# ca.crt when the issuer it talks to is backed by a CA. Pointing issuerRef at a SelfSigned or ACME
+# issuer instead would leave ca.crt missing or empty, and nodes would fail to start with an opaque
+# Erlang error.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: mtls-inter-node-selfsigned-issuer
+  namespace: examples
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mtls-inter-node-ca
+  namespace: examples
+spec:
+  isCA: true
+  commonName: mtls-inter-node-ca
+  secretName: mtls-inter-node-ca-secret
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: mtls-inter-node-selfsigned-issuer
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: mtls-inter-node-ca-issuer
+  namespace: examples
+spec:
+  ca:
+    secretName: mtls-inter-node-ca-secret
