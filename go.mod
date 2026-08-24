@@ -17,7 +17,7 @@ require (
 	golang.org/x/text v0.41.0
 	gopkg.in/ini.v1 v1.67.3
 	k8s.io/api v0.36.3
-	k8s.io/apimachinery v0.36.3
+	k8s.io/apimachinery v0.36.4
 	k8s.io/client-go v0.36.3
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
@@ -120,7 +120,7 @@ require (
 	k8s.io/apiserver v0.36.3 // indirect
 	k8s.io/component-base v0.36.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad // indirect
-	k8s.io/streaming v0.36.3 // indirect
+	k8s.io/streaming v0.36.4 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.36.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
