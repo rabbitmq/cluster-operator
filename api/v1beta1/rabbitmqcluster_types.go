@@ -375,6 +375,39 @@ type TLSSpec struct {
 	// When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ, management plugin and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt, web_amqp.
 	// Only TLS-enabled clients will be able to connect.
 	DisableNonTLSListeners bool `json:"disableNonTLSListeners,omitempty"`
+
+	// Automate inter-node (Erlang distribution) mTLS using the cert-manager CSI driver.
+	// Requires cert-manager and the cert-manager-csi-driver to be installed in the cluster.
+	// +optional
+	InterNode *InterNodeTLSSpec `json:"interNode,omitempty"`
+}
+
+// InterNodeTLSSpec configures automated inter-node (Erlang distribution) mTLS using the cert-manager CSI driver.
+type InterNodeTLSSpec struct {
+	// Enables inter-node mTLS using the cert-manager CSI driver.
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
+	// Reference to the cert-manager Issuer or ClusterIssuer that issues the inter-node mTLS certificates.
+	// Must be a CA-type issuer.
+	IssuerRef CertManagerIssuerReference `json:"issuerRef"`
+}
+
+// CertManagerIssuerReference identifies a cert-manager Issuer or ClusterIssuer, without depending on the
+// cert-manager API types.
+type CertManagerIssuerReference struct {
+	// Name of the cert-manager Issuer or ClusterIssuer.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name"`
+	// Kind of the issuer resource: Issuer or ClusterIssuer.
+	// +kubebuilder:validation:Enum=Issuer;ClusterIssuer
+	// +kubebuilder:default=Issuer
+	Kind string `json:"kind,omitempty"`
+	// Group of the issuer resource.
+	// +kubebuilder:default=cert-manager.io
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Group string `json:"group,omitempty"`
 }
 
 // kubebuilder validating tags 'Pattern' and 'MaxLength' must be specified on string type.
@@ -465,6 +498,12 @@ func (cluster *RabbitmqCluster) SecretTLSEnabled() bool {
 
 func (cluster *RabbitmqCluster) MutualTLSEnabled() bool {
 	return (cluster.SecretTLSEnabled() && cluster.Spec.TLS.CaSecretName != "") || cluster.VaultTLSEnabled()
+}
+
+func (cluster *RabbitmqCluster) InterNodeTLSEnabled() bool {
+	return cluster.Spec.TLS.InterNode != nil &&
+		cluster.Spec.TLS.InterNode.Enabled &&
+		cluster.Spec.TLS.InterNode.IssuerRef.Name != ""
 }
 
 func (cluster *RabbitmqCluster) MemoryLimited() bool {

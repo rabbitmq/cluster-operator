@@ -16,7 +16,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"context"
 
@@ -108,6 +110,137 @@ var _ = Describe("RabbitmqCluster", func() {
 			created.Spec.TLS.SecretName = "tls-secret-name"
 			created.Spec.TLS.CaSecretName = "tls-secret-name"
 			Expect(created.MutualTLSEnabled()).To(BeTrue())
+		})
+
+		It("can be queried if inter-node TLS is enabled", func() {
+			created := generateRabbitmqClusterObject("rabbit-inter-node-tls")
+			Expect(created.InterNodeTLSEnabled()).To(BeFalse())
+
+			created.Spec.TLS.InterNode = &InterNodeTLSSpec{
+				Enabled:   false,
+				IssuerRef: CertManagerIssuerReference{Name: "some-ca"},
+			}
+			Expect(created.InterNodeTLSEnabled()).To(BeFalse())
+
+			created.Spec.TLS.InterNode.Enabled = true
+			Expect(created.InterNodeTLSEnabled()).To(BeTrue())
+
+			created.Spec.TLS.InterNode.IssuerRef.Name = ""
+			Expect(created.InterNodeTLSEnabled()).To(BeFalse())
+		})
+
+		It("can be created with inter-node TLS, defaulting enabled/kind/group", func() {
+			created := generateRabbitmqClusterObject("rabbit-inter-node-tls-defaults")
+			created.Spec.TLS.InterNode = &InterNodeTLSSpec{
+				IssuerRef: CertManagerIssuerReference{Name: "some-ca"},
+			}
+			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
+
+			fetched := &RabbitmqCluster{}
+			Expect(k8sClient.Get(context.Background(), getKey(created), fetched)).To(Succeed())
+			Expect(fetched.Spec.TLS.InterNode).NotTo(BeNil())
+			Expect(fetched.Spec.TLS.InterNode.Enabled).To(BeFalse())
+			Expect(fetched.Spec.TLS.InterNode.IssuerRef.Name).To(Equal("some-ca"))
+			Expect(fetched.Spec.TLS.InterNode.IssuerRef.Kind).To(Equal("Issuer"))
+			Expect(fetched.Spec.TLS.InterNode.IssuerRef.Group).To(Equal("cert-manager.io"))
+		})
+
+		It("can be created with inter-node TLS fully specified", func() {
+			created := generateRabbitmqClusterObject("rabbit-inter-node-tls-full")
+			created.Spec.TLS.InterNode = &InterNodeTLSSpec{
+				Enabled: true,
+				IssuerRef: CertManagerIssuerReference{
+					Name:  "some-ca",
+					Kind:  "ClusterIssuer",
+					Group: "cert-manager.io",
+				},
+			}
+			Expect(k8sClient.Create(context.Background(), created)).To(Succeed())
+
+			fetched := &RabbitmqCluster{}
+			Expect(k8sClient.Get(context.Background(), getKey(created), fetched)).To(Succeed())
+			Expect(fetched.Spec.TLS.InterNode.Enabled).To(BeTrue())
+			Expect(fetched.Spec.TLS.InterNode.IssuerRef.Kind).To(Equal("ClusterIssuer"))
+		})
+
+		It("rejects inter-node TLS enabled with no issuerRef name", func() {
+			invalid := generateRabbitmqClusterObject("rabbit-inter-node-tls-no-issuer")
+			invalid.Spec.TLS.InterNode = &InterNodeTLSSpec{
+				Enabled: true,
+			}
+			Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalid))).To(BeTrue())
+		})
+
+		It("rejects an interNode block with no issuerRef key at all", func() {
+			// IssuerRef is a non-pointer struct with a non-omitempty Name field, so a typed
+			// client.Create with InterNodeTLSSpec{Enabled: true} always serializes an
+			// `issuerRef: {name: ""}` object on the wire -- it can never omit the key. That
+			// means the two typed specs "rejects inter-node TLS enabled with no issuerRef
+			// name" (above) and "rejects an interNode block with enabled:false and no
+			// issuerRef name" (below) actually exercise the minLength:1 validation on
+			// issuerRef.name, not the bare `required: [issuerRef]` structural-schema
+			// constraint the plan's "why no CEL rule" design decision rests on. Build the
+			// object as unstructured JSON instead, so "issuerRef" is genuinely absent from the
+			// request body, the way it would be from a hand-written manifest that only sets
+			// `enabled: true`.
+			created := generateRabbitmqClusterObject("rabbit-inter-node-tls-no-issuer-key")
+			obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(created)
+			Expect(err).NotTo(HaveOccurred())
+			u := &unstructured.Unstructured{Object: obj}
+			u.SetGroupVersionKind(schema.GroupVersionKind{Group: "rabbitmq.com", Version: "v1beta1", Kind: "RabbitmqCluster"})
+			Expect(unstructured.SetNestedMap(u.Object, map[string]any{
+				"enabled": true,
+			}, "spec", "tls", "interNode")).To(Succeed())
+
+			err = k8sClient.Create(context.Background(), u)
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			Expect(err).To(MatchError(ContainSubstring("issuerRef")))
+		})
+
+		It("rejects an interNode block with enabled:false and no issuerRef name (disable by omitting the block instead)", func() {
+			invalid := generateRabbitmqClusterObject("rabbit-inter-node-tls-disabled-no-issuer")
+			invalid.Spec.TLS.InterNode = &InterNodeTLSSpec{
+				Enabled: false,
+			}
+			Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalid))).To(BeTrue())
+			Expect(k8sClient.Create(context.Background(), invalid)).To(MatchError(ContainSubstring("issuerRef")))
+		})
+
+		It("rejects inter-node TLS with an invalid issuerRef kind", func() {
+			invalid := generateRabbitmqClusterObject("rabbit-inter-node-tls-bad-kind")
+			invalid.Spec.TLS.InterNode = &InterNodeTLSSpec{
+				Enabled: true,
+				IssuerRef: CertManagerIssuerReference{
+					Name: "some-ca",
+					Kind: "Bogus",
+				},
+			}
+			Expect(apierrors.IsInvalid(k8sClient.Create(context.Background(), invalid))).To(BeTrue())
+			Expect(k8sClient.Create(context.Background(), invalid)).To(MatchError(ContainSubstring("supported values: \"Issuer\", \"ClusterIssuer\"")))
+		})
+
+		It("rejects inter-node TLS with an explicit empty issuerRef group", func() {
+			// A typed client.Create with Group: "" round-trips through JSON with
+			// `omitempty`, so the empty string is indistinguishable on the wire from an
+			// absent field and would be silently defaulted -- exactly the gap this spec
+			// guards against. Build the object as unstructured JSON instead, so the
+			// empty string for "group" is actually present in the request body, the way
+			// it would be in a hand-written manifest.
+			created := generateRabbitmqClusterObject("rabbit-inter-node-tls-empty-group")
+			obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(created)
+			Expect(err).NotTo(HaveOccurred())
+			u := &unstructured.Unstructured{Object: obj}
+			u.SetGroupVersionKind(schema.GroupVersionKind{Group: "rabbitmq.com", Version: "v1beta1", Kind: "RabbitmqCluster"})
+			Expect(unstructured.SetNestedMap(u.Object, map[string]any{
+				"enabled": true,
+				"issuerRef": map[string]any{
+					"name":  "some-ca",
+					"group": "",
+				},
+			}, "spec", "tls", "interNode")).To(Succeed())
+
+			err = k8sClient.Create(context.Background(), u)
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
 		})
 
 		It("can be queried if memory limits are provided", func() {

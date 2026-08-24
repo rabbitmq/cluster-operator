@@ -5377,6 +5377,44 @@ spec:
                         When set to true, the RabbitmqCluster disables non-TLS listeners for RabbitMQ, management plugin and for any enabled plugins in the following list: stomp, mqtt, web_stomp, web_mqtt, web_amqp.
                         Only TLS-enabled clients will be able to connect.
                       type: boolean
+                    interNode:
+                      description: |-
+                        Automate inter-node (Erlang distribution) mTLS using the cert-manager CSI driver.
+                        Requires cert-manager and the cert-manager-csi-driver to be installed in the cluster.
+                      properties:
+                        enabled:
+                          default: false
+                          description: Enables inter-node mTLS using the cert-manager CSI driver.
+                          type: boolean
+                        issuerRef:
+                          description: |-
+                            Reference to the cert-manager Issuer or ClusterIssuer that issues the inter-node mTLS certificates.
+                            Must be a CA-type issuer.
+                          properties:
+                            group:
+                              default: cert-manager.io
+                              description: Group of the issuer resource.
+                              maxLength: 253
+                              minLength: 1
+                              type: string
+                            kind:
+                              default: Issuer
+                              description: 'Kind of the issuer resource: Issuer or ClusterIssuer.'
+                              enum:
+                                - Issuer
+                                - ClusterIssuer
+                              type: string
+                            name:
+                              description: Name of the cert-manager Issuer or ClusterIssuer.
+                              maxLength: 253
+                              minLength: 1
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      required:
+                        - issuerRef
+                      type: object
                     secretName:
                       description: |-
                         Name of a Secret in the same Namespace as the RabbitmqCluster, containing the server's private key & public certificate for TLS.
