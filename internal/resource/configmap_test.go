@@ -12,6 +12,7 @@ package resource_test
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -278,6 +279,134 @@ CONSOLE_LOG=new`
 					Entry("plain key=value", `USE_LONGNAME=true`),
 					Entry("multiple plain assignments", "USE_LONGNAME=true\nCONSOLE_LOG=new"),
 				)
+			})
+		})
+
+		Context("inter-node TLS", func() {
+			It("does not set inter_node_tls.config when interNode is nil", func() {
+				instance.Spec.TLS.InterNode = nil
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).ToNot(HaveKey(resource.InterNodeTLSConfigKey))
+			})
+
+			It("does not set inter_node_tls.config when enabled is false", func() {
+				instance.Spec.TLS.InterNode = &rabbitmqv1beta1.InterNodeTLSSpec{
+					Enabled:   false,
+					IssuerRef: rabbitmqv1beta1.CertManagerIssuerReference{Name: "some-ca"},
+				}
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).ToNot(HaveKey(resource.InterNodeTLSConfigKey))
+			})
+
+			It("does not set inter_node_tls.config when issuerRef.name is empty", func() {
+				instance.Spec.TLS.InterNode = &rabbitmqv1beta1.InterNodeTLSSpec{
+					Enabled: true,
+				}
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).ToNot(HaveKey(resource.InterNodeTLSConfigKey))
+			})
+
+			When("inter-node TLS is enabled", func() {
+				BeforeEach(func() {
+					instance.Spec.TLS.InterNode = &rabbitmqv1beta1.InterNodeTLSSpec{
+						Enabled:   true,
+						IssuerRef: rabbitmqv1beta1.CertManagerIssuerReference{Name: "some-ca"},
+					}
+				})
+
+				It("sets inter_node_tls.config with the strict mTLS terms", func() {
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMap.Data).To(HaveKeyWithValue(resource.InterNodeTLSConfigKey, ContainSubstring("fail_if_no_peer_cert, true")))
+
+					contents := configMap.Data[resource.InterNodeTLSConfigKey]
+					Expect(contents).To(ContainSubstring(`{cacertfile, "/etc/rabbitmq-inter-node-tls/ca.crt"}`))
+					Expect(contents).To(ContainSubstring(`{certfile, "/etc/rabbitmq-inter-node-tls/tls.crt"}`))
+					Expect(contents).To(ContainSubstring(`{keyfile, "/etc/rabbitmq-inter-node-tls/tls.key"}`))
+					Expect(contents).To(ContainSubstring("customize_hostname_check"))
+
+					By("only setting fail_if_no_peer_cert on the server block")
+					serverBlockEnd := strings.Index(contents, "]},")
+					Expect(contents[:serverBlockEnd]).To(ContainSubstring("fail_if_no_peer_cert"))
+					Expect(contents[serverBlockEnd:]).ToNot(ContainSubstring("fail_if_no_peer_cert"))
+				})
+
+				It("adds both operator lines to rabbitmq-env.conf when envConfig is empty", func() {
+					instance.Spec.Rabbitmq.EnvConfig = ""
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq-env.conf", ContainSubstring(
+						`RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="${RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS:-${SERVER_ADDITIONAL_ERL_ARGS}} -proto_dist inet_tls -ssl_dist_optfile /etc/rabbitmq/inter-node-tls.config"`,
+					)))
+					Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq-env.conf", ContainSubstring(
+						`RABBITMQ_CTL_ERL_ARGS="${RABBITMQ_CTL_ERL_ARGS:-${CTL_ERL_ARGS}} -proto_dist inet_tls -ssl_dist_optfile /etc/rabbitmq/inter-node-tls.config"`,
+					)))
+				})
+
+				It("appends operator lines after the user's envConfig, never replacing it", func() {
+					instance.Spec.Rabbitmq.EnvConfig = `SERVER_ADDITIONAL_ERL_ARGS="-my-custom-flag"`
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+
+					contents := configMap.Data["rabbitmq-env.conf"]
+					Expect(contents).To(ContainSubstring(`SERVER_ADDITIONAL_ERL_ARGS="-my-custom-flag"`))
+
+					userIndex := strings.Index(contents, `SERVER_ADDITIONAL_ERL_ARGS="-my-custom-flag"`)
+					operatorIndex := strings.Index(contents, `RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="${RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS:-${SERVER_ADDITIONAL_ERL_ARGS}}`)
+					Expect(userIndex).To(BeNumerically(">=", 0))
+					Expect(operatorIndex).To(BeNumerically(">", userIndex))
+					Expect(contents).To(ContainSubstring(`RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="${RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS:-${SERVER_ADDITIONAL_ERL_ARGS}} -proto_dist inet_tls`))
+				})
+
+				It("folds in a user envConfig written using the prefixed RABBITMQ_ convention, never replacing it", func() {
+					// The rabbitmq-env startup script only promotes the unprefixed name onto the
+					// prefixed one if the prefixed one is still empty, so the operator's own line must
+					// key off the prefixed name too, or a user value set under the prefixed convention
+					// would be silently dropped instead of extended.
+					instance.Spec.Rabbitmq.EnvConfig = `RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="-my-custom-flag"`
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+
+					contents := configMap.Data["rabbitmq-env.conf"]
+					Expect(contents).To(ContainSubstring(`RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="-my-custom-flag"`))
+
+					userIndex := strings.Index(contents, `RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="-my-custom-flag"`)
+					operatorIndex := strings.Index(contents, `RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="${RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS:-${SERVER_ADDITIONAL_ERL_ARGS}}`)
+					Expect(userIndex).To(BeNumerically(">=", 0))
+					Expect(operatorIndex).To(BeNumerically(">", userIndex))
+				})
+
+				It("folds in a user envConfig written using the unprefixed CTL_ERL_ARGS convention, never replacing it", func() {
+					instance.Spec.Rabbitmq.EnvConfig = `CTL_ERL_ARGS="-my-ctl-flag"`
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+
+					contents := configMap.Data["rabbitmq-env.conf"]
+					Expect(contents).To(ContainSubstring(`CTL_ERL_ARGS="-my-ctl-flag"`))
+
+					userIndex := strings.Index(contents, `CTL_ERL_ARGS="-my-ctl-flag"`)
+					operatorIndex := strings.Index(contents, `RABBITMQ_CTL_ERL_ARGS="${RABBITMQ_CTL_ERL_ARGS:-${CTL_ERL_ARGS}}`)
+					Expect(userIndex).To(BeNumerically(">=", 0))
+					Expect(operatorIndex).To(BeNumerically(">", userIndex))
+				})
+
+				It("requires an STS restart when the feature is toggled on", func() {
+					instance.Spec.TLS.InterNode = nil
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+
+					instance.Spec.TLS.InterNode = &rabbitmqv1beta1.InterNodeTLSSpec{
+						Enabled:   true,
+						IssuerRef: rabbitmqv1beta1.CertManagerIssuerReference{Name: "some-ca"},
+					}
+					Expect(configMapBuilder.Update(configMap)).To(Succeed())
+					Expect(configMapBuilder.UpdateRequiresStsRestart).To(BeTrue())
+				})
+			})
+
+			It("leaves rabbitmq-env.conf unchanged, and still absent when empty, with the feature off", func() {
+				instance.Spec.TLS.InterNode = nil
+				instance.Spec.Rabbitmq.EnvConfig = ""
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).ToNot(HaveKey("rabbitmq-env.conf"))
+
+				instance.Spec.Rabbitmq.EnvConfig = "USE_LONGNAME=true"
+				Expect(configMapBuilder.Update(configMap)).To(Succeed())
+				Expect(configMap.Data).To(HaveKeyWithValue("rabbitmq-env.conf", "USE_LONGNAME=true"))
 			})
 		})
 
