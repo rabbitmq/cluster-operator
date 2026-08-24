@@ -1006,6 +1006,150 @@ var _ = Describe("StatefulSet", func() {
 			})
 		})
 
+		Context("inter-node TLS", func() {
+			It("does not add the CSI volume or mount when disabled", func() {
+				instance.Spec.TLS.InterNode = nil
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				Expect(statefulSet.Spec.Template.Spec.Volumes).ToNot(ContainElement(HaveField("Name", "rabbitmq-inter-node-tls")))
+
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.VolumeMounts).ToNot(ContainElement(HaveField("Name", "rabbitmq-inter-node-tls")))
+			})
+
+			When("inter-node TLS is enabled", func() {
+				BeforeEach(func() {
+					instance.Spec.TLS.InterNode = &rabbitmqv1beta1.InterNodeTLSSpec{
+						Enabled: true,
+						IssuerRef: rabbitmqv1beta1.CertManagerIssuerReference{
+							Name:  "some-ca",
+							Kind:  "ClusterIssuer",
+							Group: "cert-manager.io",
+						},
+					}
+				})
+
+				It("adds the cert-manager CSI volume with every volumeAttributes entry sourced from the CR", func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
+						Name: "rabbitmq-inter-node-tls",
+						VolumeSource: corev1.VolumeSource{
+							CSI: &corev1.CSIVolumeSource{
+								Driver:   "csi.cert-manager.io",
+								ReadOnly: new(true),
+								VolumeAttributes: map[string]string{
+									"csi.cert-manager.io/issuer-name":  "some-ca",
+									"csi.cert-manager.io/issuer-kind":  "ClusterIssuer",
+									"csi.cert-manager.io/issuer-group": "cert-manager.io",
+									"csi.cert-manager.io/common-name":  "${POD_NAME}",
+									"csi.cert-manager.io/dns-names":    "${POD_NAME}.foo-nodes.${POD_NAMESPACE},${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc,${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc.cluster.local",
+									"csi.cert-manager.io/key-usages":   "digital signature,key encipherment,server auth,client auth",
+									"csi.cert-manager.io/fs-group":     "999",
+								},
+							},
+						},
+					}))
+
+					// "fs-group" must be present and positive: see the comment at the volume's
+					// construction site in statefulset.go. Omitting it does not fall back to some
+					// readable default -- cert-manager-csi-driver wires this attribute key into
+					// csi-lib's fsGroupForMetadata check, which otherwise falls through to the CSI
+					// VolumeMountGroup field (sourced from the pod's securityContext.fsGroup, which
+					// statefulset.go's podTemplateSpec fixes to 0) and rejects any value <= 0, failing
+					// the mount outright. "999" matches the RabbitMQ image's own gid for uid 999
+					// (rabbitmqImageGID), which the container process already has as its primary gid.
+				})
+
+				It("mounts the CSI volume read-only at /etc/rabbitmq-inter-node-tls/", func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(container.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+						Name:      "rabbitmq-inter-node-tls",
+						MountPath: "/etc/rabbitmq-inter-node-tls/",
+						ReadOnly:  true,
+					}))
+				})
+
+				It("subPath-mounts the generated Erlang terms from server-conf", func() {
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(container.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+						Name:      "server-conf",
+						MountPath: resource.InterNodeTLSConfigPath,
+						SubPath:   resource.InterNodeTLSConfigKey,
+					}))
+				})
+
+				It("lets spec.override.statefulSet merge into the generated CSI volume and add a second mount", func() {
+					// The override is applied as a strategic merge patch, which merges struct/map
+					// fields keyed by name/key rather than replacing them outright. corev1.Volume's
+					// patchMergeKey is "name", so an override volume with the same name merges into
+					// the generated CSI volume's VolumeAttributes map, overwriting keys the override
+					// sets (key-usages below) while leaving other generated keys (issuer-name)
+					// untouched. But corev1.VolumeMount's patchMergeKey is "mountPath", not "name" --
+					// so an override mount for the same volume name at a *different* mountPath does
+					// not relocate the generated mount, it adds a second, independent mount entry.
+					// The generated mount at interNodeTLSCertDir therefore still exists after the
+					// override is applied, and is asserted below alongside the new one.
+					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+						Spec: &rabbitmqv1beta1.StatefulSetSpec{
+							Template: &rabbitmqv1beta1.PodTemplateSpec{
+								Spec: &corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name: "rabbitmq",
+											VolumeMounts: []corev1.VolumeMount{
+												{Name: "rabbitmq-inter-node-tls", MountPath: "/overridden/"},
+											},
+										},
+									},
+									Volumes: []corev1.Volume{
+										{
+											Name: "rabbitmq-inter-node-tls",
+											VolumeSource: corev1.VolumeSource{
+												CSI: &corev1.CSIVolumeSource{
+													VolumeAttributes: map[string]string{
+														"csi.cert-manager.io/key-usages": "digital signature",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					var volume corev1.Volume
+					for _, v := range statefulSet.Spec.Template.Spec.Volumes {
+						if v.Name == "rabbitmq-inter-node-tls" {
+							volume = v
+							break
+						}
+					}
+					Expect(volume.CSI).NotTo(BeNil())
+					Expect(volume.CSI.VolumeAttributes).To(HaveKeyWithValue("csi.cert-manager.io/key-usages", "digital signature"))
+					Expect(volume.CSI.VolumeAttributes).To(HaveKeyWithValue("csi.cert-manager.io/issuer-name", "some-ca"))
+
+					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(container.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+						Name: "rabbitmq-inter-node-tls", MountPath: "/overridden/",
+					}))
+					// The generated mount is not replaced -- it survives alongside the override's
+					// mount, because corev1.VolumeMount merges by mountPath, not by volume name.
+					Expect(container.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+						Name:      "rabbitmq-inter-node-tls",
+						MountPath: "/etc/rabbitmq-inter-node-tls/",
+						ReadOnly:  true,
+					}))
+				})
+			})
+		})
+
 		Context("ExternalSecret", func() {
 			When("SecretBackend.ExternalSecret is set", func() {
 				JustBeforeEach(func() {
@@ -1277,11 +1421,17 @@ default_pass = {{ .Data.data.password }}
 
 		Context("Rabbitmq container volume mounts", func() {
 			DescribeTable("Volume mounts depending on spec configuration and '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' ",
-				func(rabbitmqEnv, advancedConfig, erlInet string) {
+				func(rabbitmqEnv, advancedConfig, erlInet string, interNodeTLS bool) {
 					stsBuilder := builder.StatefulSet()
 					stsBuilder.Instance.Spec.Rabbitmq.EnvConfig = rabbitmqEnv
 					stsBuilder.Instance.Spec.Rabbitmq.AdvancedConfig = advancedConfig
 					stsBuilder.Instance.Spec.Rabbitmq.ErlangInetConfig = erlInet
+					if interNodeTLS {
+						stsBuilder.Instance.Spec.TLS.InterNode = &rabbitmqv1beta1.InterNodeTLSSpec{
+							Enabled:   true,
+							IssuerRef: rabbitmqv1beta1.CertManagerIssuerReference{Name: "some-ca"},
+						}
+					}
 					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 					expectedVolumeMounts := []corev1.VolumeMount{
@@ -1294,7 +1444,7 @@ default_pass = {{ .Data.data.password }}
 						{Name: "rabbitmq-plugins", MountPath: "/operator"},
 					}
 
-					if rabbitmqEnv != "" {
+					if rabbitmqEnv != "" || interNodeTLS {
 						expectedVolumeMounts = append(expectedVolumeMounts, corev1.VolumeMount{
 							Name: "server-conf", MountPath: "/etc/rabbitmq/rabbitmq-env.conf", SubPath: "rabbitmq-env.conf"})
 					}
@@ -1309,6 +1459,15 @@ default_pass = {{ .Data.data.password }}
 							Name: "server-conf", MountPath: "/etc/rabbitmq/erl_inetrc", SubPath: "erl_inetrc"})
 					}
 
+					if interNodeTLS {
+						expectedVolumeMounts = append(expectedVolumeMounts,
+							corev1.VolumeMount{
+								Name: "server-conf", MountPath: resource.InterNodeTLSConfigPath, SubPath: resource.InterNodeTLSConfigKey},
+							corev1.VolumeMount{
+								Name: "rabbitmq-inter-node-tls", MountPath: "/etc/rabbitmq-inter-node-tls/", ReadOnly: true},
+						)
+					}
+
 					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
 					Expect(container.VolumeMounts).To(ConsistOf(expectedVolumeMounts))
 					Expect(container.VolumeMounts[0]).To(Equal(corev1.VolumeMount{
@@ -1320,23 +1479,37 @@ default_pass = {{ .Data.data.password }}
 						MountPath: "/var/lib/rabbitmq/mnesia/",
 					}))
 				},
-				Entry("All env + advanced + erl-inet configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", "erl-inet-rc-is-set"),
-				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", ""),
-				Entry("Both advanced and erl-inet configs are set", "", "advanced-config-is-set", "erl-inet-rc-is-set"),
-				Entry("Both env and erl-inet configs are set", "rabbitmq-env-is-set", "", "erl-inet-rc-is-set"),
-				Entry("Only env config is set", "rabbitmq-env-is-set", "", ""),
-				Entry("Only advanced config is set", "", "advanced-config-is-set", ""),
-				Entry("Only erl-inet config is set", "", "", "erl-inet-rc-is-set"),
-				Entry("No configs are set", "", "", ""),
+				Entry("All env + advanced + erl-inet configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", "erl-inet-rc-is-set", false),
+				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", "", false),
+				Entry("Both advanced and erl-inet configs are set", "", "advanced-config-is-set", "erl-inet-rc-is-set", false),
+				Entry("Both env and erl-inet configs are set", "rabbitmq-env-is-set", "", "erl-inet-rc-is-set", false),
+				Entry("Only env config is set", "rabbitmq-env-is-set", "", "", false),
+				Entry("Only advanced config is set", "", "advanced-config-is-set", "", false),
+				Entry("Only erl-inet config is set", "", "", "erl-inet-rc-is-set", false),
+				Entry("No configs are set", "", "", "", false),
+				Entry("All env + advanced + erl-inet configs are set, inter-node TLS enabled", "rabbitmq-env-is-set", "advanced-config-is-set", "erl-inet-rc-is-set", true),
+				Entry("Both env and advanced configs are set, inter-node TLS enabled", "rabbitmq-env-is-set", "advanced-config-is-set", "", true),
+				Entry("Both advanced and erl-inet configs are set, inter-node TLS enabled", "", "advanced-config-is-set", "erl-inet-rc-is-set", true),
+				Entry("Both env and erl-inet configs are set, inter-node TLS enabled", "rabbitmq-env-is-set", "", "erl-inet-rc-is-set", true),
+				Entry("Only env config is set, inter-node TLS enabled", "rabbitmq-env-is-set", "", "", true),
+				Entry("Only advanced config is set, inter-node TLS enabled", "", "advanced-config-is-set", "", true),
+				Entry("Only erl-inet config is set, inter-node TLS enabled", "", "", "erl-inet-rc-is-set", true),
+				Entry("No configs are set, only inter-node TLS enabled", "", "", "", true),
 			)
 		})
 
 		Context("Volumes", func() {
-			DescribeTable("Volumes based on user configuration", func(rabbitmqEnv, advancedConfig, erlInetRc string) {
+			DescribeTable("Volumes based on user configuration", func(rabbitmqEnv, advancedConfig, erlInetRc string, interNodeTLS bool) {
 				stsBuilder := builder.StatefulSet()
 				stsBuilder.Instance.Spec.Rabbitmq.EnvConfig = rabbitmqEnv
 				stsBuilder.Instance.Spec.Rabbitmq.AdvancedConfig = advancedConfig
 				stsBuilder.Instance.Spec.Rabbitmq.ErlangInetConfig = erlInetRc
+				if interNodeTLS {
+					stsBuilder.Instance.Spec.TLS.InterNode = &rabbitmqv1beta1.InterNodeTLSSpec{
+						Enabled:   true,
+						IssuerRef: rabbitmqv1beta1.CertManagerIssuerReference{Name: "some-ca"},
+					}
+				}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				expectedVolumes := []corev1.Volume{
@@ -1427,7 +1600,7 @@ default_pass = {{ .Data.data.password }}
 					},
 				}
 
-				if rabbitmqEnv != "" || advancedConfig != "" || erlInetRc != "" {
+				if rabbitmqEnv != "" || advancedConfig != "" || erlInetRc != "" || interNodeTLS {
 					expectedVolumes = append(expectedVolumes, corev1.Volume{
 						Name: "server-conf",
 						VolumeSource: corev1.VolumeSource{
@@ -1437,17 +1610,46 @@ default_pass = {{ .Data.data.password }}
 								}}}})
 				}
 
+				if interNodeTLS {
+					expectedVolumes = append(expectedVolumes, corev1.Volume{
+						Name: "rabbitmq-inter-node-tls",
+						VolumeSource: corev1.VolumeSource{
+							CSI: &corev1.CSIVolumeSource{
+								Driver:   "csi.cert-manager.io",
+								ReadOnly: new(true),
+								VolumeAttributes: map[string]string{
+									"csi.cert-manager.io/issuer-name":  "some-ca",
+									"csi.cert-manager.io/issuer-kind":  "",
+									"csi.cert-manager.io/issuer-group": "",
+									"csi.cert-manager.io/common-name":  "${POD_NAME}",
+									"csi.cert-manager.io/dns-names":    "${POD_NAME}.foo-nodes.${POD_NAMESPACE},${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc,${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc.cluster.local",
+									"csi.cert-manager.io/key-usages":   "digital signature,key encipherment,server auth,client auth",
+									"csi.cert-manager.io/fs-group":     "999",
+								},
+							},
+						},
+					})
+				}
+
 				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolumes))
 
 			},
-				Entry("All env + advanced + erl-inet configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", "erl-inet-rc-is-set"),
-				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", ""),
-				Entry("Both advanced and erl-inet configs are set", "", "advanced-config-is-set", "erl-inet-rc-is-set"),
-				Entry("Both env and erl-inet configs are set", "rabbitmq-env-is-set", "", "erl-inet-rc-is-set"),
-				Entry("Only env config is set", "rabbitmq-env-is-set", "", ""),
-				Entry("Only advanced config is set", "", "advanced-config-is-set", ""),
-				Entry("Only erl-inet config is set", "", "", "erl-inet-rc-is-set"),
-				Entry("No configs are set", "", "", ""),
+				Entry("All env + advanced + erl-inet configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", "erl-inet-rc-is-set", false),
+				Entry("Both env and advanced configs are set", "rabbitmq-env-is-set", "advanced-config-is-set", "", false),
+				Entry("Both advanced and erl-inet configs are set", "", "advanced-config-is-set", "erl-inet-rc-is-set", false),
+				Entry("Both env and erl-inet configs are set", "rabbitmq-env-is-set", "", "erl-inet-rc-is-set", false),
+				Entry("Only env config is set", "rabbitmq-env-is-set", "", "", false),
+				Entry("Only advanced config is set", "", "advanced-config-is-set", "", false),
+				Entry("Only erl-inet config is set", "", "", "erl-inet-rc-is-set", false),
+				Entry("No configs are set", "", "", "", false),
+				Entry("All env + advanced + erl-inet configs are set, inter-node TLS enabled", "rabbitmq-env-is-set", "advanced-config-is-set", "erl-inet-rc-is-set", true),
+				Entry("Both env and advanced configs are set, inter-node TLS enabled", "rabbitmq-env-is-set", "advanced-config-is-set", "", true),
+				Entry("Both advanced and erl-inet configs are set, inter-node TLS enabled", "", "advanced-config-is-set", "erl-inet-rc-is-set", true),
+				Entry("Both env and erl-inet configs are set, inter-node TLS enabled", "rabbitmq-env-is-set", "", "erl-inet-rc-is-set", true),
+				Entry("Only env config is set, inter-node TLS enabled", "rabbitmq-env-is-set", "", "", true),
+				Entry("Only advanced config is set, inter-node TLS enabled", "", "advanced-config-is-set", "", true),
+				Entry("Only erl-inet config is set, inter-node TLS enabled", "", "", "erl-inet-rc-is-set", true),
+				Entry("No configs are set, only inter-node TLS enabled", "", "", "", true),
 			)
 
 			It("defines an emptyDir volume when storage == 0", func() {
