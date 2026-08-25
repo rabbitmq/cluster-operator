@@ -42,6 +42,18 @@ const (
 	initContainerMemory string = "64Mi"
 	defaultPVCName      string = "persistence"
 	DeletionMarker      string = "skipPreStopChecks"
+
+	// rabbitmqImageUID is the uid the official RabbitMQ image runs the rabbitmq-server
+	// process as, used unconditionally for the pod's RunAsUser.
+	rabbitmqImageUID int64 = 999
+
+	// rabbitmqImageGID is the primary gid of that same uid in the official image's /etc/passwd
+	// (`rabbitmq:x:999:999::/var/lib/rabbitmq:/bin/sh`), confirmed by `docker run --user 999
+	// rabbitmq:<tag> id` -> "uid=999(rabbitmq) gid=999(rabbitmq) groups=999(rabbitmq)". Because the
+	// pod sets RunAsUser without RunAsGroup, the container runtime resolves the process's primary
+	// gid from this passwd entry, independent of the pod-wide securityContext.fsGroup. Used as the
+	// inter-node TLS CSI volume's "fs-group" attribute value -- see the comment at that volume.
+	rabbitmqImageGID int64 = 999
 )
 
 // ErrInvalidStatefulSetSelectorOverride wraps a spec.override.statefulSet.spec.selector that
@@ -599,7 +611,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		})
 	}
 
-	if builder.Instance.Spec.Rabbitmq.EnvConfig != "" {
+	if builder.Instance.Spec.Rabbitmq.EnvConfig != "" || builder.Instance.InterNodeTLSEnabled() {
 		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 			Name: "server-conf", MountPath: "/etc/rabbitmq/rabbitmq-env.conf", SubPath: "rabbitmq-env.conf",
 		})
@@ -614,6 +626,12 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	if builder.Instance.Spec.Rabbitmq.ErlangInetConfig != "" {
 		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
 			Name: "server-conf", MountPath: "/etc/rabbitmq/erl_inetrc", SubPath: "erl_inetrc",
+		})
+	}
+
+	if builder.Instance.InterNodeTLSEnabled() {
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name: "server-conf", MountPath: InterNodeTLSConfigPath, SubPath: InterNodeTLSConfigKey,
 		})
 	}
 
@@ -666,7 +684,68 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		volumes = append(volumes, tlsProjectedVolume)
 	}
 
-	rabbitmqUID := int64(999)
+	if builder.Instance.InterNodeTLSEnabled() {
+		rabbitmqContainerVolumeMounts = append(rabbitmqContainerVolumeMounts, corev1.VolumeMount{
+			Name:      "rabbitmq-inter-node-tls",
+			MountPath: interNodeTLSCertDir,
+			ReadOnly:  true,
+		})
+
+		issuerRef := builder.Instance.Spec.TLS.InterNode.IssuerRef
+		headlessServiceName := builder.Instance.ChildResourceName(headlessServiceSuffix)
+		dnsNames := strings.Join([]string{
+			fmt.Sprintf("${POD_NAME}.%s.${POD_NAMESPACE}", headlessServiceName),
+			fmt.Sprintf("${POD_NAME}.%s.${POD_NAMESPACE}.svc", headlessServiceName),
+			fmt.Sprintf("${POD_NAME}.%s.${POD_NAMESPACE}.svc.cluster.local", headlessServiceName),
+		}, ",")
+
+		// The "csi.cert-manager.io/fs-group" attribute must be set, and to a value > 0.
+		//
+		// cert-manager-csi-driver wires this attribute key into csi-lib's
+		// storage.Filesystem.FSGroupVolumeAttributeKey (cmd/app/app.go), which csi-lib's
+		// fsGroupForMetadata checks *before* falling back to the CSI VolumeMountGroup field that
+		// kubelet populates from the pod's securityContext.fsGroup. The operator fixes that pod-wide
+		// fsGroup to 0 in the pod template (for OpenShift-style arbitrary-uid compatibility -- see
+		// commit da92f69c), and fsGroupForMetadata rejects any value <= 0 outright
+		// (github.com/cert-manager/csi-lib storage/filesystem.go: WriteFiles/fsGroupForMetadata). So
+		// *omitting* this attribute does not leave the files world-readable by some fallback group --
+		// it makes csi-lib consult VolumeMountGroup, get "0", and fail NodePublishVolume outright,
+		// leaving the pod stuck in ContainerCreating. The attribute must be positive to avoid that
+		// path entirely.
+		//
+		// csi-lib chowns the written cert/key files (mode 0440, owner untouched) to whatever gid is
+		// resolved this way. rabbitmqImageGID (999) is used so the RabbitMQ container process -- which
+		// runs with RunAsUser 999 and no RunAsGroup, so the runtime resolves its primary gid from the
+		// image's own passwd entry rather than from the pod-wide fsGroup -- already has that gid
+		// without needing any pod-level securityContext change. This breaks down only if a
+		// spec.override.statefulSet replaces the operator's explicit RunAsUser: 999 with a uid that
+		// has no matching /etc/passwd entry -- not the out-of-the-box behavior of a restricted SCC,
+		// which validates an explicitly-set RunAsUser against its allocated range rather than silently
+		// rewriting it. When that override is present, the process's primary gid falls back to 0 and
+		// these files become unreadable; the fix is to add supplementalGroups: [999] to the same
+		// override, not to touch the pod-wide fsGroup (the operator fixes it to 0 in the pod template)
+		// or clear securityContext to {} -- see docs/examples/mtls-inter-node/README.md's
+		// Troubleshooting section for why both of those alternatives are dead ends.
+		volumes = append(volumes, corev1.Volume{
+			Name: "rabbitmq-inter-node-tls",
+			VolumeSource: corev1.VolumeSource{
+				CSI: &corev1.CSIVolumeSource{
+					Driver:   "csi.cert-manager.io",
+					ReadOnly: new(true),
+					VolumeAttributes: map[string]string{
+						"csi.cert-manager.io/issuer-name":  issuerRef.Name,
+						"csi.cert-manager.io/issuer-kind":  issuerRef.Kind,
+						"csi.cert-manager.io/issuer-group": issuerRef.Group,
+						"csi.cert-manager.io/common-name":  "${POD_NAME}",
+						"csi.cert-manager.io/dns-names":    dnsNames,
+						"csi.cert-manager.io/key-usages":   "digital signature,key encipherment,server auth,client auth",
+						"csi.cert-manager.io/fs-group":     strconv.FormatInt(rabbitmqImageGID, 10),
+					},
+				},
+			},
+		})
+	}
+
 	podTemplateSpec := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: metadata.ReconcileAnnotations(previousPodAnnotations, defaultPodAnnotations),
@@ -676,7 +755,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			TopologySpreadConstraints: builder.defaultTopologySpreadConstraints(),
 			SecurityContext: &corev1.PodSecurityContext{
 				FSGroup:      new(int64(0)),
-				RunAsUser:    &rabbitmqUID,
+				RunAsUser:    new(rabbitmqImageUID),
 				RunAsNonRoot: new(bool(true)),
 				SeccompProfile: &corev1.SeccompProfile{
 					Type: corev1.SeccompProfileTypeRuntimeDefault,
@@ -780,7 +859,8 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 func (builder *StatefulSetBuilder) rabbitmqConfigurationIsSet() bool {
 	return builder.Instance.Spec.Rabbitmq.AdvancedConfig != "" ||
 		builder.Instance.Spec.Rabbitmq.EnvConfig != "" ||
-		builder.Instance.Spec.Rabbitmq.ErlangInetConfig != ""
+		builder.Instance.Spec.Rabbitmq.ErlangInetConfig != "" ||
+		builder.Instance.InterNodeTLSEnabled()
 }
 
 func (builder *StatefulSetBuilder) startupProbe() *corev1.Probe {
