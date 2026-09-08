@@ -36,7 +36,7 @@ var _ = Describe("RabbitmqCluster Webhook", func() {
 
 	BeforeEach(func() {
 		obj = &rabbitmqcomv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "default"},
+			Name: "test-cluster", Namespace: "default",
 		}
 		defaulter = RabbitmqClusterCustomDefaulter{
 			DefaultRabbitmqImage:    "rabbitmq:default",
@@ -168,9 +168,8 @@ var _ = Describe("RabbitmqCluster Webhook", func() {
 			Entry("serviceAccountName", &corev1.PodSpec{ServiceAccountName: "other-sa"}, "serviceAccountName"),
 			Entry("hostPath volume", &corev1.PodSpec{
 				Volumes: []corev1.Volume{
-					{Name: "host-vol", VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{Path: "/"},
-					}},
+					{Name: "host-vol",
+						HostPath: &corev1.HostPathVolumeSource{Path: "/"}},
 				},
 			}, "hostPath"),
 			Entry("privileged container", &corev1.PodSpec{

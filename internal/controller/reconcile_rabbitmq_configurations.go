@@ -11,7 +11,6 @@ import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clientretry "k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,7 +103,7 @@ func (r *RabbitmqClusterReconciler) restartStatefulSetIfNeeded(ctx context.Conte
 	}
 
 	if err := clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
-		sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}}
+		sts := &appsv1.StatefulSet{Name: rmq.ChildResourceName("server"), Namespace: rmq.Namespace}
 		if err := r.Get(ctx, types.NamespacedName{Name: sts.Name, Namespace: sts.Namespace}, sts); err != nil {
 			return err
 		}

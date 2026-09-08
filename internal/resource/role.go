@@ -16,7 +16,6 @@ import (
 
 	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -34,10 +33,8 @@ func (builder *RabbitmqResourceBuilder) Role() *RoleBuilder {
 
 func (builder *RoleBuilder) Build() (client.Object, error) {
 	return &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: builder.Instance.Namespace,
-			Name:      builder.Instance.ChildResourceName(roleName),
-		},
+		Namespace: builder.Instance.Namespace,
+		Name:      builder.Instance.ChildResourceName(roleName),
 	}, nil
 }
 

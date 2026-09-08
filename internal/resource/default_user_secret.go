@@ -20,7 +20,6 @@ import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"slices"
 
@@ -86,11 +85,9 @@ func (builder *DefaultUserSecretBuilder) Build() (client.Object, error) {
 	// Default user secret implements the service binding Provisioned Service
 	// See: https://k8s-service-bindings.github.io/spec/#provisioned-service
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(DefaultUserSecretName),
-			Namespace: builder.Instance.Namespace,
-		},
-		Type: corev1.SecretTypeOpaque,
+		Name:      builder.Instance.ChildResourceName(DefaultUserSecretName),
+		Namespace: builder.Instance.Namespace,
+		Type:      corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
 			"username":          []byte(username),
 			"password":          []byte(password),

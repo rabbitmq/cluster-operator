@@ -15,7 +15,6 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -77,10 +76,8 @@ var _ = Context("Services", func() {
 			)
 			BeforeEach(func() {
 				svc = &corev1.Service{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo-service",
-						Namespace: "foo-namespace",
-					},
+					Name:      "foo-service",
+					Namespace: "foo-namespace",
 				}
 				serviceBuilder = builder.Service()
 				instance = generateRabbitmqCluster()
@@ -444,9 +441,7 @@ var _ = Context("Services", func() {
 			BeforeEach(func() {
 				serviceBuilder = builder.Service()
 				instance = rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "rabbit-labelled",
-					},
+					Name: "rabbit-labelled",
 				}
 				instance.Labels = map[string]string{
 					"app.kubernetes.io/foo": "bar",
@@ -456,12 +451,10 @@ var _ = Context("Services", func() {
 				}
 
 				svc = &corev1.Service{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"app.kubernetes.io/name":      instance.Name,
-							"app.kubernetes.io/part-of":   "rabbitmq",
-							"this-was-the-previous-label": "should-be-deleted",
-						},
+					Labels: map[string]string{
+						"app.kubernetes.io/name":      instance.Name,
+						"app.kubernetes.io/part-of":   "rabbitmq",
+						"this-was-the-previous-label": "should-be-deleted",
 					},
 				}
 				err := serviceBuilder.Update(svc)
@@ -514,10 +507,8 @@ var _ = Context("Services", func() {
 				instance = generateRabbitmqCluster()
 
 				svc = &corev1.Service{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "rabbit-service-type-update-service",
-						Namespace: "foo-namespace",
-					},
+					Name:      "rabbit-service-type-update-service",
+					Namespace: "foo-namespace",
 				}
 			})
 
@@ -728,10 +719,8 @@ var _ = Context("Services", func() {
 				instance = generateRabbitmqCluster()
 
 				svc = &corev1.Service{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "rabbit-service-type-update-service",
-						Namespace: "foo-namespace",
-					},
+					Name:      "rabbit-service-type-update-service",
+					Namespace: "foo-namespace",
 				}
 			})
 
@@ -753,10 +742,8 @@ var _ = Context("Services", func() {
 				instance = generateRabbitmqCluster()
 
 				svc = &corev1.Service{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo",
-						Namespace: "foo-namespace",
-					},
+					Name:      "foo",
+					Namespace: "foo-namespace",
 				}
 			})
 
@@ -898,11 +885,9 @@ var _ = Context("Services", func() {
 
 func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, instanceAnnotations, serviceAnnotations map[string]string) *corev1.Service {
 	instance := &rabbitmqv1beta1.RabbitmqCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "foo",
-			Namespace:   "foo-namespace",
-			Annotations: instanceAnnotations,
-		},
+		Name:        "foo",
+		Namespace:   "foo-namespace",
+		Annotations: instanceAnnotations,
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Annotations: serviceAnnotations,
@@ -913,14 +898,12 @@ func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, i
 	rmqBuilder.Instance = instance
 	serviceBuilder := rmqBuilder.Service()
 	svc := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo-service",
-			Namespace: "foo-namespace",
-			Annotations: map[string]string{
-				"this-was-the-previous-annotation": "should-be-preserved",
-				"app.kubernetes.io/part-of":        "rabbitmq",
-				"app.k8s.io/something":             "something-amazing",
-			},
+		Name:      "foo-service",
+		Namespace: "foo-namespace",
+		Annotations: map[string]string{
+			"this-was-the-previous-annotation": "should-be-preserved",
+			"app.kubernetes.io/part-of":        "rabbitmq",
+			"app.k8s.io/something":             "something-amazing",
 		},
 	}
 	Expect(serviceBuilder.Update(svc)).To(Succeed())
@@ -929,11 +912,9 @@ func updateServiceWithAnnotations(rmqBuilder resource.RabbitmqResourceBuilder, i
 
 func updateServiceWithLabels(rmqBuilder resource.RabbitmqResourceBuilder, instanceLabels, serviceLabels map[string]string) *corev1.Service {
 	instance := &rabbitmqv1beta1.RabbitmqCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "foo-namespace",
-			Labels:    instanceLabels,
-		},
+		Name:      "foo",
+		Namespace: "foo-namespace",
+		Labels:    instanceLabels,
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Labels: serviceLabels,
@@ -944,13 +925,11 @@ func updateServiceWithLabels(rmqBuilder resource.RabbitmqResourceBuilder, instan
 	rmqBuilder.Instance = instance
 	serviceBuilder := rmqBuilder.Service()
 	svc := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo-service",
-			Namespace: "foo-namespace",
-			Labels: map[string]string{
-				"app.kubernetes.io/name":    "do-not-touch",
-				"app.kubernetes.io/part-of": "rabbitmq",
-			},
+		Name:      "foo-service",
+		Namespace: "foo-namespace",
+		Labels: map[string]string{
+			"app.kubernetes.io/name":    "do-not-touch",
+			"app.kubernetes.io/part-of": "rabbitmq",
 		},
 	}
 	Expect(serviceBuilder.Update(svc)).To(Succeed())

@@ -23,10 +23,8 @@ var _ = Describe("Persistence", func() {
 
 	BeforeEach(func() {
 		cluster = &rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rabbitmq-persistence",
-				Namespace: defaultNamespace,
-			},
+			Name:      "rabbitmq-persistence",
+			Namespace: defaultNamespace,
 			Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 				Replicas: new(int32(5)),
 			},

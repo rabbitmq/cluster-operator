@@ -8,8 +8,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Reconcile rabbitmq Configurations", func() {
@@ -21,10 +19,8 @@ var _ = Describe("Reconcile rabbitmq Configurations", func() {
 		func(testCase string) {
 			// create rabbitmqcluster
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-" + strings.ToLower(testCase),
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-" + strings.ToLower(testCase),
+				Namespace: defaultNamespace,
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
@@ -83,10 +79,8 @@ var _ = Describe("Reconcile rabbitmq Configurations", func() {
 	Context("scale out", func() {
 		It("does not restart StatefulSet", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: defaultNamespace,
-					Name:      "rabbitmq-scale-out",
-				},
+				Namespace: defaultNamespace,
+				Name:      "rabbitmq-scale-out",
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)

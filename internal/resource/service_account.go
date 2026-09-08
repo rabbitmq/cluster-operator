@@ -16,7 +16,6 @@ import (
 
 	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -34,10 +33,8 @@ func (builder *RabbitmqResourceBuilder) ServiceAccount() *ServiceAccountBuilder 
 
 func (builder *ServiceAccountBuilder) Build() (client.Object, error) {
 	return &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: builder.Instance.Namespace,
-			Name:      builder.Instance.ChildResourceName(serviceAccountName),
-		},
+		Namespace: builder.Instance.Namespace,
+		Name:      builder.Instance.ChildResourceName(serviceAccountName),
 	}, nil
 }
 

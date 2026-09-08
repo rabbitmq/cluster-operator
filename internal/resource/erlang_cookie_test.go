@@ -15,8 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
@@ -38,10 +36,8 @@ var _ = Describe("ErlangCookie", func() {
 		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		instance = rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "a name",
-				Namespace: "a namespace",
-			},
+			Name:      "a name",
+			Namespace: "a namespace",
 		}
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
@@ -78,9 +74,7 @@ var _ = Describe("ErlangCookie", func() {
 	Context("Update with instance labels", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit-labelled",
-				},
+				Name: "rabbit-labelled",
 			}
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
@@ -90,12 +84,10 @@ var _ = Describe("ErlangCookie", func() {
 			}
 
 			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app.kubernetes.io/name":      instance.Name,
-						"app.kubernetes.io/part-of":   "rabbitmq",
-						"this-was-the-previous-label": "should-be-deleted",
-					},
+				Labels: map[string]string{
+					"app.kubernetes.io/name":      instance.Name,
+					"app.kubernetes.io/part-of":   "rabbitmq",
+					"this-was-the-previous-label": "should-be-deleted",
 				},
 			}
 			err := erlangCookieBuilder.Update(secret)
@@ -121,9 +113,7 @@ var _ = Describe("ErlangCookie", func() {
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit-labelled",
-				},
+				Name: "rabbit-labelled",
 			}
 			instance.Annotations = map[string]string{
 				"my-annotation":               "i-like-this",
@@ -136,14 +126,12 @@ var _ = Describe("ErlangCookie", func() {
 			}
 
 			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"old-annotation":                "old-value",
-						"im-here-to-stay.kubernetes.io": "for-a-while",
-						"kubernetes.io/name":            "should-stay",
-						"kubectl.kubernetes.io/name":    "should-stay",
-						"k8s.io/name":                   "should-stay",
-					},
+				Annotations: map[string]string{
+					"old-annotation":                "old-value",
+					"im-here-to-stay.kubernetes.io": "for-a-while",
+					"kubernetes.io/name":            "should-stay",
+					"kubectl.kubernetes.io/name":    "should-stay",
+					"k8s.io/name":                   "should-stay",
 				},
 			}
 			err := erlangCookieBuilder.Update(secret)
@@ -165,9 +153,7 @@ var _ = Describe("ErlangCookie", func() {
 
 	It("sets owner reference", func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "rabbit1",
-			},
+			Name: "rabbit1",
 		}
 		secret = &corev1.Secret{}
 		Expect(erlangCookieBuilder.Update(secret)).NotTo(HaveOccurred())

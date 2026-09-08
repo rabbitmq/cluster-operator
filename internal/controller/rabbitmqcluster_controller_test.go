@@ -57,10 +57,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("default settings", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-one",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-one",
+				Namespace: defaultNamespace,
 			}
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -199,10 +197,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("default user from additionalConfig", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-default-user-from-config",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-default-user-from-config",
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Rabbitmq: rabbitmqv1beta1.RabbitmqClusterConfigurationSpec{
 						AdditionalConfig: "default_user = my-user\ndefault_pass = my-password",
@@ -226,12 +222,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("Annotations set on the instance", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-annotations",
-					Namespace: defaultNamespace,
-					Annotations: map[string]string{
-						"my-annotation": "this-annotation",
-					},
+				Name:      "rabbitmq-annotations",
+				Namespace: defaultNamespace,
+				Annotations: map[string]string{
+					"my-annotation": "this-annotation",
 				},
 			}
 
@@ -252,10 +246,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("Vault is enabled for DefaultUser", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-vault",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-vault",
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					SecretBackend: rabbitmqv1beta1.SecretBackend{
 						Vault: &rabbitmqv1beta1.VaultSpec{
@@ -286,10 +278,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("ImagePullSecret configure on the instance", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-two",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-two",
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					ImagePullSecrets: []corev1.LocalObjectReference{{Name: "rabbit-two-secret"}},
 				},
@@ -324,10 +314,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 		}
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-affinity",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-affinity",
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Affinity: affinity,
 				},
@@ -345,10 +333,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("Service configurations", func() {
 		It("creates the service type and annotations as configured in instance spec", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbit-service-2",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbit-service-2",
+				Namespace: defaultNamespace,
 			}
 			cluster.Spec.Service.Type = "LoadBalancer"
 			cluster.Spec.Service.Annotations = map[string]string{"annotations": "cr-annotation"}
@@ -362,7 +348,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 
 		It("creates the service with the expected IP family policy", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{Name: "rabbit-with-ip-family", Namespace: defaultNamespace},
+				Name: "rabbit-with-ip-family", Namespace: defaultNamespace,
 			}
 			cluster.Spec.Service.IPFamilyPolicy = ptr.To(corev1.IPFamilyPolicyPreferDualStack)
 
@@ -381,10 +367,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("Resource requirements configurations", func() {
 		It("uses resource requirements from instance spec when provided", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbit-resource-2",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbit-resource-2",
+				Namespace: defaultNamespace,
 			}
 			cluster.Spec.Resources = &corev1.ResourceRequirements{
 				Limits: map[corev1.ResourceName]k8sresource.Quantity{
@@ -417,10 +401,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("Persistence configurations", func() {
 		It("creates the RabbitmqCluster with the specified storage from instance spec", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbit-persistence-1",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbit-persistence-1",
+				Namespace: defaultNamespace,
 			}
 			storageClassName := "my-storage-class"
 			cluster.Spec.Persistence.StorageClassName = &storageClassName
@@ -440,10 +422,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("Custom Resource updates", FlakeAttempts(3), func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("cr-update-%d-%d", GinkgoParallelProcess(), time.Now().Unix()),
-					Namespace: defaultNamespace,
-				},
+				Name:      fmt.Sprintf("cr-update-%d-%d", GinkgoParallelProcess(), time.Now().Unix()),
+				Namespace: defaultNamespace,
 			}
 
 			Expect(client.Create(ctx, cluster)).To(Succeed())
@@ -727,10 +707,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 		)
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-delete",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-delete",
+				Namespace: defaultNamespace,
 			}
 			svcName = cluster.ChildResourceName("")
 			headlessServiceName = cluster.ChildResourceName("nodes")
@@ -788,10 +766,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 		BeforeEach(func() {
 			crName = "irreconcilable"
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      crName,
-					Namespace: defaultNamespace,
-				},
+				Name:      crName,
+				Namespace: defaultNamespace,
 			}
 			cluster.Spec.Replicas = new(int32(1))
 		})
@@ -859,7 +835,7 @@ var _ = Describe("RabbitmqClusterController", func() {
 			})
 
 			It("sets ReconcileSuccess to False", func() {
-				_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: crName, Namespace: defaultNamespace}})
+				_, err := reconciler.Reconcile(ctx, ctrl.Request{Name: crName, Namespace: defaultNamespace})
 				Expect(err).To(HaveOccurred())
 
 				updated := &rabbitmqv1beta1.RabbitmqCluster{}
@@ -890,10 +866,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 			suffix = fmt.Sprintf("-%d", time.Now().UnixNano())
 			clusterName := "rabbitmq-sts-override" + suffix
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      clusterName,
-					Namespace: defaultNamespace,
-				},
+				Name:      clusterName,
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: new(int32(10)),
 					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
@@ -901,14 +875,12 @@ var _ = Describe("RabbitmqClusterController", func() {
 							Spec: &rabbitmqv1beta1.StatefulSetSpec{
 								VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
 									{
-										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
-											Name:      "persistence",
-											Namespace: defaultNamespace,
-											Labels: map[string]string{
-												"app.kubernetes.io/name": clusterName,
-											},
-											Annotations: map[string]string{},
+										Name:      "persistence",
+										Namespace: defaultNamespace,
+										Labels: map[string]string{
+											"app.kubernetes.io/name": clusterName,
 										},
+										Annotations: map[string]string{},
 										Spec: corev1.PersistentVolumeClaimSpec{
 											AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 											Resources: corev1.VolumeResourceRequirements{
@@ -919,12 +891,10 @@ var _ = Describe("RabbitmqClusterController", func() {
 										},
 									},
 									{
-										EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
-											Name:      "disk-2",
-											Namespace: defaultNamespace,
-											Labels: map[string]string{
-												"app.kubernetes.io/name": clusterName,
-											},
+										Name:      "disk-2",
+										Namespace: defaultNamespace,
+										Labels: map[string]string{
+											"app.kubernetes.io/name": clusterName,
 										},
 										Spec: corev1.PersistentVolumeClaimSpec{
 											Resources: corev1.VolumeResourceRequirements{
@@ -943,12 +913,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 										Volumes: []corev1.Volume{
 											{
 												Name: "additional-config",
-												VolumeSource: corev1.VolumeSource{
-													ConfigMap: &corev1.ConfigMapVolumeSource{
-														LocalObjectReference: corev1.LocalObjectReference{
-															Name: "additional-config-confmap",
-														},
-													},
+												ConfigMap: &corev1.ConfigMapVolumeSource{
+													Name: "additional-config-confmap",
 												},
 											},
 										},
@@ -1029,100 +995,78 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(sts.Spec.Template.Spec.Volumes).To(ConsistOf([]corev1.Volume{
 				{
 					Name: "additional-config",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "additional-config-confmap",
-							},
-							DefaultMode: &defaultMode,
-						},
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						Name:        "additional-config-confmap",
+						DefaultMode: &defaultMode,
 					},
 				},
 				{
 					Name: "rabbitmq-confd",
-					VolumeSource: corev1.VolumeSource{
-						Projected: &corev1.ProjectedVolumeSource{
-							Sources: []corev1.VolumeProjection{
-								{
-									ConfigMap: &corev1.ConfigMapProjection{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "rabbitmq-sts-override" + suffix + "-server-conf",
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								ConfigMap: &corev1.ConfigMapProjection{
+									Name: "rabbitmq-sts-override" + suffix + "-server-conf",
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "operatorDefaults.conf",
+											Path: "operatorDefaults.conf",
 										},
-										Items: []corev1.KeyToPath{
-											{
-												Key:  "operatorDefaults.conf",
-												Path: "operatorDefaults.conf",
-											},
-											{
-												Key:  "userDefinedConfiguration.conf",
-												Path: "userDefinedConfiguration.conf",
-											},
-										},
-									},
-								},
-								{
-									Secret: &corev1.SecretProjection{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "rabbitmq-sts-override" + suffix + "-default-user",
-										},
-										Items: []corev1.KeyToPath{
-											{
-												Key:  "default_user.conf",
-												Path: "default_user.conf",
-											},
+										{
+											Key:  "userDefinedConfiguration.conf",
+											Path: "userDefinedConfiguration.conf",
 										},
 									},
 								},
 							},
-							DefaultMode: &defaultMode,
+							{
+								Secret: &corev1.SecretProjection{
+									Name: "rabbitmq-sts-override" + suffix + "-default-user",
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "default_user.conf",
+											Path: "default_user.conf",
+										},
+									},
+								},
+							},
 						},
+						DefaultMode: &defaultMode,
 					},
 				},
 				{
 					Name: "plugins-conf",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							DefaultMode: &defaultMode,
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "rabbitmq-sts-override" + suffix + "-plugins-conf",
-							},
-						},
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						DefaultMode: &defaultMode,
+						Name:        "rabbitmq-sts-override" + suffix + "-plugins-conf",
 					},
 				},
 
 				{
-					Name: "rabbitmq-plugins",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
+					Name:     "rabbitmq-plugins",
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
 				},
 				{
-					Name: "rabbitmq-erlang-cookie",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
+					Name:     "rabbitmq-erlang-cookie",
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
 				},
 				{
 					Name: "erlang-cookie-secret",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							DefaultMode: &defaultMode,
-							SecretName:  "rabbitmq-sts-override" + suffix + "-erlang-cookie",
-						},
+					Secret: &corev1.SecretVolumeSource{
+						DefaultMode: &defaultMode,
+						SecretName:  "rabbitmq-sts-override" + suffix + "-erlang-cookie",
 					},
 				},
 				{
 					Name: "pod-info",
-					VolumeSource: corev1.VolumeSource{
-						DownwardAPI: &corev1.DownwardAPIVolumeSource{
-							DefaultMode: &defaultMode,
-							Items: []corev1.DownwardAPIVolumeFile{
-								{
-									Path: "skipPreStopChecks",
-									FieldRef: &corev1.ObjectFieldSelector{
-										APIVersion: "v1",
-										FieldPath:  fmt.Sprintf("metadata.labels['%s']", "skipPreStopChecks"),
-									},
+					DownwardAPI: &corev1.DownwardAPIVolumeSource{
+						DefaultMode: &defaultMode,
+						Items: []corev1.DownwardAPIVolumeFile{
+							{
+								Path: "skipPreStopChecks",
+								FieldRef: &corev1.ObjectFieldSelector{
+									APIVersion: "v1",
+									FieldPath:  fmt.Sprintf("metadata.labels['%s']", "skipPreStopChecks"),
 								},
 							},
 						},
@@ -1182,10 +1126,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 					{
 						Name: "rabbitmq",
 						StartupProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								Exec: &corev1.ExecAction{
-									Command: []string{"custom-startup-check"},
-								},
+							Exec: &corev1.ExecAction{
+								Command: []string{"custom-startup-check"},
 							},
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      10,
@@ -1221,10 +1163,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 			suffix = fmt.Sprintf("-%d", time.Now().UnixNano())
 			clusterName = "svc-override" + suffix
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      clusterName,
-					Namespace: defaultNamespace,
-				},
+				Name:      clusterName,
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 						Type: "LoadBalancer",
@@ -1311,10 +1251,8 @@ var _ = Describe("RabbitmqClusterController", func() {
 	Context("Pause reconciliation", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-pause-reconcile",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-pause-reconcile",
+				Namespace: defaultNamespace,
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
@@ -1453,10 +1391,8 @@ func configMap(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqClu
 
 func createSecret(ctx context.Context, secretName string, namespace string, data map[string]string) (corev1.Secret, error) {
 	secret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-		},
+		Name:       secretName,
+		Namespace:  namespace,
 		StringData: data,
 	}
 

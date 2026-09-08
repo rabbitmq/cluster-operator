@@ -15,7 +15,6 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	rmqresource "github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
@@ -72,10 +71,8 @@ var _ = Describe("RabbitMQPlugins", func() {
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "a name",
-					Namespace: "a namespace",
-				},
+				Name:      "a name",
+				Namespace: "a namespace",
 			}
 			builder = &rmqresource.RabbitmqResourceBuilder{
 				Instance: &instance,
@@ -159,18 +156,14 @@ var _ = Describe("RabbitMQPlugins", func() {
 
 			BeforeEach(func() {
 				configMap = &corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      instance.Name,
-						Namespace: instance.Namespace,
-					},
+					Name:      instance.Name,
+					Namespace: instance.Namespace,
 				}
 			})
 
 			It("sets owner reference", func() {
 				instance = rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "rabbit1",
-					},
+					Name: "rabbit1",
 				}
 				Expect(configMapBuilder.Update(configMap)).NotTo(HaveOccurred())
 				Expect(configMap.OwnerReferences[0].Name).To(Equal(instance.Name))

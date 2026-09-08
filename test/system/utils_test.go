@@ -415,10 +415,8 @@ func getUsernameAndPassword(ctx context.Context, clientset *kubernetes.Clientset
 
 func newRabbitmqCluster(namespace, instanceName string) *rabbitmqv1beta1.RabbitmqCluster {
 	cluster := &rabbitmqv1beta1.RabbitmqCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instanceName,
-			Namespace: namespace,
-		},
+		Name:      instanceName,
+		Namespace: namespace,
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 			Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
 				Type: getServiceType(),

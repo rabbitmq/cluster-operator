@@ -10,7 +10,6 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	controllers "github.com/rabbitmq/cluster-operator/v2/internal/controller"
 	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,10 +29,8 @@ var _ = Describe("Deprecated Feature Controller", func() {
 
 	BeforeEach(func() {
 		cluster = &rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("rabbitmq-deprecated-features-%d", time.Now().Unix()),
-				Namespace: defaultNamespace,
-			},
+			Name:      fmt.Sprintf("rabbitmq-deprecated-features-%d", time.Now().Unix()),
+			Namespace: defaultNamespace,
 		}
 		Expect(client.Create(ctx, cluster)).To(Succeed())
 		waitForClusterCreation(ctx, cluster, client)
@@ -58,10 +55,8 @@ var _ = Describe("Deprecated Feature Controller", func() {
 			}
 
 			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      cluster.Name,
-					Namespace: cluster.Namespace,
-				},
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
 			}
 
 			// Always should requeue after the interval
@@ -107,10 +102,8 @@ var _ = Describe("Deprecated Feature Controller", func() {
 			}
 
 			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      cluster.Name,
-					Namespace: cluster.Namespace,
-				},
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
 			}
 
 			Eventually(func() []string {
@@ -169,10 +162,8 @@ var _ = Describe("Deprecated Feature Controller", func() {
 			}
 
 			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      cluster.Name,
-					Namespace: cluster.Namespace,
-				},
+				Name:      cluster.Name,
+				Namespace: cluster.Namespace,
 			}
 
 			// Get the resource version before reconcile

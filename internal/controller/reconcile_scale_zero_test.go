@@ -22,10 +22,8 @@ var _ = Describe("Cluster scale to zero", func() {
 	It("scale to zero", func() {
 		By("update statefulSet replicas to zero", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-to-zero",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-to-zero",
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: new(int32(2)),
 				},
@@ -80,12 +78,10 @@ var _ = Describe("Cluster scale from zero", func() {
 	It("scale from zero", func() {
 		By("update statefulSet replicas from zero", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-from-zero",
-					Namespace: defaultNamespace,
-					Annotations: map[string]string{
-						"rabbitmq.com/before-zero-replicas-configured": "2",
-					},
+				Name:      "rabbitmq-from-zero",
+				Namespace: defaultNamespace,
+				Annotations: map[string]string{
+					"rabbitmq.com/before-zero-replicas-configured": "2",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: new(int32(0)),
@@ -141,12 +137,10 @@ var _ = Describe("Cluster scale from zero to less replicas configured", Ordered,
 	It("scale from zero to less replicas", func() {
 		By("update statefulSet replicas from zero", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-from-zero-to-less",
-					Namespace: defaultNamespace,
-					Annotations: map[string]string{
-						"rabbitmq.com/before-zero-replicas-configured": "2",
-					},
+				Name:      "rabbitmq-from-zero-to-less",
+				Namespace: defaultNamespace,
+				Annotations: map[string]string{
+					"rabbitmq.com/before-zero-replicas-configured": "2",
 				},
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: new(int32(0)),

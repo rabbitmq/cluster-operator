@@ -22,10 +22,8 @@ var _ = Describe("Cluster scale down", func() {
 	It("does not allow cluster scale down", func() {
 		By("not updating statefulSet replicas", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-shrink",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-shrink",
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: new(int32(5)),
 				},

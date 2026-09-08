@@ -77,10 +77,8 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 	}
 
 	sts := &appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(stsSuffix),
-			Namespace: builder.Instance.Namespace,
-		},
+		Name:      builder.Instance.ChildResourceName(stsSuffix),
+		Namespace: builder.Instance.Namespace,
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: builder.Instance.ChildResourceName(headlessServiceSuffix),
 			Selector: &metav1.LabelSelector{
@@ -113,7 +111,7 @@ func (builder *StatefulSetBuilder) Build() (client.Object, error) {
 		// an inconsistent selector would otherwise fail forever.
 		var templateLabelOverrides map[string]string
 		if overrideSts.Spec.Template != nil && overrideSts.Spec.Template.EmbeddedObjectMeta != nil {
-			templateLabelOverrides = overrideSts.Spec.Template.EmbeddedObjectMeta.Labels
+			templateLabelOverrides = overrideSts.Spec.Template.Labels
 		}
 		if err := metadata.ValidateStatefulSetSelector(overrideSts.Spec.Selector, builder.Instance.Name, templateLabelOverrides); err != nil {
 			return nil, fmt.Errorf("%w: %w", ErrInvalidStatefulSetSelectorOverride, err)
@@ -329,12 +327,10 @@ func persistentVolumeClaim(instance *rabbitmqv1beta1.RabbitmqCluster, scheme *ru
 	}
 
 	pvc := corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        defaultPVCName,
-			Namespace:   instance.GetNamespace(),
-			Labels:      metadata.Label(instance.Name),
-			Annotations: metadata.ReconcileAndFilterAnnotations(map[string]string{}, instance.Annotations),
-		},
+		Name:        defaultPVCName,
+		Namespace:   instance.GetNamespace(),
+		Labels:      metadata.Label(instance.Name),
+		Annotations: metadata.ReconcileAndFilterAnnotations(map[string]string{}, instance.Annotations),
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -473,34 +469,26 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	volumes := []corev1.Volume{
 		{
 			Name: "plugins-conf",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: builder.Instance.ChildResourceName(PluginsConfigName),
-					},
-				},
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				Name: builder.Instance.ChildResourceName(PluginsConfigName),
 			},
 		},
 		{
 			Name: "rabbitmq-confd",
-			VolumeSource: corev1.VolumeSource{
-				Projected: &corev1.ProjectedVolumeSource{
-					Sources: []corev1.VolumeProjection{
+			Projected: &corev1.ProjectedVolumeSource{
+				Sources: []corev1.VolumeProjection{
 
-						{
-							ConfigMap: &corev1.ConfigMapProjection{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: builder.Instance.ChildResourceName(ServerConfigMapName),
+					{
+						ConfigMap: &corev1.ConfigMapProjection{
+							Name: builder.Instance.ChildResourceName(ServerConfigMapName),
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "operatorDefaults.conf",
+									Path: "operatorDefaults.conf",
 								},
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "operatorDefaults.conf",
-										Path: "operatorDefaults.conf",
-									},
-									{
-										Key:  "userDefinedConfiguration.conf",
-										Path: "userDefinedConfiguration.conf",
-									},
+								{
+									Key:  "userDefinedConfiguration.conf",
+									Path: "userDefinedConfiguration.conf",
 								},
 							},
 						},
@@ -509,35 +497,27 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 			},
 		},
 		{
-			Name: "rabbitmq-erlang-cookie",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
+			Name:     "rabbitmq-erlang-cookie",
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 		{
 			Name: "erlang-cookie-secret",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: builder.Instance.ChildResourceName(erlangCookieName),
-				},
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: builder.Instance.ChildResourceName(erlangCookieName),
 			},
 		},
 		{
-			Name: "rabbitmq-plugins",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
+			Name:     "rabbitmq-plugins",
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 		{
 			Name: "pod-info",
-			VolumeSource: corev1.VolumeSource{
-				DownwardAPI: &corev1.DownwardAPIVolumeSource{
-					Items: []corev1.DownwardAPIVolumeFile{
-						{
-							Path: DeletionMarker,
-							FieldRef: &corev1.ObjectFieldSelector{
-								FieldPath: fmt.Sprintf("metadata.labels['%s']", DeletionMarker),
-							},
+			DownwardAPI: &corev1.DownwardAPIVolumeSource{
+				Items: []corev1.DownwardAPIVolumeFile{
+					{
+						Path: DeletionMarker,
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: fmt.Sprintf("metadata.labels['%s']", DeletionMarker),
 						},
 					},
 				},
@@ -554,24 +534,19 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	if builder.rabbitmqConfigurationIsSet() {
 		volumes = append(volumes, corev1.Volume{
 			Name: "server-conf",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: builder.Instance.ChildResourceName(ServerConfigMapName),
-					}}}})
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				Name: builder.Instance.ChildResourceName(ServerConfigMapName)}})
 	}
 
 	zero := k8sresource.MustParse("0Gi")
 	if builder.Instance.Spec.Persistence.Storage.Cmp(zero) == 0 {
 		volume := corev1.Volume{
-			Name: "persistence",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
+			Name:     "persistence",
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		}
 		if builder.Instance.Spec.Persistence.EmptyDir != nil {
-			volume.VolumeSource.EmptyDir.SizeLimit = builder.Instance.Spec.Persistence.EmptyDir.SizeLimit
-			volume.VolumeSource.EmptyDir.Medium = builder.Instance.Spec.Persistence.EmptyDir.Medium
+			volume.EmptyDir.SizeLimit = builder.Instance.Spec.Persistence.EmptyDir.SizeLimit
+			volume.EmptyDir.Medium = builder.Instance.Spec.Persistence.EmptyDir.Medium
 		}
 		volumes = append(volumes, volume)
 	}
@@ -647,32 +622,28 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		filePermissions := new(int32(400))
 		tlsProjectedVolume := corev1.Volume{
 			Name: "rabbitmq-tls",
-			VolumeSource: corev1.VolumeSource{
-				Projected: &corev1.ProjectedVolumeSource{
-					Sources: []corev1.VolumeProjection{
-						{
-							Secret: &corev1.SecretProjection{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: tlsSpec.SecretName,
-								},
-								Optional: &secretEnforced,
-								Items: []corev1.KeyToPath{
-									{Key: "tls.crt", Path: "tls.crt"},
-									{Key: "tls.key", Path: "tls.key"},
-								},
+			Projected: &corev1.ProjectedVolumeSource{
+				Sources: []corev1.VolumeProjection{
+					{
+						Secret: &corev1.SecretProjection{
+							Name:     tlsSpec.SecretName,
+							Optional: &secretEnforced,
+							Items: []corev1.KeyToPath{
+								{Key: "tls.crt", Path: "tls.crt"},
+								{Key: "tls.key", Path: "tls.key"},
 							},
 						},
 					},
-					DefaultMode: filePermissions,
 				},
+				DefaultMode: filePermissions,
 			},
 		}
 
 		if builder.Instance.MutualTLSEnabled() {
 			caSecretProjection := corev1.VolumeProjection{
 				Secret: &corev1.SecretProjection{
-					LocalObjectReference: corev1.LocalObjectReference{Name: tlsSpec.CaSecretName},
-					Optional:             &secretEnforced,
+					Name:     tlsSpec.CaSecretName,
+					Optional: &secretEnforced,
 					Items: []corev1.KeyToPath{
 						{Key: "ca.crt", Path: "ca.crt"},
 					},
@@ -728,29 +699,25 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 		// Troubleshooting section for why both of those alternatives are dead ends.
 		volumes = append(volumes, corev1.Volume{
 			Name: "rabbitmq-inter-node-tls",
-			VolumeSource: corev1.VolumeSource{
-				CSI: &corev1.CSIVolumeSource{
-					Driver:   "csi.cert-manager.io",
-					ReadOnly: new(true),
-					VolumeAttributes: map[string]string{
-						"csi.cert-manager.io/issuer-name":  issuerRef.Name,
-						"csi.cert-manager.io/issuer-kind":  issuerRef.Kind,
-						"csi.cert-manager.io/issuer-group": issuerRef.Group,
-						"csi.cert-manager.io/common-name":  "${POD_NAME}",
-						"csi.cert-manager.io/dns-names":    dnsNames,
-						"csi.cert-manager.io/key-usages":   "digital signature,key encipherment,server auth,client auth",
-						"csi.cert-manager.io/fs-group":     strconv.FormatInt(rabbitmqImageGID, 10),
-					},
+			CSI: &corev1.CSIVolumeSource{
+				Driver:   "csi.cert-manager.io",
+				ReadOnly: new(true),
+				VolumeAttributes: map[string]string{
+					"csi.cert-manager.io/issuer-name":  issuerRef.Name,
+					"csi.cert-manager.io/issuer-kind":  issuerRef.Kind,
+					"csi.cert-manager.io/issuer-group": issuerRef.Group,
+					"csi.cert-manager.io/common-name":  "${POD_NAME}",
+					"csi.cert-manager.io/dns-names":    dnsNames,
+					"csi.cert-manager.io/key-usages":   "digital signature,key encipherment,server auth,client auth",
+					"csi.cert-manager.io/fs-group":     strconv.FormatInt(rabbitmqImageGID, 10),
 				},
 			},
 		})
 	}
 
 	podTemplateSpec := corev1.PodTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: metadata.ReconcileAnnotations(previousPodAnnotations, defaultPodAnnotations),
-			Labels:      metadata.Label(builder.Instance.Name),
-		},
+		Annotations: metadata.ReconcileAnnotations(previousPodAnnotations, defaultPodAnnotations),
+		Labels:      metadata.Label(builder.Instance.Name),
 		Spec: corev1.PodSpec{
 			TopologySpreadConstraints: builder.defaultTopologySpreadConstraints(),
 			SecurityContext: &corev1.PodSecurityContext{
@@ -797,12 +764,10 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 					// Pods could be stuck at terminating at deletion as a result of that
 					// More details see issue: https://github.com/rabbitmq/cluster-operator/issues/409
 					ReadinessProbe: &corev1.Probe{
-						ProbeHandler: corev1.ProbeHandler{
-							TCPSocket: &corev1.TCPSocketAction{
-								Port: intstr.IntOrString{
-									Type:   intstr.String,
-									StrVal: readinessProbePort,
-								},
+						TCPSocket: &corev1.TCPSocketAction{
+							Port: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: readinessProbePort,
 							},
 						},
 						InitialDelaySeconds: 10,
@@ -866,11 +831,9 @@ func (builder *StatefulSetBuilder) rabbitmqConfigurationIsSet() bool {
 func (builder *StatefulSetBuilder) startupProbe() *corev1.Probe {
 	if _, ok := builder.Instance.Annotations[rabbitmqv1beta1.LegacyStartupProbeAnnotation]; ok {
 		return &corev1.Probe{
-			ProbeHandler: corev1.ProbeHandler{
-				Exec: &corev1.ExecAction{
-					Command: []string{"/bin/bash", "-c",
-						"[[ \"true\" == \"$(rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().')\" ]]"},
-				},
+			Exec: &corev1.ExecAction{
+				Command: []string{"/bin/bash", "-c",
+					"[[ \"true\" == \"$(rabbitmqctl eval 'rabbit_nodes:reached_target_cluster_size().')\" ]]"},
 			},
 			InitialDelaySeconds: 10,
 			TimeoutSeconds:      5,
@@ -887,12 +850,10 @@ func (builder *StatefulSetBuilder) startupProbe() *corev1.Probe {
 	}
 
 	return &corev1.Probe{
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path:   "/api/health/checks/reached-target-cluster-size",
-				Port:   port,
-				Scheme: scheme,
-			},
+		HTTPGet: &corev1.HTTPGetAction{
+			Path:   "/api/health/checks/reached-target-cluster-size",
+			Port:   port,
+			Scheme: scheme,
 		},
 		InitialDelaySeconds: 10,
 		TimeoutSeconds:      5,
@@ -1067,9 +1028,7 @@ func appendDefaultUserSecretVolumeProjection(volumes []corev1.Volume, instance *
 			value.Projected.Sources = append(value.Projected.Sources,
 				corev1.VolumeProjection{
 					Secret: &corev1.SecretProjection{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
-						},
+						Name: secretName,
 						Items: []corev1.KeyToPath{
 							{
 								Key:  "default_user.conf",
@@ -1137,7 +1096,7 @@ func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 	var altNames strings.Builder
 	var i int32
 	for i = range ptr.Deref(instance.Spec.Replicas, 1) {
-		altNames.WriteString(fmt.Sprintf(",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace)))
+		fmt.Fprintf(&altNames, ",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace))
 	}
 	return strings.TrimPrefix(altNames.String(), ",")
 }

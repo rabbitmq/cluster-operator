@@ -19,7 +19,6 @@ import (
 
 	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -41,11 +40,9 @@ func (builder *ErlangCookieBuilder) Build() (client.Object, error) {
 	}
 
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      builder.Instance.ChildResourceName(erlangCookieName),
-			Namespace: builder.Instance.Namespace,
-		},
-		Type: corev1.SecretTypeOpaque,
+		Name:      builder.Instance.ChildResourceName(erlangCookieName),
+		Namespace: builder.Instance.Namespace,
+		Type:      corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
 			".erlang.cookie": []byte(cookie),
 		},

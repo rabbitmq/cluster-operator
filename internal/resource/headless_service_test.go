@@ -15,7 +15,6 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
@@ -35,9 +34,9 @@ var _ = Describe("HeadlessService", func() {
 		scheme = runtime.NewScheme()
 		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
-		instance = rabbitmqv1beta1.RabbitmqCluster{}
-		instance.Namespace = "foo"
-		instance.Name = "foo"
+		instance = rabbitmqv1beta1.RabbitmqCluster{
+			Namespace: "foo",
+			Name:      "foo"}
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
 			Scheme:   scheme,
@@ -62,9 +61,7 @@ var _ = Describe("HeadlessService", func() {
 	Context("Update with instance labels", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit-labelled",
-				},
+				Name: "rabbit-labelled",
 			}
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
@@ -74,12 +71,10 @@ var _ = Describe("HeadlessService", func() {
 			}
 
 			service = &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app.kubernetes.io/name":      instance.Name,
-						"app.kubernetes.io/part-of":   "rabbitmq",
-						"this-was-the-previous-label": "should-be-deleted",
-					},
+				Labels: map[string]string{
+					"app.kubernetes.io/name":      instance.Name,
+					"app.kubernetes.io/part-of":   "rabbitmq",
+					"this-was-the-previous-label": "should-be-deleted",
 				},
 			}
 			err := serviceBuilder.Update(service)
@@ -105,9 +100,7 @@ var _ = Describe("HeadlessService", func() {
 	Context("Update with instance annotations", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit-labelled",
-				},
+				Name: "rabbit-labelled",
 			}
 			instance.Annotations = map[string]string{
 				"my-annotation":               "i-like-this",
@@ -120,14 +113,12 @@ var _ = Describe("HeadlessService", func() {
 			}
 
 			service = &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"i-was-here-already":            "please-dont-delete-me",
-						"im-here-to-stay.kubernetes.io": "for-a-while",
-						"kubernetes.io/name":            "should-stay",
-						"kubectl.kubernetes.io/name":    "should-stay",
-						"k8s.io/name":                   "should-stay",
-					},
+				Annotations: map[string]string{
+					"i-was-here-already":            "please-dont-delete-me",
+					"im-here-to-stay.kubernetes.io": "for-a-while",
+					"kubernetes.io/name":            "should-stay",
+					"kubectl.kubernetes.io/name":    "should-stay",
+					"k8s.io/name":                   "should-stay",
 				},
 			}
 			err := serviceBuilder.Update(service)
@@ -151,9 +142,7 @@ var _ = Describe("HeadlessService", func() {
 	Context("Update Spec", func() {
 		BeforeEach(func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit-spec",
-				},
+				Name: "rabbit-spec",
 			}
 
 			service = &corev1.Service{
@@ -237,9 +226,7 @@ var _ = Describe("HeadlessService", func() {
 
 	It("sets owner reference", func() {
 		instance = rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "rabbit1",
-			},
+			Name: "rabbit1",
 		}
 		service = &corev1.Service{}
 		Expect(serviceBuilder.Update(service)).NotTo(HaveOccurred())
