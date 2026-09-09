@@ -1096,7 +1096,7 @@ func podHostNames(instance *rabbitmqv1beta1.RabbitmqCluster) string {
 	var altNames strings.Builder
 	var i int32
 	for i = range ptr.Deref(instance.Spec.Replicas, 1) {
-		fmt.Fprintf(&altNames, ",%s", fmt.Sprintf("%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace))
+		fmt.Fprintf(&altNames, ",%s-%d.%s.%s", instance.ChildResourceName(stsSuffix), i, instance.ChildResourceName(headlessServiceSuffix), instance.Namespace)
 	}
 	return strings.TrimPrefix(altNames.String(), ",")
 }
