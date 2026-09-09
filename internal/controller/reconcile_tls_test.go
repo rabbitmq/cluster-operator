@@ -42,33 +42,27 @@ var _ = Describe("Reconcile TLS", func() {
 
 				Expect(sts.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
 					Name: "rabbitmq-tls",
-					VolumeSource: corev1.VolumeSource{
-						Projected: &corev1.ProjectedVolumeSource{
-							Sources: []corev1.VolumeProjection{
-								{
-									Secret: &corev1.SecretProjection{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: tlsSecretName,
-										},
-										Optional: new(true),
-										Items: []corev1.KeyToPath{
-											{Key: "tls.crt", Path: "tls.crt"},
-											{Key: "tls.key", Path: "tls.key"},
-										},
-									},
-								},
-								{
-									Secret: &corev1.SecretProjection{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: tlsSecretName,
-										},
-										Optional: new(true),
-										Items:    []corev1.KeyToPath{{Key: "ca.crt", Path: "ca.crt"}},
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								Secret: &corev1.SecretProjection{
+									Name:     tlsSecretName,
+									Optional: new(true),
+									Items: []corev1.KeyToPath{
+										{Key: "tls.crt", Path: "tls.crt"},
+										{Key: "tls.key", Path: "tls.key"},
 									},
 								},
 							},
-							DefaultMode: new(int32(400)),
+							{
+								Secret: &corev1.SecretProjection{
+									Name:     tlsSecretName,
+									Optional: new(true),
+									Items:    []corev1.KeyToPath{{Key: "ca.crt", Path: "ca.crt"}},
+								},
+							},
 						},
+						DefaultMode: new(int32(400)),
 					},
 				}))
 
@@ -159,10 +153,8 @@ var _ = Describe("Reconcile TLS", func() {
 		It("Deploys successfully", func() {
 			suffix := fmt.Sprintf("-%d", time.Now().UnixNano())
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-tls" + suffix,
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-tls" + suffix,
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					TLS: rabbitmqv1beta1.TLSSpec{
 						SecretName: "tls-secret" + suffix,
@@ -244,7 +236,7 @@ var _ = Describe("Reconcile TLS", func() {
 
 func verifyReconcileSuccessFalse(name, namespace string) bool {
 	return EventuallyWithOffset(1, func() string {
-		rabbit := &rabbitmqv1beta1.RabbitmqCluster{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
+		rabbit := &rabbitmqv1beta1.RabbitmqCluster{Name: name, Namespace: namespace}
 		Expect(client.Get(ctx, runtimeClient.ObjectKeyFromObject(rabbit), rabbit)).To(Succeed())
 
 		for i := range rabbit.Status.Conditions {
@@ -284,10 +276,8 @@ func tlsSecretWithoutCACert(ctx context.Context, secretName, namespace string) {
 
 func rabbitmqClusterWithTLS(ctx context.Context, clustername string, namespace string, tlsSpec rabbitmqv1beta1.TLSSpec) *rabbitmqv1beta1.RabbitmqCluster {
 	rabbitmqCluster := &rabbitmqv1beta1.RabbitmqCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clustername,
-			Namespace: namespace,
-		},
+		Name:      clustername,
+		Namespace: namespace,
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 			TLS: tlsSpec,
 		},

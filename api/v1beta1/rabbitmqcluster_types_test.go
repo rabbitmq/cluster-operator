@@ -371,10 +371,8 @@ var _ = Describe("RabbitmqCluster", func() {
 			When("CR spec is empty", func() {
 				It("creates CR with defaults", func() {
 					rmqClusterInstance = RabbitmqCluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "rabbitmq-defaults",
-							Namespace: "default",
-						},
+						Name:      "rabbitmq-defaults",
+						Namespace: "default",
 					}
 
 					Expect(k8sClient.Create(context.Background(), &rmqClusterInstance)).To(Succeed())
@@ -389,10 +387,8 @@ var _ = Describe("RabbitmqCluster", func() {
 					storage := k8sresource.MustParse("987Gi")
 					storageClassName := "some-class"
 					rmqClusterInstance = RabbitmqCluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "rabbitmq-full-manifest",
-							Namespace: "default",
-						},
+						Name:      "rabbitmq-full-manifest",
+						Namespace: "default",
 						Spec: RabbitmqClusterSpec{
 							Replicas:                      new(int32(3)),
 							Image:                         "rabbitmq-image-from-cr",
@@ -463,10 +459,8 @@ var _ = Describe("RabbitmqCluster", func() {
 
 				It("applies default values to missing properties if image is set", func() {
 					rmqClusterInstance = RabbitmqCluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "rabbitmq-image",
-							Namespace: "default",
-						},
+						Name:      "rabbitmq-image",
+						Namespace: "default",
 						Spec: RabbitmqClusterSpec{
 							Image: "test-image",
 						},
@@ -483,10 +477,8 @@ var _ = Describe("RabbitmqCluster", func() {
 				It("does not apply resource defaults if the resource object is an empty non-nil struct", func() {
 					expectedResources := &corev1.ResourceRequirements{}
 					rmqClusterInstance = RabbitmqCluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "rabbitmq-empty-resource",
-							Namespace: "default",
-						},
+						Name:      "rabbitmq-empty-resource",
+						Namespace: "default",
 						Spec: RabbitmqClusterSpec{
 							Resources: expectedResources,
 						},
@@ -507,10 +499,8 @@ var _ = Describe("RabbitmqCluster", func() {
 						},
 					}
 					rmqClusterInstance = RabbitmqCluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "rabbitmq-partial-resource",
-							Namespace: "default",
-						},
+						Name:      "rabbitmq-partial-resource",
+						Namespace: "default",
 						Spec: RabbitmqClusterSpec{
 							Resources: expectedResources,
 						},
@@ -526,10 +516,8 @@ var _ = Describe("RabbitmqCluster", func() {
 
 				It("sets spec.service.type if spec.service is partially set", func() {
 					rmqClusterInstance = RabbitmqCluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "rabbit-service-type",
-							Namespace: "default",
-						},
+						Name:      "rabbit-service-type",
+						Namespace: "default",
 						Spec: RabbitmqClusterSpec{
 							Service: RabbitmqClusterServiceSpec{
 								Annotations: map[string]string{"key": "value"},
@@ -552,10 +540,8 @@ var _ = Describe("RabbitmqCluster", func() {
 					myStorage := "mystorage"
 					tenGi := k8sresource.MustParse("10Gi")
 					rmqClusterInstance = RabbitmqCluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "rabbit-storage",
-							Namespace: "default",
-						},
+						Name:      "rabbit-storage",
+						Namespace: "default",
 						Spec: RabbitmqClusterSpec{
 							Persistence: RabbitmqClusterPersistenceSpec{
 								StorageClassName: &myStorage,
@@ -742,10 +728,8 @@ func getKey(cluster *RabbitmqCluster) types.NamespacedName {
 func generateRabbitmqClusterObject(clusterName string) *RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
 	return &RabbitmqCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: "default",
-		},
+		Name:      clusterName,
+		Namespace: "default",
 		Spec: RabbitmqClusterSpec{
 			Replicas:                      new(int32(1)),
 			TerminationGracePeriodSeconds: new(int64(604800)),

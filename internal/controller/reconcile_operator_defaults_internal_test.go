@@ -18,7 +18,6 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -34,10 +33,8 @@ var _ = Describe("reconcileOperatorDefaults", func() {
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 
 			cluster := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-no-update",
-					Namespace: "default",
-				},
+				Name:      "test-no-update",
+				Namespace: "default",
 			}
 
 			updateCallCount := 0
@@ -77,10 +74,8 @@ var _ = Describe("reconcileOperatorDefaults", func() {
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 
 			cluster := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-control-image",
-					Namespace: "default",
-				},
+				Name:      "test-control-image",
+				Namespace: "default",
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Image: "user-set-image:1.0",
 					SecretBackend: rabbitmqv1beta1.SecretBackend{

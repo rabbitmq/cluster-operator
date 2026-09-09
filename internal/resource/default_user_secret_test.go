@@ -19,7 +19,6 @@ import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
@@ -38,10 +37,8 @@ var _ = Describe("DefaultUserSecret", func() {
 		Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 		Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 		instance = rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "a name",
-				Namespace: "a namespace",
-			},
+			Name:      "a name",
+			Namespace: "a namespace",
 		}
 		builder = &resource.RabbitmqResourceBuilder{
 			Instance: &instance,
@@ -263,9 +260,7 @@ var _ = Describe("DefaultUserSecret", func() {
 	Context("Update with instance labels", func() {
 		It("Updates the secret", func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit-labelled",
-				},
+				Name: "rabbit-labelled",
 			}
 			instance.Labels = map[string]string{
 				"app.kubernetes.io/foo": "bar",
@@ -275,12 +270,10 @@ var _ = Describe("DefaultUserSecret", func() {
 			}
 
 			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app.kubernetes.io/name":      instance.Name,
-						"app.kubernetes.io/part-of":   "rabbitmq",
-						"this-was-the-previous-label": "should-be-deleted",
-					},
+				Labels: map[string]string{
+					"app.kubernetes.io/name":      instance.Name,
+					"app.kubernetes.io/part-of":   "rabbitmq",
+					"this-was-the-previous-label": "should-be-deleted",
 				},
 				Data: map[string][]byte{},
 			}
@@ -307,9 +300,7 @@ var _ = Describe("DefaultUserSecret", func() {
 	Context("Update with instance annotations", func() {
 		It("updates the secret with the annotations", func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit-labelled",
-				},
+				Name: "rabbit-labelled",
 			}
 			instance.Annotations = map[string]string{
 				"my-annotation":               "i-like-this",
@@ -322,14 +313,12 @@ var _ = Describe("DefaultUserSecret", func() {
 			}
 
 			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"i-was-here-already":            "please-dont-delete-me",
-						"im-here-to-stay.kubernetes.io": "for-a-while",
-						"kubernetes.io/name":            "should-stay",
-						"kubectl.kubernetes.io/name":    "should-stay",
-						"k8s.io/name":                   "should-stay",
-					},
+				Annotations: map[string]string{
+					"i-was-here-already":            "please-dont-delete-me",
+					"im-here-to-stay.kubernetes.io": "for-a-while",
+					"kubernetes.io/name":            "should-stay",
+					"kubectl.kubernetes.io/name":    "should-stay",
+					"k8s.io/name":                   "should-stay",
 				},
 				Data: map[string][]byte{},
 			}
@@ -354,9 +343,7 @@ var _ = Describe("DefaultUserSecret", func() {
 	Context("When plugins or TLS are updated", func() {
 		It("updates the secret with the only enabled ports", func() {
 			instance = rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "rabbit-labelled",
-				},
+				Name: "rabbit-labelled",
 			}
 			instance.Spec.Rabbitmq.AdditionalPlugins = []rabbitmqv1beta1.Plugin{
 				"rabbitmq_mqtt",
@@ -397,9 +384,7 @@ var _ = Describe("DefaultUserSecret", func() {
 			Data: map[string][]byte{},
 		}
 		instance = rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "rabbit1",
-			},
+			Name: "rabbit1",
 		}
 		Expect(defaultUserSecretBuilder.Update(secret)).NotTo(HaveOccurred())
 		Expect(secret.OwnerReferences[0].Name).To(Equal(instance.Name))

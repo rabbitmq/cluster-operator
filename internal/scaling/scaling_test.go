@@ -10,7 +10,6 @@ import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/scaling"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -18,17 +17,13 @@ import (
 var _ = Describe("Scaling", func() {
 	BeforeEach(func() {
 		rmq = rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rabbit",
-				Namespace: namespace,
-			},
+			Name:      "rabbit",
+			Namespace: namespace,
 		}
 		existingPVC = generatePVC(rmq, 0, tenG)
 		existingSts = appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rabbit-server",
-				Namespace: namespace,
-			},
+			Name:      "rabbit-server",
+			Namespace: namespace,
 			Spec: appsv1.StatefulSetSpec{
 				VolumeClaimTemplates: []corev1.PersistentVolumeClaim{generatePVCTemplate(tenG)},
 			},

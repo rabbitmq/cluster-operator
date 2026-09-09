@@ -17,7 +17,6 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -42,18 +41,14 @@ var _ = Describe("RabbitMQ Client", func() {
 		Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
 		rmq = &rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: namespace,
-			},
-			Spec: rabbitmqv1beta1.RabbitmqClusterSpec{},
+			Name:      "test-cluster",
+			Namespace: namespace,
+			Spec:      rabbitmqv1beta1.RabbitmqClusterSpec{},
 		}
 
 		secret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster-default-user",
-				Namespace: namespace,
-			},
+			Name:      "test-cluster-default-user",
+			Namespace: namespace,
 			Data: map[string][]byte{
 				"username": []byte("test-user"),
 				"password": []byte("test-password"),
@@ -136,10 +131,8 @@ var _ = Describe("RabbitMQ Client", func() {
 
 		BeforeEach(func() {
 			rabbitmqService = &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: namespace,
-				},
+				Name:      "test-cluster",
+				Namespace: namespace,
 				Spec: corev1.ServiceSpec{
 					Ports: []corev1.ServicePort{
 						{Name: "management", Port: 15672, Protocol: corev1.ProtocolTCP},
@@ -245,10 +238,8 @@ var _ = Describe("RabbitMQ Client", func() {
 		BeforeEach(func() {
 			factory = &DefaultRabbitmqClientFactory{}
 			rabbitmqService = &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: namespace,
-				},
+				Name:      "test-cluster",
+				Namespace: namespace,
 				Spec: corev1.ServiceSpec{
 					Ports: []corev1.ServicePort{
 						{Name: "management", Port: 15672, Protocol: corev1.ProtocolTCP},

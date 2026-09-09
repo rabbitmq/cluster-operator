@@ -11,7 +11,6 @@ import (
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var requiredPlugins = []string{
@@ -32,12 +31,10 @@ func (builder *RabbitmqResourceBuilder) RabbitmqPluginsConfigMap() *RabbitmqPlug
 
 func (builder *RabbitmqPluginsConfigMapBuilder) Build() (client.Object, error) {
 	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        builder.Instance.ChildResourceName(PluginsConfigName),
-			Namespace:   builder.Instance.Namespace,
-			Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
-			Annotations: metadata.ReconcileAndFilterAnnotations(nil, builder.Instance.Annotations),
-		},
+		Name:        builder.Instance.ChildResourceName(PluginsConfigName),
+		Namespace:   builder.Instance.Namespace,
+		Labels:      metadata.GetLabels(builder.Instance.Name, builder.Instance.Labels),
+		Annotations: metadata.ReconcileAndFilterAnnotations(nil, builder.Instance.Annotations),
 		Data: map[string]string{
 			"enabled_plugins": desiredPluginsAsString([]rabbitmqv1beta1.Plugin{}),
 		},

@@ -8,8 +8,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Reconcile status", func() {
@@ -20,10 +18,8 @@ var _ = Describe("Reconcile status", func() {
 
 	It("reconciles the custom resource status", func() {
 		cluster = &rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rabbitmq-status",
-				Namespace: defaultNamespace,
-			},
+			Name:      "rabbitmq-status",
+			Namespace: defaultNamespace,
 		}
 		Expect(client.Create(ctx, cluster)).To(Succeed())
 		waitForClusterCreation(ctx, cluster, client)
@@ -88,10 +84,8 @@ var _ = Describe("Reconcile status", func() {
 	When("secret backend vault is enabled", func() {
 		It("sets service reference status correctly", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-vault-status",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-vault-status",
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					SecretBackend: rabbitmqv1beta1.SecretBackend{
 						Vault: &rabbitmqv1beta1.VaultSpec{
@@ -141,10 +135,8 @@ var _ = Describe("Reconcile status", func() {
 
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-quorum-status",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-quorum-status",
+				Namespace: defaultNamespace,
 			}
 		})
 

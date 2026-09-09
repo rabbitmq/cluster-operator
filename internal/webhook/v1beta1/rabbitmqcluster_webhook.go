@@ -177,7 +177,7 @@ func validateStatefulSetSelectorOverride(cluster *rabbitmqcomv1beta1.RabbitmqClu
 
 	var templateLabelOverrides map[string]string
 	if override.Spec.Template != nil && override.Spec.Template.EmbeddedObjectMeta != nil {
-		templateLabelOverrides = override.Spec.Template.EmbeddedObjectMeta.Labels
+		templateLabelOverrides = override.Spec.Template.Labels
 	}
 
 	if err := metadata.ValidateStatefulSetSelector(override.Spec.Selector, cluster.Name, templateLabelOverrides); err != nil {

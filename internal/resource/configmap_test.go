@@ -21,7 +21,6 @@ import (
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
@@ -126,10 +125,8 @@ var _ = Describe("GenerateServerConfigMap", func() {
 
 		BeforeEach(func() {
 			configMap = &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      instance.Name,
-					Namespace: instance.Namespace,
-				},
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
 			}
 		})
 
@@ -603,9 +600,7 @@ CONSOLE_LOG=new`
 		When("DisableNonTLSListeners is set to true", func() {
 			It("disables non tls listeners for rabbitmq and management plugin", func() {
 				instance = rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "rabbit-tls",
-					},
+					Name: "rabbit-tls",
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 						Replicas: new(int32(1)),
 						TLS: rabbitmqv1beta1.TLSSpec{
@@ -635,9 +630,7 @@ CONSOLE_LOG=new`
 
 			It("disables non tls listeners for mqtt, stomp and stream plugins if enabled", func() {
 				instance = rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "rabbit-tls",
-					},
+					Name: "rabbit-tls",
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 						Replicas: new(int32(1)),
 						TLS: rabbitmqv1beta1.TLSSpec{
@@ -683,9 +676,7 @@ CONSOLE_LOG=new`
 
 			It("disables non tls listeners for web mqtt and web stomp when enabled", func() {
 				instance = rabbitmqv1beta1.RabbitmqCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "rabbit-tls",
-					},
+					Name: "rabbit-tls",
 					Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 						Replicas: new(int32(1)),
 						TLS: rabbitmqv1beta1.TLSSpec{

@@ -63,9 +63,7 @@ var _ = SynchronizedBeforeSuite(
 				if errors.IsNotFound(err) {
 					By("Creating test namespace: " + namespace)
 					ns := &corev1.Namespace{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: namespace,
-						},
+						Name: namespace,
 					}
 					_, err = cs.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 					Expect(err).NotTo(HaveOccurred())

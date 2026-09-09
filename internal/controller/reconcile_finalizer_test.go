@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,10 +17,8 @@ var _ = Describe("Reconcile finalizer", func() {
 
 	BeforeEach(func() {
 		cluster = &rabbitmqv1beta1.RabbitmqCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rabbitmq-finalizer",
-				Namespace: defaultNamespace,
-			},
+			Name:      "rabbitmq-finalizer",
+			Namespace: defaultNamespace,
 		}
 
 		Expect(client.Create(ctx, cluster)).To(Succeed())

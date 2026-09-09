@@ -13,7 +13,6 @@ import (
 	"fmt"
 
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -61,9 +60,7 @@ func (builder *RoleBindingBuilder) Update(object client.Object) error {
 
 func (builder *RoleBindingBuilder) Build() (client.Object, error) {
 	return &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: builder.Instance.Namespace,
-			Name:      builder.Instance.ChildResourceName(roleBindingName),
-		},
+		Namespace: builder.Instance.Namespace,
+		Name:      builder.Instance.ChildResourceName(roleBindingName),
 	}, nil
 }

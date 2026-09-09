@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	defaultscheme "k8s.io/client-go/kubernetes/scheme"
 )
@@ -23,25 +22,25 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 	Context("ShouldCreatePeerDiscoveryRBAC", func() {
 		It("returns true if version is not annotated", func() {
 			rmq := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{}},
+				Annotations: map[string]string{},
 			}
 			Expect(resource.ShouldCreatePeerDiscoveryRBAC(rmq)).To(BeTrueBecause("fallback to old behavior when version is not annotated"))
 		})
 
 		It("returns true if version cannot be parsed", func() {
 			rmq := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{
+				Annotations: map[string]string{
 					rabbitmqv1beta1.RabbitmqVersionAnnotation: "invalid",
-				}},
+				},
 			}
 			Expect(resource.ShouldCreatePeerDiscoveryRBAC(rmq)).To(BeTrueBecause("fallback to old behavior when version cannot be parsed"))
 		})
 
 		It("returns true if version is less than 4.1.0", func() {
 			rmq := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{
+				Annotations: map[string]string{
 					rabbitmqv1beta1.RabbitmqVersionAnnotation: "3.13.0",
-				}},
+				},
 			}
 			Expect(resource.ShouldCreatePeerDiscoveryRBAC(rmq)).To(BeTrueBecause("version is less than 4.1.0"))
 
@@ -51,9 +50,9 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 
 		It("returns false if version is 4.1.0 or greater", func() {
 			rmq := &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{
+				Annotations: map[string]string{
 					rabbitmqv1beta1.RabbitmqVersionAnnotation: "4.1.0",
-				}},
+				},
 			}
 			Expect(resource.ShouldCreatePeerDiscoveryRBAC(rmq)).To(BeFalseBecause("peer-discovery RBAC is no longer required for 4.1.0 or greater"))
 
@@ -77,10 +76,8 @@ var _ = Describe("RabbitmqResourceBuilder", func() {
 			Expect(rabbitmqv1beta1.AddToScheme(scheme)).To(Succeed())
 			Expect(defaultscheme.AddToScheme(scheme)).To(Succeed())
 			instance = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "test",
-					Namespace: "namespace",
-				},
+				Name:      "test",
+				Namespace: "namespace",
 			}
 			builder = &resource.RabbitmqResourceBuilder{
 				Instance: instance,

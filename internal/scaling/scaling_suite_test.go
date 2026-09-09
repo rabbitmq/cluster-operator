@@ -43,10 +43,8 @@ var (
 
 func generatePVCTemplate(size k8sresource.Quantity) corev1.PersistentVolumeClaim {
 	return corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "persistence",
-			Namespace: namespace,
-		},
+		Name:      "persistence",
+		Namespace: namespace,
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -60,10 +58,8 @@ func generatePVCTemplate(size k8sresource.Quantity) corev1.PersistentVolumeClaim
 func generatePVC(rmq rabbitmqv1beta1.RabbitmqCluster, index int, size k8sresource.Quantity) corev1.PersistentVolumeClaim {
 	name := rmq.PVCName(index)
 	return corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+		Name:      name,
+		Namespace: namespace,
 		Spec: corev1.PersistentVolumeClaimSpec{
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -199,7 +195,7 @@ func (matcher *updateActionMatcher) Match(actual any) (bool, error) {
 	}
 
 	updatedObject := reflect.ValueOf(action.GetObject()).Elem()
-	objMeta, ok := updatedObject.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
+	objMeta, ok := reflect.TypeAssert[metav1.ObjectMeta](updatedObject.FieldByName("ObjectMeta"))
 	if !ok {
 		return false, fmt.Errorf("object of action was not an object with ObjectMeta")
 	}

@@ -158,10 +158,8 @@ var _ = Describe("StatefulSet", func() {
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
-									Name:      "persistence",
-									Namespace: instance.Namespace,
-								},
+								Name:      "persistence",
+								Namespace: instance.Namespace,
 								Spec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -289,10 +287,8 @@ var _ = Describe("StatefulSet", func() {
 			stsBuilder = builder.StatefulSet()
 
 			statefulSet = &appsv1.StatefulSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      instance.Name,
-					Namespace: instance.Namespace,
-				},
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
 			}
 		})
 
@@ -579,24 +575,20 @@ var _ = Describe("StatefulSet", func() {
 
 				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
 					Name: "rabbitmq-tls",
-					VolumeSource: corev1.VolumeSource{
-						Projected: &corev1.ProjectedVolumeSource{
-							Sources: []corev1.VolumeProjection{
-								{
-									Secret: &corev1.SecretProjection{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "tls-secret",
-										},
-										Optional: new(true),
-										Items: []corev1.KeyToPath{
-											{Key: "tls.crt", Path: "tls.crt"},
-											{Key: "tls.key", Path: "tls.key"},
-										},
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								Secret: &corev1.SecretProjection{
+									Name:     "tls-secret",
+									Optional: new(true),
+									Items: []corev1.KeyToPath{
+										{Key: "tls.crt", Path: "tls.crt"},
+										{Key: "tls.key", Path: "tls.key"},
 									},
 								},
 							},
-							DefaultMode: new(int32(400)),
 						},
+						DefaultMode: new(int32(400)),
 					},
 				}))
 			})
@@ -714,35 +706,29 @@ var _ = Describe("StatefulSet", func() {
 
 					Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
 						Name: "rabbitmq-tls",
-						VolumeSource: corev1.VolumeSource{
-							Projected: &corev1.ProjectedVolumeSource{
-								Sources: []corev1.VolumeProjection{
-									{
-										Secret: &corev1.SecretProjection{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "tls-secret",
-											},
-											Optional: new(true),
-											Items: []corev1.KeyToPath{
-												{Key: "tls.crt", Path: "tls.crt"},
-												{Key: "tls.key", Path: "tls.key"},
-											},
-										},
-									},
-									{
-										Secret: &corev1.SecretProjection{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "mutual-tls-secret",
-											},
-											Optional: new(true),
-											Items: []corev1.KeyToPath{
-												{Key: "ca.crt", Path: "ca.crt"},
-											},
+						Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{
+								{
+									Secret: &corev1.SecretProjection{
+										Name:     "tls-secret",
+										Optional: new(true),
+										Items: []corev1.KeyToPath{
+											{Key: "tls.crt", Path: "tls.crt"},
+											{Key: "tls.key", Path: "tls.key"},
 										},
 									},
 								},
-								DefaultMode: new(int32(400)),
+								{
+									Secret: &corev1.SecretProjection{
+										Name:     "mutual-tls-secret",
+										Optional: new(true),
+										Items: []corev1.KeyToPath{
+											{Key: "ca.crt", Path: "ca.crt"},
+										},
+									},
+								},
 							},
+							DefaultMode: new(int32(400)),
 						},
 					}))
 				})
@@ -1034,19 +1020,17 @@ var _ = Describe("StatefulSet", func() {
 
 					Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
 						Name: "rabbitmq-inter-node-tls",
-						VolumeSource: corev1.VolumeSource{
-							CSI: &corev1.CSIVolumeSource{
-								Driver:   "csi.cert-manager.io",
-								ReadOnly: new(true),
-								VolumeAttributes: map[string]string{
-									"csi.cert-manager.io/issuer-name":  "some-ca",
-									"csi.cert-manager.io/issuer-kind":  "ClusterIssuer",
-									"csi.cert-manager.io/issuer-group": "cert-manager.io",
-									"csi.cert-manager.io/common-name":  "${POD_NAME}",
-									"csi.cert-manager.io/dns-names":    "${POD_NAME}.foo-nodes.${POD_NAMESPACE},${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc,${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc.cluster.local",
-									"csi.cert-manager.io/key-usages":   "digital signature,key encipherment,server auth,client auth",
-									"csi.cert-manager.io/fs-group":     "999",
-								},
+						CSI: &corev1.CSIVolumeSource{
+							Driver:   "csi.cert-manager.io",
+							ReadOnly: new(true),
+							VolumeAttributes: map[string]string{
+								"csi.cert-manager.io/issuer-name":  "some-ca",
+								"csi.cert-manager.io/issuer-kind":  "ClusterIssuer",
+								"csi.cert-manager.io/issuer-group": "cert-manager.io",
+								"csi.cert-manager.io/common-name":  "${POD_NAME}",
+								"csi.cert-manager.io/dns-names":    "${POD_NAME}.foo-nodes.${POD_NAMESPACE},${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc,${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc.cluster.local",
+								"csi.cert-manager.io/key-usages":   "digital signature,key encipherment,server auth,client auth",
+								"csi.cert-manager.io/fs-group":     "999",
 							},
 						},
 					}))
@@ -1109,11 +1093,9 @@ var _ = Describe("StatefulSet", func() {
 									Volumes: []corev1.Volume{
 										{
 											Name: "rabbitmq-inter-node-tls",
-											VolumeSource: corev1.VolumeSource{
-												CSI: &corev1.CSIVolumeSource{
-													VolumeAttributes: map[string]string{
-														"csi.cert-manager.io/key-usages": "digital signature",
-													},
+											CSI: &corev1.CSIVolumeSource{
+												VolumeAttributes: map[string]string{
+													"csi.cert-manager.io/key-usages": "digital signature",
 												},
 											},
 										},
@@ -1515,47 +1497,37 @@ default_pass = {{ .Data.data.password }}
 				expectedVolumes := []corev1.Volume{
 					{
 						Name: "plugins-conf",
-						VolumeSource: corev1.VolumeSource{
-							ConfigMap: &corev1.ConfigMapVolumeSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: instance.ChildResourceName("plugins-conf"),
-								},
-							},
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							Name: instance.ChildResourceName("plugins-conf"),
 						},
 					},
 					{
 						Name: "rabbitmq-confd",
-						VolumeSource: corev1.VolumeSource{
-							Projected: &corev1.ProjectedVolumeSource{
-								Sources: []corev1.VolumeProjection{
+						Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{
 
-									{
-										ConfigMap: &corev1.ConfigMapProjection{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: builder.Instance.ChildResourceName("server-conf"),
+								{
+									ConfigMap: &corev1.ConfigMapProjection{
+										Name: builder.Instance.ChildResourceName("server-conf"),
+										Items: []corev1.KeyToPath{
+											{
+												Key:  "operatorDefaults.conf",
+												Path: "operatorDefaults.conf",
 											},
-											Items: []corev1.KeyToPath{
-												{
-													Key:  "operatorDefaults.conf",
-													Path: "operatorDefaults.conf",
-												},
-												{
-													Key:  "userDefinedConfiguration.conf",
-													Path: "userDefinedConfiguration.conf",
-												},
+											{
+												Key:  "userDefinedConfiguration.conf",
+												Path: "userDefinedConfiguration.conf",
 											},
 										},
 									},
-									{
-										Secret: &corev1.SecretProjection{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: builder.Instance.ChildResourceName("default-user"),
-											},
-											Items: []corev1.KeyToPath{
-												{
-													Key:  "default_user.conf",
-													Path: "default_user.conf",
-												},
+								},
+								{
+									Secret: &corev1.SecretProjection{
+										Name: builder.Instance.ChildResourceName("default-user"),
+										Items: []corev1.KeyToPath{
+											{
+												Key:  "default_user.conf",
+												Path: "default_user.conf",
 											},
 										},
 									},
@@ -1564,35 +1536,27 @@ default_pass = {{ .Data.data.password }}
 						},
 					},
 					{
-						Name: "rabbitmq-erlang-cookie",
-						VolumeSource: corev1.VolumeSource{
-							EmptyDir: &corev1.EmptyDirVolumeSource{},
-						},
+						Name:     "rabbitmq-erlang-cookie",
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 					{
 						Name: "erlang-cookie-secret",
-						VolumeSource: corev1.VolumeSource{
-							Secret: &corev1.SecretVolumeSource{
-								SecretName: instance.ChildResourceName("erlang-cookie"),
-							},
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: instance.ChildResourceName("erlang-cookie"),
 						},
 					},
 					{
-						Name: "rabbitmq-plugins",
-						VolumeSource: corev1.VolumeSource{
-							EmptyDir: &corev1.EmptyDirVolumeSource{},
-						},
+						Name:     "rabbitmq-plugins",
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 					{
 						Name: "pod-info",
-						VolumeSource: corev1.VolumeSource{
-							DownwardAPI: &corev1.DownwardAPIVolumeSource{
-								Items: []corev1.DownwardAPIVolumeFile{
-									{
-										Path: "skipPreStopChecks",
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.labels['skipPreStopChecks']",
-										},
+						DownwardAPI: &corev1.DownwardAPIVolumeSource{
+							Items: []corev1.DownwardAPIVolumeFile{
+								{
+									Path: "skipPreStopChecks",
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath: "metadata.labels['skipPreStopChecks']",
 									},
 								},
 							},
@@ -1603,29 +1567,24 @@ default_pass = {{ .Data.data.password }}
 				if rabbitmqEnv != "" || advancedConfig != "" || erlInetRc != "" || interNodeTLS {
 					expectedVolumes = append(expectedVolumes, corev1.Volume{
 						Name: "server-conf",
-						VolumeSource: corev1.VolumeSource{
-							ConfigMap: &corev1.ConfigMapVolumeSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: instance.ChildResourceName("server-conf"),
-								}}}})
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							Name: instance.ChildResourceName("server-conf")}})
 				}
 
 				if interNodeTLS {
 					expectedVolumes = append(expectedVolumes, corev1.Volume{
 						Name: "rabbitmq-inter-node-tls",
-						VolumeSource: corev1.VolumeSource{
-							CSI: &corev1.CSIVolumeSource{
-								Driver:   "csi.cert-manager.io",
-								ReadOnly: new(true),
-								VolumeAttributes: map[string]string{
-									"csi.cert-manager.io/issuer-name":  "some-ca",
-									"csi.cert-manager.io/issuer-kind":  "",
-									"csi.cert-manager.io/issuer-group": "",
-									"csi.cert-manager.io/common-name":  "${POD_NAME}",
-									"csi.cert-manager.io/dns-names":    "${POD_NAME}.foo-nodes.${POD_NAMESPACE},${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc,${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc.cluster.local",
-									"csi.cert-manager.io/key-usages":   "digital signature,key encipherment,server auth,client auth",
-									"csi.cert-manager.io/fs-group":     "999",
-								},
+						CSI: &corev1.CSIVolumeSource{
+							Driver:   "csi.cert-manager.io",
+							ReadOnly: new(true),
+							VolumeAttributes: map[string]string{
+								"csi.cert-manager.io/issuer-name":  "some-ca",
+								"csi.cert-manager.io/issuer-kind":  "",
+								"csi.cert-manager.io/issuer-group": "",
+								"csi.cert-manager.io/common-name":  "${POD_NAME}",
+								"csi.cert-manager.io/dns-names":    "${POD_NAME}.foo-nodes.${POD_NAMESPACE},${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc,${POD_NAME}.foo-nodes.${POD_NAMESPACE}.svc.cluster.local",
+								"csi.cert-manager.io/key-usages":   "digital signature,key encipherment,server auth,client auth",
+								"csi.cert-manager.io/fs-group":     "999",
 							},
 						},
 					})
@@ -1660,10 +1619,8 @@ default_pass = {{ .Data.data.password }}
 				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
 
 				expectedVolume := corev1.Volume{
-					Name: "persistence",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{},
-					},
+					Name:     "persistence",
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
 				}
 
 				Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(expectedVolume))
@@ -1682,11 +1639,9 @@ default_pass = {{ .Data.data.password }}
 
 				expectedVolume := corev1.Volume{
 					Name: "persistence",
-					VolumeSource: corev1.VolumeSource{
-						EmptyDir: &corev1.EmptyDirVolumeSource{
-							SizeLimit: new(k8sresource.MustParse("500Mi")),
-							Medium:    corev1.StorageMediumMemory,
-						},
+					EmptyDir: &corev1.EmptyDirVolumeSource{
+						SizeLimit: new(k8sresource.MustParse("500Mi")),
+						Medium:    corev1.StorageMediumMemory,
 					},
 				}
 
@@ -1960,10 +1915,8 @@ default_pass = {{ .Data.data.password }}
 
 				statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "persistence",
-							Namespace: instance.Namespace,
-						},
+						Name:      "persistence",
+						Namespace: instance.Namespace,
 						Spec: corev1.PersistentVolumeClaimSpec{
 							AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 							Resources: corev1.VolumeResourceRequirements{
@@ -1988,10 +1941,8 @@ default_pass = {{ .Data.data.password }}
 						Spec: &rabbitmqv1beta1.StatefulSetSpec{
 							VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
 								{
-									EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
-										Name:      "persistence",
-										Namespace: instance.Namespace,
-									},
+									Name:      "persistence",
+									Namespace: instance.Namespace,
 									Spec: corev1.PersistentVolumeClaimSpec{
 										Resources: corev1.VolumeResourceRequirements{
 											Requests: corev1.ResourceList{
@@ -2154,10 +2105,8 @@ default_pass = {{ .Data.data.password }}
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
-									Name:      "pert-1",
-									Namespace: instance.Namespace,
-								},
+								Name:      "pert-1",
+								Namespace: instance.Namespace,
 								Spec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -2168,10 +2117,8 @@ default_pass = {{ .Data.data.password }}
 								},
 							},
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
-									Name:      "pert-2",
-									Namespace: instance.Namespace,
-								},
+								Name:      "pert-2",
+								Namespace: instance.Namespace,
 								Spec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -2189,18 +2136,16 @@ default_pass = {{ .Data.data.password }}
 
 				Expect(statefulSet.Spec.VolumeClaimTemplates).To(ConsistOf(
 					corev1.PersistentVolumeClaim{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pert-1",
-							Namespace: "foo-namespace",
-							OwnerReferences: []metav1.OwnerReference{
-								{
-									APIVersion:         "rabbitmq.com/v1beta1",
-									Kind:               "RabbitmqCluster",
-									Name:               instance.Name,
-									UID:                "",
-									Controller:         new(true),
-									BlockOwnerDeletion: new(false),
-								},
+						Name:      "pert-1",
+						Namespace: "foo-namespace",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion:         "rabbitmq.com/v1beta1",
+								Kind:               "RabbitmqCluster",
+								Name:               instance.Name,
+								UID:                "",
+								Controller:         new(true),
+								BlockOwnerDeletion: new(false),
 							},
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{
@@ -2213,18 +2158,16 @@ default_pass = {{ .Data.data.password }}
 						},
 					},
 					corev1.PersistentVolumeClaim{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pert-2",
-							Namespace: "foo-namespace",
-							OwnerReferences: []metav1.OwnerReference{
-								{
-									APIVersion:         "rabbitmq.com/v1beta1",
-									Kind:               "RabbitmqCluster",
-									Name:               instance.Name,
-									UID:                "",
-									Controller:         new(true),
-									BlockOwnerDeletion: new(false),
-								},
+						Name:      "pert-2",
+						Namespace: "foo-namespace",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion:         "rabbitmq.com/v1beta1",
+								Kind:               "RabbitmqCluster",
+								Name:               instance.Name,
+								UID:                "",
+								Controller:         new(true),
+								BlockOwnerDeletion: new(false),
 							},
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{
@@ -2245,9 +2188,7 @@ default_pass = {{ .Data.data.password }}
 					Spec: &rabbitmqv1beta1.StatefulSetSpec{
 						VolumeClaimTemplates: []rabbitmqv1beta1.PersistentVolumeClaim{
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
-									Name: "pert-1",
-								},
+								Name: "pert-1",
 								Spec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -2258,9 +2199,7 @@ default_pass = {{ .Data.data.password }}
 								},
 							},
 							{
-								EmbeddedObjectMeta: rabbitmqv1beta1.EmbeddedObjectMeta{
-									Name: "pert-2",
-								},
+								Name: "pert-2",
 								Spec: corev1.PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
@@ -2278,18 +2217,16 @@ default_pass = {{ .Data.data.password }}
 
 				Expect(statefulSet.Spec.VolumeClaimTemplates).To(ConsistOf(
 					corev1.PersistentVolumeClaim{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pert-1",
-							Namespace: "foo-namespace",
-							OwnerReferences: []metav1.OwnerReference{
-								{
-									APIVersion:         "rabbitmq.com/v1beta1",
-									Kind:               "RabbitmqCluster",
-									Name:               instance.Name,
-									UID:                "",
-									Controller:         new(true),
-									BlockOwnerDeletion: new(false),
-								},
+						Name:      "pert-1",
+						Namespace: "foo-namespace",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion:         "rabbitmq.com/v1beta1",
+								Kind:               "RabbitmqCluster",
+								Name:               instance.Name,
+								UID:                "",
+								Controller:         new(true),
+								BlockOwnerDeletion: new(false),
 							},
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{
@@ -2302,18 +2239,16 @@ default_pass = {{ .Data.data.password }}
 						},
 					},
 					corev1.PersistentVolumeClaim{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pert-2",
-							Namespace: "foo-namespace",
-							OwnerReferences: []metav1.OwnerReference{
-								{
-									APIVersion:         "rabbitmq.com/v1beta1",
-									Kind:               "RabbitmqCluster",
-									Name:               instance.Name,
-									UID:                "",
-									Controller:         new(true),
-									BlockOwnerDeletion: new(false),
-								},
+						Name:      "pert-2",
+						Namespace: "foo-namespace",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion:         "rabbitmq.com/v1beta1",
+								Kind:               "RabbitmqCluster",
+								Name:               instance.Name,
+								UID:                "",
+								Controller:         new(true),
+								BlockOwnerDeletion: new(false),
 							},
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{
@@ -2568,10 +2503,8 @@ default_pass = {{ .Data.data.password }}
 										{
 											Name: "rabbitmq",
 											ReadinessProbe: &corev1.Probe{
-												ProbeHandler: corev1.ProbeHandler{
-													Exec: &corev1.ExecAction{
-														Command: []string{"custom-readiness-probe", "arg1"},
-													},
+												Exec: &corev1.ExecAction{
+													Command: []string{"custom-readiness-probe", "arg1"},
 												},
 											},
 										},
@@ -2607,10 +2540,8 @@ default_pass = {{ .Data.data.password }}
 										{
 											Name: "rabbitmq",
 											LivenessProbe: &corev1.Probe{
-												ProbeHandler: corev1.ProbeHandler{
-													Exec: &corev1.ExecAction{
-														Command: []string{"custom-liveness-probe", "arg1"},
-													},
+												Exec: &corev1.ExecAction{
+													Command: []string{"custom-liveness-probe", "arg1"},
 												},
 											},
 										},
@@ -2646,10 +2577,8 @@ default_pass = {{ .Data.data.password }}
 										{
 											Name: "rabbitmq",
 											StartupProbe: &corev1.Probe{
-												ProbeHandler: corev1.ProbeHandler{
-													Exec: &corev1.ExecAction{
-														Command: []string{"custom-startup-probe", "arg1"},
-													},
+												Exec: &corev1.ExecAction{
+													Command: []string{"custom-startup-probe", "arg1"},
 												},
 											},
 										},
@@ -3009,10 +2938,8 @@ default_pass = {{ .Data.data.password }}
 								Spec: &corev1.PodSpec{
 									Volumes: []corev1.Volume{
 										{
-											Name: "host-root",
-											VolumeSource: corev1.VolumeSource{
-												HostPath: &corev1.HostPathVolumeSource{Path: "/"},
-											},
+											Name:     "host-root",
+											HostPath: &corev1.HostPathVolumeSource{Path: "/"},
 										},
 									},
 								},
@@ -3212,10 +3139,8 @@ func extractProjectedSecret(volume corev1.Volume, secretName string) corev1.Volu
 func generateRabbitmqCluster() rabbitmqv1beta1.RabbitmqCluster {
 	storage := k8sresource.MustParse("10Gi")
 	return rabbitmqv1beta1.RabbitmqCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "foo-namespace",
-		},
+		Name:      "foo",
+		Namespace: "foo-namespace",
 		Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 			Replicas:                      new(int32(1)),
 			Image:                         "rabbitmq-image-from-cr",

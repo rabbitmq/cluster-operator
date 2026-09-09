@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,10 +17,8 @@ var _ = Describe("ReconcileOperatorDefaults", func() {
 			// Simulate what the mutating webhook sets at admission time.
 			userUpdaterImage := defaultUserUpdaterImage
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-default",
-					Namespace: "default",
-				},
+				Name:      "test-default",
+				Namespace: "default",
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Image: defaultRabbitmqImage,
 					ImagePullSecrets: []corev1.LocalObjectReference{

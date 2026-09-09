@@ -189,10 +189,10 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// The ServiceAccount is intentionally kept because other integrations
 		// (e.g. Vault Kubernetes auth) may rely on it.
 		for _, obj := range []client.Object{
-			&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: rabbitmqCluster.ChildResourceName("peer-discovery"), Namespace: rabbitmqCluster.Namespace}},
-			&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: rabbitmqCluster.ChildResourceName("server"), Namespace: rabbitmqCluster.Namespace}},
+			&rbacv1.Role{Name: rabbitmqCluster.ChildResourceName("peer-discovery"), Namespace: rabbitmqCluster.Namespace},
+			&rbacv1.RoleBinding{Name: rabbitmqCluster.ChildResourceName("server"), Namespace: rabbitmqCluster.Namespace},
 		} {
-			if err := r.Client.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+			if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
 				logger.Error(err, "Failed to delete peer-discovery RBAC resource")
 				return ctrl.Result{}, err
 			}

@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -27,10 +26,8 @@ var _ = Describe("Reconcile CLI", func() {
 		var sts *appsv1.StatefulSet
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-feature-flags",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-feature-flags",
+				Namespace: defaultNamespace,
 			}
 			Expect(client.Create(ctx, cluster)).To(Succeed())
 			waitForClusterCreation(ctx, cluster, client)
@@ -70,10 +67,8 @@ var _ = Describe("Reconcile CLI", func() {
 		BeforeEach(func() {
 			rmqName = fmt.Sprintf("%s-%d", rmqNamePrefix, time.Now().Unix())
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      rmqName,
-					Namespace: defaultNamespace,
-				},
+				Name:      rmqName,
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: new(int32(3)),
 				},
@@ -217,10 +212,8 @@ var _ = Describe("Reconcile CLI", func() {
 	When("the cluster is not configured to run post-deploy steps", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-three-no-post-deploy",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-three-no-post-deploy",
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:            new(int32(3)),
 					SkipPostDeploySteps: true,
@@ -275,10 +268,8 @@ var _ = Describe("Reconcile CLI", func() {
 	When("the cluster is a single node cluster", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rabbitmq-one-rebalance",
-					Namespace: defaultNamespace,
-				},
+				Name:      "rabbitmq-one-rebalance",
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas:            new(int32(1)),
 					SkipPostDeploySteps: false,
@@ -334,10 +325,8 @@ var _ = Describe("Reconcile CLI", func() {
 	When("the cluster needs version annotations", func() {
 		BeforeEach(func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("rabbitmq-version-annotation-%d", time.Now().UnixNano()),
-					Namespace: defaultNamespace,
-				},
+				Name:      fmt.Sprintf("rabbitmq-version-annotation-%d", time.Now().UnixNano()),
+				Namespace: defaultNamespace,
 				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
 					Replicas: new(int32(1)),
 				},
