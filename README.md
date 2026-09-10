@@ -20,6 +20,12 @@ kubectl apply -f https://raw.githubusercontent.com/rabbitmq/cluster-operator/mai
   <img width="100%" src="./docs/demos/installation.svg">
 </p>
 
+## Compatibility
+The Operator requires:
+- Kubernetes 1.31 or later
+- [RabbitMQ DockerHub](https://hub.docker.com/_/rabbitmq) image from a [supported release series](https://www.rabbitmq.com/release-information)
+- For Cluster Operator versions 2.20 and later, [cert-manager](https://cert-manager.io/) must be installed in the cluster
+
 ## Documentation
 
 RabbitMQ Cluster Kubernetes Operator is covered by several guides:
