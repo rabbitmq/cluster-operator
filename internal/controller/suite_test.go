@@ -214,6 +214,10 @@ func (f *fakeRabbitmqClient) HealthCheckNodeIsQuorumCritical() (rabbithole.Healt
 	return res, nil
 }
 
+func (f *fakeRabbitmqClient) ListQueues() ([]rabbithole.QueueInfo, error) {
+	return nil, f.err
+}
+
 var _ = AfterEach(func() {
 	fakeExecutor.ResetExecutedCommands()
 	fakeRabbitmqFactory.client = nil

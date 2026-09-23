@@ -277,6 +277,18 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
+	// Stream queues (unlike quorum queues) have no broker-side reconciler,
+	// so grow their membership after all desired broker pods are ready. Running
+	// this before the StatefulSet update can make RabbitMQ reject new nodes
+	// while they are still starting.
+	if desiredSts, err := r.statefulSet(ctx, rabbitmqCluster); err == nil {
+		if allReplicasReadyAndUpdated(desiredSts) && desiredSts.Spec.Replicas != nil && *desiredSts.Spec.Replicas > 0 {
+			if r.reconcileStreamReplicas(ctx, rabbitmqCluster, desiredSts) {
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+			}
+		}
+	}
+
 	if requeueAfter, err := r.restartStatefulSetIfNeeded(ctx, logger, rabbitmqCluster); err != nil || requeueAfter > 0 {
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}

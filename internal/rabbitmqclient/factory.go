@@ -25,6 +25,7 @@ type RabbitmqClient interface {
 	Overview() (*rabbithole.Overview, error)
 	HealthCheckNodeIsQuorumCritical() (rabbithole.HealthCheckStatus, error)
 	ListDeprecatedFeaturesUsed() ([]rabbithole.DeprecatedFeature, error)
+	ListQueues() ([]rabbithole.QueueInfo, error)
 }
 
 // RabbitmqClientFactory creates a RabbitmqClient targeting either a specific pod or the cluster Service.
