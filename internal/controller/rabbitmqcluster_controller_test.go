@@ -1120,6 +1120,55 @@ var _ = Describe("RabbitmqClusterController", func() {
 			Expect(statefulSet(ctx, cluster).Spec.Template.Spec.InitContainers[0].SecurityContext).To(BeNil())
 		})
 
+		It("preserves independent probes when a sidecar precedes RabbitMQ in the override", func() {
+			rabbitmqReadiness := corev1.ProbeHandler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/api/health/checks/ready-to-serve-clients",
+					Port:   intstr.FromString("management"),
+					Scheme: corev1.URISchemeHTTP,
+				},
+			}
+			rabbitmqStartup := corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{Command: []string{"rabbitmq-diagnostics", "ping"}},
+			}
+			sidecarReadiness := corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{Command: []string{"sidecar-ready"}},
+			}
+			sidecarStartup := corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{Command: []string{"sidecar-started"}},
+			}
+			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.Override.StatefulSet.Spec.Template.Spec.Containers = []corev1.Container{
+					{
+						Name:           "additional-container",
+						Image:          "my-great-image",
+						ReadinessProbe: &corev1.Probe{ProbeHandler: sidecarReadiness},
+						StartupProbe:   &corev1.Probe{ProbeHandler: sidecarStartup},
+					},
+					{
+						Name:           "rabbitmq",
+						ReadinessProbe: &corev1.Probe{ProbeHandler: rabbitmqReadiness},
+						StartupProbe:   &corev1.Probe{ProbeHandler: rabbitmqStartup},
+					},
+				}
+			})).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				sts, err := clientSet.AppsV1().StatefulSets(cluster.Namespace).Get(ctx, cluster.ChildResourceName("server"), metav1.GetOptions{})
+				g.Expect(err).NotTo(HaveOccurred())
+				rabbitmq := extractContainer(sts.Spec.Template.Spec.Containers, "rabbitmq")
+				sidecar := extractContainer(sts.Spec.Template.Spec.Containers, "additional-container")
+				g.Expect(rabbitmq.ReadinessProbe).NotTo(BeNil())
+				g.Expect(rabbitmq.ReadinessProbe.ProbeHandler).To(Equal(rabbitmqReadiness))
+				g.Expect(rabbitmq.StartupProbe).NotTo(BeNil())
+				g.Expect(rabbitmq.StartupProbe.ProbeHandler).To(Equal(rabbitmqStartup))
+				g.Expect(sidecar.ReadinessProbe).NotTo(BeNil())
+				g.Expect(sidecar.ReadinessProbe.ProbeHandler).To(Equal(sidecarReadiness))
+				g.Expect(sidecar.StartupProbe).NotTo(BeNil())
+				g.Expect(sidecar.StartupProbe.ProbeHandler).To(Equal(sidecarStartup))
+			}, 3*time.Second).Should(Succeed())
+		})
+
 		It("can override the StartupProbe", func() {
 			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
 				cluster.Spec.Override.StatefulSet.Spec.Template.Spec.Containers = []corev1.Container{
