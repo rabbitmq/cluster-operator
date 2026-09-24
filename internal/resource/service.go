@@ -64,17 +64,39 @@ func (builder *ServiceBuilder) Update(object client.Object) error {
 	service.Spec.Selector = metadata.LabelSelector(builder.Instance.Name)
 	service.Spec.IPFamilyPolicy = builder.Instance.Spec.Service.IPFamilyPolicy
 
-	service.Spec.Ports = builder.updatePorts(service.Spec.Ports)
-
-	if builder.Instance.Spec.Service.Type == "ClusterIP" || builder.Instance.Spec.Service.Type == "" {
-		for i := range service.Spec.Ports {
-			service.Spec.Ports[i].NodePort = int32(0)
-		}
-	}
+	existingPorts := service.Spec.Ports
+	service.Spec.Ports = builder.updatePorts(existingPorts)
 
 	if builder.Instance.Spec.Override.Service != nil {
 		if err := applySvcOverride(service, builder.Instance.Spec.Override.Service); err != nil {
 			return fmt.Errorf("failed applying Service override: %w", err)
+		}
+	}
+
+	// Preserve allocations only after overrides have determined the desired ports and type.
+	if service.Spec.Type == corev1.ServiceTypeNodePort || service.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		type nodePortKey struct {
+			protocol corev1.Protocol
+			port     int32
+		}
+		explicitNodePorts := make(map[nodePortKey]bool)
+		for _, port := range service.Spec.Ports {
+			if port.NodePort != 0 {
+				explicitNodePorts[nodePortKey{servicePortProtocol(port), port.NodePort}] = true
+			}
+		}
+		for i := range service.Spec.Ports {
+			port := &service.Spec.Ports[i]
+			if port.NodePort != 0 {
+				continue
+			}
+			for _, existingPort := range existingPorts {
+				key := nodePortKey{servicePortProtocol(existingPort), existingPort.NodePort}
+				if port.Port == existingPort.Port && servicePortProtocol(*port) == key.protocol && !explicitNodePorts[key] {
+					port.NodePort = existingPort.NodePort
+					break
+				}
+			}
 		}
 	}
 
@@ -83,6 +105,13 @@ func (builder *ServiceBuilder) Update(object client.Object) error {
 	}
 
 	return nil
+}
+
+func servicePortProtocol(port corev1.ServicePort) corev1.Protocol {
+	if port.Protocol == "" {
+		return corev1.ProtocolTCP
+	}
+	return port.Protocol
 }
 
 func applySvcOverride(svc *corev1.Service, override *rabbitmqv1beta1.Service) error {
@@ -295,8 +324,6 @@ func (builder *ServiceBuilder) updatePorts(servicePorts []corev1.ServicePort) []
 
 	for _, servicePort := range servicePorts {
 		if value, exists := servicePortsMap[servicePort.Name]; exists {
-			value.NodePort = servicePort.NodePort
-
 			updatedServicePorts = append(updatedServicePorts, value)
 			delete(servicePortsMap, servicePort.Name)
 		}
