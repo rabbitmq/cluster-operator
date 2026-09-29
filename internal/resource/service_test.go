@@ -770,6 +770,122 @@ var _ = Context("Services", func() {
 				}))
 			})
 
+			Context("allocated NodePorts", func() {
+				BeforeEach(func() {
+					instance.Spec.Service.Type = corev1.ServiceTypeNodePort
+					instance.Spec.Override.Service = &rabbitmqv1beta1.Service{
+						Spec: &corev1.ServiceSpec{
+							Ports: []corev1.ServicePort{{
+								Name: "additional-port", Port: 32011, Protocol: corev1.ProtocolTCP,
+								TargetPort: intstr.FromInt(32011),
+							}},
+						},
+					}
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					for i := range svc.Spec.Ports {
+						svc.Spec.Ports[i].NodePort = int32(31000 + i)
+					}
+				})
+
+				DescribeTable("preserves allocations for the final service type",
+					func(serviceType, overrideType corev1.ServiceType, preserve bool) {
+						instance.Spec.Service.Type = serviceType
+						instance.Spec.Override.Service.Spec.Type = overrideType
+						expectedPorts := svc.DeepCopy().Spec.Ports
+						if !preserve {
+							for i := range expectedPorts {
+								expectedPorts[i].NodePort = 0
+							}
+						}
+						for range 3 {
+							Expect(serviceBuilder.Update(svc)).To(Succeed())
+							Expect(svc.Spec.Ports).To(ConsistOf(expectedPorts))
+						}
+					},
+					Entry("NodePort", corev1.ServiceTypeNodePort, corev1.ServiceType(""), true),
+					Entry("LoadBalancer", corev1.ServiceTypeLoadBalancer, corev1.ServiceType(""), true),
+					Entry("overridden NodePort", corev1.ServiceTypeClusterIP, corev1.ServiceTypeNodePort, true),
+					Entry("overridden LoadBalancer", corev1.ServiceTypeClusterIP, corev1.ServiceTypeLoadBalancer, true),
+					Entry("ClusterIP", corev1.ServiceTypeClusterIP, corev1.ServiceType(""), false),
+					Entry("default type", corev1.ServiceType(""), corev1.ServiceType(""), false),
+					Entry("overridden ClusterIP", corev1.ServiceTypeNodePort, corev1.ServiceTypeClusterIP, false),
+				)
+
+				DescribeTable("reconciles changes to an additional port",
+					func(mutate func(*corev1.ServicePort), preserve bool, explicitNodePort int32) {
+						var allocatedNodePort int32
+						for _, port := range svc.Spec.Ports {
+							if port.Name == "additional-port" {
+								allocatedNodePort = port.NodePort
+							}
+						}
+						port := &instance.Spec.Override.Service.Spec.Ports[0]
+						mutate(port)
+						expectedPort := *port
+						expectedPort.NodePort = explicitNodePort
+						if preserve {
+							expectedPort.NodePort = allocatedNodePort
+						}
+						Expect(serviceBuilder.Update(svc)).To(Succeed())
+						Expect(svc.Spec.Ports).To(ContainElement(expectedPort))
+					},
+					Entry("explicit NodePort wins", func(p *corev1.ServicePort) { p.NodePort = 31234 }, false, int32(31234)),
+					Entry("renamed port retains its allocation", func(p *corev1.ServicePort) { p.Name = "renamed" }, true, int32(0)),
+					Entry("changed target retains its allocation", func(p *corev1.ServicePort) { p.TargetPort = intstr.FromInt(32012) }, true, int32(0)),
+					Entry("changed port does not inherit an allocation", func(p *corev1.ServicePort) { p.Port = 32012 }, false, int32(0)),
+					Entry("changed protocol does not inherit an allocation", func(p *corev1.ServicePort) { p.Protocol = corev1.ProtocolUDP }, false, int32(0)),
+					Entry("omitted protocol matches default TCP", func(p *corev1.ServicePort) { p.Protocol = "" }, true, int32(0)),
+				)
+
+				It("removes ports that are no longer configured", func() {
+					instance.Spec.Override.Service.Spec.Ports = nil
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).To(HaveLen(3))
+					for _, port := range svc.Spec.Ports {
+						Expect(port.Name).NotTo(Equal("additional-port"))
+						Expect(port.NodePort).NotTo(BeZero())
+					}
+				})
+
+				It("allows an explicit NodePort to move to another port", func() {
+					var allocatedNodePort int32
+					for _, port := range svc.Spec.Ports {
+						if port.Name == "additional-port" {
+							allocatedNodePort = port.NodePort
+						}
+					}
+					movedPort := corev1.ServicePort{
+						Name: "another-port", Port: 32012, Protocol: corev1.ProtocolTCP,
+						TargetPort: intstr.FromInt(32012), NodePort: allocatedNodePort,
+					}
+					instance.Spec.Override.Service.Spec.Ports = append(instance.Spec.Override.Service.Spec.Ports, movedPort)
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).To(ContainElements(movedPort, instance.Spec.Override.Service.Spec.Ports[0]))
+				})
+
+				It("retains existing allocations when LoadBalancer allocation is disabled", func() {
+					instance.Spec.Service.Type = corev1.ServiceTypeLoadBalancer
+					instance.Spec.Override.Service.Spec.AllocateLoadBalancerNodePorts = ptr.To(false)
+					expectedPorts := svc.DeepCopy().Spec.Ports
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).To(ConsistOf(expectedPorts))
+				})
+
+				It("allows TCP and UDP ports to share a NodePort", func() {
+					var amqpPort corev1.ServicePort
+					for _, port := range svc.Spec.Ports {
+						if port.Name == "amqp" {
+							amqpPort = port
+						}
+					}
+					port := &instance.Spec.Override.Service.Spec.Ports[0]
+					port.Protocol = corev1.ProtocolUDP
+					port.NodePort = amqpPort.NodePort
+					Expect(serviceBuilder.Update(svc)).To(Succeed())
+					Expect(svc.Spec.Ports).To(ContainElements(amqpPort, *port))
+				})
+			})
+
 			It("overrides ServiceSpec", func() {
 				var IPv4 corev1.IPFamily = "IPv4"
 				ten := int32(10)

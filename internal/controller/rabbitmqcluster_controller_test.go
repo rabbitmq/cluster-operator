@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	controllers "github.com/rabbitmq/cluster-operator/v2/internal/controller"
+	"github.com/rabbitmq/cluster-operator/v2/internal/resource"
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -39,6 +40,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -331,6 +333,91 @@ var _ = Describe("RabbitmqClusterController", func() {
 	})
 
 	Context("Service configurations", func() {
+		DescribeTable("preserves allocated NodePorts for additional override ports", func(serviceType, overrideType corev1.ServiceType) {
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+				Name:      fmt.Sprintf("rabbit-nodeport-%d", time.Now().UnixNano()),
+				Namespace: defaultNamespace,
+				Spec: rabbitmqv1beta1.RabbitmqClusterSpec{
+					Service: rabbitmqv1beta1.RabbitmqClusterServiceSpec{
+						Type:           serviceType,
+						IPFamilyPolicy: ptr.To(corev1.IPFamilyPolicySingleStack),
+					},
+					Override: rabbitmqv1beta1.RabbitmqClusterOverrideSpec{
+						Service: &rabbitmqv1beta1.Service{
+							Spec: &corev1.ServiceSpec{
+								Type: overrideType,
+								Ports: []corev1.ServicePort{{
+									Name:       "additional-port",
+									Protocol:   corev1.ProtocolTCP,
+									Port:       15535,
+									TargetPort: intstr.FromInt(15535),
+								}},
+							},
+						},
+					},
+				},
+			}
+			Expect(client.Create(ctx, cluster)).To(Succeed())
+			statefulSet(ctx, cluster)
+
+			svc := service(ctx, cluster, "")
+			Expect(svc.Spec.Ports).To(HaveLen(4))
+			for _, port := range svc.Spec.Ports {
+				Expect(port.NodePort).To(BeNumerically(">", 0))
+			}
+			initialPorts := svc.Spec.Ports
+			initialResourceVersion := svc.ResourceVersion
+
+			By("avoiding an update even when the API server would preserve omitted NodePorts")
+			builder := resource.RabbitmqResourceBuilder{Instance: cluster, Scheme: client.Scheme()}
+			reconciledService := &corev1.Service{Name: svc.Name, Namespace: svc.Namespace}
+			operation, err := controllerutil.CreateOrUpdate(ctx, client, reconciledService, func() error {
+				return builder.Service().Update(reconciledService)
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(operation).To(Equal(controllerutil.OperationResultNone))
+
+			By("reconciling unrelated spec changes without updating the Service")
+			for gracePeriod := int64(30); gracePeriod < 33; gracePeriod++ {
+				Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+					r.Spec.TerminationGracePeriodSeconds = ptr.To(gracePeriod)
+				})).To(Succeed())
+				// Services are reconciled before the StatefulSet, so observing the
+				// updated pod template confirms this spec change was reconciled.
+				Eventually(func() *int64 {
+					return statefulSet(ctx, cluster).Spec.Template.Spec.TerminationGracePeriodSeconds
+				}, ClusterCreationTimeout).Should(Equal(ptr.To(gracePeriod)))
+
+				svc = service(ctx, cluster, "")
+				Expect(svc.Spec.Ports).To(Equal(initialPorts))
+				Expect(svc.ResourceVersion).To(Equal(initialResourceVersion))
+			}
+
+			By("removing the additional port when its override is removed")
+			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.Override.Service.Spec.Ports = nil
+			})).To(Succeed())
+			Eventually(func() []corev1.ServicePort {
+				return service(ctx, cluster, "").Spec.Ports
+			}, ClusterCreationTimeout).Should(HaveLen(3))
+			Expect(service(ctx, cluster, "").Spec.Ports).NotTo(ContainElement(HaveField("Name", "additional-port")))
+
+			By("clearing NodePorts when changing to ClusterIP")
+			Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+				r.Spec.Override.Service.Spec.Type = corev1.ServiceTypeClusterIP
+			})).To(Succeed())
+			Eventually(func() corev1.ServiceType {
+				return service(ctx, cluster, "").Spec.Type
+			}, ClusterCreationTimeout).Should(Equal(corev1.ServiceTypeClusterIP))
+			for _, port := range service(ctx, cluster, "").Spec.Ports {
+				Expect(port.NodePort).To(BeZero())
+			}
+		},
+			Entry("with a NodePort service", corev1.ServiceTypeNodePort, corev1.ServiceType("")),
+			Entry("with a LoadBalancer service", corev1.ServiceTypeLoadBalancer, corev1.ServiceType("")),
+			Entry("with NodePort configured only in the override", corev1.ServiceTypeClusterIP, corev1.ServiceTypeNodePort),
+		)
+
 		It("creates the service type and annotations as configured in instance spec", func() {
 			cluster = &rabbitmqv1beta1.RabbitmqCluster{
 				Name:      "rabbit-service-2",
