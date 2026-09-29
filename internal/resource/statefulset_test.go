@@ -10,6 +10,8 @@
 package resource_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -989,6 +991,76 @@ var _ = Describe("StatefulSet", func() {
 				Expect(container.StartupProbe.TimeoutSeconds).To(BeEquivalentTo(5))
 				Expect(container.StartupProbe.PeriodSeconds).To(BeEquivalentTo(10))
 				Expect(container.StartupProbe.FailureThreshold).To(BeEquivalentTo(30))
+			})
+		})
+
+		Context("management.path_prefix in additionalConfig", func() {
+			DescribeTable("prepends the configured path prefix to the startup probe HTTP path",
+				func(pathPrefix, expectedPath string) {
+					instance.Spec.Rabbitmq.AdditionalConfig = fmt.Sprintf("management.path_prefix = %s", pathPrefix)
+					stsBuilder := builder.StatefulSet()
+					Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+					container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet).NotTo(BeNil())
+					Expect(container.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal(expectedPath))
+				},
+				Entry("prefix with leading slash", "/custom-prefix", "/custom-prefix/api/health/checks/reached-target-cluster-size"),
+				Entry("prefix without leading slash", "custom-prefix", "/custom-prefix/api/health/checks/reached-target-cluster-size"),
+				Entry("prefix with trailing slash", "/custom-prefix/", "/custom-prefix/api/health/checks/reached-target-cluster-size"),
+				Entry("prefix with redundant leading and trailing slashes", "//custom-prefix//", "/custom-prefix/api/health/checks/reached-target-cluster-size"),
+				Entry("prefix that is only a slash", "/", "/api/health/checks/reached-target-cluster-size"),
+				Entry("empty prefix value", "", "/api/health/checks/reached-target-cluster-size"),
+			)
+
+			It("does not alter the startup probe path when management.path_prefix is not set", func() {
+				instance.Spec.Rabbitmq.AdditionalConfig = "some_other_key = some_value"
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/api/health/checks/reached-target-cluster-size"))
+			})
+
+			It("finds management.path_prefix among unrelated additionalConfig keys", func() {
+				instance.Spec.Rabbitmq.AdditionalConfig = "some_key = 1\nmanagement.path_prefix = /custom-prefix\nother_key = 2"
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/custom-prefix/api/health/checks/reached-target-cluster-size"))
+			})
+
+			It("combines the path prefix with the management-tls port and HTTPS scheme when TLS is enabled", func() {
+				instance.Spec.Rabbitmq.AdditionalConfig = "management.path_prefix = /custom-prefix"
+				instance.Spec.TLS.SecretName = "tls-secret"
+				instance.Spec.TLS.DisableNonTLSListeners = true
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/custom-prefix/api/health/checks/reached-target-cluster-size"))
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Port).To(Equal(intstr.FromString("management-tls")))
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTPS))
+			})
+
+			It("does not affect the legacy exec startup probe", func() {
+				instance.Annotations = map[string]string{
+					rabbitmqv1beta1.LegacyStartupProbeAnnotation: "true",
+				}
+				instance.Spec.Rabbitmq.AdditionalConfig = "management.path_prefix = /custom-prefix"
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+
+				container := extractContainer(statefulSet.Spec.Template.Spec.Containers, "rabbitmq")
+				Expect(container.StartupProbe.ProbeHandler.Exec).NotTo(BeNil())
+				Expect(container.StartupProbe.ProbeHandler.HTTPGet).To(BeNil())
+			})
+
+			It("errors when additionalConfig cannot be parsed", func() {
+				instance.Spec.Rabbitmq.AdditionalConfig = " = invalid"
+				stsBuilder := builder.StatefulSet()
+				Expect(stsBuilder.Update(statefulSet)).NotTo(Succeed())
 			})
 		})
 

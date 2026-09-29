@@ -25,6 +25,7 @@ import (
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	"github.com/rabbitmq/cluster-operator/v2/internal/metadata"
+	"gopkg.in/ini.v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
@@ -150,7 +151,11 @@ func (builder *StatefulSetBuilder) Update(object client.Object) error {
 	updatePersistenceStorageCapacity(&sts.Spec.VolumeClaimTemplates, builder.Instance.Spec.Persistence.Storage)
 
 	// pod template
-	sts.Spec.Template = builder.podTemplateSpec(sts.Spec.Template.Annotations)
+	podTemplate, err := builder.podTemplateSpec(sts.Spec.Template.Annotations)
+	if err != nil {
+		return fmt.Errorf("failed to build pod template spec: %w", err)
+	}
+	sts.Spec.Template = podTemplate
 
 	if !sts.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().Equal(*sts.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()) {
 		logger := ctrl.Log.WithName("statefulset").WithName("RabbitmqCluster")
@@ -453,7 +458,7 @@ func sortVolumeMounts(mounts []corev1.VolumeMount) {
 	}
 }
 
-func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[string]string) corev1.PodTemplateSpec {
+func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[string]string) (corev1.PodTemplateSpec, error) {
 	// default pod annotations
 	defaultPodAnnotations := make(map[string]string)
 
@@ -464,6 +469,11 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	readinessProbePort := "amqp"
 	if builder.Instance.DisableNonTLSListeners() {
 		readinessProbePort = "amqps"
+	}
+
+	startupProbe, err := builder.startupProbe()
+	if err != nil {
+		return corev1.PodTemplateSpec{}, err
 	}
 
 	volumes := []corev1.Volume{
@@ -776,7 +786,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 						SuccessThreshold:    1,
 						FailureThreshold:    3,
 					},
-					StartupProbe: builder.startupProbe(),
+					StartupProbe: startupProbe,
 					Lifecycle: &corev1.Lifecycle{
 						PreStop: &corev1.LifecycleHandler{
 							Exec: &corev1.ExecAction{
@@ -818,7 +828,7 @@ func (builder *StatefulSetBuilder) podTemplateSpec(previousPodAnnotations map[st
 	podTemplateSpec.Spec.ServiceAccountName = builder.Instance.ChildResourceName(serviceAccountName)
 	podTemplateSpec.Spec.AutomountServiceAccountToken = new(true)
 
-	return podTemplateSpec
+	return podTemplateSpec, nil
 }
 
 func (builder *StatefulSetBuilder) rabbitmqConfigurationIsSet() bool {
@@ -828,7 +838,7 @@ func (builder *StatefulSetBuilder) rabbitmqConfigurationIsSet() bool {
 		builder.Instance.InterNodeTLSEnabled()
 }
 
-func (builder *StatefulSetBuilder) startupProbe() *corev1.Probe {
+func (builder *StatefulSetBuilder) startupProbe() (*corev1.Probe, error) {
 	if _, ok := builder.Instance.Annotations[rabbitmqv1beta1.LegacyStartupProbeAnnotation]; ok {
 		return &corev1.Probe{
 			Exec: &corev1.ExecAction{
@@ -839,7 +849,7 @@ func (builder *StatefulSetBuilder) startupProbe() *corev1.Probe {
 			TimeoutSeconds:      5,
 			PeriodSeconds:       10,
 			FailureThreshold:    30,
-		}
+		}, nil
 	}
 
 	port := intstr.FromString("management")
@@ -849,9 +859,14 @@ func (builder *StatefulSetBuilder) startupProbe() *corev1.Probe {
 		scheme = corev1.URISchemeHTTPS
 	}
 
+	pathPrefix, err := managementPathPrefix(builder.Instance.Spec.Rabbitmq.AdditionalConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &corev1.Probe{
 		HTTPGet: &corev1.HTTPGetAction{
-			Path:   "/api/health/checks/reached-target-cluster-size",
+			Path:   pathPrefix + "/api/health/checks/reached-target-cluster-size",
 			Port:   port,
 			Scheme: scheme,
 		},
@@ -859,7 +874,25 @@ func (builder *StatefulSetBuilder) startupProbe() *corev1.Probe {
 		TimeoutSeconds:      5,
 		PeriodSeconds:       10,
 		FailureThreshold:    30,
+	}, nil
+}
+
+func managementPathPrefix(additionalConfig string) (string, error) {
+	iniFile, err := ini.Load([]byte(additionalConfig))
+	if err != nil {
+		return "", fmt.Errorf("failed to load spec.rabbitmq.additionalConfig: %w", err)
 	}
+
+	section := iniFile.Section("")
+	if !section.HasKey("management.path_prefix") {
+		return "", nil
+	}
+
+	prefix := strings.Trim(section.Key("management.path_prefix").String(), "/")
+	if prefix == "" {
+		return "", nil
+	}
+	return "/" + prefix, nil
 }
 
 func defaultUserCredentialUpdater(instance *rabbitmqv1beta1.RabbitmqCluster) corev1.Container {
