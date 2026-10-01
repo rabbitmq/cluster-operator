@@ -381,27 +381,35 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 	}
 
 	rmqContainer := containerRabbitmq(podSpecOverride.Containers)
-	// handle the rabbitmq container envVar list as a special case if it's overwritten
-	// we need to ensure that MY_POD_NAME, MY_POD_NAMESPACE and K8S_SERVICE_NAME are defined first so other envVars values can reference them
-	if rmqContainer.Env != nil {
-		sortEnvVar(patchedPodSpec.Containers[0].Env)
-	}
-	// handle the rabbitmq container volumeMounts list as a special case if it's overwritten
-	// we need to ensure that '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to avoid shadowing
-	if rmqContainer.VolumeMounts != nil {
-		sortVolumeMounts(patchedPodSpec.Containers[0].VolumeMounts)
-	}
+	// Strategic merge can place a sidecar before rabbitmq, so find the merged container by name.
+	for i := range patchedPodSpec.Containers {
+		if patchedPodSpec.Containers[i].Name != "rabbitmq" {
+			continue
+		}
+		patchedRmqContainer := &patchedPodSpec.Containers[i]
+		// handle the rabbitmq container envVar list as a special case if it's overwritten
+		// we need to ensure that MY_POD_NAME, MY_POD_NAMESPACE and K8S_SERVICE_NAME are defined first so other envVars values can reference them
+		if rmqContainer.Env != nil {
+			sortEnvVar(patchedRmqContainer.Env)
+		}
+		// handle the rabbitmq container volumeMounts list as a special case if it's overwritten
+		// we need to ensure that '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to avoid shadowing
+		if rmqContainer.VolumeMounts != nil {
+			sortVolumeMounts(patchedRmqContainer.VolumeMounts)
+		}
 
-	// allow overriding the liveness and readiness probes
-	// note: as of 2024, we don't set a default LivenessProbe
-	if rmqContainer.LivenessProbe != nil {
-		patchedPodSpec.Containers[0].LivenessProbe = rmqContainer.LivenessProbe
-	}
-	if rmqContainer.ReadinessProbe != nil {
-		patchedPodSpec.Containers[0].ReadinessProbe = rmqContainer.ReadinessProbe
-	}
-	if rmqContainer.StartupProbe != nil {
-		patchedPodSpec.Containers[0].StartupProbe = rmqContainer.StartupProbe
+		// allow overriding the liveness and readiness probes
+		// note: as of 2024, we don't set a default LivenessProbe
+		if rmqContainer.LivenessProbe != nil {
+			patchedRmqContainer.LivenessProbe = rmqContainer.LivenessProbe
+		}
+		if rmqContainer.ReadinessProbe != nil {
+			patchedRmqContainer.ReadinessProbe = rmqContainer.ReadinessProbe
+		}
+		if rmqContainer.StartupProbe != nil {
+			patchedRmqContainer.StartupProbe = rmqContainer.StartupProbe
+		}
+		break
 	}
 
 	// A user may wish to override the controller-set securityContext for the RabbitMQ, init containers, and containers so that the
