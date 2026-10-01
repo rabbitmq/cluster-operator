@@ -52,6 +52,14 @@ jobs:
           # Run the check script
           ./hack/check-github-tool-versions.sh Makefile "$UPDATES_FILE"
 
+      - name: Check for Alpine base image updates
+        id: check-alpine
+        run: |
+          UPDATES_FILE="updates.txt"
+
+          # Run the check script
+          ./hack/check-alpine-version.sh Dockerfile "$UPDATES_FILE"
+
       - name: Check if updates are available
         id: check-updates
         run: |
@@ -69,17 +77,21 @@ jobs:
             echo "All development tools are already at their latest versions. No updates needed." >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Update Makefile
+      - name: Update Makefile and Dockerfile
         if: steps.check-updates.outputs.updates_available == 'true' && github.event.inputs.dry_run != 'true'
         run: |
-          echo "Updating Makefile with new versions..."
+          echo "Updating Makefile and Dockerfile with new versions..."
 
           while IFS='|' read -r var_name current_version new_version repo_url; do
             echo "Updating $var_name: $current_version → $new_version"
-            sed -i "s/^${var_name} ?= .*/${var_name} ?= ${new_version}/" Makefile
+            if [ "$var_name" = "ALPINE_IMAGE" ]; then
+              sed -i "s|/alpine:${current_version}|/alpine:${new_version}|" Dockerfile
+            else
+              sed -i "s/^${var_name} ?= .*/${var_name} ?= ${new_version}/" Makefile
+            fi
           done < updates.txt
 
-          echo "Makefile updated successfully"
+          echo "Makefile and Dockerfile updated successfully"
 
       - name: Generate PR summary
         if: steps.check-updates.outputs.updates_available == 'true'
@@ -107,6 +119,7 @@ jobs:
           ### Changes
 
           - Updated tool versions in `Makefile`
+          - Updated the pinned Alpine base image in `Dockerfile` (if listed above)
 
           ### Testing
 
@@ -154,7 +167,9 @@ jobs:
           labels: |
             dependencies
             automation
-          add-paths: Makefile
+          add-paths: |
+            Makefile
+            Dockerfile
 
       - name: Dry run summary
         if: github.event.inputs.dry_run == 'true' && steps.check-updates.outputs.updates_available == 'true'
