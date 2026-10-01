@@ -30,7 +30,7 @@ RUN CGO_ENABLED=0 GO111MODULE=on go build -a -tags timetzdata -o manager ./cmd
 
 # ---------------------------------------
 ARG DOCKER_REGISTRY=docker.io
-FROM ${DOCKER_REGISTRY}/library/alpine:latest AS etc-builder
+FROM ${DOCKER_REGISTRY}/library/alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS etc-builder
 
 
 RUN echo "rabbitmq-cluster-operator:x:1000:" > /etc/group && \
