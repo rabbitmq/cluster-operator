@@ -8,7 +8,7 @@ WORKDIR /workspace
 # Dependencies are cached unless we change go.mod or go.sum
 COPY go.mod go.mod
 COPY go.sum go.sum
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
 # Copy the go source
 COPY cmd/ cmd/
@@ -26,7 +26,9 @@ ENV GOARCH=$TARGETARCH
 ARG FIPS_MODE=off
 ENV GOFIPS140=$FIPS_MODE
 
-RUN CGO_ENABLED=0 GO111MODULE=on go build -a -tags timetzdata -o manager ./cmd
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GO111MODULE=on go build -tags timetzdata -o manager ./cmd
 
 # ---------------------------------------
 ARG DOCKER_REGISTRY=docker.io
