@@ -2566,6 +2566,129 @@ default_pass = {{ .Data.data.password }}
 
 				})
 
+				Context("RabbitMQ overrides with sidecars", func() {
+					var podSpecOverride *corev1.PodSpec
+
+					BeforeEach(func() {
+						podSpecOverride = &corev1.PodSpec{}
+						instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
+							Spec: &rabbitmqv1beta1.StatefulSetSpec{
+								Template: &rabbitmqv1beta1.PodTemplateSpec{Spec: podSpecOverride},
+							},
+						}
+					})
+
+					DescribeTable("replaces only RabbitMQ probes regardless of container order", func(names []string) {
+						rabbitmq := corev1.Container{
+							Name: "rabbitmq",
+							ReadinessProbe: &corev1.Probe{
+								Exec: &corev1.ExecAction{Command: []string{"custom-readiness-probe"}},
+							},
+							LivenessProbe: &corev1.Probe{
+								Exec: &corev1.ExecAction{Command: []string{"custom-liveness-probe"}},
+							},
+							StartupProbe: &corev1.Probe{
+								Exec: &corev1.ExecAction{Command: []string{"custom-startup-probe"}},
+							},
+						}
+						sidecar := corev1.Container{
+							Image: "sidecar:latest",
+							ReadinessProbe: &corev1.Probe{
+								HTTPGet: &corev1.HTTPGetAction{Path: "/ready", Port: intstr.FromInt(8080)},
+							},
+							LivenessProbe: &corev1.Probe{
+								HTTPGet: &corev1.HTTPGetAction{Path: "/live", Port: intstr.FromInt(8080)},
+							},
+							StartupProbe: &corev1.Probe{
+								HTTPGet: &corev1.HTTPGetAction{Path: "/started", Port: intstr.FromInt(8080)},
+							},
+						}
+						for _, name := range names {
+							container := *sidecar.DeepCopy()
+							container.Name = name
+							if name == "rabbitmq" {
+								container = rabbitmq
+							}
+							podSpecOverride.Containers = append(podSpecOverride.Containers, container)
+						}
+
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+						containers := statefulSet.Spec.Template.Spec.Containers
+						Expect(containers).To(HaveLen(len(names)))
+						for i, name := range names {
+							Expect(containers[i].Name).To(Equal(name))
+						}
+						actualRabbitmq := extractContainer(containers, "rabbitmq")
+						Expect(actualRabbitmq.ReadinessProbe).To(Equal(rabbitmq.ReadinessProbe))
+						Expect(actualRabbitmq.LivenessProbe).To(Equal(rabbitmq.LivenessProbe))
+						Expect(actualRabbitmq.StartupProbe).To(Equal(rabbitmq.StartupProbe))
+						for _, name := range names {
+							if name != "rabbitmq" {
+								sidecar.Name = name
+								Expect(extractContainer(containers, name)).To(Equal(sidecar))
+							}
+						}
+					},
+						Entry("RabbitMQ first", []string{"rabbitmq", "sidecar"}),
+						Entry("sidecar first", []string{"sidecar", "rabbitmq"}),
+						Entry("RabbitMQ between sidecars", []string{"sidecar-1", "rabbitmq", "sidecar-2"}),
+					)
+
+					It("orders RabbitMQ environment dependencies without changing sidecar environment", func() {
+						sidecar := corev1.Container{
+							Name: "sidecar", Image: "sidecar:latest",
+							Env: []corev1.EnvVar{
+								{Name: "SIDECAR_CONFIG", Value: "value"},
+								{Name: "MY_POD_NAME", Value: "sidecar-pod"},
+								{Name: "MY_POD_NAMESPACE", Value: "sidecar-namespace"},
+								{Name: "K8S_SERVICE_NAME", Value: "sidecar-service"},
+							},
+						}
+						dependent := corev1.EnvVar{Name: "CUSTOM_NODENAME", Value: "$(MY_POD_NAME).$(MY_POD_NAMESPACE).$(K8S_SERVICE_NAME)"}
+						podSpecOverride.Containers = []corev1.Container{
+							sidecar,
+							{Name: "rabbitmq", Env: []corev1.EnvVar{dependent}},
+						}
+
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+						containers := statefulSet.Spec.Template.Spec.Containers
+						env := extractContainer(containers, "rabbitmq").Env
+						Expect(len(env)).To(BeNumerically(">=", 4))
+						Expect(env[:3]).To(HaveExactElements(
+							HaveField("Name", "MY_POD_NAME"),
+							HaveField("Name", "MY_POD_NAMESPACE"),
+							HaveField("Name", "K8S_SERVICE_NAME"),
+						))
+						Expect(env[3:]).To(ContainElement(dependent))
+						Expect(extractContainer(containers, "sidecar")).To(Equal(sidecar))
+					})
+
+					It("orders RabbitMQ mounts without changing sidecar mounts", func() {
+						sidecar := corev1.Container{
+							Name: "sidecar", Image: "sidecar:latest",
+							VolumeMounts: []corev1.VolumeMount{
+								{Name: "persistence", MountPath: "/sidecar/data"},
+								{Name: "rabbitmq-erlang-cookie", MountPath: "/sidecar/cookie"},
+							},
+						}
+						customMount := corev1.VolumeMount{Name: "rabbitmq-confd", MountPath: "/etc/rabbitmq/conf.d/custom.conf", SubPath: "custom.conf"}
+						podSpecOverride.Containers = []corev1.Container{
+							sidecar,
+							{Name: "rabbitmq", VolumeMounts: []corev1.VolumeMount{customMount}},
+						}
+
+						Expect(stsBuilder.Update(statefulSet)).To(Succeed())
+						containers := statefulSet.Spec.Template.Spec.Containers
+						mounts := extractContainer(containers, "rabbitmq").VolumeMounts
+						Expect(mounts).To(ContainElement(customMount))
+						Expect(mounts[:2]).To(Equal([]corev1.VolumeMount{
+							{Name: "rabbitmq-erlang-cookie", MountPath: "/var/lib/rabbitmq/"},
+							{Name: "persistence", MountPath: "/var/lib/rabbitmq/mnesia/"},
+						}))
+						Expect(extractContainer(containers, "sidecar")).To(Equal(sidecar))
+					})
+				})
+
 				It("can replace the default readinessProbe", func() {
 					instance.Spec.Override.StatefulSet = &rabbitmqv1beta1.StatefulSet{
 						Spec: &rabbitmqv1beta1.StatefulSetSpec{
