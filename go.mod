@@ -4,7 +4,7 @@ go 1.27.2
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
-	github.com/cloudflare/cfssl v1.6.5
+	github.com/cloudflare/cfssl v1.7.0
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/go-logr/logr v1.4.4
 	github.com/go-stomp/stomp v2.1.4+incompatible
@@ -57,7 +57,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/cel-go v0.31.0 // indirect
-	github.com/google/certificate-transparency-go v1.1.7 // indirect
+	github.com/google/certificate-transparency-go v1.1.8 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20261008003335-7bae8d8c4c9e // indirect
