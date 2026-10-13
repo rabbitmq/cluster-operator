@@ -380,28 +380,32 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 		return corev1.PodSpec{}, fmt.Errorf("error unmarshalling patched Stateful Set: %w", err)
 	}
 
-	rmqContainer := containerRabbitmq(podSpecOverride.Containers)
-	// handle the rabbitmq container envVar list as a special case if it's overwritten
-	// we need to ensure that MY_POD_NAME, MY_POD_NAMESPACE and K8S_SERVICE_NAME are defined first so other envVars values can reference them
-	if rmqContainer.Env != nil {
-		sortEnvVar(patchedPodSpec.Containers[0].Env)
-	}
-	// handle the rabbitmq container volumeMounts list as a special case if it's overwritten
-	// we need to ensure that '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to avoid shadowing
-	if rmqContainer.VolumeMounts != nil {
-		sortVolumeMounts(patchedPodSpec.Containers[0].VolumeMounts)
-	}
+	index, rmqContainer := containerRabbitmq(podSpecOverride.Containers)
 
-	// allow overriding the liveness and readiness probes
-	// note: as of 2024, we don't set a default LivenessProbe
-	if rmqContainer.LivenessProbe != nil {
-		patchedPodSpec.Containers[0].LivenessProbe = rmqContainer.LivenessProbe
-	}
-	if rmqContainer.ReadinessProbe != nil {
-		patchedPodSpec.Containers[0].ReadinessProbe = rmqContainer.ReadinessProbe
-	}
-	if rmqContainer.StartupProbe != nil {
-		patchedPodSpec.Containers[0].StartupProbe = rmqContainer.StartupProbe
+	// Index should never be -1, because container `rabbitmq` must always be present. Add this safeguard just in case.
+	if index != -1 {
+		// handle the rabbitmq container envVar list as a special case if it's overwritten
+		// we need to ensure that MY_POD_NAME, MY_POD_NAMESPACE and K8S_SERVICE_NAME are defined first so other envVars values can reference them
+		if rmqContainer.Env != nil {
+			sortEnvVar(patchedPodSpec.Containers[index].Env)
+		}
+		// handle the rabbitmq container volumeMounts list as a special case if it's overwritten
+		// we need to ensure that '/var/lib/rabbitmq/' always mounts before '/var/lib/rabbitmq/mnesia/' to avoid shadowing
+		if rmqContainer.VolumeMounts != nil {
+			sortVolumeMounts(patchedPodSpec.Containers[index].VolumeMounts)
+		}
+
+		// allow overriding the liveness and readiness probes
+		// note: as of 2024, we don't set a default LivenessProbe
+		if rmqContainer.LivenessProbe != nil {
+			patchedPodSpec.Containers[index].LivenessProbe = rmqContainer.LivenessProbe
+		}
+		if rmqContainer.ReadinessProbe != nil {
+			patchedPodSpec.Containers[index].ReadinessProbe = rmqContainer.ReadinessProbe
+		}
+		if rmqContainer.StartupProbe != nil {
+			patchedPodSpec.Containers[index].StartupProbe = rmqContainer.StartupProbe
+		}
 	}
 
 	// A user may wish to override the controller-set securityContext for the RabbitMQ, init containers, and containers so that the
@@ -1393,11 +1397,11 @@ func mergeMap(base, override map[string]string) map[string]string {
 	return result
 }
 
-func containerRabbitmq(containers []corev1.Container) corev1.Container {
-	for _, container := range containers {
+func containerRabbitmq(containers []corev1.Container) (int, corev1.Container) {
+	for i, container := range containers {
 		if container.Name == "rabbitmq" {
-			return container
+			return i, container
 		}
 	}
-	return corev1.Container{}
+	return -1, corev1.Container{}
 }
