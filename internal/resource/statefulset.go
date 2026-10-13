@@ -382,6 +382,7 @@ func patchPodSpec(podSpec, podSpecOverride *corev1.PodSpec) (corev1.PodSpec, err
 
 	index, rmqContainer := containerRabbitmq(podSpecOverride.Containers)
 
+	// Index should never be -1, because container `rabbitmq` must always be present. Add this safeguard just in case.
 	if index != -1 {
 		// handle the rabbitmq container envVar list as a special case if it's overwritten
 		// we need to ensure that MY_POD_NAME, MY_POD_NAMESPACE and K8S_SERVICE_NAME are defined first so other envVars values can reference them
