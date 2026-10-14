@@ -22,6 +22,7 @@ var (
 func main() {
 	var namespace string
 	var allNamespaces bool
+	var context string
 
 	rootCmd := &cobra.Command{
 		Use:   "kubectl-rabbitmq",
@@ -35,10 +36,11 @@ It provides commands to create, list, manage, and debug RabbitMQ clusters runnin
 	// Global flags
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "Kubernetes namespace")
 	rootCmd.PersistentFlags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "List resources across all namespaces")
+	rootCmd.PersistentFlags().StringVar(&context, "context", "", "Kubernetes context to use")
 
 	// Create a function to get the executor based on current flag values
 	getExecutor := func() *kubectlExecutor {
-		return newKubectlExecutor(namespace, allNamespaces)
+		return newKubectlExecutor(namespace, allNamespaces, context)
 	}
 
 	// Add all subcommands - they will use getExecutor() to get the properly configured executor
