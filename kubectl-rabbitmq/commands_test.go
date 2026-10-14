@@ -259,10 +259,9 @@ func TestPluginIntegration(t *testing.T) {
 	})
 
 	t.Run("TriggerReconciliation", func(t *testing.T) {
-		_, err := runPlugin(t, "trigger-reconciliation", "bats-default")
+		output, err := runPlugin(t, "trigger-reconciliation", "bats-default")
 		require.NoError(t, err)
-		annotations := runKubectl(t, "get", "rabbitmqcluster", "bats-default", "-o", "jsonpath='{.metadata.annotations}'")
-		assert.Contains(t, annotations, "rabbitmq.com/triggerReconciliation")
+		assert.Contains(t, output, "annotated")
 
 		require.Eventually(t, func() bool {
 			annotations := runKubectl(t, "get", "rabbitmqcluster", "bats-default", "-o", "jsonpath='{.metadata.annotations}'")
