@@ -264,6 +264,21 @@ func newListPauseReconciliationInstancesCmd(getExecutor func() *kubectlExecutor)
 	}
 }
 
+func newTriggerReconciliationCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
+	return &cobra.Command{
+		Use:   "trigger-reconciliation INSTANCE",
+		Short: "Trigger an immediate reconciliation for an instance",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			executor := getExecutor()
+			instance := args[0]
+			timestamp := time.Now().UTC().Format(time.RFC3339)
+			return executor.Execute("annotate", "rabbitmqclusters", instance,
+				fmt.Sprintf("rabbitmq.com/triggerReconciliation=%s", timestamp), "--overwrite")
+		},
+	}
+}
+
 func newManageCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	return &cobra.Command{
 		Use:   "manage INSTANCE",
