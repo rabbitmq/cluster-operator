@@ -270,6 +270,19 @@ func TestPluginIntegration(t *testing.T) {
 		}, time.Minute, time.Second, "controller should consume and remove the triggerReconciliation annotation")
 	})
 
+	t.Run("TriggerReconciliationWhilePaused", func(t *testing.T) {
+		_, err := runPlugin(t, "pause-reconciliation", "bats-default")
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			runPlugin(t, "resume-reconciliation", "bats-default")
+		})
+
+		output, err := runPlugin(t, "trigger-reconciliation", "bats-default")
+		require.NoError(t, err)
+		assert.Contains(t, output, "Warning")
+		assert.Contains(t, output, "paused")
+	})
+
 	t.Run("Secrets", func(t *testing.T) {
 		output, err := runPlugin(t, "secrets", "bats-default")
 		require.NoError(t, err)

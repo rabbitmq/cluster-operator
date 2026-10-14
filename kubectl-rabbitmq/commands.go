@@ -9,7 +9,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -272,11 +274,35 @@ func newTriggerReconciliationCmd(getExecutor func() *kubectlExecutor) *cobra.Com
 		RunE: func(cmd *cobra.Command, args []string) error {
 			executor := getExecutor()
 			instance := args[0]
+
+			if paused, err := isReconciliationPaused(executor, instance); err == nil && paused {
+				fmt.Fprintf(os.Stderr, "Warning: reconciliation for %q is paused "+
+					"(rabbitmq.com/pauseReconciliation=true); it will not run until resumed.\n", instance)
+			}
+
 			timestamp := time.Now().UTC().Format(time.RFC3339)
 			return executor.Execute("annotate", "rabbitmqclusters", instance,
 				fmt.Sprintf("rabbitmq.com/triggerReconciliation=%s", timestamp), "--overwrite")
 		},
 	}
+}
+
+// isReconciliationPaused fetches the instance's metadata in one call and checks
+// the pause label alongside whatever other labels/annotations are present.
+func isReconciliationPaused(executor *kubectlExecutor, instanceName string) (bool, error) {
+	output, err := executor.ExecuteWithOutput("get", "rabbitmqclusters", instanceName, "-o", "json")
+	if err != nil {
+		return false, err
+	}
+	var result struct {
+		Metadata struct {
+			Labels map[string]string `json:"labels"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal(output, &result); err != nil {
+		return false, err
+	}
+	return result.Metadata.Labels["rabbitmq.com/pauseReconciliation"] == "true", nil
 }
 
 func newManageCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
