@@ -258,6 +258,29 @@ func TestPluginIntegration(t *testing.T) {
 		assert.NotContains(t, labels, "rabbitmq.com/pauseReconciliation=true")
 	})
 
+	t.Run("TriggerReconciliation", func(t *testing.T) {
+		output, err := runPlugin(t, "trigger-reconciliation", "bats-default")
+		require.NoError(t, err)
+		assert.Contains(t, output, "annotated")
+
+		require.Eventually(t, func() bool {
+			annotations := runKubectl(t, "get", "rabbitmqcluster", "bats-default", "-o", "jsonpath='{.metadata.annotations}'")
+			return !strings.Contains(annotations, "rabbitmq.com/triggerReconciliation")
+		}, time.Minute, time.Second, "controller should consume and remove the triggerReconciliation annotation")
+	})
+
+	t.Run("TriggerReconciliationWhilePaused", func(t *testing.T) {
+		_, err := runPlugin(t, "pause-reconciliation", "bats-default")
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			runPlugin(t, "resume-reconciliation", "bats-default")
+		})
+
+		output, err := runPlugin(t, "trigger-reconciliation", "bats-default")
+		require.Error(t, err)
+		assert.Contains(t, output, "paused")
+	})
+
 	t.Run("Secrets", func(t *testing.T) {
 		output, err := runPlugin(t, "secrets", "bats-default")
 		require.NoError(t, err)
