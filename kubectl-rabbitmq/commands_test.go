@@ -277,8 +277,7 @@ func TestPluginIntegration(t *testing.T) {
 		})
 
 		output, err := runPlugin(t, "trigger-reconciliation", "bats-default")
-		require.NoError(t, err)
-		assert.Contains(t, output, "Warning")
+		require.Error(t, err)
 		assert.Contains(t, output, "paused")
 	})
 

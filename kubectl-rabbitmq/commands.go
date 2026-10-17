@@ -11,7 +11,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -276,8 +275,7 @@ func newTriggerReconciliationCmd(getExecutor func() *kubectlExecutor) *cobra.Com
 			instance := args[0]
 
 			if paused, err := isReconciliationPaused(executor, instance); err == nil && paused {
-				fmt.Fprintf(os.Stderr, "Warning: reconciliation for %q is paused "+
-					"(rabbitmq.com/pauseReconciliation=true); it will not run until resumed.\n", instance)
+				return fmt.Errorf("reconciliation for %q is paused (rabbitmq.com/pauseReconciliation=true); it will not run until resumed", instance)
 			}
 
 			timestamp := time.Now().UTC().Format(time.RFC3339)
