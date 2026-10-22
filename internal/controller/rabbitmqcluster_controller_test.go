@@ -1466,6 +1466,71 @@ var _ = Describe("RabbitmqClusterController", func() {
 		})
 	})
 
+	Context("Trigger reconciliation", func() {
+		BeforeEach(func() {
+			cluster = &rabbitmqv1beta1.RabbitmqCluster{
+				Name:      "rabbitmq-trigger-reconcile",
+				Namespace: defaultNamespace,
+			}
+			Expect(client.Create(ctx, cluster)).To(Succeed())
+			waitForClusterCreation(ctx, cluster, client)
+		})
+
+		It("works", func() {
+			By("consuming the annotation and emitting an event when not paused", func() {
+				timestamp := time.Now().UTC().Format(time.RFC3339)
+				Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+					r.Annotations = map[string]string{"rabbitmq.com/triggerReconciliation": timestamp}
+				})).To(Succeed())
+
+				// the annotation is removed once consumed
+				Eventually(func() map[string]string {
+					rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+					Expect(client.Get(ctx,
+						types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)).To(Succeed())
+					return rmq.Annotations
+				}, 10*time.Second).ShouldNot(HaveKey("rabbitmq.com/triggerReconciliation"))
+
+				// ReconciliationTriggered event is published
+				Eventually(func() string {
+					return aggregateEventMsgs(ctx, cluster, "ReconciliationTriggered")
+				}, 10*time.Second).Should(
+					ContainSubstring(fmt.Sprintf("manual reconciliation requested at %s", timestamp)))
+			})
+
+			By("not consuming the annotation while reconciliation is paused", func() {
+				timestamp := time.Now().UTC().Format(time.RFC3339)
+				Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+					r.Labels = map[string]string{"rabbitmq.com/pauseReconciliation": "true"}
+					r.Annotations = map[string]string{"rabbitmq.com/triggerReconciliation": timestamp}
+				})).To(Succeed())
+
+				getAnnotations := func() map[string]string {
+					rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+					Expect(client.Get(ctx,
+						types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)).To(Succeed())
+					return rmq.Annotations
+				}
+
+				// wait for the write to be observable, then confirm it is left untouched while paused
+				Eventually(getAnnotations, 10*time.Second).Should(HaveKeyWithValue("rabbitmq.com/triggerReconciliation", timestamp))
+				Consistently(getAnnotations, 5*time.Second).Should(HaveKeyWithValue("rabbitmq.com/triggerReconciliation", timestamp))
+
+				Expect(updateWithRetry(cluster, func(r *rabbitmqv1beta1.RabbitmqCluster) {
+					r.Labels = map[string]string{}
+				})).To(Succeed())
+
+				// annotation is consumed once resumed
+				Eventually(func() map[string]string {
+					rmq := &rabbitmqv1beta1.RabbitmqCluster{}
+					Expect(client.Get(ctx,
+						types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, rmq)).To(Succeed())
+					return rmq.Annotations
+				}, 10*time.Second).ShouldNot(HaveKey("rabbitmq.com/triggerReconciliation"))
+			})
+		})
+	})
+
 })
 
 func extractContainer(containers []corev1.Container, containerName string) corev1.Container {

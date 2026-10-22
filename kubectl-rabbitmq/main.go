@@ -56,6 +56,7 @@ It provides commands to create, list, manage, and debug RabbitMQ clusters runnin
 		newPauseReconciliationCmd(getExecutor),
 		newResumeReconciliationCmd(getExecutor),
 		newListPauseReconciliationInstancesCmd(getExecutor),
+		newTriggerReconciliationCmd(getExecutor),
 		newManageCmd(getExecutor),
 		newPerfTestCmd(getExecutor),
 		newStreamPerfTestCmd(getExecutor),

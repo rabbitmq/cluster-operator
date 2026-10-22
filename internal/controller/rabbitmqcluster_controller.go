@@ -55,9 +55,10 @@ var (
 )
 
 const (
-	ownerKey                 = ".metadata.controller"
-	ownerKind                = "RabbitmqCluster"
-	pauseReconciliationLabel = "rabbitmq.com/pauseReconciliation"
+	ownerKey                        = ".metadata.controller"
+	ownerKind                       = "RabbitmqCluster"
+	pauseReconciliationLabel        = "rabbitmq.com/pauseReconciliation"
+	triggerReconciliationAnnotation = "rabbitmq.com/triggerReconciliation"
 )
 
 // RabbitmqClusterReconciler reconciles a RabbitmqCluster object
@@ -125,6 +126,15 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			logger.Error(writerErr, "Error trying to Patch NoWarnings condition state")
 		}
 		return ctrl.Result{}, nil
+	}
+
+	if v, ok := rabbitmqCluster.Annotations[triggerReconciliationAnnotation]; ok && v != "" {
+		logger.Info("Reconciliation manually triggered", "requestedAt", v)
+		r.Recorder.Event(rabbitmqCluster, corev1.EventTypeNormal, "ReconciliationTriggered",
+			fmt.Sprintf("manual reconciliation requested at %s", v))
+		if err := r.deleteAnnotation(ctx, rabbitmqCluster, triggerReconciliationAnnotation); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if requeueAfter, err := r.reconcileOperatorDefaults(ctx, rabbitmqCluster); err != nil || requeueAfter > 0 {
