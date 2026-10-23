@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	"github.com/rabbitmq/cluster-operator/v2/internal/status"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -35,6 +36,11 @@ type RabbitmqClusterStatus struct {
 
 	// DeprecatedFeaturesUsed exposes whether there are deprecated features in-use in a RabbitMQ server.
 	DeprecatedFeaturesUsed []string `json:"deprecatedFeaturesUsed,omitempty"`
+
+	// Replicas is the number of RabbitMQ pods currently running, as reported by
+	// the StatefulSet. It backs the status of the /scale subresource.
+	// +optional
+	Replicas int32 `json:"replicas,omitempty"`
 }
 
 // Contains references to resources created with the RabbitmqCluster resource.
@@ -111,4 +117,14 @@ func (clusterStatus *RabbitmqClusterStatus) SetCondition(condType status.Rabbitm
 			break
 		}
 	}
+}
+
+// SetReplicas sets the observed replicas from the StatefulSet status. It is
+// set to 0 when the StatefulSet does not exist.
+func (clusterStatus *RabbitmqClusterStatus) SetReplicas(sts *appsv1.StatefulSet) {
+	if sts == nil {
+		clusterStatus.Replicas = 0
+		return
+	}
+	clusterStatus.Replicas = sts.Status.Replicas
 }
