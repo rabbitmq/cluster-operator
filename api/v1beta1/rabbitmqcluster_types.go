@@ -30,6 +30,12 @@ const (
 	LegacyStartupProbeAnnotation           = "rabbitmq.com/legacy-startup-probe"
 )
 
+// The scale subresource intentionally has no selectorpath. Without a selector, the
+// HorizontalPodAutoscaler refuses to manage RabbitmqCluster. This is deliberate: scaling
+// down a running RabbitMQ cluster is not supported, so horizontal scaling must remain a
+// human operator decision. /scale exists so tools like KEDA and `kubectl scale` can use
+// the scale-to-zero path (0 <-> N).
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
