@@ -20,6 +20,7 @@ func TestNewKubectlExecutor(t *testing.T) {
 		name          string
 		namespace     string
 		allNamespaces bool
+		context       string
 	}{
 		{
 			name:          "with namespace",
@@ -36,15 +37,20 @@ func TestNewKubectlExecutor(t *testing.T) {
 			namespace:     "",
 			allNamespaces: false,
 		},
+		{
+			name:    "with context",
+			context: "my-context",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			executor := newKubectlExecutor(tt.namespace, tt.allNamespaces)
+			executor := newKubectlExecutor(tt.namespace, tt.allNamespaces, tt.context)
 			assert.NotNil(t, executor)
 			assert.Equal(t, tt.namespace, executor.namespace)
 			assert.Equal(t, tt.allNamespaces, executor.allNamespaces)
+			assert.Equal(t, tt.context, executor.context)
 		})
 	}
 }
@@ -55,6 +61,7 @@ func TestBuildArgs(t *testing.T) {
 		name          string
 		namespace     string
 		allNamespaces bool
+		context       string
 		args          []string
 		expected      []string
 	}{
@@ -93,12 +100,25 @@ func TestBuildArgs(t *testing.T) {
 			args:          []string{},
 			expected:      []string{},
 		},
+		{
+			name:     "with context",
+			context:  "my-context",
+			args:     []string{"get", "pods"},
+			expected: []string{"get", "--context", "my-context", "pods"},
+		},
+		{
+			name:      "with context and namespace",
+			context:   "my-context",
+			namespace: "my-namespace",
+			args:      []string{"get", "pods"},
+			expected:  []string{"get", "--context", "my-context", "-n", "my-namespace", "pods"},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			executor := newKubectlExecutor(tt.namespace, tt.allNamespaces)
+			executor := newKubectlExecutor(tt.namespace, tt.allNamespaces, tt.context)
 			result := executor.buildArgs(tt.args...)
 			assert.Equal(t, tt.expected, result)
 		})
