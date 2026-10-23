@@ -82,4 +82,20 @@ var _ = Describe("RabbitmqClusterStatus", func() {
 		Expect(updatedCondition.LastTransitionTime).NotTo(Equal(notExpectedTime))
 		Expect(updatedCondition.LastTransitionTime.Before(&notExpectedTime)).To(BeFalse())
 	})
+
+	Context("SetReplicas", func() {
+		It("sets replicas to 0 when the StatefulSet is nil", func() {
+			rmqStatus := RabbitmqClusterStatus{Replicas: 5}
+			rmqStatus.SetReplicas(nil)
+			Expect(rmqStatus.Replicas).To(BeZero())
+		})
+
+		It("sets replicas from the StatefulSet status", func() {
+			rmqStatus := RabbitmqClusterStatus{}
+			sts := &appsv1.StatefulSet{}
+			sts.Status.Replicas = 3
+			rmqStatus.SetReplicas(sts)
+			Expect(rmqStatus.Replicas).To(Equal(int32(3)))
+		})
+	})
 })
