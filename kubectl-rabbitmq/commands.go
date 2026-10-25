@@ -354,6 +354,24 @@ func newManageCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	}
 }
 
+// we extract --context manually since flag parsing is disabled for perf commands
+func extractContextFlag(args []string) (context string, remaining []string) {
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--context" && i+1 < len(args):
+			context = args[i+1]
+			remaining = append(remaining, args[:i]...)
+			return context, append(remaining, args[i+2:]...)
+		case strings.HasPrefix(arg, "--context="):
+			context = strings.TrimPrefix(arg, "--context=")
+			remaining = append(remaining, args[:i]...)
+			return context, append(remaining, args[i+1:]...)
+		}
+	}
+	return "", args
+}
+
 func newPerfTestCmd(getExecutor func() *kubectlExecutor) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "perf-test INSTANCE [PERF_TEST_ARGS...]",
@@ -377,9 +395,17 @@ To monitor perf-test, create a PodMonitor:
 		DisableFlagParsing:    true,
 		DisableFlagsInUseLine: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			contextOverride, remaining := extractContextFlag(args)
+			if len(remaining) < 1 {
+				return fmt.Errorf("requires an INSTANCE argument, got %d", len(remaining))
+			}
+
 			executor := getExecutor()
-			instance := args[0]
-			perfTestArgs := args[1:]
+			if contextOverride != "" {
+				executor.context = contextOverride
+			}
+			instance := remaining[0]
+			perfTestArgs := remaining[1:]
 
 			creds, err := getInstanceCredentials(executor, instance)
 			if err != nil {
@@ -402,9 +428,17 @@ See https://rabbitmq.github.io/rabbitmq-stream-java-client/snapshot/htmlsingle/ 
 		DisableFlagParsing:    true,
 		DisableFlagsInUseLine: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			contextOverride, remaining := extractContextFlag(args)
+			if len(remaining) < 1 {
+				return fmt.Errorf("requires an INSTANCE argument, got %d", len(remaining))
+			}
+
 			executor := getExecutor()
-			instance := args[0]
-			streamPerfTestArgs := args[1:]
+			if contextOverride != "" {
+				executor.context = contextOverride
+			}
+			instance := remaining[0]
+			streamPerfTestArgs := remaining[1:]
 
 			creds, err := getInstanceCredentials(executor, instance)
 			if err != nil {
