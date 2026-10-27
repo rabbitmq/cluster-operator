@@ -19,13 +19,15 @@ import (
 type kubectlExecutor struct {
 	namespace     string
 	allNamespaces bool
+	context       string
 }
 
 // newKubectlExecutor creates a new kubectlExecutor with the given namespace configuration
-func newKubectlExecutor(namespace string, allNamespaces bool) *kubectlExecutor {
+func newKubectlExecutor(namespace string, allNamespaces bool, context string) *kubectlExecutor {
 	return &kubectlExecutor{
 		namespace:     namespace,
 		allNamespaces: allNamespaces,
+		context:       context,
 	}
 }
 
@@ -66,6 +68,11 @@ func (k *kubectlExecutor) buildArgs(args ...string) []string {
 
 	// First argument is typically the kubectl subcommand (get, apply, etc.)
 	cmdArgs := []string{args[0]}
+
+	// Add context flag after the subcommand
+	if k.context != "" {
+		cmdArgs = append(cmdArgs, "--context", k.context)
+	}
 
 	// Add namespace flags after the subcommand
 	if k.allNamespaces {

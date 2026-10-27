@@ -130,3 +130,41 @@ func TestCreateStreamPerfTestJobYAML(t *testing.T) {
 
 // Note: CreatePerfTestJob, CreateStreamPerfTestJob, and applyJobYAML require
 // actual kubectl access, so they're tested in integration tests (commands_test.go)
+
+func TestExtractContextFlag(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name              string
+		args              []string
+		expectedContext   string
+		expectedRemaining []string
+	}{
+		{
+			name:              "no context flag",
+			args:              []string{"my-instance", "--rate", "100"},
+			expectedContext:   "",
+			expectedRemaining: []string{"my-instance", "--rate", "100"},
+		},
+		{
+			name:              "context flag before instance",
+			args:              []string{"--context", "my-context", "my-instance", "--rate", "100"},
+			expectedContext:   "my-context",
+			expectedRemaining: []string{"my-instance", "--rate", "100"},
+		},
+		{
+			name:              "context flag with equals form after instance",
+			args:              []string{"my-instance", "--context=my-context", "--rate", "100"},
+			expectedContext:   "my-context",
+			expectedRemaining: []string{"my-instance", "--rate", "100"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			context, remaining := extractContextFlag(tt.args)
+			assert.Equal(t, tt.expectedContext, context)
+			assert.Equal(t, tt.expectedRemaining, remaining)
+		})
+	}
+}
