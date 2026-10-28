@@ -150,11 +150,16 @@ $(YTT): $(LOCALBIN)
 
 # https://github.com/cert-manager/cmctl/releases
 .PHONY: cmctl
-cmctl: $(CMCTL) ## Download cmctl locally if necessary.
-$(CMCTL): $(LOCALBIN) $(LOCAL_TMP)
-	curl -sSL -o $(LOCAL_TMP)/cmctl.tar.gz https://github.com/cert-manager/cmctl/releases/download/$(CMCTL_VERSION)/cmctl_$(platform)_$(ARCHITECTURE).tar.gz
-	tar -C $(LOCAL_TMP) -xzf $(LOCAL_TMP)/cmctl.tar.gz
-	mv $(LOCAL_TMP)/cmctl $(CMCTL)
+cmctl: $(CMCTL) ## Download cmctl locally if missing or its version differs.
+$(CMCTL): | $(LOCALBIN) $(LOCAL_TMP)
+	@set -e; \
+	[ -f "$(CMCTL)-$(CMCTL_VERSION)-$(platform)-$(ARCHITECTURE)" ] && [ "$$(readlink -- "$(CMCTL)" 2>/dev/null)" = "$(CMCTL)-$(CMCTL_VERSION)-$(platform)-$(ARCHITECTURE)" ] || { \
+		printf 'Downloading and installing cmctl %s\n' "$(CMCTL_VERSION)"; \
+		curl -fsSL -o "$(LOCAL_TMP)/cmctl.tar.gz" "https://github.com/cert-manager/cmctl/releases/download/$(CMCTL_VERSION)/cmctl_$(platform)_$(ARCHITECTURE).tar.gz"; \
+		tar -C "$(LOCAL_TMP)" -xzf "$(LOCAL_TMP)/cmctl.tar.gz"; \
+		mv "$(LOCAL_TMP)/cmctl" "$(CMCTL)-$(CMCTL_VERSION)-$(platform)-$(ARCHITECTURE)"; \
+	}; \
+	ln -sf "$$(realpath "$(CMCTL)-$(CMCTL_VERSION)-$(platform)-$(ARCHITECTURE)")" "$(CMCTL)"
 
 # https://github.com/kubernetes-sigs/kind/releases
 .PHONY: kind
