@@ -20,31 +20,36 @@ const deletionFinalizer = "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
 
 // addFinalizerIfNeeded adds a deletion finalizer if the RabbitmqCluster does not have one yet and is not marked for deletion
 func (r *RabbitmqClusterReconciler) addFinalizerIfNeeded(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	if rabbitmqCluster.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(rabbitmqCluster, deletionFinalizer) {
-		return clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
-			controllerutil.AddFinalizer(rabbitmqCluster, deletionFinalizer)
-			return r.Update(ctx, rabbitmqCluster)
-		})
-	}
-	return nil
+	return r.patchFinalizer(ctx, rabbitmqCluster, true)
 }
 
 func (r *RabbitmqClusterReconciler) removeFinalizer(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {
-	currentRabbitmqCluster := &rabbitmqv1beta1.RabbitmqCluster{}
-	currentRabbitmqCluster.Name = rabbitmqCluster.Name
-	currentRabbitmqCluster.Namespace = rabbitmqCluster.Namespace
+	return client.IgnoreNotFound(r.patchFinalizer(ctx, rabbitmqCluster, false))
+}
 
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, currentRabbitmqCluster, func() error {
-		controllerutil.RemoveFinalizer(currentRabbitmqCluster, deletionFinalizer)
+func (r *RabbitmqClusterReconciler) patchFinalizer(ctx context.Context, cluster *rabbitmqv1beta1.RabbitmqCluster, add bool) error {
+	if add && (!cluster.DeletionTimestamp.IsZero() || controllerutil.ContainsFinalizer(cluster, deletionFinalizer)) {
+		return nil
+	}
+	return clientretry.RetryOnConflict(clientretry.DefaultRetry, func() error {
+		current := &rabbitmqv1beta1.RabbitmqCluster{}
+		if err := r.directReader().Get(ctx, client.ObjectKeyFromObject(cluster), current); err != nil {
+			return err
+		}
+		base := current.DeepCopy()
+		if add {
+			if !current.DeletionTimestamp.IsZero() || !controllerutil.AddFinalizer(current, deletionFinalizer) {
+				return nil
+			}
+		} else if !controllerutil.RemoveFinalizer(current, deletionFinalizer) {
+			return nil
+		}
+		if err := r.Patch(ctx, current, client.MergeFromWithOptions(base, client.MergeFromWithOptimisticLock{})); err != nil {
+			return err
+		}
+		*cluster = *current
 		return nil
 	})
-
-	if err != nil {
-		ctrl.LoggerFrom(ctx).Error(err, "Failed to remove finalizer for deletion")
-		return client.IgnoreNotFound(err)
-	}
-
-	return nil
 }
 
 func (r *RabbitmqClusterReconciler) prepareForDeletion(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster) error {

@@ -164,6 +164,7 @@ func (r *RabbitmqClusterReconciler) reconcileRabbitmqVersionAnnotation(ctx conte
 		return 0, nil
 	}
 
+	base := rmq.DeepCopy()
 	if rmq.Annotations == nil {
 		rmq.Annotations = make(map[string]string)
 	}
@@ -171,7 +172,7 @@ func (r *RabbitmqClusterReconciler) reconcileRabbitmqVersionAnnotation(ctx conte
 	rmq.Annotations[rabbitmqv1beta1.RabbitmqVersionAnnotation] = overview.RabbitMQVersion
 	rmq.Annotations[rabbitmqv1beta1.ErlangVersionAnnotation] = overview.ErlangVersion
 
-	if err := r.Update(ctx, rmq); err != nil {
+	if err := r.Patch(ctx, rmq, client.MergeFromWithOptions(base, client.MergeFromWithOptimisticLock{})); err != nil {
 		return 0, fmt.Errorf("failed to update RabbitmqCluster with version annotations: %w", err)
 	}
 

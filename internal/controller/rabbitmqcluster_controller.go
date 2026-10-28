@@ -85,7 +85,7 @@ type RabbitmqClusterReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters/status,verbs=get;update
 // +kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;create;patch
@@ -493,6 +493,7 @@ func validateAndGetOwner(owner *metav1.OwnerReference) []string {
 }
 
 func (r *RabbitmqClusterReconciler) markForQueueRebalance(ctx context.Context, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+	base := rmq.DeepCopy()
 	if rmq.Annotations == nil {
 		rmq.Annotations = make(map[string]string)
 	}
@@ -503,5 +504,5 @@ func (r *RabbitmqClusterReconciler) markForQueueRebalance(ctx context.Context, r
 
 	rmq.Annotations[queueRebalanceAnnotation] = time.Now().Format(time.RFC3339)
 
-	return r.Update(ctx, rmq)
+	return r.Patch(ctx, rmq, client.MergeFromWithOptions(base, client.MergeFromWithOptimisticLock{}))
 }
