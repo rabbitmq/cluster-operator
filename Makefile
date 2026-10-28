@@ -244,10 +244,10 @@ just-integration-tests: kubebuilder-assets ## Run just integration tests without
 ##@ Development
 
 .PHONY: manifests
-manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
+manifests: controller-gen yj ## Generate manifests e.g. CRD, RBAC etc.
 	"$(CONTROLLER_GEN)" crd rbac:roleName=rabbitmq-cluster-operator-role paths="./api/...;./internal/controller/..." output:crd:artifacts:config=config/crd/bases
 	"$(CONTROLLER_GEN)" webhook paths="./internal/webhook/..." output:webhook:artifacts:config=config/webhook
-	./hack/remove-override-descriptions.sh
+	YJ="$(YJ)" ./hack/remove-override-descriptions.sh
 	./hack/add-notice-to-yaml.sh config/rbac/role.yaml
 	./hack/add-notice-to-yaml.sh config/crd/bases/rabbitmq.com_rabbitmqclusters.yaml
 	./hack/add-notice-to-yaml.sh config/webhook/manifests.yaml

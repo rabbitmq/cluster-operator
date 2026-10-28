@@ -377,9 +377,17 @@ func (r *RabbitmqClusterReconciler) updateStatusConditions(ctx context.Context, 
 	oldConditions := make([]status.RabbitmqClusterCondition, len(rmq.Status.Conditions))
 	copy(oldConditions, rmq.Status.Conditions)
 	patch := client.MergeFrom(rmq.DeepCopy())
+	oldReplicas := rmq.Status.Replicas
 	rmq.Status.SetConditions(childResources)
 
-	if !reflect.DeepEqual(rmq.Status.Conditions, oldConditions) {
+	// childResources[0] may hold a typed nil *StatefulSet when it doesn't exist yet
+	var sts *appsv1.StatefulSet
+	if len(childResources) > 0 {
+		sts, _ = childResources[0].(*appsv1.StatefulSet)
+	}
+	rmq.Status.SetReplicas(sts)
+
+	if !reflect.DeepEqual(rmq.Status.Conditions, oldConditions) || rmq.Status.Replicas != oldReplicas {
 		if err = r.Status().Patch(ctx, rmq, patch); err != nil {
 			// FIXME: must fetch again to avoid the conflict
 			if k8serrors.IsConflict(err) {
