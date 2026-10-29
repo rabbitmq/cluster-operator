@@ -279,7 +279,7 @@ jobs:
       contents: read
       packages: write # GHCR push using GITHUB_TOKEN
       id-token: write # keyless signing of attestations with GitHub OIDC
-    uses: docker/github-builder/.github/workflows/build.yml@58cb9f5b71b1836d6f690c1e95effdeb9b98cb8a # v1.17.0
+    uses: docker/github-builder/.github/workflows/build.yml@cbc9d42f8c89a55623392aadd03600965b80e963 # v1.18.1
     with:
       output: image
       push: true
