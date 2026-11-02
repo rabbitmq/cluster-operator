@@ -2,8 +2,9 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	rabbitmqv1beta1 "github.com/rabbitmq/cluster-operator/v2/api/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,28 +18,34 @@ func (r *RabbitmqClusterReconciler) reconcileOperatorDefaults(ctx context.Contex
 		return 0, nil
 	}
 
-	rabbitmqCluster.Spec.Image = r.DefaultRabbitmqImage
-	if requeue, err := r.updateRabbitmqCluster(ctx, rabbitmqCluster, "image"); err != nil {
-		return requeue, err
+	base := rabbitmqCluster.DeepCopy()
+	changed := false
+	if rabbitmqCluster.Spec.Image != r.DefaultRabbitmqImage {
+		rabbitmqCluster.Spec.Image = r.DefaultRabbitmqImage
+		changed = true
 	}
-
 	if rabbitmqCluster.VaultEnabled() {
-		rabbitmqCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = &r.DefaultUserUpdaterImage
-		if requeue, err := r.updateRabbitmqCluster(ctx, rabbitmqCluster, "default user image"); err != nil {
-			return requeue, err
+		image := rabbitmqCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage
+		if image == nil || *image != r.DefaultUserUpdaterImage {
+			image := r.DefaultUserUpdaterImage
+			rabbitmqCluster.Spec.SecretBackend.Vault.DefaultUserUpdaterImage = &image
+			changed = true
 		}
+	}
+	if changed {
+		return r.patchRabbitmqCluster(ctx, rabbitmqCluster, base)
 	}
 
 	return 0, nil
 }
 
-// updateRabbitmqCluster updates a RabbitmqCluster with the given definition
+// patchRabbitmqCluster patches only changed fields with optimistic locking.
 // it returns a 2 seconds requeue request if update failed due to conflict error
-func (r *RabbitmqClusterReconciler) updateRabbitmqCluster(ctx context.Context, rabbitmqCluster *rabbitmqv1beta1.RabbitmqCluster, updateType string) (time.Duration, error) {
+func (r *RabbitmqClusterReconciler) patchRabbitmqCluster(ctx context.Context, rabbitmqCluster, base *rabbitmqv1beta1.RabbitmqCluster) (time.Duration, error) {
 	logger := ctrl.LoggerFrom(ctx)
-	if err := r.Update(ctx, rabbitmqCluster); err != nil {
+	if err := r.Patch(ctx, rabbitmqCluster, client.MergeFromWithOptions(base, client.MergeFromWithOptimisticLock{})); err != nil {
 		if k8serrors.IsConflict(err) {
-			logger.Info(fmt.Sprintf("failed to update %s because of conflict; requeueing...", updateType),
+			logger.Info("failed to patch images because of conflict; requeueing...",
 				"namespace", rabbitmqCluster.Namespace,
 				"name", rabbitmqCluster.Name)
 			return 2 * time.Second, nil

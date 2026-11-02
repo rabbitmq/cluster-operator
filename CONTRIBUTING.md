@@ -92,6 +92,20 @@ ask the core team for their opinion on the [RabbitMQ users mailing list][rmq-use
 
 This project follows the [Kubernetes Code Conventions for Go](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions), which in turn mostly refer to [Effective Go](https://golang.org/doc/effective_go.html) and [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments). Please ensure your pull requests follow these guidelines.
 
+### Updating RabbitmqCluster resources
+
+Use targeted merge patches for controller changes to RabbitmqCluster spec or
+metadata. Capture a deep-copy baseline before mutation, skip unchanged values,
+and use optimistic locking when a concurrent change could invalidate the
+operation. Fetch fresh state before retrying a conflict. Full-object updates can
+serialize unrelated fields (including numeric resource quantities) and interfere
+with users' field ownership.
+
+Image enforcement patches only changed image fields. Disabling enforcement leaves
+the current images intact. These patches do not clear managedFields ownership
+acquired by previous operator versions, and competing managers of enforced image
+fields may still conflict. Automatic ownership migration is not performed.
+
 ## Code reviews
 
 All submissions, including submissions by project members, require review. We
