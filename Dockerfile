@@ -32,7 +32,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # ---------------------------------------
 ARG DOCKER_REGISTRY=docker.io
-FROM ${DOCKER_REGISTRY}/library/alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS etc-builder
+FROM ${DOCKER_REGISTRY}/library/alpine:3.24.4@sha256:93b41ef40b1677fce8fcc64ff4af09daddfacf5040afde618bc46c1e2d1cc7d4 AS etc-builder
 
 
 RUN echo "rabbitmq-cluster-operator:x:1000:" > /etc/group && \
