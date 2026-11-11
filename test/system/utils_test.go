@@ -119,6 +119,9 @@ func makeRequest(url, httpMethod, rabbitmqUsername, rabbitmqPassword string, bod
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, _ := http.NewRequest(httpMethod, url, bytes.NewReader(body))
 	req.SetBasicAuth(rabbitmqUsername, rabbitmqPassword)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
