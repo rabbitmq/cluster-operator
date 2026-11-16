@@ -319,7 +319,7 @@ jobs:
         rabbitmq-image:
         - rabbitmq:3.13.7-management
         - rabbitmq:management
-        - pivotalrabbitmq/rabbitmq:main-otp27
+        - pivotalrabbitmq/rabbitmq:main-otp29
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v7
