@@ -15,7 +15,7 @@ require (
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.9.0
 	golang.org/x/mod v0.43.0
 	golang.org/x/text v0.44.0
-	gopkg.in/ini.v1 v1.67.3
+	gopkg.in/ini.v1 v1.68.0
 	k8s.io/api v0.37.2
 	k8s.io/apimachinery v0.37.2
 	k8s.io/client-go v0.37.2
