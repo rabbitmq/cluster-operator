@@ -89,7 +89,7 @@ func (r *RabbitmqClusterReconciler) runSetPluginsCommand(ctx context.Context, rm
 	plugins := resource.NewRabbitmqPlugins(rmq.Spec.Rabbitmq.AdditionalPlugins)
 	for i := int32(0); i < *rmq.Spec.Replicas; i++ {
 		podName := fmt.Sprintf("%s-%d", rmq.ChildResourceName("server"), i)
-		cmd := fmt.Sprintf("rabbitmq-plugins set %s", plugins.AsString(" "))
+		cmd := fmt.Sprintf("rabbitmq-plugins set --online %s", plugins.AsString(" "))
 		stdout, stderr, err := r.exec(rmq.Namespace, podName, "rabbitmq", "sh", "-c", cmd)
 		if err != nil {
 			msg := "failed to set plugins on pod"
