@@ -26,7 +26,7 @@ const (
 
 // Annotates an object depending on object type and operationResult.
 // These annotations are temporary markers used in later reconcile loops to perform some action (such as restarting the StatefulSet or executing RabbitMQ CLI commands)
-func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, logger logr.Logger, builder resource.ResourceBuilder, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster) error {
+func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, logger logr.Logger, builder resource.ResourceBuilder, operationResult controllerutil.OperationResult, rmq *rabbitmqv1beta1.RabbitmqCluster, stsExistedBeforeRecreate bool) error {
 	var (
 		obj           client.Object
 		objName       string
@@ -52,7 +52,10 @@ func (r *RabbitmqClusterReconciler) annotateIfNeeded(ctx context.Context, logger
 		annotationKey = serverConfAnnotation
 
 	case *resource.StatefulSetBuilder:
-		if operationResult != controllerutil.OperationResultCreated {
+		// A PVC expansion deletes and recreates the StatefulSet, which makes
+		// CreateOrUpdate report OperationResultCreated. That is not a new cluster,
+		// so it must not trigger the first-run "enable all feature flags" path.
+		if operationResult != controllerutil.OperationResultCreated || stsExistedBeforeRecreate {
 			return nil
 		}
 		obj = &appsv1.StatefulSet{}
