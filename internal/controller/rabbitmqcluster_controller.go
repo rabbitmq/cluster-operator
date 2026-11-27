@@ -222,6 +222,10 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, err
 		}
 
+		// Record whether the StatefulSet existed before any PVC-expansion
+		// recreate so a recreated StatefulSet is not mistaken for a new cluster.
+		stsExistedBeforeRecreate := false
+
 		// only StatefulSetBuilder returns true
 		if builder.UpdateMayRequireStsRecreate() {
 			sts := obj.(*appsv1.StatefulSet)
@@ -230,6 +234,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			if client.IgnoreNotFound(err) != nil {
 				return ctrl.Result{}, err
 			}
+			stsExistedBeforeRecreate = err == nil && current != nil
 
 			// only checks for scale down if statefulSet is created
 			// else continue to CreateOrUpdate()
@@ -282,7 +287,7 @@ func (r *RabbitmqClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, err
 		}
 
-		if err = r.annotateIfNeeded(ctx, logger, builder, operationResult, rabbitmqCluster); err != nil {
+		if err = r.annotateIfNeeded(ctx, logger, builder, operationResult, rabbitmqCluster, stsExistedBeforeRecreate); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
